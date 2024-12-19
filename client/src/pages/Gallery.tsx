@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import Masonry from "react-masonry-css";
+import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -29,6 +30,7 @@ export default function Gallery() {
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
   const [scale, setScale] = useState(100); // Scale percentage
   const [isUploading, setIsUploading] = useState(false);
+  const [isReorderMode, setIsReorderMode] = useState(false);
   
   const { data: gallery, isLoading } = useQuery<{ images: any[] }>({
     queryKey: [`/api/galleries/${slug}`],
@@ -166,6 +168,34 @@ export default function Gallery() {
     },
   });
 
+  const reorderImageMutation = useMutation({
+    mutationFn: async (newOrder: number[]) => {
+      const res = await fetch(`/api/galleries/${slug}/reorder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: newOrder }),
+      });
+      if (!res.ok) throw new Error('Failed to reorder images');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      toast({
+        title: "Order Saved",
+        description: "Image order saved successfully.",
+      });
+      setIsReorderMode(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to save image order: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+
   // Adjust breakpoints based on scale to maintain proper layout
   const breakpointCols = {
     default: scale > 120 ? 3 : 4,
@@ -225,6 +255,13 @@ export default function Gallery() {
               <span className="text-sm text-muted-foreground">Uploading...</span>
             </div>
           )}
+          <Button
+            variant={isReorderMode ? "default" : "outline"}
+            onClick={() => setIsReorderMode(!isReorderMode)}
+            className="ml-auto"
+          >
+            {isReorderMode ? "Save Order" : "Reorder"}
+          </Button>
         </div>
       </div>
       
@@ -238,12 +275,81 @@ export default function Gallery() {
 
       <div className="px-6 md:px-8 lg:px-12 py-8">
         <div style={{ maxWidth: `${scale}%`, margin: '0 auto', width: '100%' }}>
-          <Masonry
-            breakpointCols={breakpointCols}
-            className="flex -ml-6 w-auto"
-            columnClassName="pl-6 bg-background"
-          >
-            {gallery.images.map((image: any, index: number) => (
+          {isReorderMode ? (
+            <DragDropContext
+              onDragEnd={({ destination, source }) => {
+                if (!destination) return;
+                
+                const newImages = Array.from(gallery.images);
+                const [removed] = newImages.splice(source.index, 1);
+                newImages.splice(destination.index, 0, removed);
+                
+                // Update the backend with the new order
+                reorderImageMutation.mutate(newImages.map(img => img.id));
+              }}
+            >
+              <Droppable droppableId="gallery">
+                {(provided) => (
+                  <div
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                  >
+                    {gallery.images.map((image: any, index: number) => (
+                      <Draggable key={image.id} draggableId={String(image.id)} index={index}>
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className="cursor-move"
+                          >
+                            <div className="relative">
+                              <img
+                                src={image.url}
+                                alt=""
+                                className="w-full h-auto object-contain rounded-md"
+                                loading="lazy"
+                              />
+                              <div className="absolute top-2 right-2 flex gap-2">
+                                {image.commentCount > 0 && (
+                                  <Badge 
+                                    className="bg-primary text-primary-foreground flex items-center gap-1"
+                                    variant="secondary"
+                                  >
+                                    <MessageCircle className="w-3 h-3" />
+                                    {image.commentCount}
+                                  </Badge>
+                                )}
+                                <Button
+                                  variant={image.flagged ? "destructive" : "secondary"}
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    flagImageMutation.mutate(image.id);
+                                  }}
+                                >
+                                  <Flag className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
+          ) : (
+            <Masonry
+              breakpointCols={breakpointCols}
+              className="flex -ml-6 w-auto"
+              columnClassName="pl-6 bg-background"
+            >
+              {gallery.images.map((image: any, index: number) => (
               <div 
                 key={image.id} 
                 className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
@@ -285,7 +391,8 @@ export default function Gallery() {
                 </div>
               </div>
             ))}
-          </Masonry>
+            </Masonry>
+          )}
         </div>
       </div>
 
