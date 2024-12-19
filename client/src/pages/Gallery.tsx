@@ -696,16 +696,13 @@ export default function Gallery() {
                   <MessageCircle className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${isCommentPlacementMode ? 'text-primary' : ''}`} />
                 </Button>
               </div>
-              <div className="flex items-center gap-3 ml-4">
+              <div className="ml-4">
                 <Switch
                   id="show-annotations"
                   checked={showAnnotations}
                   onCheckedChange={setShowAnnotations}
                   className="data-[state=checked]:bg-primary"
                 />
-                <Label htmlFor="show-annotations" className="text-sm font-medium text-white">
-                  Show Annotations
-                </Label>
               </div>
             </div>
           </div>
@@ -713,13 +710,13 @@ export default function Gallery() {
             <div 
               className={`relative w-full h-full flex items-center justify-center ${isCommentPlacementMode ? 'cursor-crosshair' : ''}`}
               onClick={(e) => {
-                if (isCommentPlacementMode && e.target === e.currentTarget) {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const x = ((e.clientX - rect.left) / rect.width) * 100;
-                  const y = ((e.clientY - rect.top) / rect.height) * 100;
-                  setNewCommentPos({ x, y });
-                  setIsCommentPlacementMode(false); // Exit comment placement mode after placing
-                }
+                if (!isCommentPlacementMode) return;
+                const target = e.currentTarget;
+                const rect = target.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                setNewCommentPos({ x, y });
+                setIsCommentPlacementMode(false); // Exit comment placement mode after placing
               }}
             >
               <div className="relative">
