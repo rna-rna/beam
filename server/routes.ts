@@ -4,8 +4,8 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images } from '@db/schema';
-import { eq } from 'drizzle-orm';
+import { galleries, images, comments } from '@db/schema';
+import { eq, and } from 'drizzle-orm';
 import { generateSlug } from './utils';
 
 // Configure multer for local storage
@@ -125,6 +125,52 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Gallery fetch error:', error);
       res.status(500).json({ message: 'Failed to fetch gallery' });
+    }
+  });
+
+  // Get comments for an image
+  app.get('/api/images/:imageId/comments', async (req, res) => {
+    try {
+      const imageComments = await db.query.comments.findMany({
+        where: eq(comments.imageId, parseInt(req.params.imageId)),
+        orderBy: (comments, { asc }) => [asc(comments.createdAt)]
+      });
+
+      res.json(imageComments);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      res.status(500).json({ message: 'Failed to fetch comments' });
+    }
+  });
+
+  // Create a new comment
+  app.post('/api/images/:imageId/comments', async (req, res) => {
+    try {
+      const { content, xPosition, yPosition } = req.body;
+      const imageId = parseInt(req.params.imageId);
+
+      // Verify image exists
+      const image = await db.query.images.findFirst({
+        where: eq(images.id, imageId)
+      });
+
+      if (!image) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
+
+      const [comment] = await db.insert(comments)
+        .values({
+          imageId,
+          content,
+          xPosition,
+          yPosition
+        })
+        .returning();
+
+      res.json(comment);
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      res.status(500).json({ message: 'Failed to create comment' });
     }
   });
 
