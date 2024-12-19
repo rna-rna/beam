@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { useParams } from "wouter";
-import { X, MessageCircle, Flag, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, MessageCircle, Star, StarIcon, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -23,7 +23,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings } from "lucide-react";
 
 interface Comment {
   id: number;
@@ -41,6 +40,7 @@ export default function Gallery() {
   const [scale, setScale] = useState(100); // Scale percentage
   const [isUploading, setIsUploading] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
   
   const { data: gallery, isLoading } = useQuery<{ images: any[] }>({
     queryKey: [`/api/galleries/${slug}`],
@@ -126,26 +126,22 @@ export default function Gallery() {
     enabled: !!selectedImage?.id,
   });
 
-  const flagImageMutation = useMutation({
+  const toggleStarMutation = useMutation({
     mutationFn: async (imageId: number) => {
-      const res = await fetch(`/api/images/${imageId}/flag`, {
+      const res = await fetch(`/api/images/${imageId}/star`, { // Changed endpoint
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      if (!res.ok) throw new Error('Failed to flag image');
+      if (!res.ok) throw new Error('Failed to toggle star');
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      toast({
-        title: "Image flagged",
-        description: "The image has been flagged successfully.",
-      });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to flag image. Please try again.",
+        description: "Failed to toggle star. Please try again.",
         variant: "destructive",
       });
     },
@@ -287,6 +283,12 @@ export default function Gallery() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
+                    onClick={() => setShowStarredOnly(!showStarredOnly)}
+                  >
+                    {showStarredOnly ? "Show All Images" : "Show Starred Only"}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
                     onClick={() => {
                       if (isReorderMode && reorderImageMutation.isPending) return;
                       setIsReorderMode(!isReorderMode);
@@ -298,6 +300,10 @@ export default function Gallery() {
                         ? "Saving..." 
                         : "Save Order" 
                       : "Reorder Images"}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowStarredOnly(!showStarredOnly)}>
+                    {showStarredOnly ? "Show All Images" : "Show Starred Images Only"}
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
@@ -369,7 +375,9 @@ export default function Gallery() {
                     ref={provided.innerRef}
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                   >
-                    {gallery.images.map((image: any, index: number) => {
+                    {gallery.images
+                .filter(image => !showStarredOnly || image.starred)
+                .map((image: any, index: number) => {
                       // Use consistent ID format for draggable elements
                       return (
                         <Draggable key={image.id} draggableId={String(image.id)} index={index}>
@@ -400,15 +408,19 @@ export default function Gallery() {
                                     </Badge>
                                   )}
                                   <Button
-                                    variant={image.flagged ? "destructive" : "secondary"}
+                                    variant="ghost"
                                     size="icon"
                                     className="h-6 w-6"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      flagImageMutation.mutate(image.id);
+                                      toggleStarMutation.mutate(image.id);
                                     }}
                                   >
-                                    <Flag className="h-4 w-4" />
+                                    {image.starred ? (
+                                      <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                    ) : (
+                                      <Star className="h-4 w-4" />
+                                    )}
                                   </Button>
                                 </div>
                               </div>
@@ -428,48 +440,54 @@ export default function Gallery() {
               className="flex -ml-6 w-auto"
               columnClassName="pl-6 bg-background"
             >
-              {gallery.images.map((image: any, index: number) => (
-              <div 
-                key={image.id} 
-                className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
-                onClick={() => setSelectedImageIndex(index)}
-                style={{
-                  width: '100%',
-                  transition: 'transform 0.2s'
-                }}
-              >
-                <div className="relative">
-                  <img
-                    src={image.url}
-                    alt=""
-                    className="w-full h-auto object-contain rounded-md"
-                    loading="lazy"
-                  />
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    {image.commentCount > 0 && (
-                      <Badge 
-                        className="bg-primary text-primary-foreground flex items-center gap-1"
-                        variant="secondary"
+              {gallery.images
+                .filter((image: any) => !showStarredOnly || image.starred) // Apply filter
+                .map((image: any, index: number) => (
+                <div 
+                  key={image.id} 
+                  className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
+                  onClick={() => setSelectedImageIndex(index)}
+                  style={{
+                    width: '100%',
+                    transition: 'transform 0.2s'
+                  }}
+                >
+                  <div className="relative">
+                    <img
+                      src={image.url}
+                      alt=""
+                      className="w-full h-auto object-contain rounded-md"
+                      loading="lazy"
+                    />
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      {image.commentCount > 0 && (
+                        <Badge 
+                          className="bg-primary text-primary-foreground flex items-center gap-1"
+                          variant="secondary"
+                        >
+                          <MessageCircle className="w-3 h-3" />
+                          {image.commentCount}
+                        </Badge>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleStarMutation.mutate(image.id);
+                        }}
                       >
-                        <MessageCircle className="w-3 h-3" />
-                        {image.commentCount}
-                      </Badge>
-                    )}
-                    <Button
-                      variant={image.flagged ? "destructive" : "secondary"}
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        flagImageMutation.mutate(image.id);
-                      }}
-                    >
-                      <Flag className="h-4 w-4" />
-                    </Button>
+                        {image.starred ? (
+                          <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        ) : (
+                          <Star className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
             </Masonry>
           )}
         </div>
