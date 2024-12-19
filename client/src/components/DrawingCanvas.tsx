@@ -53,7 +53,13 @@ export function DrawingCanvas({
 
     // Draw saved paths
     savedPaths.forEach(({ pathData }) => {
-      const path = new Path2D(pathData);
+      // Convert percentage-based path data back to pixel coordinates
+      const pixelPathData = pathData.replace(/([ML])\s*(\d*\.?\d+)\s*(\d*\.?\d+)/g, (_, command, x, y) => {
+        const pixelX = (parseFloat(x) / 100) * canvas.width;
+        const pixelY = (parseFloat(y) / 100) * canvas.height;
+        return `${command} ${pixelX} ${pixelY}`;
+      });
+      const path = new Path2D(pixelPathData);
       context.stroke(path);
     });
   }, [width, height, savedPaths]);
@@ -63,8 +69,11 @@ export function DrawingCanvas({
     if (!canvas) return { x: 0, y: 0 };
     
     const rect = canvas.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    const scale = window.devicePixelRatio;
+    
+    // Get the actual coordinates relative to the canvas
+    const x = (event.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (event.clientY - rect.top) * (canvas.height / rect.height);
     return { x, y };
   };
 
@@ -100,9 +109,15 @@ export function DrawingCanvas({
     if (!currentPath) return;
     
     // Convert points to SVG path data
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
     const pathData = currentPath.points.reduce((acc, point, i) => {
       const command = i === 0 ? 'M' : 'L';
-      return `${acc} ${command} ${point.x} ${point.y}`;
+      // Convert absolute coordinates to percentages for storage
+      const x = (point.x / canvas.width) * 100;
+      const y = (point.y / canvas.height) * 100;
+      return `${acc} ${command} ${x} ${y}`;
     }, '');
     
     onSavePath?.(pathData);
