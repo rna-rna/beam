@@ -1,9 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useDropzone } from "react-dropzone";
 import Masonry from "react-masonry-css";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { useParams } from "wouter";
 import { X, MessageCircle, Flag, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -26,9 +28,62 @@ export default function Gallery() {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
   const [scale, setScale] = useState(100); // Scale percentage
+  const [isUploading, setIsUploading] = useState(false);
   
   const { data: gallery, isLoading } = useQuery<{ images: any[] }>({
     queryKey: [`/api/galleries/${slug}`],
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: async (files: File[]) => {
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        files.forEach(file => {
+          formData.append('images', file);
+        });
+
+        const res = await fetch(`/api/galleries/${slug}/images`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) {
+          throw new Error('Failed to upload images');
+        }
+
+        return res.json();
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      toast({
+        title: "Success",
+        description: "Images uploaded successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to upload images. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (selectedImageIndex >= 0) return; // Don't upload if lightbox is open
+    uploadMutation.mutate(acceptedFiles);
+  }, [uploadMutation, selectedImageIndex]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+    },
+    noClick: true // Only accept drag and drop
   });
 
   const selectedImage = gallery?.images[selectedImageIndex] ?? null;
@@ -148,7 +203,9 @@ export default function Gallery() {
   }
 
   return (
-    <>
+    <div {...getRootProps()} className="min-h-screen">
+      <input {...getInputProps()} />
+      
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <span className="text-sm text-muted-foreground">Scale:</span>
@@ -161,8 +218,23 @@ export default function Gallery() {
             className="w-48"
           />
           <span className="text-sm text-muted-foreground">{scale}%</span>
+          
+          {isUploading && (
+            <div className="flex-1 flex items-center gap-4">
+              <Progress value={undefined} className="flex-1" />
+              <span className="text-sm text-muted-foreground">Uploading...</span>
+            </div>
+          )}
         </div>
       </div>
+      
+      {isDragActive && (
+        <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 flex items-center justify-center">
+          <div className="text-lg font-medium text-primary">
+            Drop images to add to gallery
+          </div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 py-8">
         <div style={{ maxWidth: `${scale}%`, margin: '0 auto' }}>
@@ -301,6 +373,6 @@ export default function Gallery() {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
