@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, real, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from 'drizzle-orm';
 
@@ -15,6 +15,7 @@ export const images = pgTable('images', {
   publicId: text('public_id').notNull(),
   width: integer('width').notNull(),
   height: integer('height').notNull(),
+  flagged: boolean('flagged').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 

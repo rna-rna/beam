@@ -155,6 +155,34 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Create a new comment
+  // Toggle flag status for an image
+  app.post('/api/images/:imageId/flag', async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.imageId);
+      
+      // Get current image
+      const image = await db.query.images.findFirst({
+        where: eq(images.id, imageId)
+      });
+
+      if (!image) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
+
+      // Toggle flag status
+      const [updatedImage] = await db
+        .update(images)
+        .set({ flagged: !image.flagged })
+        .where(eq(images.id, imageId))
+        .returning();
+
+      res.json(updatedImage);
+    } catch (error) {
+      console.error('Error flagging image:', error);
+      res.status(500).json({ message: 'Failed to flag image' });
+    }
+  });
+
   app.post('/api/images/:imageId/comments', async (req, res) => {
     try {
       const { content, xPosition, yPosition } = req.body;
