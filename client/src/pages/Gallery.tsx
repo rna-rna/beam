@@ -649,7 +649,7 @@ export default function Gallery() {
           >
             <ChevronRight className="h-8 w-8 text-white" />
           </Button>
-          <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
+          <div className="absolute right-4 top-4 flex items-center gap-2 z-50 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2">
             <Button
               variant="secondary"
               size="icon"
@@ -711,7 +711,7 @@ export default function Gallery() {
           </div>
           {selectedImage && (
             <div 
-              className="relative w-full h-full flex items-center justify-center"
+              className={`relative w-full h-full flex items-center justify-center ${isCommentPlacementMode ? 'cursor-crosshair' : ''}`}
               onClick={(e) => {
                 if (isCommentPlacementMode && e.target === e.currentTarget) {
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -721,7 +721,6 @@ export default function Gallery() {
                   setIsCommentPlacementMode(false); // Exit comment placement mode after placing
                 }
               }}
-              className={isCommentPlacementMode ? 'cursor-crosshair' : ''}
             >
               <div className="relative">
                 <img
