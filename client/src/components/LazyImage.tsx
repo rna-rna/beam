@@ -18,7 +18,7 @@ export function LazyImage({
   const [error, setError] = useState(false);
   const { targetRef, isIntersecting } = useIntersectionObserver({
     threshold: 0.1,
-    rootMargin: '50px',
+    rootMargin: '200px', // Increased rootMargin for earlier preloading
   });
 
   const handleLoad = () => {
@@ -35,7 +35,7 @@ export function LazyImage({
       ref={targetRef as React.RefObject<HTMLDivElement>}
       className="relative w-full h-full"
     >
-      {(!isLoaded || !isIntersecting) && (
+      {!isLoaded && (
         <Skeleton className="absolute inset-0 w-full h-full" />
       )}
       {isIntersecting && !error && (
