@@ -10,23 +10,49 @@ import { eq, and, sql } from 'drizzle-orm';
 // Migrate flagged to starred if needed
 async function migrateSchema() {
   try {
+    console.log('Starting schema migration check...');
+    
+    // First check if the 'starred' column already exists
+    const starredExists = await db.execute(sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'images' AND column_name = 'starred'
+    `);
+
+    // If starred already exists, no need to migrate
+    if (starredExists.rows && starredExists.rows.length > 0) {
+      console.log('Starred column already exists, no migration needed');
+      return;
+    }
+
     // Check if flagged column exists
-    const result = await db.execute(sql`
+    const flaggedExists = await db.execute(sql`
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'images' AND column_name = 'flagged'
     `);
     
-    if (result.length > 0) {
-      console.log('Migrating flagged column to starred...');
+    if (flaggedExists.rows && flaggedExists.rows.length > 0) {
+      console.log('Found flagged column, starting migration...');
+      
+      // Rename flagged to starred
       await db.execute(sql`
         ALTER TABLE images 
         RENAME COLUMN flagged TO starred
       `);
-      console.log('Migration completed successfully');
+      console.log('Successfully renamed flagged column to starred');
+    } else {
+      console.log('Creating new starred column...');
+      // Neither column exists, create the starred column
+      await db.execute(sql`
+        ALTER TABLE images 
+        ADD COLUMN starred BOOLEAN NOT NULL DEFAULT false
+      `);
+      console.log('Successfully created starred column');
     }
   } catch (error) {
     console.error('Migration error:', error);
+    throw error; // Re-throw to handle in the caller
   }
 }
 import { generateSlug } from './utils';
@@ -61,7 +87,15 @@ const upload = multer({
 
 export function registerRoutes(app: Express): Server {
   // Run schema migration
-  migrateSchema().catch(console.error);
+  (async () => {
+    try {
+      await migrateSchema();
+      console.log('Schema migration completed successfully');
+    } catch (error) {
+      console.error('Failed to migrate schema:', error);
+      process.exit(1); // Exit if migration fails
+    }
+  })();
   
   // Ensure uploads directory exists
   const uploadsDir = path.join(process.cwd(), 'uploads');
