@@ -209,26 +209,33 @@ export default function Home() {
           <div className="w-full max-w-6xl mx-auto">
             <Masonry
               breakpointCols={{
-                default: 4,
+                default: 6,
+                2560: 5,
+                1920: 4,
                 1536: 3,
                 1024: 2,
                 640: 1
               }}
-              className="flex -ml-4 w-auto"
+              className="flex -ml-4 w-[calc(100%+1rem)]"
               columnClassName="pl-4 bg-background"
             >
               {Object.entries(previewUrls).map(([fileName, url]) => (
-                <div key={fileName} className="mb-4 relative">
-                  <div className="relative">
+                <div key={fileName} className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]">
+                  <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
                     <img
                       src={url}
                       alt=""
-                      className={`w-full h-auto object-cover rounded-md transition-all duration-300
-                      ${uploadProgress[fileName] < 100 ? 'filter grayscale blur-sm' : ''}`}
+                      className="w-full h-auto object-contain rounded-md"
+                      loading="lazy"
                     />
                     {uploadProgress[fileName] < 100 && (
-                      <div className="absolute inset-x-4 bottom-4">
-                        <Progress value={uploadProgress[fileName]} className="w-full" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                        <div className="w-full max-w-[200px] px-4">
+                          <Progress value={uploadProgress[fileName]} className="w-full" />
+                          <p className="text-sm text-muted-foreground text-center mt-2">
+                            Uploading... {Math.round(uploadProgress[fileName])}%
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
