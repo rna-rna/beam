@@ -46,6 +46,7 @@ export default function Gallery() {
   const [isUploading, setIsUploading] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [showStarredOnly, setShowStarredOnly] = useState(false);
+  const [userName, setUserName] = useState<string>("");
   
   const { data: gallery, isLoading } = useQuery<{ 
     id: number;
@@ -662,6 +663,7 @@ export default function Gallery() {
                   y={comment.yPosition}
                   content={comment.content}
                   author={comment.author}
+                  savedAuthor={userName}
                 />
               ))}
               
@@ -671,7 +673,9 @@ export default function Gallery() {
                   x={newCommentPos.x}
                   y={newCommentPos.y}
                   isNew
+                  savedAuthor={userName}
                   onSubmit={(content, author) => {
+                    setUserName(author); // Save the username for future comments
                     createCommentMutation.mutate({
                       imageId: selectedImage.id,
                       content,
