@@ -40,8 +40,11 @@ export function DrawingCanvas({
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
 
-      // Scale canvas for high DPI displays
+      // Set canvas size to match container while maintaining aspect ratio
+      const containerAspectRatio = rect.width / rect.height;
       const scale = window.devicePixelRatio;
+      
+      // Use the container's dimensions directly
       canvas.width = rect.width * scale;
       canvas.height = rect.height * scale;
 
@@ -51,6 +54,9 @@ export function DrawingCanvas({
       // Clear and reset context
       context.setTransform(1, 0, 0, 1, 0, 0);
       context.scale(scale, scale);
+      
+      // Ensure consistent stroke width regardless of scale
+      context.lineWidth = 2 * scale;
       context.lineCap = "round";
       context.strokeStyle = "rgba(0, 0, 0, 0.8)";
       context.lineWidth = 2;
@@ -94,7 +100,14 @@ export function DrawingCanvas({
 
     // Draw all saved paths
     savedPaths.forEach(({ pathData }) => {
-      const path = new Path2D(pathData);
+      // Convert percentage coordinates back to canvas coordinates
+      const pixelPathData = pathData.replace(/([ML])\s*(\d*\.?\d+)\s*(\d*\.?\d+)/g, (_, command, x, y) => {
+        const rect = canvas.getBoundingClientRect();
+        const canvasX = (parseFloat(x) / 100) * rect.width;
+        const canvasY = (parseFloat(y) / 100) * rect.height;
+        return `${command} ${canvasX} ${canvasY}`;
+      });
+      const path = new Path2D(pixelPathData);
       context.stroke(path);
     });
   }, [savedPaths]);
