@@ -43,20 +43,27 @@ export function registerRoutes(app: Express): Server {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
   app.use('/uploads', express.static(uploadsDir));
+  console.log('Uploads directory configured:', uploadsDir);
 
   app.post('/api/galleries', upload.array('images', 50), async (req, res) => {
     try {
+      console.log('Received upload request');
+      
       if (!req.files || !Array.isArray(req.files)) {
+        console.log('No files in request:', req.files);
         return res.status(400).json({ message: 'No images uploaded' });
       }
+
+      console.log(`Processing ${req.files.length} files`);
 
       const [gallery] = await db.insert(galleries).values({
         slug: generateSlug()
       }).returning();
 
+      console.log('Created gallery with ID:', gallery.id);
+
       const insertPromises = req.files.map(async (file) => {
-        // Get image dimensions (you might want to add sharp or another library later for this)
-        // For now we'll use placeholder values
+        console.log('Processing file:', file.filename);
         return db.insert(images).values({
           galleryId: gallery.id,
           url: `/uploads/${file.filename}`,
@@ -67,11 +74,15 @@ export function registerRoutes(app: Express): Server {
       });
 
       await Promise.all(insertPromises);
+      console.log('Successfully processed all images');
 
       res.json({ galleryId: gallery.slug });
     } catch (error) {
-      console.error('Upload error:', error);
-      res.status(500).json({ message: 'Failed to upload images' });
+      console.error('Upload error details:', error);
+      res.status(500).json({ 
+        message: 'Failed to upload images',
+        details: error.message 
+      });
     }
   });
 
