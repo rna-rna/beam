@@ -123,24 +123,21 @@ export function DrawingCanvas({
     const scaleX = rect.width / canvas.width;
     const scaleY = rect.height / canvas.height;
     
-    // Get mouse position in canvas coordinates
-    const x = (event.clientX - rect.left) / scaleX;
-    const y = (event.clientY - rect.top) / scaleY;
+    // Convert mouse position to canvas coordinates
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
     
-    // Convert to percentage for storage
-    const percentX = (x / canvas.width) * 100;
-    const percentY = (y / canvas.height) * 100;
-    
-    return { x: percentX, y: percentY };
+    return { x, y };
   };
 
   const convertToCanvasPoint = (percentX: number, percentY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     
+    const rect = canvas.getBoundingClientRect();
     // Convert percentage to canvas coordinates
-    const x = (percentX / 100) * canvas.width;
-    const y = (percentY / 100) * canvas.height;
+    const x = (percentX / 100) * rect.width;
+    const y = (percentY / 100) * rect.height;
     
     return { x, y };
   };
