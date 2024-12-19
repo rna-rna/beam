@@ -4,7 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images, comments } from '@db/schema';
+import { galleries, images, comments, annotations } from '@db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 
 // Migrate flagged to starred if needed
@@ -428,6 +428,41 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Error creating comment:', error);
       res.status(500).json({ message: 'Failed to create comment' });
+    }
+  });
+
+  // Save annotation
+  app.post('/api/images/:imageId/annotations', async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.imageId);
+      const { pathData } = req.body;
+
+      const [annotation] = await db.insert(annotations)
+        .values({
+          imageId,
+          pathData
+        })
+        .returning();
+
+      res.json(annotation);
+    } catch (error) {
+      console.error('Error creating annotation:', error);
+      res.status(500).json({ message: 'Failed to create annotation' });
+    }
+  });
+
+  // Get annotations for an image
+  app.get('/api/images/:imageId/annotations', async (req, res) => {
+    try {
+      const results = await db.query.annotations.findMany({
+        where: eq(annotations.imageId, parseInt(req.params.imageId)),
+        orderBy: (annotations, { asc }) => [asc(annotations.createdAt)]
+      });
+
+      res.json(results);
+    } catch (error) {
+      console.error('Error fetching annotations:', error);
+      res.status(500).json({ message: 'Failed to fetch annotations' });
     }
   });
 
