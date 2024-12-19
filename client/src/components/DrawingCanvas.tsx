@@ -35,31 +35,27 @@ export function DrawingCanvas({
       const container = canvas.parentElement;
       if (!container) return;
 
-      // Match canvas display size to container
       const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio;
+
+      // Set display size
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
 
-      // Set canvas size to match container while maintaining aspect ratio
-      const containerAspectRatio = rect.width / rect.height;
-      const scale = window.devicePixelRatio;
-      
-      // Use the container's dimensions directly
-      canvas.width = rect.width * scale;
-      canvas.height = rect.height * scale;
+      // Set actual size in memory
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
 
       const context = canvas.getContext("2d");
       if (!context) return;
 
-      // Clear and reset context
-      context.setTransform(1, 0, 0, 1, 0, 0);
-      context.scale(scale, scale);
-      
-      // Ensure consistent stroke width regardless of scale
-      context.lineWidth = 2 * scale;
+      // Scale all drawing operations by the dpr
+      context.scale(dpr, dpr);
+
+      // Set drawing style
       context.lineCap = "round";
       context.strokeStyle = "rgba(0, 0, 0, 0.8)";
-      context.lineWidth = 2;
+      context.lineWidth = 2; // Constant line width in CSS pixels
       contextRef.current = context;
 
       // Redraw saved paths
@@ -117,21 +113,27 @@ export function DrawingCanvas({
     if (!canvas) return { x: 0, y: 0 };
     
     const rect = canvas.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    // Get the click position in CSS pixels
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
     
-    return { x, y };
+    // Convert to percentage of canvas size
+    const percentX = (x / rect.width) * 100;
+    const percentY = (y / rect.height) * 100;
+    
+    return { x: percentX, y: percentY };
   };
 
-  const convertToCanvasPoint = (x: number, y: number) => {
+  const convertToCanvasPoint = (percentX: number, percentY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     
     const rect = canvas.getBoundingClientRect();
-    const canvasX = (x / 100) * rect.width;
-    const canvasY = (y / 100) * rect.height;
+    // Convert percentage back to CSS pixels
+    const x = (percentX / 100) * rect.width;
+    const y = (percentY / 100) * rect.height;
     
-    return { x: canvasX, y: canvasY };
+    return { x, y };
   };
 
   const startDrawing = (event: React.MouseEvent) => {
