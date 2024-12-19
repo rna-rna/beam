@@ -7,18 +7,20 @@ interface CommentBubbleProps {
   x: number;
   y: number;
   content?: string;
-  onSubmit?: (content: string) => void;
+  author?: string;
+  onSubmit?: (content: string, author: string) => void;
   isNew?: boolean;
 }
 
-export function CommentBubble({ x, y, content, onSubmit, isNew = false }: CommentBubbleProps) {
+export function CommentBubble({ x, y, content, author, onSubmit, isNew = false }: CommentBubbleProps) {
   const [isEditing, setIsEditing] = useState(isNew);
   const [text, setText] = useState(content || "");
+  const [authorName, setAuthorName] = useState(author || "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim() && onSubmit) {
-      onSubmit(text);
+      onSubmit(text, authorName.trim() || "Anonymous");
       setIsEditing(false);
     }
   };
@@ -39,20 +41,34 @@ export function CommentBubble({ x, y, content, onSubmit, isNew = false }: Commen
         </div>
 
         {/* Comment bubble */}
-        <Card className={`absolute left-8 top-0 -translate-y-1/2 w-max max-w-[200px] ${isEditing ? 'p-2' : 'p-3'} bg-card shadow-lg border-primary/20`}>
+        <Card className={`absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px] ${isEditing ? 'p-2' : 'p-3'} bg-card shadow-lg border-primary/20`}>
           {isEditing ? (
-            <form onSubmit={handleSubmit} className="flex gap-2">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+              <Input
+                type="text"
+                value={authorName}
+                onChange={(e) => setAuthorName(e.target.value)}
+                className="min-w-[200px] h-8"
+                placeholder="Your name (optional)"
+              />
               <Input
                 type="text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                className="min-w-[150px] h-8"
+                className="min-w-[200px] h-8"
                 placeholder="Add comment..."
                 autoFocus
               />
             </form>
           ) : (
-            <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
+            <div>
+              {author && (
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  {author}
+                </p>
+              )}
+              <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
+            </div>
           )}
         </Card>
       </div>

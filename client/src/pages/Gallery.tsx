@@ -32,6 +32,7 @@ interface Comment {
   content: string;
   xPosition: number;
   yPosition: number;
+  author?: string;
 }
 
 export default function Gallery() {
@@ -157,11 +158,11 @@ export default function Gallery() {
   });
 
   const createCommentMutation = useMutation({
-    mutationFn: async ({ imageId, content, x, y }: { imageId: number; content: string; x: number; y: number }) => {
+    mutationFn: async ({ imageId, content, author, x, y }: { imageId: number; content: string; author: string; x: number; y: number }) => {
       const res = await fetch(`/api/images/${imageId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, xPosition: x, yPosition: y }),
+        body: JSON.stringify({ content, author, xPosition: x, yPosition: y }),
       });
       if (!res.ok) throw new Error('Failed to create comment');
       return res.json();
@@ -660,6 +661,7 @@ export default function Gallery() {
                   x={comment.xPosition}
                   y={comment.yPosition}
                   content={comment.content}
+                  author={comment.author}
                 />
               ))}
               
@@ -669,10 +671,11 @@ export default function Gallery() {
                   x={newCommentPos.x}
                   y={newCommentPos.y}
                   isNew
-                  onSubmit={(content) => {
+                  onSubmit={(content, author) => {
                     createCommentMutation.mutate({
                       imageId: selectedImage.id,
                       content,
+                      author,
                       x: newCommentPos.x,
                       y: newCommentPos.y,
                     });
