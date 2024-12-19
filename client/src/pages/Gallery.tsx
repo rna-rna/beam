@@ -359,8 +359,19 @@ export default function Gallery() {
         <div style={{ maxWidth: `${scale}%`, margin: '0 auto', width: '100%' }}>
           {isReorderMode ? (
             <DragDropContext
-              onDragEnd={({ destination, source }) => {
-                if (!destination || destination.index === source.index) return;
+              onDragEnd={(result) => {
+                const { destination, source } = result;
+                console.log('Drag operation:', { result });
+                
+                if (!destination) {
+                  console.log('No destination, skipping reorder');
+                  return;
+                }
+                
+                if (destination.index === source.index) {
+                  console.log('Same position, skipping reorder');
+                  return;
+                }
                 
                 if (!gallery?.images) {
                   console.error('No images available for reordering');
@@ -368,7 +379,11 @@ export default function Gallery() {
                 }
                 
                 try {
-                  console.log('Drag ended:', { source, destination });
+                  console.log('Processing drag end:', {
+                    sourceIndex: source.index,
+                    destinationIndex: destination.index,
+                    totalImages: gallery.images.length,
+                  });
                   
                   // Get visible images (either all or only starred)
                   const visibleImages = gallery.images.filter(img => !showStarredOnly || img.starred);
@@ -378,11 +393,19 @@ export default function Gallery() {
                   const [removed] = reorderedImages.splice(source.index, 1);
                   reorderedImages.splice(destination.index, 0, removed);
                   
-                  // Create a position map for all images
-                  const newOrder = gallery.images.map(img => {
+                  // Create a new array with updated positions
+                  const updatedImages = gallery.images.map(img => {
                     const newIndex = reorderedImages.findIndex(rImg => rImg.id === img.id);
-                    return newIndex >= 0 ? reorderedImages[newIndex].id : img.id;
+                    return {
+                      ...img,
+                      position: newIndex >= 0 ? newIndex : img.position
+                    };
                   });
+                  
+                  // Get the order of image IDs
+                  const newOrder = updatedImages
+                    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                    .map(img => img.id);
                   
                   console.log('Reordering images:', {
                     visibleImages: visibleImages.length,
@@ -390,16 +413,25 @@ export default function Gallery() {
                     newOrder,
                   });
                   
-                  console.log('Updating order:', newOrder);
-                  
                   // Optimistically update the UI
                   queryClient.setQueryData([`/api/galleries/${slug}`], {
                     ...gallery,
-                    images: allImages
+                    images: updatedImages
                   });
                   
                   // Update the backend
-                  reorderImageMutation.mutate(newOrder);
+                  reorderImageMutation.mutate(newOrder, {
+                    onError: (error) => {
+                      console.error('Failed to save reorder:', error);
+                      // Revert optimistic update
+                      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+                      toast({
+                        title: "Error",
+                        description: "Failed to save the new order. Please try again.",
+                        variant: "destructive"
+                      });
+                    }
+                  });
                 } catch (error) {
                   console.error('Error during drag operation:', error);
                   queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
