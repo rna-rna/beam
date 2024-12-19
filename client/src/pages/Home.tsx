@@ -85,12 +85,19 @@ export default function Home() {
   });
 
   return (
-    <div className="min-h-screen w-full bg-background p-4">
-      <Card 
-        {...getRootProps()}
-        className={`w-full mx-auto max-w-6xl mb-8 flex flex-col items-center justify-center p-8 cursor-pointer border-2 border-dashed transition-colors
-          ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
-      >
+    <div className="min-h-screen w-full bg-background">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
+        <div className="px-6 md:px-8 lg:px-12 py-4">
+          <h1 className="text-xl font-semibold">Untitled Project</h1>
+        </div>
+      </div>
+
+      <div className="p-4">
+        <Card 
+          {...getRootProps()}
+          className={`w-full mx-auto max-w-6xl mb-8 flex flex-col items-center justify-center p-8 cursor-pointer border-2 border-dashed transition-colors
+            ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+        >
         <input {...getInputProps()} />
         <Upload className="w-16 h-16 text-muted-foreground mb-4" />
         <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -133,6 +140,7 @@ export default function Home() {
           </Masonry>
         </div>
       )}
+      </div>
     </div>
   );
 }
