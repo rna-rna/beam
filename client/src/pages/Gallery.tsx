@@ -5,8 +5,9 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useParams } from "wouter";
-import { X, MessageCircle } from "lucide-react";
+import { X, MessageCircle, Flag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { CommentBubble } from "@/components/CommentBubble";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,6 +32,31 @@ export default function Gallery() {
   const { data: comments = [] } = useQuery<Comment[]>({
     queryKey: [`/api/images/${selectedImage?.id}/comments`],
     enabled: !!selectedImage?.id,
+  });
+
+  const flagImageMutation = useMutation({
+    mutationFn: async (imageId: number) => {
+      const res = await fetch(`/api/images/${imageId}/flag`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error('Failed to flag image');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      toast({
+        title: "Image flagged",
+        description: "The image has been flagged successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to flag image. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const createCommentMutation = useMutation({
@@ -116,15 +142,28 @@ export default function Gallery() {
                   className="w-full h-auto object-contain rounded-md"
                   loading="lazy"
                 />
-                {image.commentCount > 0 && (
-                  <Badge 
-                    className="absolute top-2 right-2 bg-primary text-primary-foreground flex items-center gap-1"
-                    variant="secondary"
+                <div className="absolute top-2 right-2 flex gap-2">
+                  {image.commentCount > 0 && (
+                    <Badge 
+                      className="bg-primary text-primary-foreground flex items-center gap-1"
+                      variant="secondary"
+                    >
+                      <MessageCircle className="w-3 h-3" />
+                      {image.commentCount}
+                    </Badge>
+                  )}
+                  <Button
+                    variant={image.flagged ? "destructive" : "secondary"}
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      flagImageMutation.mutate(image.id);
+                    }}
                   >
-                    <MessageCircle className="w-3 h-3" />
-                    {image.commentCount}
-                  </Badge>
-                )}
+                    <Flag className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
