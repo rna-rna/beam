@@ -15,7 +15,7 @@ export const images = pgTable('images', {
   publicId: text('public_id').notNull(),
   width: integer('width').notNull(),
   height: integer('height').notNull(),
-  flagged: boolean('flagged').default(false).notNull(),
+  starred: boolean('starred').default(false).notNull(),
   position: integer('position'),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
