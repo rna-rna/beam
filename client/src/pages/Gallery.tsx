@@ -379,22 +379,39 @@ export default function Gallery() {
             <DragDropContext
               onDragEnd={(result) => {
                 const { destination, source } = result;
-                console.log('Drag operation:', { result });
+                console.log('Starting drag operation:', {
+                  draggableId: result.draggableId,
+                  source: result.source,
+                  destination: result.destination
+                });
                 
                 if (!destination) {
-                  console.log('No destination, skipping reorder');
+                  console.log('No valid destination found, skipping reorder');
                   return;
                 }
                 
                 if (destination.index === source.index) {
-                  console.log('Same position, skipping reorder');
+                  console.log('Source and destination indexes are same, no reorder needed');
                   return;
                 }
                 
                 if (!gallery?.images) {
-                  console.error('No images available for reordering');
+                  console.error('Gallery images not available');
+                  toast({
+                    title: "Error",
+                    description: "Unable to reorder images. Please try again.",
+                    variant: "destructive"
+                  });
                   return;
                 }
+                
+                // Log the current state
+                console.log('Current gallery state:', {
+                  totalImages: gallery.images.length,
+                  sourceIndex: source.index,
+                  destinationIndex: destination.index,
+                  draggableId: result.draggableId
+                });
                 
                 try {
                   console.log('Processing drag end:', {
@@ -475,8 +492,8 @@ export default function Gallery() {
                         console.log('Rendering draggable:', { id: image.id, draggableId, index });
                         return (
                           <Draggable 
-                            key={draggableId}
-                            draggableId={draggableId}
+                            key={`image-${image.id}`}
+                            draggableId={`image-${image.id}`}
                             index={index}
                           >
                           {(provided, snapshot) => (
