@@ -197,6 +197,36 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Update gallery title
+  app.patch('/api/galleries/:slug/title', async (req, res) => {
+    try {
+      const { title } = req.body;
+      
+      if (!title || typeof title !== 'string') {
+        return res.status(400).json({ message: 'Invalid title' });
+      }
+
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, req.params.slug),
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      const [updated] = await db
+        .update(galleries)
+        .set({ title })
+        .where(eq(galleries.slug, req.params.slug))
+        .returning();
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating gallery title:', error);
+      res.status(500).json({ message: 'Failed to update gallery title' });
+    }
+  });
+
   // Get gallery details
   app.get('/api/galleries/:slug', async (req, res) => {
     try {

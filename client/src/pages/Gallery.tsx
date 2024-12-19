@@ -25,6 +25,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { InlineEdit } from "@/components/InlineEdit";
+
 interface Comment {
   id: number;
   content: string;
@@ -36,6 +38,7 @@ export default function Gallery() {
   const { slug } = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [galleryTitle, setGalleryTitle] = useState<string>("Untitled Project");
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
   const [scale, setScale] = useState(100); // Scale percentage
@@ -175,6 +178,36 @@ export default function Gallery() {
     },
   });
 
+  const updateTitleMutation = useMutation({
+    mutationFn: async (title: string) => {
+      const res = await fetch(`/api/galleries/${slug}/title`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to update gallery title');
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      toast({
+        title: "Success",
+        description: "Gallery title updated",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update gallery title",
+        variant: "destructive",
+      });
+    },
+  });
+
   const reorderImageMutation = useMutation({
     mutationFn: async (newOrder: Array<string | number>) => {
       // Ensure all IDs are numbers
@@ -253,6 +286,11 @@ export default function Gallery() {
       
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
         <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
+          <InlineEdit
+            value={gallery?.title || "Untitled Project"}
+            onSave={(newTitle) => updateTitleMutation.mutate(newTitle)}
+            className="text-xl font-semibold"
+          />
           {isUploading && (
             <div className="flex-1 flex items-center gap-4">
               <Progress value={undefined} className="flex-1" />
