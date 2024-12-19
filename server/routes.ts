@@ -109,12 +109,23 @@ export function registerRoutes(app: Express): Server {
         orderBy: (images, { desc }) => [desc(images.createdAt)]
       });
 
+      // Get comment counts for each image
+      const commentCounts = await Promise.all(
+        galleryImages.map(async (img) => {
+          const count = await db.query.comments.findMany({
+            where: eq(comments.imageId, img.id),
+          });
+          return { imageId: img.id, count: count.length };
+        })
+      );
+
       const processedImages = galleryImages.map(img => ({
         id: img.id,
         url: img.url,
         width: img.width,
         height: img.height,
-        aspectRatio: img.width / img.height
+        aspectRatio: img.width / img.height,
+        commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
 
       res.json({
