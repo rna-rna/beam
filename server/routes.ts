@@ -409,8 +409,16 @@ export function registerRoutes(app: Express): Server {
 
   app.post('/api/images/:imageId/comments', async (req, res) => {
     try {
-      const { content, xPosition, yPosition } = req.body;
+      const { content, xPosition, yPosition, author } = req.body;
       const imageId = parseInt(req.params.imageId);
+
+      console.log('Creating comment with data:', {
+        imageId,
+        content,
+        xPosition,
+        yPosition,
+        author
+      });
 
       // Verify image exists
       const image = await db.query.images.findFirst({
@@ -426,10 +434,12 @@ export function registerRoutes(app: Express): Server {
           imageId,
           content,
           xPosition,
-          yPosition
+          yPosition,
+          author: author || 'Anonymous'
         })
         .returning();
 
+      console.log('Created comment:', comment);
       res.json(comment);
     } catch (error) {
       console.error('Error creating comment:', error);

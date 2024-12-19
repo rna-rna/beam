@@ -630,7 +630,13 @@ export default function Gallery() {
           setNewCommentPos(null);
         }
       }}>
-        <DialogContent className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden">
+        <DialogContent 
+          className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
+          aria-describedby="gallery-lightbox-description"
+        >
+          <div id="gallery-lightbox-description" className="sr-only">
+            Image viewer with annotation and commenting capabilities
+          </div>
           {/* Navigation buttons */}
           <Button
             variant="ghost"
