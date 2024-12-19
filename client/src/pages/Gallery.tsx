@@ -297,18 +297,20 @@ export default function Gallery() {
                   >
                     {gallery.images.map((image: any, index: number) => (
                       <Draggable key={image.id} draggableId={String(image.id)} index={index}>
-                        {(provided) => (
+                        {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className="cursor-move"
+                            className={`cursor-move transition-transform duration-200 ${
+                              snapshot.isDragging ? 'scale-105 shadow-xl z-50' : ''
+                            }`}
                           >
-                            <div className="relative">
+                            <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
                               <img
                                 src={image.url}
                                 alt=""
-                                className="w-full h-auto object-contain rounded-md"
+                                className="w-full h-auto object-cover"
                                 loading="lazy"
                               />
                               <div className="absolute top-2 right-2 flex gap-2">
