@@ -8,6 +8,7 @@ import { useParams } from "wouter";
 import { X, MessageCircle, Flag, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { CommentBubble } from "@/components/CommentBubble";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,6 +25,7 @@ export default function Gallery() {
   const queryClient = useQueryClient();
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
+  const [scale, setScale] = useState(100); // Scale percentage
   
   const { data: gallery, isLoading } = useQuery<{ images: any[] }>({
     queryKey: [`/api/galleries/${slug}`],
@@ -45,7 +47,6 @@ export default function Gallery() {
     }
   };
 
-  // Add and remove keyboard event listeners
   useEffect(() => {
     if (selectedImageIndex >= 0) {
       window.addEventListener('keydown', handleKeyDown);
@@ -147,6 +148,21 @@ export default function Gallery() {
 
   return (
     <>
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
+        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
+          <span className="text-sm text-muted-foreground">Scale:</span>
+          <Slider
+            value={[scale]}
+            onValueChange={([value]) => setScale(value)}
+            min={50}
+            max={150}
+            step={10}
+            className="w-48"
+          />
+          <span className="text-sm text-muted-foreground">{scale}%</span>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 py-8">
         <Masonry
           breakpointCols={breakpointCols}
@@ -158,6 +174,11 @@ export default function Gallery() {
               key={image.id} 
               className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
               onClick={() => setSelectedImageIndex(index)}
+              style={{
+                transform: `scale(${scale / 100})`,
+                transformOrigin: 'top center',
+                marginBottom: `${(scale - 100) * 0.5}px` // Adjust spacing based on scale
+              }}
             >
               <div className="relative">
                 <img
