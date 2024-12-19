@@ -504,18 +504,18 @@ export default function Gallery() {
                                     </Badge>
                                   )}
                                   <Button
-                                    variant="ghost"
+                                    variant="secondary"
                                     size="icon"
-                                    className="h-6 w-6"
+                                    className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       toggleStarMutation.mutate(image.id);
                                     }}
                                   >
                                     {image.starred ? (
-                                      <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                      <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
                                     ) : (
-                                      <Star className="h-4 w-4" />
+                                      <Star className="h-4 w-4 transition-all duration-300 hover:scale-110" />
                                     )}
                                   </Button>
                                 </div>
@@ -566,18 +566,18 @@ export default function Gallery() {
                         </Badge>
                       )}
                       <Button
-                        variant="ghost"
+                        variant="secondary"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleStarMutation.mutate(image.id);
                         }}
                       >
                         {image.starred ? (
-                          <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
                         ) : (
-                          <Star className="h-4 w-4" />
+                          <Star className="h-4 w-4 transition-all duration-300 hover:scale-110" />
                         )}
                       </Button>
                     </div>
@@ -623,16 +623,16 @@ export default function Gallery() {
             <Button
               variant="secondary"
               size="icon"
-              className="h-10 w-10 bg-background hover:bg-background/90"
+              className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleStarMutation.mutate(selectedImage!.id);
               }}
             >
               {selectedImage?.starred ? (
-                <StarIcon className="h-6 w-6 fill-yellow-400 text-yellow-400" />
+                <StarIcon className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
               ) : (
-                <Star className="h-6 w-6" />
+                <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
               )}
             </Button>
           </div>
