@@ -207,7 +207,7 @@ export default function Gallery() {
       <input {...getInputProps()} />
       
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
+        <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
           <span className="text-sm text-muted-foreground">Scale:</span>
           <Slider
             value={[scale]}
@@ -236,12 +236,12 @@ export default function Gallery() {
         </div>
       )}
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="px-6 md:px-8 lg:px-12 py-8">
         <div style={{ maxWidth: `${scale}%`, margin: '0 auto' }}>
           <Masonry
             breakpointCols={breakpointCols}
-            className="flex -ml-4 w-auto"
-            columnClassName="pl-4 bg-background"
+            className="flex -ml-6 w-auto"
+            columnClassName="pl-6 bg-background"
           >
             {gallery.images.map((image: any, index: number) => (
               <div 
