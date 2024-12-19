@@ -269,6 +269,7 @@ export function registerRoutes(app: Express): Server {
       res.json({
         id: gallery.id,
         slug: gallery.slug,
+        title: gallery.title,
         images: processedImages
       });
     } catch (error) {
