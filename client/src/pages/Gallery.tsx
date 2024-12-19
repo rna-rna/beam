@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Masonry from "react-masonry-css";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -153,7 +153,7 @@ export default function Gallery() {
           className="flex -ml-4 w-auto"
           columnClassName="pl-4 bg-background"
         >
-          {gallery.images.map((image: any) => (
+          {gallery.images.map((image: any, index: number) => (
             <div 
               key={image.id} 
               className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
@@ -225,7 +225,7 @@ export default function Gallery() {
             <ChevronRight className="h-8 w-8 text-white" />
           </Button>
           <button
-            onClick={() => setSelectedImage(null)}
+            onClick={() => setSelectedImageIndex(-1)}
             className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-50"
           >
             <X className="h-6 w-6 text-white" />
