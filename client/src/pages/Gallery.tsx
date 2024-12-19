@@ -28,7 +28,7 @@ export default function Gallery() {
         >
           {[...Array(8)].map((_, i) => (
             <div key={i} className="mb-4">
-              <Skeleton className="w-full h-[200px]" />
+              <Skeleton className="w-full h-48 md:h-64 lg:h-80" />
             </div>
           ))}
         </Masonry>
@@ -55,14 +55,12 @@ export default function Gallery() {
       >
         {gallery.images.map((image: any) => (
           <div key={image.id} className="mb-4">
-            <AspectRatio ratio={image.aspectRatio}>
-              <img
+            <img
                 src={image.url}
                 alt=""
-                className="w-full h-full object-cover rounded-md"
+                className="w-full h-auto object-contain rounded-md"
                 loading="lazy"
               />
-            </AspectRatio>
           </div>
         ))}
       </Masonry>
