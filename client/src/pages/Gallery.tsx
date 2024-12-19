@@ -268,7 +268,7 @@ export default function Gallery() {
               ? reorderImageMutation.isPending 
                 ? "Saving..." 
                 : "Save Order" 
-              : "Reorder"}
+              : "Reorder Images"}
           </Button>
         </div>
       </div>
@@ -290,22 +290,32 @@ export default function Gallery() {
                 
                 console.log('Drag ended:', { source, destination });
                 
-                const newImages = Array.from(gallery.images);
-                const [removed] = newImages.splice(source.index, 1);
-                newImages.splice(destination.index, 0, removed);
-                
-                // Optimistically update the UI
-                queryClient.setQueryData([`/api/galleries/${slug}`], {
-                  ...gallery,
-                  images: newImages
-                });
-                
-                // Extract image IDs for the new order
-                const newOrder = newImages.map(img => img.id);
-                console.log('Updating order:', newOrder);
-                
-                // Update the backend
-                reorderImageMutation.mutate(newOrder);
+                try {
+                  const newImages = Array.from(gallery.images);
+                  const [removed] = newImages.splice(source.index, 1);
+                  newImages.splice(destination.index, 0, removed);
+                  
+                  // Optimistically update the UI
+                  queryClient.setQueryData([`/api/galleries/${slug}`], {
+                    ...gallery,
+                    images: newImages
+                  });
+                  
+                  // Extract image IDs for the new order
+                  const newOrder = newImages.map(img => img.id);
+                  console.log('Updating order:', newOrder);
+                  
+                  // Update the backend
+                  reorderImageMutation.mutate(newOrder);
+                } catch (error) {
+                  console.error('Error during drag operation:', error);
+                  queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+                  toast({
+                    title: "Error",
+                    description: "Failed to reorder images. Please try again.",
+                    variant: "destructive"
+                  });
+                }
               }}
             >
               <Droppable droppableId="gallery">
