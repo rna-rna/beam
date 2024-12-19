@@ -327,13 +327,17 @@ export default function Gallery() {
                         : "Save Order" 
                       : "Reorder Images"}
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowStarredOnly(!showStarredOnly)}>
-                    {showStarredOnly ? "Show All Images" : "Show Starred Images Only"}
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
+                  </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowStarredOnly(!showStarredOnly)}
+              className={showStarredOnly ? 'bg-primary/10' : ''}
+            >
+              <Star className={`h-4 w-4 ${showStarredOnly ? 'fill-primary text-primary' : ''}`} />
+            </Button>
           </div>
         </div>
       </div>
