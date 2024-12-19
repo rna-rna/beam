@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { useParams } from "wouter";
-import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown } from "lucide-react";
+import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown, Share2 } from "lucide-react";
 import { Star as StarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -326,6 +326,19 @@ export default function Gallery() {
               className={showStarredOnly ? 'bg-primary/10' : ''}
             >
               <Star className={`h-4 w-4 ${showStarredOnly ? 'fill-primary text-primary' : ''}`} />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                toast({
+                  title: "Link Copied",
+                  description: "Gallery link copied to clipboard",
+                });
+              }}
+            >
+              <Share2 className="h-4 w-4" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
