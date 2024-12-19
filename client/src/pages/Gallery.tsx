@@ -5,11 +5,10 @@ import Masonry from "react-masonry-css";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { useParams } from "wouter";
 import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown, Share2 } from "lucide-react";
-import { LazyImage } from "@/components/LazyImage";
 import { Star as StarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -419,22 +418,10 @@ export default function Gallery() {
                     };
                   });
                   
-                  // Get the order of image IDs, ensuring consistent number type
+                  // Get the order of image IDs
                   const newOrder = updatedImages
-                    .sort((a, b) => {
-                      const posA = typeof a.position === 'number' ? a.position : Number.MAX_SAFE_INTEGER;
-                      const posB = typeof b.position === 'number' ? b.position : Number.MAX_SAFE_INTEGER;
-                      return posA - posB;
-                    })
-                    .map(img => {
-                      const id = Number(img.id);
-                      if (isNaN(id)) {
-                        console.error('Invalid image ID:', img.id);
-                        return null;
-                      }
-                      return id;
-                    })
-                    .filter((id): id is number => id !== null);
+                    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                    .map(img => img.id);
                   
                   console.log('Reordering images:', {
                     visibleImages: visibleImages.length,
@@ -482,15 +469,11 @@ export default function Gallery() {
                     {gallery.images
                       .filter(image => !showStarredOnly || image.starred)
                       .map((image, index) => {
-                        const id = Number(image.id);
-                        if (isNaN(id)) {
-                          console.error('Invalid image ID:', image.id);
-                          return null;
-                        }
-                        const draggableId = `image-${id}`;
+                        const draggableId = `image-${image.id}`;
+                        console.log('Rendering draggable:', { id: image.id, draggableId, index });
                         return (
                           <Draggable 
-                            key={id}
+                            key={draggableId}
                             draggableId={draggableId}
                             index={index}
                           >
@@ -504,12 +487,13 @@ export default function Gallery() {
                               }`}
                             >
                               <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
-                                <LazyImage
+                                <img
                                   src={image.url}
                                   alt=""
                                   className="w-full h-auto object-cover"
+                                  loading="lazy"
                                 />
-                                <div className="absolute top-2 right-2">
+                                <div className="absolute top-2 right-2 flex gap-2">
                                   {image.commentCount > 0 && (
                                     <Badge 
                                       className="bg-primary text-primary-foreground flex items-center gap-1"
@@ -519,15 +503,10 @@ export default function Gallery() {
                                       {image.commentCount}
                                     </Badge>
                                   )}
-                                </div>
-                                <div className="p-3 flex justify-between items-center border-t bg-card/95 backdrop-blur-sm">
-                                  <span className="text-sm font-medium tracking-tight text-foreground/90 truncate flex-1 font-mono">
-                                    {image.publicId}
-                                  </span>
                                   <Button
                                     variant="secondary"
                                     size="icon"
-                                    className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm ml-3 flex-shrink-0"
+                                    className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       toggleStarMutation.mutate(image.id);
@@ -570,12 +549,13 @@ export default function Gallery() {
                   }}
                 >
                   <div className="relative">
-                    <LazyImage
+                    <img
                       src={image.url}
                       alt=""
                       className="w-full h-auto object-contain rounded-md"
+                      loading="lazy"
                     />
-                    <div className="absolute top-2 right-2">
+                    <div className="absolute top-2 right-2 flex gap-2">
                       {image.commentCount > 0 && (
                         <Badge 
                           className="bg-primary text-primary-foreground flex items-center gap-1"
@@ -585,15 +565,10 @@ export default function Gallery() {
                           {image.commentCount}
                         </Badge>
                       )}
-                    </div>
-                    <div className="p-3 flex justify-between items-center border-t bg-card/95 backdrop-blur-sm">
-                      <span className="text-sm font-medium tracking-tight text-foreground/90 truncate flex-1 font-mono">
-                        {image.publicId}
-                      </span>
                       <Button
                         variant="secondary"
                         size="icon"
-                        className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm ml-3 flex-shrink-0"
+                        className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleStarMutation.mutate(image.id);
@@ -620,14 +595,7 @@ export default function Gallery() {
           setNewCommentPos(null);
         }
       }}>
-        <DialogContent 
-          className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
-          aria-describedby="image-viewer-description"
-        >
-          <div id="image-viewer-description" className="sr-only">
-            Image viewer. Use left and right arrow keys to navigate between images. Click on the image to add comments.
-          </div>
-          <DialogTitle className="sr-only">Image Viewer</DialogTitle>
+        <DialogContent className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden">
           {/* Navigation buttons */}
           <Button
             variant="ghost"
