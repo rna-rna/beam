@@ -204,28 +204,47 @@ export function registerRoutes(app: Express): Server {
   // Reorder images in a gallery
   app.post('/api/galleries/:slug/reorder', async (req, res) => {
     try {
+      console.log('Received reorder request for gallery:', req.params.slug);
       const { order } = req.body;
+      
+      if (!Array.isArray(order)) {
+        console.error('Invalid order format:', order);
+        return res.status(400).json({ message: 'Invalid order format' });
+      }
+      
+      console.log('New image order:', order);
+      
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
 
       if (!gallery) {
+        console.error('Gallery not found:', req.params.slug);
         return res.status(404).json({ message: 'Gallery not found' });
       }
 
+      console.log('Found gallery:', gallery.id);
+
       // Update order for each image
-      // We'll use position field to maintain order
       for (let i = 0; i < order.length; i++) {
+        console.log(`Setting position ${i} for image ${order[i]}`);
         await db
           .update(images)
           .set({ position: i })
-          .where(eq(images.id, order[i]));
+          .where(and(
+            eq(images.id, order[i]),
+            eq(images.galleryId, gallery.id)
+          ));
       }
 
+      console.log('Successfully updated image positions');
       res.json({ success: true });
     } catch (error) {
       console.error('Reorder error:', error);
-      res.status(500).json({ message: 'Failed to reorder images' });
+      res.status(500).json({ 
+        message: 'Failed to reorder images',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
