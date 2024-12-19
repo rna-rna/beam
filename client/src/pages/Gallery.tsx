@@ -523,13 +523,30 @@ export default function Gallery() {
           >
             <ChevronRight className="h-8 w-8 text-white" />
           </Button>
-          <button
-            onClick={() => setSelectedImageIndex(-1)}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-50"
-          >
-            <X className="h-6 w-6 text-white" />
-            <span className="sr-only">Close</span>
-          </button>
+          <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 bg-background/20 hover:bg-background/40"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleStarMutation.mutate(selectedImage!.id);
+              }}
+            >
+              {selectedImage?.starred ? (
+                <StarIcon className="h-6 w-6 fill-yellow-400 text-yellow-400" />
+              ) : (
+                <Star className="h-6 w-6 text-white" />
+              )}
+            </Button>
+            <button
+              onClick={() => setSelectedImageIndex(-1)}
+              className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+            >
+              <X className="h-6 w-6 text-white" />
+              <span className="sr-only">Close</span>
+            </button>
+          </div>
           {selectedImage && (
             <div 
               className="relative w-full h-full flex items-center justify-center"
