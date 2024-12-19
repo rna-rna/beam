@@ -5,10 +5,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useParams } from "wouter";
 
 export default function Gallery() {
-  const { id } = useParams();
+  const { slug } = useParams();
 
-  const { data: gallery, isLoading } = useQuery({
-    queryKey: [`/api/galleries/${id}`],
+  const { data: gallery, isLoading } = useQuery<{ images: any[] }>({
+    queryKey: [`/api/galleries/${slug}`],
   });
 
   const breakpointCols = {
