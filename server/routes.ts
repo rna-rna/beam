@@ -149,7 +149,7 @@ export function registerRoutes(app: Express): Server {
           const [image] = await db.insert(images).values({
             galleryId: gallery.id,
             url: `/uploads/${file.filename}`,
-            publicId: file.filename,
+            publicId: file.originalname, // Use original filename instead
             width: 800, // placeholder
             height: 600 // placeholder
           }).returning();
@@ -197,7 +197,7 @@ export function registerRoutes(app: Express): Server {
         const [image] = await db.insert(images).values({
           galleryId: gallery.id,
           url: `/uploads/${file.filename}`,
-          publicId: file.filename,
+          publicId: file.originalname, // Use original filename instead
           width: 800, // placeholder
           height: 600 // placeholder
         }).returning();
