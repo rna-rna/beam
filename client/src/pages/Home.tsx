@@ -1,4 +1,5 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import Masonry from "react-masonry-css";
 import { useDropzone } from "react-dropzone";
 import { useLocation } from "wouter";
 import { Progress } from "@/components/ui/progress";
@@ -11,29 +12,59 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
+      // Create preview URLs
+      const previews: Record<string, string> = {};
+      files.forEach(file => {
+        previews[file.name] = URL.createObjectURL(file);
+      });
+      setPreviewUrls(previews);
+
       const formData = new FormData();
       files.forEach(file => {
         formData.append('images', file);
       });
 
-      const res = await fetch('/api/galleries', {
-        method: 'POST',
-        body: formData
+      const xhr = new XMLHttpRequest();
+      
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = (event.loaded / event.total) * 100;
+          setUploadProgress((prev: Record<string, number>) => ({
+            ...prev,
+            ...Object.fromEntries(files.map(file => [file.name, progress]))
+          }));
+        }
+      };
+
+      return new Promise((resolve, reject) => {
+        xhr.open('POST', '/api/galleries');
+        
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response.galleryId);
+          } else {
+            reject(new Error('Upload failed'));
+          }
+        };
+        
+        xhr.onerror = () => reject(new Error('Upload failed'));
+        xhr.send(formData);
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to upload images');
-      }
-
-      const data = await res.json();
-      return data.galleryId;
     },
     onSuccess: (galleryId) => {
+      // Cleanup preview URLs
+      Object.values(previewUrls).forEach(URL.revokeObjectURL);
       setLocation(`/gallery/${galleryId}`);
     },
     onError: () => {
+      // Cleanup preview URLs
+      Object.values(previewUrls).forEach(URL.revokeObjectURL);
       toast({
         title: "Error",
         description: "Failed to upload images. Please try again.",
@@ -54,10 +85,10 @@ export default function Home() {
   });
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen w-full bg-background p-4">
       <Card 
         {...getRootProps()}
-        className={`w-full max-w-3xl h-96 flex flex-col items-center justify-center p-8 cursor-pointer border-2 border-dashed transition-colors
+        className={`w-full mx-auto max-w-6xl mb-8 flex flex-col items-center justify-center p-8 cursor-pointer border-2 border-dashed transition-colors
           ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
       >
         <input {...getInputProps()} />
@@ -68,16 +99,40 @@ export default function Home() {
         <p className="text-muted-foreground text-center">
           or click to select files
         </p>
-        
-        {uploadMutation.isPending && (
-          <div className="w-full max-w-md mt-8">
-            <Progress value={undefined} className="w-full" />
-            <p className="text-sm text-muted-foreground text-center mt-2">
-              Uploading...
-            </p>
-          </div>
-        )}
       </Card>
+
+      {Object.keys(previewUrls).length > 0 && (
+        <div className="w-full max-w-6xl mx-auto">
+          <Masonry
+            breakpointCols={{
+              default: 4,
+              1536: 3,
+              1024: 2,
+              640: 1
+            }}
+            className="flex -ml-4 w-auto"
+            columnClassName="pl-4 bg-background"
+          >
+            {Object.entries(previewUrls).map(([fileName, url]) => (
+              <div key={fileName} className="mb-4 relative">
+                <div className="relative">
+                  <img
+                    src={url}
+                    alt=""
+                    className={`w-full h-auto object-cover rounded-md transition-all duration-300
+                      ${uploadProgress[fileName] < 100 ? 'filter grayscale blur-sm' : ''}`}
+                  />
+                  {uploadProgress[fileName] < 100 && (
+                    <div className="absolute inset-x-4 bottom-4">
+                      <Progress value={uploadProgress[fileName]} className="w-full" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </Masonry>
+        </div>
+      )}
     </div>
   );
 }
