@@ -214,14 +214,11 @@ export default function Gallery() {
   });
 
   const reorderImageMutation = useMutation({
-    mutationFn: async (newOrder: Array<string | number>) => {
-      // Ensure all IDs are numbers
-      const normalizedOrder = newOrder.map(id => typeof id === 'string' ? parseInt(id, 10) : id);
-      
+    mutationFn: async (newOrder: number[]) => {
       const res = await fetch(`/api/galleries/${slug}/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order: normalizedOrder }),
+        body: JSON.stringify({ order: newOrder }),
       });
       
       if (!res.ok) {
@@ -373,16 +370,15 @@ export default function Gallery() {
                 try {
                   console.log('Drag ended:', { source, destination });
                   
-                  const newImages = Array.from(gallery.images);
-                  const [removed] = newImages.splice(source.index, 1);
-                  newImages.splice(destination.index, 0, removed);
+                  const filteredImages = gallery.images.filter(img => !showStarredOnly || img.starred);
+                  const allImages = Array.from(gallery.images);
+                  const [removed] = filteredImages.splice(source.index, 1);
+                  filteredImages.splice(destination.index, 0, removed);
                   
-                  // Validate image IDs before proceeding
-                  const newOrder = newImages.map(img => {
-                    if (!img?.id) {
-                      throw new Error('Invalid image data found while reordering');
-                    }
-                    return img.id;
+                  // Map the filtered images back to their original positions
+                  const newOrder = allImages.map(img => {
+                    const filteredIndex = filteredImages.findIndex(fImg => fImg.id === img.id);
+                    return filteredIndex >= 0 ? filteredImages[filteredIndex].id : img.id;
                   });
                   
                   console.log('Updating order:', newOrder);
@@ -390,7 +386,7 @@ export default function Gallery() {
                   // Optimistically update the UI
                   queryClient.setQueryData([`/api/galleries/${slug}`], {
                     ...gallery,
-                    images: newImages
+                    images: allImages
                   });
                   
                   // Update the backend
@@ -414,11 +410,13 @@ export default function Gallery() {
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                   >
                     {gallery.images
-                .filter(image => !showStarredOnly || image.starred)
-                .map((image: any, index: number) => {
-                      // Use consistent ID format for draggable elements
-                      return (
-                        <Draggable key={image.id} draggableId={String(image.id)} index={index}>
+                      .filter(image => !showStarredOnly || image.starred)
+                      .map((image, index) => (
+                        <Draggable 
+                          key={String(image.id)} 
+                          draggableId={String(image.id)} 
+                          index={index}
+                        >
                           {(provided, snapshot) => (
                             <div
                               ref={provided.innerRef}
@@ -465,8 +463,7 @@ export default function Gallery() {
                             </div>
                           )}
                         </Draggable>
-                      );
-                    })}
+                      ))}
                     {provided.placeholder}
                   </div>
                 )}
