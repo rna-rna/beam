@@ -31,23 +31,56 @@ export function DrawingCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Set initial dimensions
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    
-    // Get the computed size
-    const rect = canvas.getBoundingClientRect();
-    const scale = window.devicePixelRatio;
-    
-    // Set canvas dimensions
-    canvas.width = rect.width * scale;
-    canvas.height = rect.height * scale;
+    const resizeCanvas = () => {
+      const container = canvas.parentElement;
+      if (!container) return;
 
-    const context = canvas.getContext("2d");
-    if (!context) return;
+      // Match canvas display size to container
+      const rect = container.getBoundingClientRect();
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
 
-    // Scale context for high DPI displays
-    context.scale(scale, scale);
+      // Scale canvas for high DPI displays
+      const scale = window.devicePixelRatio;
+      canvas.width = rect.width * scale;
+      canvas.height = rect.height * scale;
+
+      const context = canvas.getContext("2d");
+      if (!context) return;
+
+      // Clear and reset context
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.scale(scale, scale);
+      context.lineCap = "round";
+      context.strokeStyle = "rgba(0, 0, 0, 0.8)";
+      context.lineWidth = 2;
+      contextRef.current = context;
+
+      // Redraw saved paths
+      drawSavedPaths();
+    };
+
+    const drawSavedPaths = () => {
+      const context = contextRef.current;
+      if (!context || !canvas) return;
+
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      savedPaths.forEach(({ pathData }) => {
+        const path = new Path2D(pathData);
+        context.stroke(path);
+      });
+    };
+
+    // Initial setup
+    resizeCanvas();
+
+    // Add resize listener
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    resizeObserver.observe(canvas.parentElement as Element);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
     context.lineCap = "round";
     context.strokeStyle = "rgba(0, 0, 0, 0.8)";
     context.lineWidth = 2;
@@ -71,11 +104,12 @@ export function DrawingCanvas({
     if (!canvas) return { x: 0, y: 0 };
     
     const rect = canvas.getBoundingClientRect();
-    const scale = window.devicePixelRatio;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
     
-    // Get the actual coordinates relative to the canvas
-    const x = (event.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (event.clientY - rect.top) * (canvas.height / rect.height);
+    const x = (event.clientX - rect.left) * scaleX / window.devicePixelRatio;
+    const y = (event.clientY - rect.top) * scaleY / window.devicePixelRatio;
+    
     return { x, y };
   };
 
