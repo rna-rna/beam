@@ -420,9 +420,10 @@ export default function Gallery() {
                   });
                   
                   // Get the order of image IDs
+                  // Ensure all IDs are properly converted to numbers
                   const newOrder = updatedImages
                     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-                    .map(img => img.id);
+                    .map(img => Number(img.id));
                   
                   console.log('Reordering images:', {
                     visibleImages: visibleImages.length,
@@ -470,11 +471,11 @@ export default function Gallery() {
                     {gallery.images
                       .filter(image => !showStarredOnly || image.starred)
                       .map((image, index) => {
-                        const draggableId = `image-${image.id}`;
-                        console.log('Rendering draggable:', { id: image.id, draggableId, index });
+                        // Ensure consistent string ID format
+                        const draggableId = `image-${image.id.toString()}`;
                         return (
                           <Draggable 
-                            key={draggableId}
+                            key={image.id.toString()}
                             draggableId={draggableId}
                             index={index}
                           >
