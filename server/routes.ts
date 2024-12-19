@@ -5,7 +5,30 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments } from '@db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
+
+// Migrate flagged to starred if needed
+async function migrateSchema() {
+  try {
+    // Check if flagged column exists
+    const result = await db.execute(sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'images' AND column_name = 'flagged'
+    `);
+    
+    if (result.length > 0) {
+      console.log('Migrating flagged column to starred...');
+      await db.execute(sql`
+        ALTER TABLE images 
+        RENAME COLUMN flagged TO starred
+      `);
+      console.log('Migration completed successfully');
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
+}
 import { generateSlug } from './utils';
 
 // Configure multer for local storage
@@ -37,6 +60,9 @@ const upload = multer({
 });
 
 export function registerRoutes(app: Express): Server {
+  // Run schema migration
+  migrateSchema().catch(console.error);
+  
   // Ensure uploads directory exists
   const uploadsDir = path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadsDir)) {
@@ -172,6 +198,7 @@ export function registerRoutes(app: Express): Server {
         width: img.width,
         height: img.height,
         aspectRatio: img.width / img.height,
+        starred: img.starred,
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
 
@@ -262,8 +289,8 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Create a new comment
-  // Toggle flag status for an image
-  app.post('/api/images/:imageId/flag', async (req, res) => {
+  // Toggle star status for an image
+  app.post('/api/images/:imageId/star', async (req, res) => {
     try {
       const imageId = parseInt(req.params.imageId);
       
@@ -276,17 +303,17 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Image not found' });
       }
 
-      // Toggle flag status
+      // Toggle star status
       const [updatedImage] = await db
         .update(images)
-        .set({ flagged: !image.flagged })
+        .set({ starred: !image.starred })
         .where(eq(images.id, imageId))
         .returning();
 
       res.json(updatedImage);
     } catch (error) {
-      console.error('Error flagging image:', error);
-      res.status(500).json({ message: 'Failed to flag image' });
+      console.error('Error starring image:', error);
+      res.status(500).json({ message: 'Failed to star image' });
     }
   });
 
