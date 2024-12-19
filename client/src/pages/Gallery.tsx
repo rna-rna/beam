@@ -46,7 +46,12 @@ export default function Gallery() {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   
-  const { data: gallery, isLoading } = useQuery<{ images: any[] }>({
+  const { data: gallery, isLoading } = useQuery<{ 
+    id: number;
+    slug: string;
+    title: string;
+    images: any[];
+  }>({
     queryKey: [`/api/galleries/${slug}`],
   });
 
