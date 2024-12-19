@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
+import Masonry from "react-masonry-css";
 import { useDropzone } from "react-dropzone";
 import { useLocation } from "wouter";
 import { Progress } from "@/components/ui/progress";
@@ -7,32 +8,36 @@ import { Upload } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { InlineEdit } from "@/components/InlineEdit";
-
-interface UploadState {
-  totalFiles: number;
-  progress: number;
-}
+import { v4 as uuidv4 } from 'uuid'; // Import uuid library
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [galleryId, setGalleryId] = useState<string | null>(null);
   const [title, setTitle] = useState("Untitled Project");
-  const [uploadState, setUploadState] = useState<UploadState>({
+  const [uploadState, setUploadState] = useState<{
+    totalFiles: number;
+    uploadedFiles: number;
+    progress: number;
+  }>({
     totalFiles: 0,
+    uploadedFiles: 0,
     progress: 0
   });
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  // Flag to track if gallery has been created
   const [isGalleryCreated, setIsGalleryCreated] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
 
+  // Generate a unique gallery ID and create gallery on mount
   useEffect(() => {
     const initializeGallery = async () => {
       if (!galleryId && !isGalleryCreated) {
         try {
+          const newGalleryId = uuidv4();
           const res = await fetch('/api/galleries/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title })
+            body: JSON.stringify({ title, slug: newGalleryId })
           });
 
           if (!res.ok) {
@@ -40,9 +45,10 @@ export default function Home() {
           }
 
           const data = await res.json();
-          setGalleryId(data.slug);
+          console.log('Created gallery:', data);
+          setGalleryId(newGalleryId);
           setIsGalleryCreated(true);
-          setTitle(data.title);
+          setTitle(data.title); // Set initial title from server response
         } catch (error) {
           console.error('Gallery creation error:', error);
           toast({
@@ -55,29 +61,73 @@ export default function Home() {
     };
 
     initializeGallery();
-  }, [galleryId, isGalleryCreated, title, toast]);
+  }, []); // Empty dependency array since this should only run once on mount
 
-  const navigateToGallery = useCallback((slug: string) => {
-    setIsNavigating(true);
-    setTimeout(() => setLocation(`/gallery/${slug}`), 300);
-  }, [setLocation]);
+
+  // Update gallery title
+  const updateTitleMutation = useMutation({
+    mutationFn: async (newTitle: string) => {
+      if (!galleryId || !isGalleryCreated) {
+        throw new Error('Gallery not initialized');
+      }
+
+      const res = await fetch(`/api/galleries/${galleryId}/title`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle })
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || 'Failed to update title');
+      }
+
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setTitle(data.title);
+      toast({
+        title: "Success",
+        description: "Gallery title updated",
+      });
+    },
+    onError: (error) => {
+      console.error('Title update error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update gallery title",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Remove the automatic title update effect as we'll only update when the user explicitly changes the title
+
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
-      if (!galleryId) throw new Error('Gallery not initialized');
+      // Create preview URLs
+      const previews: Record<string, string> = {};
+      files.forEach(file => {
+        previews[file.name] = URL.createObjectURL(file);
+      });
+      setPreviewUrls(previews);
 
-      setUploadState({
-        totalFiles: files.length,
-        progress: 0
+      const formData = new FormData();
+      files.forEach(file => {
+        formData.append('images', file);
       });
 
-      return new Promise<void>((resolve, reject) => {
-        const formData = new FormData();
-        files.forEach(file => {
-          formData.append('images', file);
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        // Initialize upload state with total number of files
+        setUploadState({
+          totalFiles: files.length,
+          uploadedFiles: 0,
+          progress: 0
         });
 
-        const xhr = new XMLHttpRequest();
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
             const progress = (event.loaded / event.total) * 100;
@@ -88,31 +138,37 @@ export default function Home() {
           }
         };
 
+        xhr.open('POST', `/api/galleries/${galleryId}/images`);
+        
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             setUploadState(prev => ({
               ...prev,
+              uploadedFiles: prev.totalFiles,
               progress: 100
             }));
             
+            // Clean up preview URLs
+            Object.values(previewUrls).forEach(URL.revokeObjectURL);
+            
+            // Short delay before navigation to show completion
             setTimeout(() => {
-              if (galleryId) {
-                navigateToGallery(galleryId);
-              }
+              navigateToGallery(galleryId);
             }, 500);
             
-            resolve();
+            resolve(true);
           } else {
             reject(new Error('Upload failed'));
           }
         };
 
         xhr.onerror = () => reject(new Error('Upload failed'));
-        xhr.open('POST', `/api/galleries/${galleryId}/images`);
         xhr.send(formData);
       });
     },
     onError: () => {
+      // Cleanup preview URLs
+      Object.values(previewUrls).forEach(URL.revokeObjectURL);
       toast({
         title: "Error",
         description: "Failed to upload images. Please try again.",
@@ -122,10 +178,8 @@ export default function Home() {
   });
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      uploadMutation.mutate(acceptedFiles);
-    }
-  }, [uploadMutation]);
+    uploadMutation.mutate(acceptedFiles);
+  }, [uploadMutation, galleryId]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -133,6 +187,16 @@ export default function Home() {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     }
   });
+
+  // Track if we're transitioning away
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Wrap setLocation to include transition
+  const navigateToGallery = useCallback((galleryId: string) => {
+    setIsNavigating(true);
+    // Small delay to allow fade out animation
+    setTimeout(() => setLocation(`/gallery/${galleryId}`), 300);
+  }, [setLocation]);
 
   return (
     <div className={`min-h-screen w-full bg-background transition-opacity duration-300 ${isNavigating ? 'opacity-0' : 'opacity-100'}`}>
@@ -142,25 +206,7 @@ export default function Home() {
             value={title}
             onSave={(newTitle) => {
               if (isGalleryCreated && newTitle !== title) {
-                fetch(`/api/galleries/${galleryId}/title`, {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ title: newTitle })
-                }).then((res) => {
-                  if (res.ok) {
-                    setTitle(newTitle);
-                    toast({
-                      title: "Success",
-                      description: "Gallery title updated",
-                    });
-                  }
-                }).catch(() => {
-                  toast({
-                    title: "Error",
-                    description: "Failed to update gallery title",
-                    variant: "destructive"
-                  });
-                });
+                updateTitleMutation.mutate(newTitle);
               }
             }}
             className="text-xl font-semibold"
@@ -184,16 +230,47 @@ export default function Home() {
           </p>
         </Card>
 
-        {uploadState.totalFiles > 0 && (
+        {Object.keys(previewUrls).length > 0 && (
           <div className="w-full max-w-6xl mx-auto">
-            <div className="mb-8 bg-card rounded-lg p-6 border">
-              <div className="flex items-center justify-end mb-4">
-                <span className="text-sm text-muted-foreground">
-                  {Math.round(uploadState.progress)}% complete
-                </span>
+            {uploadState.totalFiles > 0 && (
+              <div className="mb-8 bg-card rounded-lg p-6 border">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium">
+                    Uploading {uploadState.uploadedFiles} of {uploadState.totalFiles} images
+                  </h3>
+                  <span className="text-sm text-muted-foreground">
+                    {Math.round(uploadState.progress)}% complete
+                  </span>
+                </div>
+                <Progress value={uploadState.progress} className="w-full h-2" />
               </div>
-              <Progress value={uploadState.progress} className="w-full h-2" />
-            </div>
+            )}
+            <Masonry
+              breakpointCols={{
+                default: 6,
+                2560: 5,
+                1920: 4,
+                1536: 3,
+                1024: 2,
+                640: 1
+              }}
+              className="flex -ml-4 w-[calc(100%+1rem)]"
+              columnClassName="pl-4 bg-background"
+            >
+              {Object.entries(previewUrls).map(([fileName, url]) => (
+                <div key={fileName} className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]">
+                  <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
+                    <img
+                      src={url}
+                      alt=""
+                      className="w-full h-auto object-contain rounded-md"
+                      loading="lazy"
+                    />
+                    {/* Images are shown without individual progress indicators */}
+                  </div>
+                </div>
+              ))}
+            </Masonry>
           </div>
         )}
       </div>
