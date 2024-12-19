@@ -1,0 +1,32 @@
+Warning: Connect(Droppable): Support for defaultProps will be removed from memo components in a future major release. Use JavaScript default parameters instead.
+    at Provider (https://0964aa7c-379f-4073-992f-05e55a81bd32-00-19lnjo3b01rh6.riker.replit.dev/@fs/home/runner/ImageGalleryHub/node_modules/.vite/deps/react-beautiful-dnd.js?v=562653bb:964:20)
+    at App (https://0964aa7c-379f-4073-992f-05e55a81bd32-00-19lnjo3b01rh6.riker.replit.dev/@fs/home/runner/ImageGalleryHub/node_modules/.vite/deps/react-beautiful-dnd.js?v=562653bb:7507:25)
+    at ErrorBoundary2 (https://0964aa7c-379f-4073-992f-05e55a81bd32-00-19lnjo3b01rh6.riker.replit.dev/@fs/home/runner/ImageGalleryHub/node_modules/.vite/deps/react-beautiful-dnd.js?v=562653bb:2004:35)
+    at DragDropContext (https://0964aa7c-379f-4073-992f-05e55a81bd32-00-19lnjo3b01rh6.riker.replit.dev/@fs/home/runner/ImageGalleryHub/node_modules/.vite/deps/react-beautiful-dnd.js?v=562653bb:7627:19)
+    at div
+    at div
+    at div
+    at Gallery (https://0964aa7c-379f-4073-992f-05e55a81bd32-00-19lnjo3b01rh6.riker.replit.dev/src/pages/Gallery.tsx:46:20)
+    at Route (https://0964aa7c-379f-4073-992f-05e55a81bd32-00-19lnjo3b01rh6.riker.replit.dev/@fs/home/runner/ImageGalleryHub/node_modules/.vite/deps/wouter.js?v=562653bb:323:16)
+    at Switch (https://0964aa7c-379f-4073-992f-05e55a81bd32-00-19lnjo3b01rh6.riker.replit.dev/@fs/home/runner/ImageGalleryHub/node_modules/.vite/deps/wouter.js?v=562653bb:379:17)
+    at App
+    at QueryClientProvider (https://0964aa7c-379f-4073-992f-05e55a81bd32-00-19lnjo3b01rh6.riker.replit.dev/@fs/home/runner/ImageGalleryHub/node_modules/.vite/deps/@tanstack_react-query.js?v=562653bb:2805:3)
+react-beautiful-dnd
+
+Unable to find draggable with id: 216
+
+👷‍ This is a development only message. It will be removed in production builds.
+react-beautiful-dnd
+
+Unable to find draggable with id: 215
+
+👷‍ This is a development only message. It will be removed in production builds.
+react-beautiful-dnd
+
+Unable to find draggable with id: 216
+
+👷‍ This is a development only message. It will be removed in production builds.
+react-beautiful-dnd
+
+Unable to find draggable with id: 215
+
