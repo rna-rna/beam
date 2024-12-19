@@ -456,7 +456,7 @@ export default function Gallery() {
           setNewCommentPos(null);
         }
       }}>
-        <DialogContent className="max-w-[95vw] h-[90vh] p-0 bg-background/95 backdrop-blur border-none overflow-hidden">
+        <DialogContent className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden">
           {/* Navigation buttons */}
           <Button
             variant="ghost"
@@ -501,7 +501,7 @@ export default function Gallery() {
               <img
                 src={selectedImage.url}
                 alt=""
-                className="max-h-full w-auto object-contain"
+                className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
               />
               
               {/* Existing comments */}
