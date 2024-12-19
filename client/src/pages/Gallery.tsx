@@ -237,7 +237,7 @@ export default function Gallery() {
       )}
 
       <div className="px-6 md:px-8 lg:px-12 py-8">
-        <div style={{ maxWidth: `${scale}%`, margin: '0 auto' }}>
+        <div style={{ maxWidth: `${scale}%`, margin: '0 auto', width: '100%' }}>
           <Masonry
             breakpointCols={breakpointCols}
             className="flex -ml-6 w-auto"
