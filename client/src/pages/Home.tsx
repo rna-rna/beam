@@ -4,18 +4,21 @@ import { useLocation } from "wouter";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { Upload } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { InlineEdit } from "@/components/InlineEdit";
+
+interface UploadState {
+  totalFiles: number;
+  progress: number;
+}
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [galleryId, setGalleryId] = useState<string | null>(null);
   const [title, setTitle] = useState("Untitled Project");
-  const [uploadState, setUploadState] = useState<{
-    totalFiles: number;
-    progress: number;
-  }>({
+  const [uploadState, setUploadState] = useState<UploadState>({
     totalFiles: 0,
     progress: 0
   });
@@ -59,62 +62,70 @@ export default function Home() {
     setTimeout(() => setLocation(`/gallery/${slug}`), 300);
   }, [setLocation]);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0 && galleryId) {
+  const uploadMutation = useMutation({
+    mutationFn: async (files: File[]) => {
+      if (!galleryId) throw new Error('Gallery not initialized');
+
       setUploadState({
-        totalFiles: acceptedFiles.length,
+        totalFiles: files.length,
         progress: 0
       });
 
-      const formData = new FormData();
-      acceptedFiles.forEach(file => {
-        formData.append('images', file);
-      });
-
-      const xhr = new XMLHttpRequest();
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = (event.loaded / event.total) * 100;
-          setUploadState(prev => ({
-            ...prev,
-            progress
-          }));
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          setUploadState(prev => ({
-            ...prev,
-            progress: 100
-          }));
-          
-          setTimeout(() => {
-            if (galleryId) {
-              navigateToGallery(galleryId);
-            }
-          }, 500);
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to upload images. Please try again.",
-            variant: "destructive"
-          });
-        }
-      };
-
-      xhr.onerror = () => {
-        toast({
-          title: "Error",
-          description: "Failed to upload images. Please try again.",
-          variant: "destructive"
+      return new Promise<void>((resolve, reject) => {
+        const formData = new FormData();
+        files.forEach(file => {
+          formData.append('images', file);
         });
-      };
 
-      xhr.open('POST', `/api/galleries/${galleryId}/images`);
-      xhr.send(formData);
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = (event.loaded / event.total) * 100;
+            setUploadState(prev => ({
+              ...prev,
+              progress
+            }));
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setUploadState(prev => ({
+              ...prev,
+              progress: 100
+            }));
+            
+            setTimeout(() => {
+              if (galleryId) {
+                navigateToGallery(galleryId);
+              }
+            }, 500);
+            
+            resolve();
+          } else {
+            reject(new Error('Upload failed'));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Upload failed'));
+        xhr.open('POST', `/api/galleries/${galleryId}/images`);
+        xhr.send(formData);
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to upload images. Please try again.",
+        variant: "destructive"
+      });
     }
-  }, [galleryId, navigateToGallery, toast]);
+  });
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      uploadMutation.mutate(acceptedFiles);
+    }
+  }, [uploadMutation]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
