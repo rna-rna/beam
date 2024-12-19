@@ -313,17 +313,6 @@ export default function Gallery() {
                 <DropdownMenuLabel>Gallery Settings</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem className="flex-col items-start">
-                    <div className="mb-2 text-sm">Scale: {scale}%</div>
-                    <Slider
-                      value={[scale]}
-                      onValueChange={([value]) => setScale(value)}
-                      min={50}
-                      max={150}
-                      step={10}
-                      className="w-full"
-                    />
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => {
@@ -612,9 +601,9 @@ export default function Gallery() {
           </Button>
           <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
             <Button
-              variant="ghost"
+              variant="secondary"
               size="icon"
-              className="h-10 w-10 bg-background/20 hover:bg-background/40"
+              className="h-10 w-10 bg-background hover:bg-background/90"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleStarMutation.mutate(selectedImage!.id);
@@ -623,16 +612,9 @@ export default function Gallery() {
               {selectedImage?.starred ? (
                 <StarIcon className="h-6 w-6 fill-yellow-400 text-yellow-400" />
               ) : (
-                <Star className="h-6 w-6 text-white" />
+                <Star className="h-6 w-6" />
               )}
             </Button>
-            <button
-              onClick={() => setSelectedImageIndex(-1)}
-              className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
-            >
-              <X className="h-6 w-6 text-white" />
-              <span className="sr-only">Close</span>
-            </button>
           </div>
           {selectedImage && (
             <div 
@@ -681,6 +663,20 @@ export default function Gallery() {
           )}
         </DialogContent>
       </Dialog>
+      {/* Fixed scale slider */}
+        <div className="fixed bottom-6 right-6 z-50 bg-background/95 backdrop-blur-sm rounded-lg border shadow-lg p-4">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium">Scale: {scale}%</span>
+            <Slider
+              value={[scale]}
+              onValueChange={([value]) => setScale(value)}
+              min={50}
+              max={150}
+              step={10}
+              className="w-[200px]"
+            />
+          </div>
+        </div>
     </div>
   );
 }
