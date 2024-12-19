@@ -174,8 +174,13 @@ export function DrawingCanvas({
     });
     
     if (contextRef.current) {
-      contextRef.current.lineTo(canvasPoint.x, canvasPoint.y);
-      contextRef.current.stroke();
+      const context = contextRef.current;
+      context.lineTo(canvasPoint.x, canvasPoint.y);
+      // Clear the current path
+      context.stroke();
+      // Begin a new path to ensure continuous line visibility
+      context.beginPath();
+      context.moveTo(canvasPoint.x, canvasPoint.y);
     }
   };
 
