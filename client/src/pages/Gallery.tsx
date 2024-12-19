@@ -52,6 +52,7 @@ export default function Gallery() {
   const [userName, setUserName] = useState<string>("");
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(true);
+  const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
   const { data: gallery, isLoading } = useQuery<{ 
     id: number;
     slug: string;
@@ -664,51 +665,63 @@ export default function Gallery() {
                 <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
               )}
             </Button>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="icon"
-                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${isAnnotationMode ? 'bg-primary/20' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsAnnotationMode(!isAnnotationMode);
-                  setNewCommentPos(null);
-                }}
-                title="Toggle Drawing Mode"
-              >
-                <Paintbrush className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${isAnnotationMode ? 'text-primary' : ''}`} />
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const rect = document.querySelector('img')?.getBoundingClientRect();
-                  if (rect) {
-                    const x = 50; // Center of image
-                    const y = 50; // Center of image
-                    setNewCommentPos({ x, y });
-                  }
-                }}
-                title="Add Comment"
-              >
-                <MessageCircle className="h-8 w-8 transition-all duration-300 hover:scale-110" />
-              </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${isAnnotationMode ? 'bg-primary/20' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsAnnotationMode(!isAnnotationMode);
+                    setIsCommentPlacementMode(false);
+                    setNewCommentPos(null);
+                  }}
+                  title="Toggle Drawing Mode"
+                >
+                  <Paintbrush className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${isAnnotationMode ? 'text-primary' : ''}`} />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${isCommentPlacementMode ? 'bg-primary/20' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCommentPlacementMode(!isCommentPlacementMode);
+                    setIsAnnotationMode(false);
+                    setNewCommentPos(null);
+                  }}
+                  title="Add Comment"
+                >
+                  <MessageCircle className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${isCommentPlacementMode ? 'text-primary' : ''}`} />
+                </Button>
+              </div>
+              <div className="flex items-center gap-3 ml-4">
+                <Switch
+                  id="show-annotations"
+                  checked={showAnnotations}
+                  onCheckedChange={setShowAnnotations}
+                  className="data-[state=checked]:bg-primary"
+                />
+                <Label htmlFor="show-annotations" className="text-sm font-medium text-white">
+                  Show Annotations
+                </Label>
+              </div>
             </div>
           </div>
           {selectedImage && (
             <div 
               className="relative w-full h-full flex items-center justify-center"
               onClick={(e) => {
-                // Allow adding comments by default when not in annotation mode
-                if (!isAnnotationMode && e.target === e.currentTarget) {
+                if (isCommentPlacementMode && e.target === e.currentTarget) {
                   const rect = e.currentTarget.getBoundingClientRect();
                   const x = ((e.clientX - rect.left) / rect.width) * 100;
                   const y = ((e.clientY - rect.top) / rect.height) * 100;
                   setNewCommentPos({ x, y });
+                  setIsCommentPlacementMode(false); // Exit comment placement mode after placing
                 }
               }}
+              className={isCommentPlacementMode ? 'cursor-crosshair' : ''}
             >
               <div className="relative">
                 <img
@@ -811,19 +824,7 @@ export default function Gallery() {
             </div>
           </div>
           
-          <div className="bg-background/95 backdrop-blur-sm rounded-lg border shadow-lg p-4">
-            <div className="flex items-center gap-3">
-              <Switch
-                id="show-annotations"
-                checked={showAnnotations}
-                onCheckedChange={setShowAnnotations}
-                className="data-[state=checked]:bg-primary"
-              />
-              <Label htmlFor="show-annotations" className="text-sm font-medium">
-                Show Annotations
-              </Label>
-            </div>
-          </div>
+          
         </div>
     </div>
   );
