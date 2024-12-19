@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { useParams } from "wouter";
-import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown, Share2 } from "lucide-react";
+import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown, Share2, Pencil } from "lucide-react";
 import { Star as StarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ export default function Gallery() {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [userName, setUserName] = useState<string>("");
+  const [isAnnotationMode, setIsAnnotationMode] = useState(false);
   
   const { data: gallery, isLoading } = useQuery<{ 
     id: number;
@@ -654,17 +655,32 @@ export default function Gallery() {
                 <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
               )}
             </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${isAnnotationMode ? 'bg-primary/20' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsAnnotationMode(!isAnnotationMode);
+                setNewCommentPos(null);
+              }}
+            >
+              <Pencil className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${isAnnotationMode ? 'text-primary' : ''}`} />
+            </Button>
           </div>
           {selectedImage && (
             <div 
               className="relative w-full h-full flex items-center justify-center"
               onClick={(e) => {
-                if (e.target === e.currentTarget) return;
+                // Only handle clicks when in annotation mode
+                if (!isAnnotationMode || e.target === e.currentTarget) return;
                 const rect = e.currentTarget.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 100;
                 const y = ((e.clientY - rect.top) / rect.height) * 100;
                 setNewCommentPos({ x, y });
+                setIsAnnotationMode(false); // Exit annotation mode after placing a comment
               }}
+              className={`cursor-${isAnnotationMode ? 'crosshair' : 'default'}`}
             >
               <img
                 src={selectedImage.url}
