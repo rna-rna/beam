@@ -105,6 +105,25 @@ export function registerRoutes(app: Express): Server {
   app.use('/uploads', express.static(uploadsDir));
   console.log('Uploads directory configured:', uploadsDir);
 
+  // Create empty gallery with predefined ID
+  app.post('/api/galleries/create', async (req, res) => {
+    try {
+      const { title = "Untitled Project", slug } = req.body;
+
+      // Create gallery with provided or generated slug
+      const [gallery] = await db.insert(galleries).values({
+        slug: slug || generateSlug(),
+        title
+      }).returning();
+      
+      console.log('Created empty gallery:', gallery);
+      res.json(gallery);
+    } catch (error) {
+      console.error('Failed to create gallery:', error);
+      res.status(500).json({ message: 'Failed to create gallery' });
+    }
+  });
+
   // Create new gallery with images
   app.post('/api/galleries', upload.array('images', 50), async (req, res) => {
     try {
