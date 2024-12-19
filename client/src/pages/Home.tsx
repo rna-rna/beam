@@ -17,50 +17,63 @@ export default function Home() {
   const [title, setTitle] = useState("Untitled Project");
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  // Flag to track if gallery has been created
+  const [isGalleryCreated, setIsGalleryCreated] = useState(false);
 
-  // Generate a unique gallery ID on mount
+  // Generate a unique gallery ID and create gallery on mount
   useEffect(() => {
-    const newGalleryId = uuidv4();
-    setGalleryId(newGalleryId);
-  }, []);
+    if (!galleryId && !isGalleryCreated) {
+      const newGalleryId = uuidv4();
+      setGalleryId(newGalleryId);
+      
+      const createGallery = async () => {
+        try {
+          const res = await fetch('/api/galleries/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, slug: newGalleryId })
+          });
 
-  // Create gallery on component mount.  This now uses the generated galleryId.
-  const createGalleryMutation = useMutation({
-    mutationFn: async () => {
-      if (!galleryId) throw new Error('No gallery ID generated'); //Added error handling
-      const res = await fetch('/api/galleries/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, slug: galleryId }) // Pass galleryId as the slug
-      });
+          if (!res.ok) {
+            throw new Error('Failed to create gallery');
+          }
 
-      if (!res.ok) throw new Error('Failed to create gallery');
-      return res.json();
-    },
-    onSuccess: (data) => {
-      console.log('Created gallery:', data);
-      //setGalleryId(data.slug); //No longer needed as galleryId is already set.
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to initialize gallery. Please refresh the page.",
-        variant: "destructive"
-      });
+          const data = await res.json();
+          console.log('Created gallery:', data);
+          setIsGalleryCreated(true);
+        } catch (error) {
+          console.error('Gallery creation error:', error);
+          toast({
+            title: "Error",
+            description: "Failed to initialize gallery. Please refresh the page.",
+            variant: "destructive"
+          });
+        }
+      };
+
+      createGallery();
     }
-  });
+  }, []); // Empty dependency array since this should only run once on mount
 
-  // Update gallery title - now triggered by changes in title state
+
+  // Update gallery title
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
-      if (!galleryId) throw new Error('No gallery ID');
+      if (!galleryId || !isGalleryCreated) {
+        throw new Error('Gallery not initialized');
+      }
+
       const res = await fetch(`/api/galleries/${galleryId}/title`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: newTitle })
       });
 
-      if (!res.ok) throw new Error('Failed to update title');
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || 'Failed to update title');
+      }
+
       return res.json();
     },
     onSuccess: (data) => {
@@ -70,26 +83,21 @@ export default function Home() {
         description: "Gallery title updated",
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Title update error:', error);
       toast({
         title: "Error",
-        description: "Failed to update gallery title",
+        description: error instanceof Error ? error.message : "Failed to update gallery title",
         variant: "destructive"
       });
     }
   });
 
-  // Create gallery when component mounts.  Title update is handled separately.
-  useEffect(() => {
-    createGalleryMutation.mutate();
-  }, [createGalleryMutation, galleryId]);
-
-
   useEffect(() => {
     if (galleryId && title !== "Untitled Project") {
       updateTitleMutation.mutate(title);
     }
-  }, [galleryId, title, updateTitleMutation]);
+  }, [galleryId, title, updateTitleMutation, isGalleryCreated]);
 
 
   const uploadMutation = useMutation({
