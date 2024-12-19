@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { useParams } from "wouter";
-import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown, Share2, Pencil } from "lucide-react";
+import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown, Share2, Paintbrush } from "lucide-react";
 import { Star as StarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { InlineEdit } from "@/components/InlineEdit";
+import { DrawingCanvas } from "@/components/DrawingCanvas";
 
 interface Comment {
   id: number;
@@ -665,14 +666,14 @@ export default function Gallery() {
                 setNewCommentPos(null);
               }}
             >
-              <Pencil className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${isAnnotationMode ? 'text-primary' : ''}`} />
+              <Paintbrush className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${isAnnotationMode ? 'text-primary' : ''}`} />
             </Button>
           </div>
           {selectedImage && (
             <div 
               className="relative w-full h-full flex items-center justify-center"
               onClick={(e) => {
-                // Only handle clicks when in annotation mode
+                // Only handle clicks when in annotation mode and not drawing
                 if (!isAnnotationMode || e.target === e.currentTarget) return;
                 const rect = e.currentTarget.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -680,13 +681,19 @@ export default function Gallery() {
                 setNewCommentPos({ x, y });
                 setIsAnnotationMode(false); // Exit annotation mode after placing a comment
               }}
-              className={`cursor-${isAnnotationMode ? 'crosshair' : 'default'}`}
             >
-              <img
-                src={selectedImage.url}
-                alt=""
-                className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
-              />
+              <div className="relative">
+                <img
+                  src={selectedImage.url}
+                  alt=""
+                  className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
+                />
+                <DrawingCanvas
+                  width={selectedImage.width}
+                  height={selectedImage.height}
+                  isDrawing={isAnnotationMode}
+                />
+              </div>
               
               {/* Existing comments */}
               {comments.map((comment) => (
