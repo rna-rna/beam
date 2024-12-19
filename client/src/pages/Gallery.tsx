@@ -49,11 +49,6 @@ export default function Gallery() {
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
-  const { data: annotations = [] } = useQuery<Array<{ id: number; pathData: string }>>({
-    queryKey: [`/api/images/${selectedImage?.id}/annotations`],
-    enabled: !!selectedImage?.id,
-  });
-  
   const { data: gallery, isLoading } = useQuery<{ 
     id: number;
     slug: string;
@@ -116,6 +111,12 @@ export default function Gallery() {
   });
 
   const selectedImage = gallery?.images[selectedImageIndex] ?? null;
+
+  // Fetch annotations when an image is selected
+  const { data: annotations = [] } = useQuery<Array<{ id: number; pathData: string }>>({
+    queryKey: [`/api/images/${selectedImage?.id}/annotations`],
+    enabled: !!selectedImage?.id,
+  });
   
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!gallery?.images.length) return;
