@@ -110,20 +110,28 @@ export default function Home() {
         formData.append('images', file);
       });
 
-      const xhr = new XMLHttpRequest();
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = (event.loaded / event.total) * 100;
-          setUploadProgress((prev: Record<string, number>) => ({
-            ...prev,
-            ...Object.fromEntries(files.map(file => [file.name, progress]))
-          }));
-        }
-      };
-
       return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = (event.loaded / event.total) * 100;
+            setUploadProgress((prev: Record<string, number>) => ({
+              ...prev,
+              ...Object.fromEntries(files.map(file => [file.name, progress]))
+            }));
+
+            // Start navigation when upload is nearly complete
+            if (progress >= 99.9) {
+              // Cleanup preview URLs
+              Object.values(previewUrls).forEach(URL.revokeObjectURL);
+              navigateToGallery(galleryId);
+            }
+          }
+        };
+
         xhr.open('POST', `/api/galleries/${galleryId}/images`);
+        
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve(true);
@@ -135,11 +143,6 @@ export default function Home() {
         xhr.onerror = () => reject(new Error('Upload failed'));
         xhr.send(formData);
       });
-    },
-    onSuccess: () => {
-      // Cleanup preview URLs
-      Object.values(previewUrls).forEach(URL.revokeObjectURL);
-      setLocation(`/gallery/${galleryId}`);
     },
     onError: () => {
       // Cleanup preview URLs
@@ -163,8 +166,18 @@ export default function Home() {
     }
   });
 
+  // Track if we're transitioning away
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Wrap setLocation to include transition
+  const navigateToGallery = useCallback((galleryId: string) => {
+    setIsNavigating(true);
+    // Small delay to allow fade out animation
+    setTimeout(() => setLocation(`/gallery/${galleryId}`), 300);
+  }, [setLocation]);
+
   return (
-    <div className="min-h-screen w-full bg-background">
+    <div className={`min-h-screen w-full bg-background transition-opacity duration-300 ${isNavigating ? 'opacity-0' : 'opacity-100'}`}>
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
         <div className="px-6 md:px-8 lg:px-12 py-4">
           <InlineEdit
