@@ -257,10 +257,18 @@ export default function Gallery() {
           )}
           <Button
             variant={isReorderMode ? "default" : "outline"}
-            onClick={() => setIsReorderMode(!isReorderMode)}
+            onClick={() => {
+              if (isReorderMode && reorderImageMutation.isPending) return;
+              setIsReorderMode(!isReorderMode);
+            }}
             className="ml-auto"
+            disabled={reorderImageMutation.isPending}
           >
-            {isReorderMode ? "Save Order" : "Reorder"}
+            {isReorderMode 
+              ? reorderImageMutation.isPending 
+                ? "Saving..." 
+                : "Save Order" 
+              : "Reorder"}
           </Button>
         </div>
       </div>
@@ -280,6 +288,8 @@ export default function Gallery() {
               onDragEnd={({ destination, source }) => {
                 if (!destination || destination.index === source.index) return;
                 
+                console.log('Drag ended:', { source, destination });
+                
                 const newImages = Array.from(gallery.images);
                 const [removed] = newImages.splice(source.index, 1);
                 newImages.splice(destination.index, 0, removed);
@@ -290,8 +300,12 @@ export default function Gallery() {
                   images: newImages
                 });
                 
+                // Extract image IDs for the new order
+                const newOrder = newImages.map(img => img.id);
+                console.log('Updating order:', newOrder);
+                
                 // Update the backend
-                reorderImageMutation.mutate(newImages.map(img => img.id));
+                reorderImageMutation.mutate(newOrder);
               }}
             >
               <Droppable droppableId="gallery">
