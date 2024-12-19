@@ -113,7 +113,11 @@ export function DrawingCanvas({
   return (
     <canvas
       ref={canvasRef}
-      className={`absolute inset-0 ${className} ${isDrawing ? 'cursor-crosshair' : 'pointer-events-none'}`}
+      className={`absolute inset-0 w-full h-full ${className} ${isDrawing ? 'cursor-crosshair' : 'pointer-events-none'}`}
+      style={{ 
+        touchAction: 'none',
+        pointerEvents: isDrawing ? 'auto' : 'none'
+      }}
       onMouseDown={startDrawing}
       onMouseMove={draw}
       onMouseUp={stopDrawing}
