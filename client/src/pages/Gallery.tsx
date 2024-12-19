@@ -725,21 +725,20 @@ export default function Gallery() {
                     }
                   }}
                 />
-                {/* Drawing Canvas - Only show when drawing mode is active */}
-                {isAnnotationMode && (
-                  <div className="absolute inset-0">
-                    <DrawingCanvas
-                      width={800}  // Default width if image dimensions aren't available
-                      height={600} // Default height if image dimensions aren't available
-                      isDrawing={true}
-                      savedPaths={showAnnotations ? annotations : []}
-                      onSavePath={async (pathData) => {
-                        try {
-                          await fetch(`/api/images/${selectedImage.id}/annotations`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ pathData })
-                          });
+                {/* Drawing Canvas - Always present but only active in drawing mode */}
+                <div className="absolute inset-0">
+                  <DrawingCanvas
+                    width={800}  // Default width if image dimensions aren't available
+                    height={600} // Default height if image dimensions aren't available
+                    isDrawing={isAnnotationMode}
+                    savedPaths={showAnnotations ? annotations : []}
+                    onSavePath={async (pathData) => {
+                      try {
+                        await fetch(`/api/images/${selectedImage.id}/annotations`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ pathData })
+                        });
                           
                           // Refresh annotations
                           queryClient.invalidateQueries({
@@ -760,7 +759,6 @@ export default function Gallery() {
                       }}
                     />
                   </div>
-                )}
               </div>
               
               {/* Existing comments */}
