@@ -90,16 +90,19 @@ export function registerRoutes(app: Express): Server {
         orderBy: (images, { desc }) => [desc(images.createdAt)]
       });
 
-      if (!galleryImages.length) {
-        return res.status(404).json({ message: 'Gallery not found' });
-      }
-
       const processedImages = galleryImages.map(img => ({
-        ...img,
+        id: img.id,
+        url: img.url,
+        width: img.width,
+        height: img.height,
         aspectRatio: img.width / img.height
       }));
 
-      res.json({ images: processedImages });
+      res.json({
+        id: gallery.id,
+        slug: gallery.slug,
+        images: processedImages
+      });
     } catch (error) {
       console.error('Gallery fetch error:', error);
       res.status(500).json({ message: 'Failed to fetch gallery' });
