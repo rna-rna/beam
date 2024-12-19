@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { useParams } from "wouter";
-import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown } from "lucide-react";
 import { Star as StarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -302,34 +302,23 @@ export default function Gallery() {
             </div>
           )}
           
-          <div className="ml-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Gallery Settings</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => {
-                      if (isReorderMode && reorderImageMutation.isPending) return;
-                      setIsReorderMode(!isReorderMode);
-                    }}
-                    disabled={reorderImageMutation.isPending}
-                  >
-                    {isReorderMode 
-                      ? reorderImageMutation.isPending 
-                        ? "Saving..." 
-                        : "Save Order" 
-                      : "Reorder Images"}
-                  </DropdownMenuItem>
-                  </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                if (isReorderMode && reorderImageMutation.isPending) return;
+                setIsReorderMode(!isReorderMode);
+              }}
+              disabled={reorderImageMutation.isPending}
+              className={isReorderMode ? 'bg-primary/10' : ''}
+            >
+              {isReorderMode && reorderImageMutation.isPending ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? 'text-primary' : ''}`} />
+              )}
+            </Button>
             <Button
               variant="outline"
               size="icon"
@@ -338,6 +327,20 @@ export default function Gallery() {
             >
               <Star className={`h-4 w-4 ${showStarredOnly ? 'fill-primary text-primary' : ''}`} />
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>More Settings</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled className="text-muted-foreground">
+                  Coming soon...
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
