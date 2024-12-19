@@ -120,13 +120,6 @@ export default function Home() {
               ...prev,
               ...Object.fromEntries(files.map(file => [file.name, progress]))
             }));
-
-            // Start navigation when upload is nearly complete
-            if (progress >= 99.9) {
-              // Cleanup preview URLs
-              Object.values(previewUrls).forEach(URL.revokeObjectURL);
-              navigateToGallery(galleryId);
-            }
           }
         };
 
@@ -134,6 +127,10 @@ export default function Home() {
         
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
+            // Clean up preview URLs
+            Object.values(previewUrls).forEach(URL.revokeObjectURL);
+            // Navigate to gallery after successful upload
+            navigateToGallery(galleryId);
             resolve(true);
           } else {
             reject(new Error('Upload failed'));
