@@ -45,6 +45,7 @@ export function registerRoutes(app: Express): Server {
   app.use('/uploads', express.static(uploadsDir));
   console.log('Uploads directory configured:', uploadsDir);
 
+  // Create new gallery with images
   app.post('/api/galleries', upload.array('images', 50), async (req, res) => {
     try {
       console.log('Received upload request');
@@ -94,6 +95,49 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Add images to existing gallery
+  app.post('/api/galleries/:slug/images', upload.array('images', 50), async (req, res) => {
+    try {
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, req.params.slug),
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      if (!req.files || !Array.isArray(req.files)) {
+        return res.status(400).json({ message: 'No images uploaded' });
+      }
+
+      console.log(`Adding ${req.files.length} images to gallery ${gallery.id}`);
+
+      const imageInserts = [];
+      for (const file of req.files) {
+        console.log('Processing file:', file.filename);
+        const [image] = await db.insert(images).values({
+          galleryId: gallery.id,
+          url: `/uploads/${file.filename}`,
+          publicId: file.filename,
+          width: 800, // placeholder
+          height: 600 // placeholder
+        }).returning();
+        imageInserts.push(image);
+        console.log('Successfully processed file:', file.filename);
+      }
+
+      console.log(`Successfully added ${imageInserts.length} images`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Upload error:', error);
+      res.status(500).json({ 
+        message: 'Failed to upload images',
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Get gallery details
   app.get('/api/galleries/:slug', async (req, res) => {
     try {
       const gallery = await db.query.galleries.findFirst({
