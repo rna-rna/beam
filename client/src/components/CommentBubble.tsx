@@ -39,7 +39,7 @@ export function CommentBubble({ x, y, content, onSubmit, isNew = false }: Commen
         </div>
 
         {/* Comment bubble */}
-        <Card className={`absolute left-8 top-0 -translate-y-1/2 w-max max-w-[200px] ${isEditing ? 'p-2' : 'p-3'} bg-primary/10 backdrop-blur border-primary/20`}>
+        <Card className={`absolute left-8 top-0 -translate-y-1/2 w-max max-w-[200px] ${isEditing ? 'p-2' : 'p-3'} bg-card shadow-lg border-primary/20`}>
           {isEditing ? (
             <form onSubmit={handleSubmit} className="flex gap-2">
               <Input
