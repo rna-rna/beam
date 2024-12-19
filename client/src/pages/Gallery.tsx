@@ -49,6 +49,10 @@ export default function Gallery() {
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
+  const { data: annotations = [] } = useQuery<Array<{ id: number; pathData: string }>>({
+    queryKey: [`/api/images/${selectedImage?.id}/annotations`],
+    enabled: !!selectedImage?.id,
+  });
   
   const { data: gallery, isLoading } = useQuery<{ 
     id: number;
@@ -692,6 +696,32 @@ export default function Gallery() {
                   width={selectedImage.width}
                   height={selectedImage.height}
                   isDrawing={isAnnotationMode}
+                  savedPaths={annotations}
+                  onSavePath={async (pathData) => {
+                    try {
+                      await fetch(`/api/images/${selectedImage.id}/annotations`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pathData })
+                      });
+                      
+                      // Refresh annotations
+                      queryClient.invalidateQueries({
+                        queryKey: [`/api/images/${selectedImage.id}/annotations`]
+                      });
+                      
+                      toast({
+                        title: "Annotation saved",
+                        description: "Your drawing has been saved successfully.",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to save annotation. Please try again.",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
                 />
               </div>
               

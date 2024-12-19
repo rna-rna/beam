@@ -21,15 +21,25 @@ export const images = pgTable('images', {
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
-export const comments = pgTable('comments', {
+export const annotations = pgTable('annotations', {
   id: serial('id').primaryKey(),
   imageId: integer('image_id').references(() => images.id).notNull(),
-  content: text('content').notNull(),
-  xPosition: real('x_position').notNull(), // Percentage of image width (0-100)
-  yPosition: real('y_position').notNull(), // Percentage of image height (0-100)
+  pathData: text('path_data').notNull(), // SVG path data for the drawing
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
+export const comments = pgTable('comments', {
+  id: serial('id').primaryKey(),
+  imageId: integer('image_id').references(() => images.id).notNull(),
+  annotationId: integer('annotation_id').references(() => annotations.id),
+  content: text('content').notNull(),
+  xPosition: real('x_position').notNull(), // Percentage of image width (0-100)
+  yPosition: real('y_position').notNull(), // Percentage of image height (0-100)
+  author: text('author'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
+// Define relationships
 export const galleriesRelations = relations(galleries, ({ many }) => ({
   images: many(images)
 }));
@@ -39,6 +49,15 @@ export const imagesRelations = relations(images, ({ one, many }) => ({
     fields: [images.galleryId],
     references: [galleries.id]
   }),
+  comments: many(comments),
+  annotations: many(annotations)
+}));
+
+export const annotationsRelations = relations(annotations, ({ one, many }) => ({
+  image: one(images, {
+    fields: [annotations.imageId],
+    references: [images.id]
+  }),
   comments: many(comments)
 }));
 
@@ -46,19 +65,29 @@ export const commentsRelations = relations(comments, ({ one }) => ({
   image: one(images, {
     fields: [comments.imageId],
     references: [images.id]
+  }),
+  annotation: one(annotations, {
+    fields: [comments.annotationId],
+    references: [annotations.id]
   })
 }));
 
+// Create schemas for validation
 export const insertGallerySchema = createInsertSchema(galleries);
 export const selectGallerySchema = createSelectSchema(galleries);
 export const insertImageSchema = createInsertSchema(images);
 export const selectImageSchema = createSelectSchema(images);
 export const insertCommentSchema = createInsertSchema(comments);
 export const selectCommentSchema = createSelectSchema(comments);
+export const insertAnnotationSchema = createInsertSchema(annotations);
+export const selectAnnotationSchema = createSelectSchema(annotations);
 
+// Export types
 export type Gallery = typeof galleries.$inferSelect;
 export type NewGallery = typeof galleries.$inferInsert;
 export type Image = typeof images.$inferSelect;
 export type NewImage = typeof images.$inferInsert;
+export type Annotation = typeof annotations.$inferSelect;
+export type NewAnnotation = typeof annotations.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
