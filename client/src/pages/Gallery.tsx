@@ -725,14 +725,14 @@ export default function Gallery() {
                     }
                   }}
                 />
-                {/* Drawing Canvas - Show based on mode and visibility */}
-                {showAnnotations && isAnnotationMode && (
+                {/* Drawing Canvas - Only show when drawing mode is active */}
+                {isAnnotationMode && (
                   <div className="absolute inset-0">
                     <DrawingCanvas
                       width={800}  // Default width if image dimensions aren't available
                       height={600} // Default height if image dimensions aren't available
                       isDrawing={true}
-                      savedPaths={annotations}
+                      savedPaths={showAnnotations ? annotations : []}
                       onSavePath={async (pathData) => {
                         try {
                           await fetch(`/api/images/${selectedImage.id}/annotations`, {
