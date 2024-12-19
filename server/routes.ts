@@ -225,17 +225,30 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Found gallery:', gallery.id);
 
-      // Update order for each image
-      for (let i = 0; i < order.length; i++) {
-        console.log(`Setting position ${i} for image ${order[i]}`);
-        await db
-          .update(images)
-          .set({ position: i })
-          .where(and(
-            eq(images.id, order[i]),
-            eq(images.galleryId, gallery.id)
-          ));
+      // Validate all images belong to this gallery
+      const galleryImages = await db.query.images.findMany({
+        where: eq(images.galleryId, gallery.id),
+      });
+
+      const validImageIds = new Set(galleryImages.map(img => img.id));
+      if (!order.every(id => validImageIds.has(id))) {
+        console.error('Invalid image IDs in order');
+        return res.status(400).json({ message: 'Invalid image IDs in order' });
       }
+
+      // Update order for each image in a transaction
+      await db.transaction(async (tx) => {
+        for (let i = 0; i < order.length; i++) {
+          console.log(`Setting position ${i} for image ${order[i]}`);
+          await tx
+            .update(images)
+            .set({ position: i })
+            .where(and(
+              eq(images.id, order[i]),
+              eq(images.galleryId, gallery.id)
+            ));
+        }
+      });
 
       console.log('Successfully updated image positions');
       res.json({ success: true });
