@@ -419,11 +419,22 @@ export default function Gallery() {
                     };
                   });
                   
-                  // Get the order of image IDs
-                  // Ensure all IDs are properly converted to numbers
+                  // Get the order of image IDs, ensuring consistent number type
                   const newOrder = updatedImages
-                    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-                    .map(img => Number(img.id));
+                    .sort((a, b) => {
+                      const posA = typeof a.position === 'number' ? a.position : Number.MAX_SAFE_INTEGER;
+                      const posB = typeof b.position === 'number' ? b.position : Number.MAX_SAFE_INTEGER;
+                      return posA - posB;
+                    })
+                    .map(img => {
+                      const id = Number(img.id);
+                      if (isNaN(id)) {
+                        console.error('Invalid image ID:', img.id);
+                        return null;
+                      }
+                      return id;
+                    })
+                    .filter((id): id is number => id !== null);
                   
                   console.log('Reordering images:', {
                     visibleImages: visibleImages.length,
@@ -471,11 +482,15 @@ export default function Gallery() {
                     {gallery.images
                       .filter(image => !showStarredOnly || image.starred)
                       .map((image, index) => {
-                        // Ensure consistent string ID format
-                        const draggableId = `image-${image.id.toString()}`;
+                        const id = Number(image.id);
+                        if (isNaN(id)) {
+                          console.error('Invalid image ID:', image.id);
+                          return null;
+                        }
+                        const draggableId = `image-${id}`;
                         return (
                           <Draggable 
-                            key={image.id.toString()}
+                            key={id}
                             draggableId={draggableId}
                             index={index}
                           >
