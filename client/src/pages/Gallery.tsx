@@ -11,6 +11,8 @@ import { useParams } from "wouter";
 import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown, Share2, Paintbrush } from "lucide-react";
 import { Star as StarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { CommentBubble } from "@/components/CommentBubble";
@@ -666,26 +668,6 @@ export default function Gallery() {
               <Button
                 variant="secondary"
                 size="icon"
-                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${showAnnotations ? 'bg-primary/20' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowAnnotations(!showAnnotations);
-                }}
-                title="Toggle Annotations Visibility"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${showAnnotations ? 'text-primary' : ''}`}
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M8 16L12 12M12 12L16 16M12 12L16 8M12 12L8 8" />
-                </svg>
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
                 className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${isAnnotationMode ? 'bg-primary/20' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -695,6 +677,23 @@ export default function Gallery() {
                 title="Toggle Drawing Mode"
               >
                 <Paintbrush className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${isAnnotationMode ? 'text-primary' : ''}`} />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const rect = document.querySelector('img')?.getBoundingClientRect();
+                  if (rect) {
+                    const x = 50; // Center of image
+                    const y = 50; // Center of image
+                    setNewCommentPos({ x, y });
+                  }
+                }}
+                title="Add Comment"
+              >
+                <MessageCircle className="h-8 w-8 transition-all duration-300 hover:scale-110" />
               </Button>
             </div>
           </div>
@@ -796,18 +795,34 @@ export default function Gallery() {
           )}
         </DialogContent>
       </Dialog>
-      {/* Fixed scale slider */}
-        <div className="fixed bottom-6 right-6 z-50 bg-background/95 backdrop-blur-sm rounded-lg border shadow-lg p-4">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium">Scale: {scale}%</span>
-            <Slider
-              value={[scale]}
-              onValueChange={([value]) => setScale(value)}
-              min={50}
-              max={150}
-              step={10}
-              className="w-[200px]"
-            />
+      {/* Fixed controls */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-4">
+          <div className="bg-background/95 backdrop-blur-sm rounded-lg border shadow-lg p-4">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium">Scale: {scale}%</span>
+              <Slider
+                value={[scale]}
+                onValueChange={([value]) => setScale(value)}
+                min={50}
+                max={150}
+                step={10}
+                className="w-[200px]"
+              />
+            </div>
+          </div>
+          
+          <div className="bg-background/95 backdrop-blur-sm rounded-lg border shadow-lg p-4">
+            <div className="flex items-center gap-3">
+              <Switch
+                id="show-annotations"
+                checked={showAnnotations}
+                onCheckedChange={setShowAnnotations}
+                className="data-[state=checked]:bg-primary"
+              />
+              <Label htmlFor="show-annotations" className="text-sm font-medium">
+                Show Annotations
+              </Label>
+            </div>
           </div>
         </div>
     </div>
