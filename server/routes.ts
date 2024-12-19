@@ -5,6 +5,7 @@ import path from 'path';
 import { db } from '@db';
 import { galleries, images } from '@db/schema';
 import { eq } from 'drizzle-orm';
+import { generateSlug } from './utils';
 
 // Configure multer for local storage
 const storage = multer.diskStorage({
@@ -44,7 +45,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: 'No images uploaded' });
       }
 
-      const [gallery] = await db.insert(galleries).values({}).returning();
+      const [gallery] = await db.insert(galleries).values({
+        slug: generateSlug()
+      }).returning();
 
       const insertPromises = req.files.map(async (file) => {
         // Get image dimensions (you might want to add sharp or another library later for this)
@@ -60,18 +63,25 @@ export function registerRoutes(app: Express): Server {
 
       await Promise.all(insertPromises);
 
-      res.json({ galleryId: gallery.id });
+      res.json({ galleryId: gallery.slug });
     } catch (error) {
       console.error('Upload error:', error);
       res.status(500).json({ message: 'Failed to upload images' });
     }
   });
 
-  app.get('/api/galleries/:id', async (req, res) => {
+  app.get('/api/galleries/:slug', async (req, res) => {
     try {
-      const galleryId = parseInt(req.params.id);
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, req.params.slug),
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
       const galleryImages = await db.query.images.findMany({
-        where: eq(images.galleryId, galleryId),
+        where: eq(images.galleryId, gallery.id),
         orderBy: (images, { desc }) => [desc(images.createdAt)]
       });
 
