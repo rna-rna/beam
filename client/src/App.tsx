@@ -6,7 +6,7 @@ function App() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/gallery/:id" component={Gallery} />
+      <Route path="/gallery/:slug" component={Gallery} />
     </Switch>
   );
 }

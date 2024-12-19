@@ -4,6 +4,7 @@ import { relations } from 'drizzle-orm';
 
 export const galleries = pgTable('galleries', {
   id: serial('id').primaryKey(),
+  slug: text('slug').unique().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
