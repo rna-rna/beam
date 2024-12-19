@@ -278,13 +278,19 @@ export default function Gallery() {
           {isReorderMode ? (
             <DragDropContext
               onDragEnd={({ destination, source }) => {
-                if (!destination) return;
+                if (!destination || destination.index === source.index) return;
                 
                 const newImages = Array.from(gallery.images);
                 const [removed] = newImages.splice(source.index, 1);
                 newImages.splice(destination.index, 0, removed);
                 
-                // Update the backend with the new order
+                // Optimistically update the UI
+                queryClient.setQueryData([`/api/galleries/${slug}`], {
+                  ...gallery,
+                  images: newImages
+                });
+                
+                // Update the backend
                 reorderImageMutation.mutate(newImages.map(img => img.id));
               }}
             >
@@ -296,7 +302,7 @@ export default function Gallery() {
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                   >
                     {gallery.images.map((image: any, index: number) => (
-                      <Draggable key={image.id} draggableId={String(image.id)} index={index}>
+                      <Draggable key={String(image.id)} draggableId={String(image.id)} index={index}>
                         {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef}
