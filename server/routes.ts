@@ -150,7 +150,10 @@ export function registerRoutes(app: Express): Server {
 
       const galleryImages = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
-        orderBy: (images, { desc }) => [desc(images.createdAt)]
+        orderBy: (images, { asc }) => [
+          asc(images.position),
+          asc(images.createdAt)
+        ]
       });
 
       // Get comment counts for each image
