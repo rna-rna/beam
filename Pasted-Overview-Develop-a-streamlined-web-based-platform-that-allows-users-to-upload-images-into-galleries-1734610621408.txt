@@ -1,0 +1,105 @@
+Overview
+
+Develop a streamlined web-based platform that allows users to upload images into galleries without requiring authentication. The platform should focus on simplicity, ease of use, and immediate sharing capabilities. A drag-and-drop interface on the homepage enables users to upload images, which are automatically organized and accessible via a unique, shareable link.
+
+Core Features
+
+User Flow
+
+Homepage as Drop Zone:
+
+The homepage is a large, interactive drag-and-drop area where users can drop images.
+
+Images begin uploading automatically upon being dropped, with an upload progress indicator.
+
+Automatic Gallery Creation:
+
+Once images are uploaded, the page refreshes to a new, unique URL representing the gallery.
+
+This unique link is public and can be shared immediately with others.
+
+Image Display:
+
+Uploaded images are displayed in a visually appealing masonry-style grid layout.
+
+The grid dynamically adapts to the number of images and screen size for responsiveness.
+
+No Authentication:
+
+No sign-up, login, or authentication is required for users to create or access galleries.
+
+Public Sharing:
+
+All galleries are accessible via unique public links.
+
+Galleries do not require passwords or additional permissions for viewing.
+
+Technical Requirements
+
+Frontend
+
+Homepage:
+
+Use React.js for a responsive and interactive frontend.
+
+Implement a large drop zone using a library like react-dropzone.
+
+Show real-time progress bars during image uploads.
+
+Gallery Page:
+
+Display images in a masonry grid using libraries like react-masonry-css.
+
+Ensure the page dynamically adapts to uploaded images and is mobile-friendly.
+
+Backend
+
+Server:
+
+Use Node.js with Express for API and gallery management.
+
+Generate a unique ID or slug for each gallery (e.g., UUID or random string).
+
+Automatically associate uploaded images with the newly created gallery.
+
+Storage:
+
+Store uploaded images in a cloud storage service like AWS S3 or Firebase Storage.
+
+Optimize images for fast loading (e.g., resize and compress on upload).
+
+Database:
+
+Use a lightweight database like SQLite or PostgreSQL to store gallery metadata (e.g., gallery ID, creation timestamp, image links).
+
+Real-time Functionality
+
+Instant Gallery Creation:
+
+Once all images are uploaded, redirect the user to the new gallery link automatically.
+
+Use WebSockets or similar technology for real-time updates during uploads.
+
+Deliverables
+
+Homepage:
+
+Drag-and-drop upload functionality with automatic upload and progress indicators.
+
+Gallery Page:
+
+Unique URL for each gallery.
+
+Masonry-style grid displaying uploaded images.
+
+Backend API:
+
+Endpoints for uploading images and retrieving gallery data.
+
+Storage Integration:
+
+Secure and optimized image storage.
+
+Notes
+
+This tool is designed to prioritize simplicity and immediacy. No authentication is required, and users can start uploading images directly from the homepage. Focus on creating a seamless, fast user experience with visually appealing galleries that can be shared instantly.
