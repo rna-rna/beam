@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { useParams } from "wouter";
 import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown, Share2 } from "lucide-react";
+import { LazyImage } from "@/components/LazyImage";
 import { Star as StarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -487,11 +488,10 @@ export default function Gallery() {
                               }`}
                             >
                               <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
-                                <img
+                                <LazyImage
                                   src={image.url}
                                   alt=""
                                   className="w-full h-auto object-cover"
-                                  loading="lazy"
                                 />
                                 <div className="absolute top-2 right-2">
                                   {image.commentCount > 0 && (
@@ -554,11 +554,10 @@ export default function Gallery() {
                   }}
                 >
                   <div className="relative">
-                    <img
+                    <LazyImage
                       src={image.url}
                       alt=""
                       className="w-full h-auto object-contain rounded-md"
-                      loading="lazy"
                     />
                     <div className="absolute top-2 right-2">
                       {image.commentCount > 0 && (
