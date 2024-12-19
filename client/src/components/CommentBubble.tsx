@@ -79,14 +79,12 @@ export function CommentBubble({ x, y, content, author, savedAuthor, onSubmit, is
             </form>
           ) : (
             <div>
-              {author && (
-                <div className="flex items-center gap-2 mb-2">
-                  <UserAvatar name={author || "Anonymous"} className="w-6 h-6 text-xs" />
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {author}
-                  </p>
-                </div>
-              )}
+              <div className="flex items-center gap-2 mb-2">
+                <UserAvatar name={author || "Anonymous"} className="w-6 h-6 text-xs" />
+                <p className="text-xs font-medium text-muted-foreground">
+                  {author || "Anonymous"}
+                </p>
+              </div>
               <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
             </div>
           )}

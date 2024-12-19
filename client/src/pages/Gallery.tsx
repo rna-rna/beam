@@ -794,11 +794,12 @@ export default function Gallery() {
                   isNew
                   savedAuthor={userName}
                   onSubmit={(content, author) => {
-                    setUserName(author); // Save the username for future comments
+                    const newAuthor = author.trim() || userName || 'Anonymous';
+                    setUserName(newAuthor); // Save the username for future comments
                     createCommentMutation.mutate({
                       imageId: selectedImage.id,
                       content,
-                      author,
+                      author: newAuthor,
                       x: newCommentPos.x,
                       y: newCommentPos.y,
                     });
