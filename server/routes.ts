@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import { db } from '@db';
 import { galleries, images } from '@db/schema';
 import { eq } from 'drizzle-orm';
@@ -37,7 +38,11 @@ const upload = multer({
 
 export function registerRoutes(app: Express): Server {
   // Ensure uploads directory exists
-  app.use('/uploads', express.static('uploads'));
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.use('/uploads', express.static(uploadsDir));
 
   app.post('/api/galleries', upload.array('images', 50), async (req, res) => {
     try {
