@@ -456,7 +456,7 @@ export default function Gallery() {
           setNewCommentPos(null);
         }
       }}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur border-none">
+        <DialogContent className="max-w-[95vw] h-[90vh] p-0 bg-background/95 backdrop-blur border-none overflow-hidden">
           {/* Navigation buttons */}
           <Button
             variant="ghost"
@@ -489,7 +489,7 @@ export default function Gallery() {
           </button>
           {selectedImage && (
             <div 
-              className="relative w-full h-full"
+              className="relative w-full h-full flex items-center justify-center"
               onClick={(e) => {
                 if (e.target === e.currentTarget) return;
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -501,7 +501,7 @@ export default function Gallery() {
               <img
                 src={selectedImage.url}
                 alt=""
-                className="w-full h-full object-contain"
+                className="max-h-full w-auto object-contain"
               />
               
               {/* Existing comments */}
