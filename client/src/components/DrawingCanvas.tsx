@@ -81,53 +81,65 @@ export function DrawingCanvas({
     return () => {
       resizeObserver.disconnect();
     };
-    context.lineCap = "round";
-    context.strokeStyle = "rgba(0, 0, 0, 0.8)";
-    context.lineWidth = 2;
-    contextRef.current = context;
+  }, [width, height]);
 
-    // Draw saved paths
+  // Update drawing when savedPaths change
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = contextRef.current;
+    if (!canvas || !context) return;
+
+    // Clear canvas
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw all saved paths
     savedPaths.forEach(({ pathData }) => {
-      // Convert percentage-based path data back to pixel coordinates
-      const pixelPathData = pathData.replace(/([ML])\s*(\d*\.?\d+)\s*(\d*\.?\d+)/g, (_, command, x, y) => {
-        const pixelX = (parseFloat(x) / 100) * canvas.width;
-        const pixelY = (parseFloat(y) / 100) * canvas.height;
-        return `${command} ${pixelX} ${pixelY}`;
-      });
-      const path = new Path2D(pixelPathData);
+      const path = new Path2D(pathData);
       context.stroke(path);
     });
-  }, [width, height, savedPaths]);
+  }, [savedPaths]);
 
   const getCanvasPoint = (event: React.MouseEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    const x = (event.clientX - rect.left) * scaleX / window.devicePixelRatio;
-    const y = (event.clientY - rect.top) * scaleY / window.devicePixelRatio;
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
     
     return { x, y };
+  };
+
+  const convertToCanvasPoint = (x: number, y: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
+    const rect = canvas.getBoundingClientRect();
+    const canvasX = (x / 100) * rect.width;
+    const canvasY = (y / 100) * rect.height;
+    
+    return { x: canvasX, y: canvasY };
   };
 
   const startDrawing = (event: React.MouseEvent) => {
     if (!isDrawing) return;
     const { x, y } = getCanvasPoint(event);
+    const canvasPoint = convertToCanvasPoint(x, y);
     
     setCurrentPath({
       points: [{ x, y }]
     });
     
-    contextRef.current?.beginPath();
-    contextRef.current?.moveTo(x, y);
+    if (contextRef.current) {
+      contextRef.current.beginPath();
+      contextRef.current.moveTo(canvasPoint.x, canvasPoint.y);
+    }
   };
 
   const draw = (event: React.MouseEvent) => {
     if (!isDrawing || !currentPath) return;
     const { x, y } = getCanvasPoint(event);
+    const canvasPoint = convertToCanvasPoint(x, y);
     
     setCurrentPath(prev => {
       if (!prev) return null;
@@ -137,23 +149,18 @@ export function DrawingCanvas({
       };
     });
     
-    contextRef.current?.lineTo(x, y);
-    contextRef.current?.stroke();
+    if (contextRef.current) {
+      contextRef.current.lineTo(canvasPoint.x, canvasPoint.y);
+      contextRef.current.stroke();
+    }
   };
 
   const stopDrawing = () => {
     if (!currentPath) return;
     
-    // Convert points to SVG path data
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
     const pathData = currentPath.points.reduce((acc, point, i) => {
       const command = i === 0 ? 'M' : 'L';
-      // Convert absolute coordinates to percentages for storage
-      const x = (point.x / canvas.width) * 100;
-      const y = (point.y / canvas.height) * 100;
-      return `${acc} ${command} ${x} ${y}`;
+      return `${acc} ${command} ${point.x} ${point.y}`;
     }, '');
     
     onSavePath?.(pathData);
