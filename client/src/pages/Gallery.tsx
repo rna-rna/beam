@@ -14,6 +14,16 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { CommentBubble } from "@/components/CommentBubble";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Settings } from "lucide-react";
 
 interface Comment {
   id: number;
@@ -246,38 +256,53 @@ export default function Gallery() {
       
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
         <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">Scale:</span>
-          <Slider
-            value={[scale]}
-            onValueChange={([value]) => setScale(value)}
-            min={50}
-            max={150}
-            step={10}
-            className="w-48"
-          />
-          <span className="text-sm text-muted-foreground">{scale}%</span>
-          
           {isUploading && (
             <div className="flex-1 flex items-center gap-4">
               <Progress value={undefined} className="flex-1" />
               <span className="text-sm text-muted-foreground">Uploading...</span>
             </div>
           )}
-          <Button
-            variant={isReorderMode ? "default" : "outline"}
-            onClick={() => {
-              if (isReorderMode && reorderImageMutation.isPending) return;
-              setIsReorderMode(!isReorderMode);
-            }}
-            className="ml-auto"
-            disabled={reorderImageMutation.isPending}
-          >
-            {isReorderMode 
-              ? reorderImageMutation.isPending 
-                ? "Saving..." 
-                : "Save Order" 
-              : "Reorder Images"}
-          </Button>
+          
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Gallery Settings</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem className="flex-col items-start">
+                    <div className="mb-2 text-sm">Scale: {scale}%</div>
+                    <Slider
+                      value={[scale]}
+                      onValueChange={([value]) => setScale(value)}
+                      min={50}
+                      max={150}
+                      step={10}
+                      className="w-full"
+                    />
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (isReorderMode && reorderImageMutation.isPending) return;
+                      setIsReorderMode(!isReorderMode);
+                    }}
+                    disabled={reorderImageMutation.isPending}
+                  >
+                    {isReorderMode 
+                      ? reorderImageMutation.isPending 
+                        ? "Saving..." 
+                        : "Save Order" 
+                      : "Reorder Images"}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
       
