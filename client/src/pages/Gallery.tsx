@@ -5,7 +5,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useParams } from "wouter";
-import { X, MessageCircle, Flag } from "lucide-react";
+import { X, MessageCircle, Flag, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CommentBubble } from "@/components/CommentBubble";
@@ -22,12 +22,36 @@ export default function Gallery() {
   const { slug } = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedImage, setSelectedImage] = useState<{ id: number; url: string } | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
-
+  
   const { data: gallery, isLoading } = useQuery<{ images: any[] }>({
     queryKey: [`/api/galleries/${slug}`],
   });
+
+  const selectedImage = gallery?.images[selectedImageIndex] ?? null;
+  
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (!gallery?.images.length) return;
+    
+    if (e.key === 'ArrowLeft') {
+      setSelectedImageIndex(prev => 
+        prev <= 0 ? gallery.images.length - 1 : prev - 1
+      );
+    } else if (e.key === 'ArrowRight') {
+      setSelectedImageIndex(prev => 
+        prev >= gallery.images.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+
+  // Add and remove keyboard event listeners
+  useEffect(() => {
+    if (selectedImageIndex >= 0) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [selectedImageIndex, gallery?.images.length]);
 
   const { data: comments = [] } = useQuery<Comment[]>({
     queryKey: [`/api/images/${selectedImage?.id}/comments`],
@@ -133,7 +157,7 @@ export default function Gallery() {
             <div 
               key={image.id} 
               className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
-              onClick={() => setSelectedImage({ id: image.id, url: image.url })}
+              onClick={() => setSelectedImageIndex(index)}
             >
               <div className="relative">
                 <img
@@ -170,11 +194,36 @@ export default function Gallery() {
         </Masonry>
       </div>
 
-      <Dialog open={!!selectedImage} onOpenChange={() => {
-        setSelectedImage(null);
-        setNewCommentPos(null);
+      <Dialog open={selectedImageIndex >= 0} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedImageIndex(-1);
+          setNewCommentPos(null);
+        }
       }}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur border-none">
+          {/* Navigation buttons */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleKeyDown({ key: 'ArrowLeft' } as KeyboardEvent);
+            }}
+          >
+            <ChevronLeft className="h-8 w-8 text-white" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleKeyDown({ key: 'ArrowRight' } as KeyboardEvent);
+            }}
+          >
+            <ChevronRight className="h-8 w-8 text-white" />
+          </Button>
           <button
             onClick={() => setSelectedImage(null)}
             className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-50"
