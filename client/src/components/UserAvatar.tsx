@@ -23,12 +23,12 @@ export function UserAvatar({ name, className = "" }: UserAvatarProps) {
   }, [name]);
 
   const backgroundColor = useMemo(() => {
-    return generateColor(name || "Anonymous");
+    return generateColor(name);
   }, [name]);
 
   return (
     <div
-      className={`flex items-center justify-center rounded-full text-background font-medium ${className}`}
+      className={`flex items-center justify-center rounded-full text-white font-medium shadow-sm ${className}`}
       style={{ backgroundColor }}
     >
       {initial}
