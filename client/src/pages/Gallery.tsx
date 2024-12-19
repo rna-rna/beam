@@ -8,7 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { useParams } from "wouter";
-import { X, MessageCircle, Star, StarIcon, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { Star as StarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -280,12 +281,6 @@ export default function Gallery() {
                       step={10}
                       className="w-full"
                     />
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => setShowStarredOnly(!showStarredOnly)}
-                  >
-                    {showStarredOnly ? "Show All Images" : "Show Starred Only"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
