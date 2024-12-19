@@ -106,64 +106,69 @@ export default function Home() {
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
-      // Create preview URLs
-      const previews: Record<string, string> = {};
-      files.forEach(file => {
-        previews[file.name] = URL.createObjectURL(file);
-      });
-      setPreviewUrls(previews);
-
-      const formData = new FormData();
-      files.forEach(file => {
-        formData.append('images', file);
-      });
-
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-
-        // Initialize upload state with total number of files
-        setUploadState({
-          totalFiles: files.length,
-          uploadedFiles: 0,
-          progress: 0
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        files.forEach(file => {
+          formData.append('images', file);
         });
 
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const progress = (event.loaded / event.total) * 100;
-            setUploadState(prev => ({
-              ...prev,
-              progress
-            }));
-          }
-        };
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
 
-        xhr.open('POST', `/api/galleries/${galleryId}/images`);
-        
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            setUploadState(prev => ({
-              ...prev,
-              uploadedFiles: prev.totalFiles,
-              progress: 100
-            }));
-            
-            // Clean up preview URLs
-            Object.values(previewUrls).forEach(URL.revokeObjectURL);
-            
-            // Short delay before navigation to show completion
-            setTimeout(() => {
-              navigateToGallery(galleryId);
-            }, 500);
-            
-            resolve(true);
-          } else {
-            reject(new Error('Upload failed'));
-          }
-        };
+          // Initialize upload state with total number of files
+          setUploadState({
+            totalFiles: files.length,
+            uploadedFiles: 0,
+            progress: 0
+          });
 
-        xhr.onerror = () => reject(new Error('Upload failed'));
-        xhr.send(formData);
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const progress = (event.loaded / event.total) * 100;
+              setUploadState(prev => ({
+                ...prev,
+                progress
+              }));
+            }
+          };
+
+          xhr.open('POST', `/api/galleries/${galleryId}/images`);
+          
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              setUploadState(prev => ({
+                ...prev,
+                uploadedFiles: prev.totalFiles,
+                progress: 100
+              }));
+              
+              // Clean up preview URLs
+              Object.values(previewUrls).forEach(URL.revokeObjectURL);
+              
+              // Short delay before navigation to show completion
+              setTimeout(() => {
+                navigateToGallery(galleryId);
+              }, 500);
+              
+              resolve(true);
+            } else {
+              reject(new Error('Upload failed'));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('Upload failed'));
+          xhr.send(formData);
+        });
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      toast({
+        title: "Success",
+        description: "Images uploaded successfully",
       });
     },
     onError: () => {
@@ -232,11 +237,11 @@ export default function Home() {
 
         {Object.keys(previewUrls).length > 0 && (
           <div className="w-full max-w-6xl mx-auto">
-            {uploadState.totalFiles > 0 && (
+            {isUploading && (
               <div className="mb-8 bg-card rounded-lg p-6 border">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium">
-                    Uploading {uploadState.uploadedFiles} of {uploadState.totalFiles} images
+                    Uploading {uploadState.totalFiles} {uploadState.totalFiles === 1 ? 'image' : 'images'}
                   </h3>
                   <span className="text-sm text-muted-foreground">
                     {Math.round(uploadState.progress)}% complete
