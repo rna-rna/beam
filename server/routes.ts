@@ -62,26 +62,34 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Created gallery with ID:', gallery.id);
 
-      const insertPromises = req.files.map(async (file) => {
-        console.log('Processing file:', file.filename);
-        return db.insert(images).values({
-          galleryId: gallery.id,
-          url: `/uploads/${file.filename}`,
-          publicId: file.filename,
-          width: 800, // placeholder
-          height: 600 // placeholder
-        });
-      });
-
-      await Promise.all(insertPromises);
-      console.log('Successfully processed all images');
-
-      res.json({ galleryId: gallery.slug });
+      try {
+        const imageInserts = [];
+        for (const file of req.files) {
+          console.log('Processing file:', file.filename);
+          const [image] = await db.insert(images).values({
+            galleryId: gallery.id,
+            url: `/uploads/${file.filename}`,
+            publicId: file.filename,
+            width: 800, // placeholder
+            height: 600 // placeholder
+          }).returning();
+          imageInserts.push(image);
+          console.log('Successfully processed file:', file.filename);
+        }
+        
+        console.log(`Successfully processed all ${imageInserts.length} images`);
+        res.json({ galleryId: gallery.slug });
+      } catch (err) {
+        console.error('Error processing files:', err);
+        // Attempt to clean up the gallery if image processing failed
+        await db.delete(galleries).where(eq(galleries.id, gallery.id));
+        throw err; // Re-throw to be caught by outer catch block
+      }
     } catch (error) {
       console.error('Upload error details:', error);
       res.status(500).json({ 
         message: 'Failed to upload images',
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Unknown error' 
       });
     }
   });
