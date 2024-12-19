@@ -15,8 +15,8 @@ export default function Home() {
   const { toast } = useToast();
   const [galleryId, setGalleryId] = useState<string | null>(null);
   const [title, setTitle] = useState("Untitled Project");
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
-  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState(false);
   // Flag to track if gallery has been created
   const [isGalleryCreated, setIsGalleryCreated] = useState(false);
 
@@ -98,12 +98,8 @@ export default function Home() {
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
-      // Create preview URLs
-      const previews: Record<string, string> = {};
-      files.forEach(file => {
-        previews[file.name] = URL.createObjectURL(file);
-      });
-      setPreviewUrls(previews);
+      setIsUploading(true);
+      setUploadProgress(0);
 
       const formData = new FormData();
       files.forEach(file => {
@@ -116,10 +112,7 @@ export default function Home() {
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
             const progress = (event.loaded / event.total) * 100;
-            setUploadProgress((prev: Record<string, number>) => ({
-              ...prev,
-              ...Object.fromEntries(files.map(file => [file.name, progress]))
-            }));
+            setUploadProgress(progress);
           }
         };
 
@@ -127,23 +120,29 @@ export default function Home() {
         
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            // Clean up preview URLs
-            Object.values(previewUrls).forEach(URL.revokeObjectURL);
-            // Navigate to gallery after successful upload
-            navigateToGallery(galleryId);
+            setUploadProgress(100);
+            // Small delay to show 100% before transition
+            setTimeout(() => {
+              setIsUploading(false);
+              navigateToGallery(galleryId);
+            }, 300);
             resolve(true);
           } else {
+            setIsUploading(false);
             reject(new Error('Upload failed'));
           }
         };
 
-        xhr.onerror = () => reject(new Error('Upload failed'));
+        xhr.onerror = () => {
+          setIsUploading(false);
+          reject(new Error('Upload failed'));
+        };
         xhr.send(formData);
       });
     },
     onError: () => {
-      // Cleanup preview URLs
-      Object.values(previewUrls).forEach(URL.revokeObjectURL);
+      setIsUploading(false);
+      setUploadProgress(0);
       toast({
         title: "Error",
         description: "Failed to upload images. Please try again.",
@@ -205,43 +204,14 @@ export default function Home() {
           </p>
         </Card>
 
-        {Object.keys(previewUrls).length > 0 && (
-          <div className="w-full max-w-6xl mx-auto">
-            <Masonry
-              breakpointCols={{
-                default: 6,
-                2560: 5,
-                1920: 4,
-                1536: 3,
-                1024: 2,
-                640: 1
-              }}
-              className="flex -ml-4 w-[calc(100%+1rem)]"
-              columnClassName="pl-4 bg-background"
-            >
-              {Object.entries(previewUrls).map(([fileName, url]) => (
-                <div key={fileName} className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]">
-                  <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
-                    <img
-                      src={url}
-                      alt=""
-                      className="w-full h-auto object-contain rounded-md"
-                      loading="lazy"
-                    />
-                    {uploadProgress[fileName] < 100 && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-                        <div className="w-full max-w-[200px] px-4">
-                          <Progress value={uploadProgress[fileName]} className="w-full" />
-                          <p className="text-sm text-muted-foreground text-center mt-2">
-                            Uploading... {Math.round(uploadProgress[fileName])}%
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </Masonry>
+        {isUploading && (
+          <div className="w-full max-w-md mx-auto mt-8">
+            <div className="flex flex-col items-center gap-4 p-8 rounded-lg border bg-card">
+              <Progress value={uploadProgress} className="w-full" />
+              <p className="text-sm text-muted-foreground">
+                Uploading... {Math.round(uploadProgress)}%
+              </p>
+            </div>
           </div>
         )}
       </div>
