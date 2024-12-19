@@ -5,7 +5,7 @@ import Masonry from "react-masonry-css";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { useParams } from "wouter";
 import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown, Share2 } from "lucide-react";
@@ -605,7 +605,14 @@ export default function Gallery() {
           setNewCommentPos(null);
         }
       }}>
-        <DialogContent className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden">
+        <DialogContent 
+          className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
+          aria-describedby="image-viewer-description"
+        >
+          <div id="image-viewer-description" className="sr-only">
+            Image viewer. Use left and right arrow keys to navigate between images. Click on the image to add comments.
+          </div>
+          <DialogTitle className="sr-only">Image Viewer</DialogTitle>
           {/* Navigation buttons */}
           <Button
             variant="ghost"
