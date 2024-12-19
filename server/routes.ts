@@ -198,6 +198,34 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Reorder images in a gallery
+  app.post('/api/galleries/:slug/reorder', async (req, res) => {
+    try {
+      const { order } = req.body;
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, req.params.slug),
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      // Update order for each image
+      // We'll use position field to maintain order
+      for (let i = 0; i < order.length; i++) {
+        await db
+          .update(images)
+          .set({ position: i })
+          .where(eq(images.id, order[i]));
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Reorder error:', error);
+      res.status(500).json({ message: 'Failed to reorder images' });
+    }
+  });
+
   // Create a new comment
   // Toggle flag status for an image
   app.post('/api/images/:imageId/flag', async (req, res) => {
