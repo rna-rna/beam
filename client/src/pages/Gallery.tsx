@@ -288,22 +288,27 @@ export default function Gallery() {
               onDragEnd={({ destination, source }) => {
                 if (!destination || destination.index === source.index) return;
                 
-                console.log('Drag ended:', { source, destination });
+                if (!gallery?.images) {
+                  console.error('No images available for reordering');
+                  return;
+                }
                 
                 try {
+                  console.log('Drag ended:', { source, destination });
+                  
                   const newImages = Array.from(gallery.images);
                   const [removed] = newImages.splice(source.index, 1);
                   newImages.splice(destination.index, 0, removed);
+                  
+                  // Extract image IDs for the new order
+                  const newOrder = newImages.map(img => img.id);
+                  console.log('Updating order:', newOrder);
                   
                   // Optimistically update the UI
                   queryClient.setQueryData([`/api/galleries/${slug}`], {
                     ...gallery,
                     images: newImages
                   });
-                  
-                  // Extract image IDs for the new order
-                  const newOrder = newImages.map(img => img.id);
-                  console.log('Updating order:', newOrder);
                   
                   // Update the backend
                   reorderImageMutation.mutate(newOrder);
@@ -325,51 +330,54 @@ export default function Gallery() {
                     ref={provided.innerRef}
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                   >
-                    {gallery.images.map((image: any, index: number) => (
-                      <Draggable key={String(image.id)} draggableId={String(image.id)} index={index}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={`cursor-move transition-transform duration-200 ${
-                              snapshot.isDragging ? 'scale-105 shadow-xl z-50' : ''
-                            }`}
-                          >
-                            <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
-                              <img
-                                src={image.url}
-                                alt=""
-                                className="w-full h-auto object-cover"
-                                loading="lazy"
-                              />
-                              <div className="absolute top-2 right-2 flex gap-2">
-                                {image.commentCount > 0 && (
-                                  <Badge 
-                                    className="bg-primary text-primary-foreground flex items-center gap-1"
-                                    variant="secondary"
+                    {gallery.images.map((image: any, index: number) => {
+                      const draggableId = `image-${image.id}`;
+                      return (
+                        <Draggable key={draggableId} draggableId={draggableId} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={`cursor-move transition-transform duration-200 ${
+                                snapshot.isDragging ? 'scale-105 shadow-xl z-50' : ''
+                              }`}
+                            >
+                              <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
+                                <img
+                                  src={image.url}
+                                  alt=""
+                                  className="w-full h-auto object-cover"
+                                  loading="lazy"
+                                />
+                                <div className="absolute top-2 right-2 flex gap-2">
+                                  {image.commentCount > 0 && (
+                                    <Badge 
+                                      className="bg-primary text-primary-foreground flex items-center gap-1"
+                                      variant="secondary"
+                                    >
+                                      <MessageCircle className="w-3 h-3" />
+                                      {image.commentCount}
+                                    </Badge>
+                                  )}
+                                  <Button
+                                    variant={image.flagged ? "destructive" : "secondary"}
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      flagImageMutation.mutate(image.id);
+                                    }}
                                   >
-                                    <MessageCircle className="w-3 h-3" />
-                                    {image.commentCount}
-                                  </Badge>
-                                )}
-                                <Button
-                                  variant={image.flagged ? "destructive" : "secondary"}
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    flagImageMutation.mutate(image.id);
-                                  }}
-                                >
-                                  <Flag className="h-4 w-4" />
-                                </Button>
+                                    <Flag className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
+                          )}
+                        </Draggable>
+                      );
+                    })}
                     {provided.placeholder}
                   </div>
                 )}
