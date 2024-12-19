@@ -111,9 +111,10 @@ export default function Gallery() {
     },
   });
 
+  // Adjust breakpoints based on scale to maintain proper layout
   const breakpointCols = {
-    default: 4,
-    1536: 3,
+    default: scale > 120 ? 3 : 4,
+    1536: scale > 120 ? 2 : 3,
     1024: 2,
     640: 1
   };
@@ -164,55 +165,56 @@ export default function Gallery() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <Masonry
-          breakpointCols={breakpointCols}
-          className="flex -ml-4 w-auto"
-          columnClassName="pl-4 bg-background"
-        >
-          {gallery.images.map((image: any, index: number) => (
-            <div 
-              key={image.id} 
-              className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
-              onClick={() => setSelectedImageIndex(index)}
-              style={{
-                transform: `scale(${scale / 100})`,
-                transformOrigin: 'top center',
-                marginBottom: `${(scale - 100) * 0.5}px` // Adjust spacing based on scale
-              }}
-            >
-              <div className="relative">
-                <img
-                  src={image.url}
-                  alt=""
-                  className="w-full h-auto object-contain rounded-md"
-                  loading="lazy"
-                />
-                <div className="absolute top-2 right-2 flex gap-2">
-                  {image.commentCount > 0 && (
-                    <Badge 
-                      className="bg-primary text-primary-foreground flex items-center gap-1"
-                      variant="secondary"
+        <div style={{ maxWidth: `${scale}%`, margin: '0 auto' }}>
+          <Masonry
+            breakpointCols={breakpointCols}
+            className="flex -ml-4 w-auto"
+            columnClassName="pl-4 bg-background"
+          >
+            {gallery.images.map((image: any, index: number) => (
+              <div 
+                key={image.id} 
+                className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
+                onClick={() => setSelectedImageIndex(index)}
+                style={{
+                  width: '100%',
+                  transition: 'transform 0.2s'
+                }}
+              >
+                <div className="relative">
+                  <img
+                    src={image.url}
+                    alt=""
+                    className="w-full h-auto object-contain rounded-md"
+                    loading="lazy"
+                  />
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    {image.commentCount > 0 && (
+                      <Badge 
+                        className="bg-primary text-primary-foreground flex items-center gap-1"
+                        variant="secondary"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        {image.commentCount}
+                      </Badge>
+                    )}
+                    <Button
+                      variant={image.flagged ? "destructive" : "secondary"}
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        flagImageMutation.mutate(image.id);
+                      }}
                     >
-                      <MessageCircle className="w-3 h-3" />
-                      {image.commentCount}
-                    </Badge>
-                  )}
-                  <Button
-                    variant={image.flagged ? "destructive" : "secondary"}
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      flagImageMutation.mutate(image.id);
-                    }}
-                  >
-                    <Flag className="h-4 w-4" />
-                  </Button>
+                      <Flag className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </Masonry>
+            ))}
+          </Masonry>
+        </div>
       </div>
 
       <Dialog open={selectedImageIndex >= 0} onOpenChange={(open) => {
