@@ -692,6 +692,14 @@ export default function Gallery() {
                   src={selectedImage.url}
                   alt=""
                   className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
+                  onClick={(e) => {
+                    if (!isAnnotationMode) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const x = ((e.clientX - rect.left) / rect.width) * 100;
+                      const y = ((e.clientY - rect.top) / rect.height) * 100;
+                      setNewCommentPos({ x, y });
+                    }
+                  }}
                 />
                 {/* Drawing Canvas - Only show in annotation mode */}
                 {isAnnotationMode && (
