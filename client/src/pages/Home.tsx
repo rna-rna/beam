@@ -15,15 +15,7 @@ export default function Home() {
   const { toast } = useToast();
   const [galleryId, setGalleryId] = useState<string | null>(null);
   const [title, setTitle] = useState("Untitled Project");
-  const [uploadState, setUploadState] = useState<{
-    totalFiles: number;
-    uploadedFiles: number;
-    progress: number;
-  }>({
-    totalFiles: 0,
-    uploadedFiles: 0,
-    progress: 0
-  });
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   // Flag to track if gallery has been created
   const [isGalleryCreated, setIsGalleryCreated] = useState(false);
@@ -106,69 +98,47 @@ export default function Home() {
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
-      setIsUploading(true);
-      try {
-        const formData = new FormData();
-        files.forEach(file => {
-          formData.append('images', file);
-        });
+      // Create preview URLs
+      const previews: Record<string, string> = {};
+      files.forEach(file => {
+        previews[file.name] = URL.createObjectURL(file);
+      });
+      setPreviewUrls(previews);
 
-        return new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      files.forEach(file => {
+        formData.append('images', file);
+      });
 
-          // Initialize upload state with total number of files
-          setUploadState({
-            totalFiles: files.length,
-            uploadedFiles: 0,
-            progress: 0
-          });
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
 
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const progress = (event.loaded / event.total) * 100;
-              setUploadState(prev => ({
-                ...prev,
-                progress
-              }));
-            }
-          };
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = (event.loaded / event.total) * 100;
+            setUploadProgress((prev: Record<string, number>) => ({
+              ...prev,
+              ...Object.fromEntries(files.map(file => [file.name, progress]))
+            }));
+          }
+        };
 
-          xhr.open('POST', `/api/galleries/${galleryId}/images`);
-          
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              setUploadState(prev => ({
-                ...prev,
-                uploadedFiles: prev.totalFiles,
-                progress: 100
-              }));
-              
-              // Clean up preview URLs
-              Object.values(previewUrls).forEach(URL.revokeObjectURL);
-              
-              // Short delay before navigation to show completion
-              setTimeout(() => {
-                navigateToGallery(galleryId);
-              }, 500);
-              
-              resolve(true);
-            } else {
-              reject(new Error('Upload failed'));
-            }
-          };
+        xhr.open('POST', `/api/galleries/${galleryId}/images`);
+        
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            // Clean up preview URLs
+            Object.values(previewUrls).forEach(URL.revokeObjectURL);
+            // Navigate to gallery after successful upload
+            navigateToGallery(galleryId);
+            resolve(true);
+          } else {
+            reject(new Error('Upload failed'));
+          }
+        };
 
-          xhr.onerror = () => reject(new Error('Upload failed'));
-          xhr.send(formData);
-        });
-      } finally {
-        setIsUploading(false);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      toast({
-        title: "Success",
-        description: "Images uploaded successfully",
+        xhr.onerror = () => reject(new Error('Upload failed'));
+        xhr.send(formData);
       });
     },
     onError: () => {
@@ -237,19 +207,6 @@ export default function Home() {
 
         {Object.keys(previewUrls).length > 0 && (
           <div className="w-full max-w-6xl mx-auto">
-            {isUploading && (
-              <div className="mb-8 bg-card rounded-lg p-6 border">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium">
-                    Uploading {uploadState.totalFiles} {uploadState.totalFiles === 1 ? 'image' : 'images'}
-                  </h3>
-                  <span className="text-sm text-muted-foreground">
-                    {Math.round(uploadState.progress)}% complete
-                  </span>
-                </div>
-                <Progress value={uploadState.progress} className="w-full h-2" />
-              </div>
-            )}
             <Masonry
               breakpointCols={{
                 default: 6,
@@ -271,7 +228,16 @@ export default function Home() {
                       className="w-full h-auto object-contain rounded-md"
                       loading="lazy"
                     />
-                    {/* Images are shown without individual progress indicators */}
+                    {uploadProgress[fileName] < 100 && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                        <div className="w-full max-w-[200px] px-4">
+                          <Progress value={uploadProgress[fileName]} className="w-full" />
+                          <p className="text-sm text-muted-foreground text-center mt-2">
+                            Uploading... {Math.round(uploadProgress[fileName])}%
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
