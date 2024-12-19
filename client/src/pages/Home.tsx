@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Upload } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { InlineEdit } from "@/components/InlineEdit";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -88,7 +89,16 @@ export default function Home() {
     <div className="min-h-screen w-full bg-background">
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
         <div className="px-6 md:px-8 lg:px-12 py-4">
-          <h1 className="text-xl font-semibold">Untitled Project</h1>
+          <InlineEdit
+            value="Untitled Project"
+            onSave={(newTitle) => {
+              toast({
+                title: "Info",
+                description: "Title will be saved when you upload images",
+              });
+            }}
+            className="text-xl font-semibold"
+          />
         </div>
       </div>
 
