@@ -246,11 +246,13 @@ export default function Gallery() {
   });
 
 
-  // Adjust breakpoints based on scale to maintain proper layout
+  // Calculate breakpoints based on scale
   const breakpointCols = {
-    default: scale > 120 ? 3 : 4,
-    1536: scale > 120 ? 2 : 3,
-    1024: 2,
+    default: Math.max(1, Math.floor(6 * (100 / scale))), // More columns when zoomed out
+    2560: Math.max(1, Math.floor(5 * (100 / scale))),
+    1920: Math.max(1, Math.floor(4 * (100 / scale))),
+    1536: Math.max(1, Math.floor(3 * (100 / scale))),
+    1024: Math.max(1, Math.floor(2 * (100 / scale))),
     640: 1
   };
 
@@ -356,7 +358,12 @@ export default function Gallery() {
       )}
 
       <div className="px-6 md:px-8 lg:px-12 py-8">
-        <div style={{ maxWidth: `${scale}%`, margin: '0 auto', width: '100%' }}>
+        <div style={{ 
+          width: '100%',
+          maxWidth: scale < 100 ? '100%' : `${scale}%`,
+          margin: '0 auto',
+          transition: 'max-width 0.2s ease-out'
+        }}>
           {isReorderMode ? (
             <DragDropContext
               onDragEnd={(result) => {
@@ -517,8 +524,8 @@ export default function Gallery() {
           ) : (
             <Masonry
               breakpointCols={breakpointCols}
-              className="flex -ml-6 w-auto"
-              columnClassName="pl-6 bg-background"
+              className="flex -ml-4 w-[calc(100%+1rem)]"
+              columnClassName="pl-4 bg-background"
             >
               {gallery.images
                 .filter((image: any) => !showStarredOnly || image.starred) // Apply filter
