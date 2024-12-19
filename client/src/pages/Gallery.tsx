@@ -504,14 +504,14 @@ export default function Gallery() {
                                     </Badge>
                                   )}
                                 </div>
-                                <div className="p-3 flex justify-between items-center border-t bg-card">
-                                  <span className="text-sm text-foreground truncate flex-1">
+                                <div className="p-3 flex justify-between items-center border-t bg-card/95 backdrop-blur-sm">
+                                  <span className="text-sm font-medium tracking-tight text-foreground/90 truncate flex-1 font-mono">
                                     {image.publicId}
                                   </span>
                                   <Button
                                     variant="secondary"
                                     size="icon"
-                                    className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm ml-2 flex-shrink-0"
+                                    className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm ml-3 flex-shrink-0"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       toggleStarMutation.mutate(image.id);
@@ -570,14 +570,14 @@ export default function Gallery() {
                         </Badge>
                       )}
                     </div>
-                    <div className="p-3 flex justify-between items-center border-t bg-card">
-                      <span className="text-sm text-foreground truncate flex-1">
+                    <div className="p-3 flex justify-between items-center border-t bg-card/95 backdrop-blur-sm">
+                      <span className="text-sm font-medium tracking-tight text-foreground/90 truncate flex-1 font-mono">
                         {image.publicId}
                       </span>
                       <Button
                         variant="secondary"
                         size="icon"
-                        className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm ml-2 flex-shrink-0"
+                        className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm ml-3 flex-shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleStarMutation.mutate(image.id);
