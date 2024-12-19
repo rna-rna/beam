@@ -1,0 +1,1 @@
+// Placeholder file - we'll implement cloud storage integration later
