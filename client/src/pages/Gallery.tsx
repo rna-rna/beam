@@ -678,13 +678,13 @@ export default function Gallery() {
             <div 
               className="relative w-full h-full flex items-center justify-center"
               onClick={(e) => {
-                // Only handle clicks when in annotation mode and not drawing
-                if (!isAnnotationMode || e.target === e.currentTarget) return;
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 100;
-                const y = ((e.clientY - rect.top) / rect.height) * 100;
-                setNewCommentPos({ x, y });
-                setIsAnnotationMode(false); // Exit annotation mode after placing a comment
+                // Allow adding comments by default when not in annotation mode
+                if (!isAnnotationMode && e.target === e.currentTarget) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = ((e.clientX - rect.left) / rect.width) * 100;
+                  const y = ((e.clientY - rect.top) / rect.height) * 100;
+                  setNewCommentPos({ x, y });
+                }
               }}
             >
               <div className="relative">
@@ -693,37 +693,42 @@ export default function Gallery() {
                   alt=""
                   className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
                 />
-                <DrawingCanvas
-                  width={selectedImage.width}
-                  height={selectedImage.height}
-                  isDrawing={isAnnotationMode}
-                  savedPaths={annotations}
-                  onSavePath={async (pathData) => {
-                    try {
-                      await fetch(`/api/images/${selectedImage.id}/annotations`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ pathData })
-                      });
-                      
-                      // Refresh annotations
-                      queryClient.invalidateQueries({
-                        queryKey: [`/api/images/${selectedImage.id}/annotations`]
-                      });
-                      
-                      toast({
-                        title: "Annotation saved",
-                        description: "Your drawing has been saved successfully.",
-                      });
-                    } catch (error) {
-                      toast({
-                        title: "Error",
-                        description: "Failed to save annotation. Please try again.",
-                        variant: "destructive"
-                      });
-                    }
-                  }}
-                />
+                {/* Drawing Canvas - Only show in annotation mode */}
+                {isAnnotationMode && (
+                  <div className="absolute inset-0">
+                    <DrawingCanvas
+                      width={selectedImage.width}
+                      height={selectedImage.height}
+                      isDrawing={true}
+                      savedPaths={annotations}
+                      onSavePath={async (pathData) => {
+                        try {
+                          await fetch(`/api/images/${selectedImage.id}/annotations`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ pathData })
+                          });
+                          
+                          // Refresh annotations
+                          queryClient.invalidateQueries({
+                            queryKey: [`/api/images/${selectedImage.id}/annotations`]
+                          });
+                          
+                          toast({
+                            title: "Annotation saved",
+                            description: "Your drawing has been saved successfully.",
+                          });
+                        } catch (error) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to save annotation. Please try again.",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
               </div>
               
               {/* Existing comments */}
