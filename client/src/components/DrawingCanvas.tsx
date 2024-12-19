@@ -31,15 +31,17 @@ export function DrawingCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Get the actual dimensions of the container
+    // Set initial dimensions
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    
+    // Get the computed size
     const rect = canvas.getBoundingClientRect();
     const scale = window.devicePixelRatio;
     
-    // Set canvas dimensions to match display size
+    // Set canvas dimensions
     canvas.width = rect.width * scale;
     canvas.height = rect.height * scale;
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
 
     const context = canvas.getContext("2d");
     if (!context) return;
