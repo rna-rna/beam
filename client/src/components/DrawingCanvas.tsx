@@ -25,21 +25,26 @@ export function DrawingCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [currentPath, setCurrentPath] = useState<Path | null>(null);
-  const scale = window.devicePixelRatio;
+  
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Scale canvas for better resolution on high DPI displays
-    canvas.width = width * scale;
-    canvas.height = height * scale;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
+    // Get the actual dimensions of the container
+    const rect = canvas.getBoundingClientRect();
+    const scale = window.devicePixelRatio;
+    
+    // Set canvas dimensions to match display size
+    canvas.width = rect.width * scale;
+    canvas.height = rect.height * scale;
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
 
     const context = canvas.getContext("2d");
     if (!context) return;
 
+    // Scale context for high DPI displays
     context.scale(scale, scale);
     context.lineCap = "round";
     context.strokeStyle = "rgba(0, 0, 0, 0.8)";
@@ -51,37 +56,43 @@ export function DrawingCanvas({
       const path = new Path2D(pathData);
       context.stroke(path);
     });
-  }, [width, height, scale, savedPaths]);
+  }, [width, height, savedPaths]);
 
-  const startDrawing = ({ nativeEvent }: React.MouseEvent) => {
+  const getCanvasPoint = (event: React.MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = (event.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (event.clientY - rect.top) * (canvas.height / rect.height);
+    return { x, y };
+  };
+
+  const startDrawing = (event: React.MouseEvent) => {
     if (!isDrawing) return;
-    const { offsetX, offsetY } = nativeEvent;
-    const scaledX = offsetX * scale;
-    const scaledY = offsetY * scale;
+    const { x, y } = getCanvasPoint(event);
     
     setCurrentPath({
-      points: [{ x: scaledX, y: scaledY }]
+      points: [{ x, y }]
     });
     
     contextRef.current?.beginPath();
-    contextRef.current?.moveTo(scaledX, scaledY);
+    contextRef.current?.moveTo(x, y);
   };
 
-  const draw = ({ nativeEvent }: React.MouseEvent) => {
+  const draw = (event: React.MouseEvent) => {
     if (!isDrawing || !currentPath) return;
-    const { offsetX, offsetY } = nativeEvent;
-    const scaledX = offsetX * scale;
-    const scaledY = offsetY * scale;
+    const { x, y } = getCanvasPoint(event);
     
     setCurrentPath(prev => {
       if (!prev) return null;
       return {
         ...prev,
-        points: [...prev.points, { x: scaledX, y: scaledY }]
+        points: [...prev.points, { x, y }]
       };
     });
     
-    contextRef.current?.lineTo(scaledX, scaledY);
+    contextRef.current?.lineTo(x, y);
     contextRef.current?.stroke();
   };
 
