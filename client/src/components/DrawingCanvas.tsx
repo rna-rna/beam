@@ -38,28 +38,35 @@ export function DrawingCanvas({
       const rect = container.getBoundingClientRect();
       const dpr = window.devicePixelRatio;
 
-      // Set display size
+      // Set display size (CSS pixels)
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
 
-      // Set actual size in memory
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+      // Calculate physical pixel dimensions
+      const physicalWidth = Math.floor(rect.width * dpr);
+      const physicalHeight = Math.floor(rect.height * dpr);
 
-      const context = canvas.getContext("2d");
-      if (!context) return;
+      // Only update if dimensions have changed
+      if (canvas.width !== physicalWidth || canvas.height !== physicalHeight) {
+        // Set actual size in memory (scaled for retina displays)
+        canvas.width = physicalWidth;
+        canvas.height = physicalHeight;
 
-      // Scale all drawing operations by the dpr
-      context.scale(dpr, dpr);
+        const context = canvas.getContext("2d");
+        if (!context) return;
 
-      // Set drawing style
-      context.lineCap = "round";
-      context.strokeStyle = "rgba(0, 0, 0, 0.8)";
-      context.lineWidth = 2; // Constant line width in CSS pixels
-      contextRef.current = context;
+        // Scale all drawing operations by the dpr
+        context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Redraw saved paths
-      drawSavedPaths();
+        // Set drawing style
+        context.lineCap = "round";
+        context.strokeStyle = "rgba(0, 0, 0, 0.8)";
+        context.lineWidth = 2; // Constant line width in CSS pixels
+        contextRef.current = context;
+
+        // Redraw saved paths after resize
+        drawSavedPaths();
+      }
     };
 
     const drawSavedPaths = () => {
@@ -113,13 +120,16 @@ export function DrawingCanvas({
     if (!canvas) return { x: 0, y: 0 };
     
     const rect = canvas.getBoundingClientRect();
-    // Get the click position in CSS pixels
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const scaleX = rect.width / canvas.width;
+    const scaleY = rect.height / canvas.height;
     
-    // Convert to percentage of canvas size
-    const percentX = (x / rect.width) * 100;
-    const percentY = (y / rect.height) * 100;
+    // Get mouse position in canvas coordinates
+    const x = (event.clientX - rect.left) / scaleX;
+    const y = (event.clientY - rect.top) / scaleY;
+    
+    // Convert to percentage for storage
+    const percentX = (x / canvas.width) * 100;
+    const percentY = (y / canvas.height) * 100;
     
     return { x: percentX, y: percentY };
   };
@@ -128,10 +138,9 @@ export function DrawingCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     
-    const rect = canvas.getBoundingClientRect();
-    // Convert percentage back to CSS pixels
-    const x = (percentX / 100) * rect.width;
-    const y = (percentY / 100) * rect.height;
+    // Convert percentage to canvas coordinates
+    const x = (percentX / 100) * canvas.width;
+    const y = (percentY / 100) * canvas.height;
     
     return { x, y };
   };
