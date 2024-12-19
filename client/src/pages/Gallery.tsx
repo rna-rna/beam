@@ -5,7 +5,8 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useParams } from "wouter";
-import { X } from "lucide-react";
+import { X, MessageCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { CommentBubble } from "@/components/CommentBubble";
 import { useToast } from "@/hooks/use-toast";
 
@@ -108,12 +109,23 @@ export default function Gallery() {
               className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
               onClick={() => setSelectedImage({ id: image.id, url: image.url })}
             >
-              <img
-                src={image.url}
-                alt=""
-                className="w-full h-auto object-contain rounded-md"
-                loading="lazy"
-              />
+              <div className="relative">
+                <img
+                  src={image.url}
+                  alt=""
+                  className="w-full h-auto object-contain rounded-md"
+                  loading="lazy"
+                />
+                {image.commentCount > 0 && (
+                  <Badge 
+                    className="absolute top-2 right-2 bg-primary text-primary-foreground flex items-center gap-1"
+                    variant="secondary"
+                  >
+                    <MessageCircle className="w-3 h-3" />
+                    {image.commentCount}
+                  </Badge>
+                )}
+              </div>
             </div>
           ))}
         </Masonry>
