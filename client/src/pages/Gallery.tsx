@@ -370,15 +370,24 @@ export default function Gallery() {
                 try {
                   console.log('Drag ended:', { source, destination });
                   
-                  const filteredImages = gallery.images.filter(img => !showStarredOnly || img.starred);
-                  const allImages = Array.from(gallery.images);
-                  const [removed] = filteredImages.splice(source.index, 1);
-                  filteredImages.splice(destination.index, 0, removed);
+                  // Get visible images (either all or only starred)
+                  const visibleImages = gallery.images.filter(img => !showStarredOnly || img.starred);
                   
-                  // Map the filtered images back to their original positions
-                  const newOrder = allImages.map(img => {
-                    const filteredIndex = filteredImages.findIndex(fImg => fImg.id === img.id);
-                    return filteredIndex >= 0 ? filteredImages[filteredIndex].id : img.id;
+                  // Create a new array and perform the move
+                  const reorderedImages = Array.from(visibleImages);
+                  const [removed] = reorderedImages.splice(source.index, 1);
+                  reorderedImages.splice(destination.index, 0, removed);
+                  
+                  // Create a position map for all images
+                  const newOrder = gallery.images.map(img => {
+                    const newIndex = reorderedImages.findIndex(rImg => rImg.id === img.id);
+                    return newIndex >= 0 ? reorderedImages[newIndex].id : img.id;
+                  });
+                  
+                  console.log('Reordering images:', {
+                    visibleImages: visibleImages.length,
+                    reorderedImages: reorderedImages.length,
+                    newOrder,
                   });
                   
                   console.log('Updating order:', newOrder);
@@ -411,12 +420,15 @@ export default function Gallery() {
                   >
                     {gallery.images
                       .filter(image => !showStarredOnly || image.starred)
-                      .map((image, index) => (
-                        <Draggable 
-                          key={String(image.id)} 
-                          draggableId={String(image.id)} 
-                          index={index}
-                        >
+                      .map((image, index) => {
+                        const draggableId = `image-${image.id}`;
+                        console.log('Rendering draggable:', { id: image.id, draggableId, index });
+                        return (
+                          <Draggable 
+                            key={draggableId}
+                            draggableId={draggableId}
+                            index={index}
+                          >
                           {(provided, snapshot) => (
                             <div
                               ref={provided.innerRef}
@@ -463,7 +475,8 @@ export default function Gallery() {
                             </div>
                           )}
                         </Draggable>
-                      ))}
+                        );
+                      })}
                     {provided.placeholder}
                   </div>
                 )}
