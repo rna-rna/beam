@@ -493,7 +493,7 @@ export default function Gallery() {
                                   className="w-full h-auto object-cover"
                                   loading="lazy"
                                 />
-                                <div className="absolute top-2 right-2 flex gap-2">
+                                <div className="absolute top-2 right-2">
                                   {image.commentCount > 0 && (
                                     <Badge 
                                       className="bg-primary text-primary-foreground flex items-center gap-1"
@@ -503,10 +503,15 @@ export default function Gallery() {
                                       {image.commentCount}
                                     </Badge>
                                   )}
+                                </div>
+                                <div className="p-3 flex justify-between items-center border-t bg-card/50">
+                                  <span className="text-sm text-muted-foreground truncate">
+                                    {image.publicId}
+                                  </span>
                                   <Button
                                     variant="secondary"
                                     size="icon"
-                                    className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
+                                    className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm ml-2 flex-shrink-0"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       toggleStarMutation.mutate(image.id);
@@ -555,7 +560,7 @@ export default function Gallery() {
                       className="w-full h-auto object-contain rounded-md"
                       loading="lazy"
                     />
-                    <div className="absolute top-2 right-2 flex gap-2">
+                    <div className="absolute top-2 right-2">
                       {image.commentCount > 0 && (
                         <Badge 
                           className="bg-primary text-primary-foreground flex items-center gap-1"
@@ -565,10 +570,15 @@ export default function Gallery() {
                           {image.commentCount}
                         </Badge>
                       )}
+                    </div>
+                    <div className="p-3 flex justify-between items-center border-t bg-card/50">
+                      <span className="text-sm text-muted-foreground truncate">
+                        {image.publicId}
+                      </span>
                       <Button
                         variant="secondary"
                         size="icon"
-                        className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
+                        className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm ml-2 flex-shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleStarMutation.mutate(image.id);
