@@ -169,13 +169,21 @@ export default function Gallery() {
   });
 
   const reorderImageMutation = useMutation({
-    mutationFn: async (newOrder: number[]) => {
+    mutationFn: async (newOrder: Array<string | number>) => {
+      // Ensure all IDs are numbers
+      const normalizedOrder = newOrder.map(id => typeof id === 'string' ? parseInt(id, 10) : id);
+      
       const res = await fetch(`/api/galleries/${slug}/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order: newOrder }),
+        body: JSON.stringify({ order: normalizedOrder }),
       });
-      if (!res.ok) throw new Error('Failed to reorder images');
+      
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(`Failed to reorder images: ${error}`);
+      }
+      
       return res.json();
     },
     onSuccess: () => {
@@ -300,8 +308,14 @@ export default function Gallery() {
                   const [removed] = newImages.splice(source.index, 1);
                   newImages.splice(destination.index, 0, removed);
                   
-                  // Extract image IDs for the new order
-                  const newOrder = newImages.map(img => img.id);
+                  // Validate image IDs before proceeding
+                  const newOrder = newImages.map(img => {
+                    if (!img?.id) {
+                      throw new Error('Invalid image data found while reordering');
+                    }
+                    return img.id;
+                  });
+                  
                   console.log('Updating order:', newOrder);
                   
                   // Optimistically update the UI
@@ -331,9 +345,9 @@ export default function Gallery() {
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                   >
                     {gallery.images.map((image: any, index: number) => {
-                      const draggableId = `image-${image.id}`;
+                      // Use consistent ID format for draggable elements
                       return (
-                        <Draggable key={draggableId} draggableId={draggableId} index={index}>
+                        <Draggable key={image.id} draggableId={String(image.id)} index={index}>
                           {(provided, snapshot) => (
                             <div
                               ref={provided.innerRef}
