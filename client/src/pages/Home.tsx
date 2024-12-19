@@ -22,12 +22,10 @@ export default function Home() {
 
   // Generate a unique gallery ID and create gallery on mount
   useEffect(() => {
-    if (!galleryId && !isGalleryCreated) {
-      const newGalleryId = uuidv4();
-      setGalleryId(newGalleryId);
-      
-      const createGallery = async () => {
+    const initializeGallery = async () => {
+      if (!galleryId && !isGalleryCreated) {
         try {
+          const newGalleryId = uuidv4();
           const res = await fetch('/api/galleries/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -40,7 +38,9 @@ export default function Home() {
 
           const data = await res.json();
           console.log('Created gallery:', data);
+          setGalleryId(newGalleryId);
           setIsGalleryCreated(true);
+          setTitle(data.title); // Set initial title from server response
         } catch (error) {
           console.error('Gallery creation error:', error);
           toast({
@@ -49,10 +49,10 @@ export default function Home() {
             variant: "destructive"
           });
         }
-      };
+      }
+    };
 
-      createGallery();
-    }
+    initializeGallery();
   }, []); // Empty dependency array since this should only run once on mount
 
 
@@ -93,11 +93,7 @@ export default function Home() {
     }
   });
 
-  useEffect(() => {
-    if (galleryId && title !== "Untitled Project") {
-      updateTitleMutation.mutate(title);
-    }
-  }, [galleryId, title, updateTitleMutation, isGalleryCreated]);
+  // Remove the automatic title update effect as we'll only update when the user explicitly changes the title
 
 
   const uploadMutation = useMutation({
@@ -173,7 +169,11 @@ export default function Home() {
         <div className="px-6 md:px-8 lg:px-12 py-4">
           <InlineEdit
             value={title}
-            onSave={(newTitle) => updateTitleMutation.mutate(newTitle)}
+            onSave={(newTitle) => {
+              if (isGalleryCreated && newTitle !== title) {
+                updateTitleMutation.mutate(newTitle);
+              }
+            }}
             className="text-xl font-semibold"
           />
         </div>
