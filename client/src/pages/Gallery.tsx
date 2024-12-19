@@ -504,8 +504,8 @@ export default function Gallery() {
                                     </Badge>
                                   )}
                                 </div>
-                                <div className="p-3 flex justify-between items-center border-t bg-card/50">
-                                  <span className="text-sm text-muted-foreground truncate">
+                                <div className="p-3 flex justify-between items-center border-t bg-card">
+                                  <span className="text-sm text-foreground truncate flex-1">
                                     {image.publicId}
                                   </span>
                                   <Button
@@ -571,8 +571,8 @@ export default function Gallery() {
                         </Badge>
                       )}
                     </div>
-                    <div className="p-3 flex justify-between items-center border-t bg-card/50">
-                      <span className="text-sm text-muted-foreground truncate">
+                    <div className="p-3 flex justify-between items-center border-t bg-card">
+                      <span className="text-sm text-foreground truncate flex-1">
                         {image.publicId}
                       </span>
                       <Button
