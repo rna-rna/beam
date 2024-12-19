@@ -266,12 +266,18 @@ export function registerRoutes(app: Express): Server {
       });
 
       // Get comment counts for each image
+      // Get comment counts for each image
       const commentCounts = await Promise.all(
         galleryImages.map(async (img) => {
-          const count = await db.query.comments.findMany({
-            where: eq(comments.imageId, img.id),
-          });
-          return { imageId: img.id, count: count.length };
+          try {
+            const count = await db.query.comments.findMany({
+              where: eq(comments.imageId, img.id),
+            });
+            return { imageId: img.id, count: count.length };
+          } catch (error) {
+            console.error(`Error getting comments for image ${img.id}:`, error);
+            return { imageId: img.id, count: 0 };
+          }
         })
       );
 

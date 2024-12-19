@@ -35,7 +35,7 @@ export const comments = pgTable('comments', {
   content: text('content').notNull(),
   xPosition: real('x_position').notNull(), // Percentage of image width (0-100)
   yPosition: real('y_position').notNull(), // Percentage of image height (0-100)
-  author: text('author'),
+  author: text('author').default('Anonymous'),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
