@@ -174,7 +174,12 @@ export default function Gallery() {
       const res = await fetch(`/api/images/${imageId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, author, xPosition: x, yPosition: y }),
+        body: JSON.stringify({ 
+          content, 
+          author: author.trim() || 'Anonymous',
+          xPosition: x, 
+          yPosition: y 
+        }),
       });
       if (!res.ok) throw new Error('Failed to create comment');
       return res.json();
