@@ -60,8 +60,8 @@ export function DrawingCanvas({
 
         // Set drawing style
         context.lineCap = "round";
-        context.strokeStyle = "rgba(0, 0, 0, 0.8)";
-        context.lineWidth = 2; // Constant line width in CSS pixels
+        context.strokeStyle = "rgba(255, 105, 180, 0.8)"; // Hot pink with some transparency
+        context.lineWidth = 3; // Increased line width for better visibility
         contextRef.current = context;
 
         // Redraw saved paths after resize

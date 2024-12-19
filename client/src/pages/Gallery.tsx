@@ -49,6 +49,7 @@ export default function Gallery() {
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
+  const [showAnnotations, setShowAnnotations] = useState(true);
   const { data: gallery, isLoading } = useQuery<{ 
     id: number;
     slug: string;
@@ -661,18 +662,41 @@ export default function Gallery() {
                 <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
               )}
             </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${isAnnotationMode ? 'bg-primary/20' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsAnnotationMode(!isAnnotationMode);
-                setNewCommentPos(null);
-              }}
-            >
-              <Paintbrush className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${isAnnotationMode ? 'text-primary' : ''}`} />
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="icon"
+                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${showAnnotations ? 'bg-primary/20' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAnnotations(!showAnnotations);
+                }}
+                title="Toggle Annotations Visibility"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${showAnnotations ? 'text-primary' : ''}`}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M8 16L12 12M12 12L16 16M12 12L16 8M12 12L8 8" />
+                </svg>
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${isAnnotationMode ? 'bg-primary/20' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsAnnotationMode(!isAnnotationMode);
+                  setNewCommentPos(null);
+                }}
+                title="Toggle Drawing Mode"
+              >
+                <Paintbrush className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${isAnnotationMode ? 'text-primary' : ''}`} />
+              </Button>
+            </div>
           </div>
           {selectedImage && (
             <div 
@@ -701,8 +725,8 @@ export default function Gallery() {
                     }
                   }}
                 />
-                {/* Drawing Canvas - Only show in annotation mode */}
-                {isAnnotationMode && (
+                {/* Drawing Canvas - Show based on mode and visibility */}
+                {showAnnotations && isAnnotationMode && (
                   <div className="absolute inset-0">
                     <DrawingCanvas
                       width={800}  // Default width if image dimensions aren't available
@@ -740,7 +764,7 @@ export default function Gallery() {
               </div>
               
               {/* Existing comments */}
-              {comments.map((comment) => (
+              {showAnnotations && comments.map((comment) => (
                 <CommentBubble
                   key={comment.id}
                   x={comment.xPosition}
