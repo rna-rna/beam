@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MessageCircle } from "lucide-react";
+import { UserAvatar } from "./UserAvatar";
 
 interface CommentBubbleProps {
   x: number;
@@ -79,9 +80,12 @@ export function CommentBubble({ x, y, content, author, savedAuthor, onSubmit, is
           ) : (
             <div>
               {author && (
-                <p className="text-xs font-medium text-muted-foreground mb-1">
-                  {author}
-                </p>
+                <div className="flex items-center gap-2 mb-2">
+                  <UserAvatar name={author} className="w-6 h-6 text-xs" />
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {author}
+                  </p>
+                </div>
               )}
               <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
             </div>
