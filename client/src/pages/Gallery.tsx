@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import Masonry from "react-masonry-css";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -6,13 +6,57 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useParams } from "wouter";
 import { X } from "lucide-react";
+import { CommentBubble } from "@/components/CommentBubble";
+import { useToast } from "@/hooks/use-toast";
+
+interface Comment {
+  id: number;
+  content: string;
+  xPosition: number;
+  yPosition: number;
+}
 
 export default function Gallery() {
   const { slug } = useParams();
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedImage, setSelectedImage] = useState<{ id: number; url: string } | null>(null);
+  const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
 
   const { data: gallery, isLoading } = useQuery<{ images: any[] }>({
     queryKey: [`/api/galleries/${slug}`],
+  });
+
+  const { data: comments = [] } = useQuery<Comment[]>({
+    queryKey: [`/api/images/${selectedImage?.id}/comments`],
+    enabled: !!selectedImage?.id,
+  });
+
+  const createCommentMutation = useMutation({
+    mutationFn: async ({ imageId, content, x, y }: { imageId: number; content: string; x: number; y: number }) => {
+      const res = await fetch(`/api/images/${imageId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, xPosition: x, yPosition: y }),
+      });
+      if (!res.ok) throw new Error('Failed to create comment');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/images/${selectedImage?.id}/comments`] });
+      setNewCommentPos(null);
+      toast({
+        title: "Comment added",
+        description: "Your comment has been added successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add comment. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const breakpointCols = {
@@ -62,7 +106,7 @@ export default function Gallery() {
             <div 
               key={image.id} 
               className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
-              onClick={() => setSelectedImage(image.url)}
+              onClick={() => setSelectedImage({ id: image.id, url: image.url })}
             >
               <img
                 src={image.url}
@@ -75,21 +119,62 @@ export default function Gallery() {
         </Masonry>
       </div>
 
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+      <Dialog open={!!selectedImage} onOpenChange={() => {
+        setSelectedImage(null);
+        setNewCommentPos(null);
+      }}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur border-none">
           <button
             onClick={() => setSelectedImage(null)}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-50"
           >
             <X className="h-6 w-6 text-white" />
             <span className="sr-only">Close</span>
           </button>
           {selectedImage && (
-            <img
-              src={selectedImage}
-              alt=""
-              className="w-full h-full object-contain"
-            />
+            <div 
+              className="relative w-full h-full"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                setNewCommentPos({ x, y });
+              }}
+            >
+              <img
+                src={selectedImage.url}
+                alt=""
+                className="w-full h-full object-contain"
+              />
+              
+              {/* Existing comments */}
+              {comments.map((comment) => (
+                <CommentBubble
+                  key={comment.id}
+                  x={comment.xPosition}
+                  y={comment.yPosition}
+                  content={comment.content}
+                />
+              ))}
+              
+              {/* New comment */}
+              {newCommentPos && (
+                <CommentBubble
+                  x={newCommentPos.x}
+                  y={newCommentPos.y}
+                  isNew
+                  onSubmit={(content) => {
+                    createCommentMutation.mutate({
+                      imageId: selectedImage.id,
+                      content,
+                      x: newCommentPos.x,
+                      y: newCommentPos.y,
+                    });
+                  }}
+                />
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>
