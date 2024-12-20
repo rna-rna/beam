@@ -11,12 +11,7 @@ import { useParams } from "wouter";
 import { X, MessageCircle, Star, ChevronLeft, ChevronRight, Settings, ArrowUpDown, Share2, Paintbrush } from "lucide-react";
 import { Star as StarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { CommentBubble } from "@/components/CommentBubble";
-import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { motion } from "framer-motion";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
+import { useToast } from "@/hooks/use-toast";
 
 interface GalleryProps {
   slug?: string;
@@ -334,72 +330,72 @@ export default function Gallery({ slug: propSlug, title, onTitleChange }: Galler
     );
   }
 
+  // Render gallery controls for the header
+  const renderGalleryControls = () => (
+    <div className="flex items-center gap-2">
+      {isUploading && (
+        <div className="flex items-center gap-4">
+          <Progress value={undefined} className="w-24" />
+          <span className="text-sm text-muted-foreground">Uploading...</span>
+        </div>
+      )}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => {
+          if (isReorderMode && reorderImageMutation.isPending) return;
+          setIsReorderMode(!isReorderMode);
+        }}
+        disabled={reorderImageMutation.isPending}
+        className={isReorderMode ? 'bg-primary/10' : ''}
+      >
+        {isReorderMode && reorderImageMutation.isPending ? (
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        ) : (
+          <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? 'text-primary' : ''}`} />
+        )}
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => setShowStarredOnly(!showStarredOnly)}
+        className={showStarredOnly ? 'bg-primary/10' : ''}
+      >
+        <Star className={`h-4 w-4 ${showStarredOnly ? 'fill-primary text-primary' : ''}`} />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => {
+          navigator.clipboard.writeText(window.location.href);
+          toast({
+            title: "Link Copied",
+            description: "Gallery link copied to clipboard",
+          });
+        }}
+      >
+        <Share2 className="h-4 w-4" />
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon">
+            <Settings className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>More Settings</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem disabled className="text-muted-foreground">
+            Coming soon...
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
   return (
     <div {...getRootProps()} className="min-h-screen">
       <input {...getInputProps()} />
-
-      <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
-        {isUploading && (
-          <div className="flex-1 flex items-center gap-4">
-            <Progress value={undefined} className="flex-1" />
-            <span className="text-sm text-muted-foreground">Uploading...</span>
-          </div>
-        )}
-
-        <div className="ml-auto flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => {
-              if (isReorderMode && reorderImageMutation.isPending) return;
-              setIsReorderMode(!isReorderMode);
-            }}
-            disabled={reorderImageMutation.isPending}
-            className={isReorderMode ? 'bg-primary/10' : ''}
-          >
-            {isReorderMode && reorderImageMutation.isPending ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            ) : (
-              <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? 'text-primary' : ''}`} />
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setShowStarredOnly(!showStarredOnly)}
-            className={showStarredOnly ? 'bg-primary/10' : ''}
-          >
-            <Star className={`h-4 w-4 ${showStarredOnly ? 'fill-primary text-primary' : ''}`} />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              toast({
-                title: "Link Copied",
-                description: "Gallery link copied to clipboard",
-              });
-            }}
-          >
-            <Share2 className="h-4 w-4" />
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>More Settings</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem disabled className="text-muted-foreground">
-                Coming soon...
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
 
       {isDragActive && (
         <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 flex items-center justify-center">
@@ -841,24 +837,7 @@ export default function Gallery({ slug: propSlug, title, onTitleChange }: Galler
           )}
         </DialogContent>
       </Dialog>
-      {/* Fixed controls */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-4">
-        <div className="bg-background/95 backdrop-blur-sm rounded-lg border shadow-lg p-4">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium">Scale: {scale}%</span>
-            <Slider
-              value={[scale]}
-              onValueChange={([value]) => setScale(value)}
-              min={50}
-              max={150}
-              step={10}
-              className="w-[200px]"
-            />
-          </div>
-        </div>
-
-
-      </div>
+      {renderGalleryControls()}
     </div>
   );
 }
