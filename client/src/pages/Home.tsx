@@ -9,6 +9,19 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { v4 as uuidv4 } from 'uuid';
 
+const creativeQuotes = [
+  "Art enables us to find ourselves and lose ourselves at the same time. - Thomas Merton",
+  "Creativity takes courage. - Henri Matisse",
+  "Every artist was first an amateur. - Ralph Waldo Emerson",
+  "To create one's own world takes courage. - Georgia O'Keeffe",
+  "The painter has the Universe in his mind and hands. - Leonardo da Vinci",
+  "Imagination is everything. It is the preview of life's coming attractions. - Albert Einstein",
+  "Every child is an artist. The problem is how to remain an artist once we grow up. - Pablo Picasso",
+  "Art is not what you see, but what you make others see. - Edgar Degas",
+  "Vision is the art of seeing what is invisible to others. - Jonathan Swift",
+  "The artist is nothing without the gift, but the gift is nothing without work. - Émile Zola"
+];
+
 interface HomeProps {
   title: string;
   onTitleChange: (title: string) => void;
@@ -22,6 +35,7 @@ export default function Home({ title, onTitleChange }: HomeProps) {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isGalleryCreated, setIsGalleryCreated] = useState(false);
+  const [currentQuote, setCurrentQuote] = useState("");
 
   // Create gallery only once on mount
   useEffect(() => {
@@ -61,6 +75,7 @@ export default function Home({ title, onTitleChange }: HomeProps) {
       if (!galleryId) return;
       setIsUploading(true);
       setUploadProgress(0);
+      setCurrentQuote(creativeQuotes[Math.floor(Math.random() * creativeQuotes.length)]);
 
       const formData = new FormData();
       files.forEach(file => {
@@ -153,11 +168,19 @@ export default function Home({ title, onTitleChange }: HomeProps) {
             <input {...getInputProps()} />
 
             {isUploading || isNavigating ? (
-              <div className="w-full max-w-md flex flex-col items-center gap-4 p-8">
+              <div className="w-full max-w-md flex flex-col items-center gap-6 p-8">
                 <Progress value={uploadProgress} className="w-full" />
                 <p className="text-sm text-muted-foreground">
                   {isNavigating ? "Preparing gallery..." : `Uploading... ${Math.round(uploadProgress)}%`}
                 </p>
+                {currentQuote && (
+                  <p
+                    className="text-lg text-muted-foreground text-center max-w-lg mx-auto"
+                    style={{ fontFamily: 'Times New Roman, serif', fontStyle: 'italic' }}
+                  >
+                    {currentQuote}
+                  </p>
+                )}
               </div>
             ) : (
               <>
