@@ -246,6 +246,49 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   });
 
   // Callbacks
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!isZoomed) return;
+    isDraggingRef.current = true;
+    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+  }, [isZoomed]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !isZoomed) return;
+
+    const dx = e.clientX - lastMousePosRef.current.x;
+    const dy = e.clientY - lastMousePosRef.current.y;
+
+    translateRef.current = {
+      x: translateRef.current.x + dx,
+      y: translateRef.current.y + dy,
+    };
+
+    if (imageContainerRef.current) {
+      imageContainerRef.current.style.transform = `translate(${translateRef.current.x}px, ${translateRef.current.y}px)`;
+    }
+
+    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+  }, [isZoomed]);
+
+  const handleMouseUp = useCallback(() => {
+    isDraggingRef.current = false;
+  }, []);
+
+  const handleZoomClick = useCallback((e: React.MouseEvent) => {
+    if (isAnnotationMode || isCommentPlacementMode) return;
+
+    setIsZoomed(prev => {
+      if (!prev) {
+        // Reset transform when zooming in
+        translateRef.current = { x: 0, y: 0 };
+        if (imageContainerRef.current) {
+          imageContainerRef.current.style.transform = 'translate(0, 0)';
+        }
+      }
+      return !prev;
+    });
+  }, [isAnnotationMode, isCommentPlacementMode]);
+
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (selectedImageIndex >= 0) return;
@@ -324,11 +367,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
         >
           <Star className={`h-4 w-4 ${showStarredOnly ? "fill-primary text-primary" : ""}`} />
         </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleCopyLink}
-        >
+        <Button variant="outline" size="icon" onClick={handleCopyLink}>
           <Share2 className="h-4 w-4" />
         </Button>
         <DropdownMenu>
@@ -351,19 +390,17 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     gallery,
     isUploading,
     isReorderMode,
-    reorderImageMutation.isPending,
     showStarredOnly,
+    reorderImageMutation.isPending,
+    toast,
     setIsReorderMode,
     setShowStarredOnly,
-    toast,
   ]);
 
   // Effects
   useEffect(() => {
-    if (selectedImageIndex >= 0) {
+    if (selectedImageIndex >= 0 && gallery?.images?.length) {
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (!gallery?.images?.length) return;
-
         if (e.key === "ArrowLeft") {
           setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
         } else if (e.key === "ArrowRight") {
@@ -416,49 +453,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
       </div>
     );
   }
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!isZoomed) return;
-    isDraggingRef.current = true;
-    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-  }, [isZoomed]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDraggingRef.current || !isZoomed) return;
-
-    const dx = e.clientX - lastMousePosRef.current.x;
-    const dy = e.clientY - lastMousePosRef.current.y;
-
-    translateRef.current = {
-      x: translateRef.current.x + dx,
-      y: translateRef.current.y + dy,
-    };
-
-    if (imageContainerRef.current) {
-      imageContainerRef.current.style.transform = `translate(${translateRef.current.x}px, ${translateRef.current.y}px)`;
-    }
-
-    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-  }, [isZoomed]);
-
-  const handleMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
-  }, []);
-
-  const handleZoomClick = useCallback((e: React.MouseEvent) => {
-    if (isAnnotationMode || isCommentPlacementMode) return;
-
-    setIsZoomed(prev => {
-      if (!prev) {
-        // Reset transform when zooming in
-        translateRef.current = { x: 0, y: 0 };
-        if (imageContainerRef.current) {
-          imageContainerRef.current.style.transform = 'translate(0, 0)';
-        }
-      }
-      return !prev;
-    });
-  }, [isAnnotationMode, isCommentPlacementMode]);
 
   return (
     <div {...getRootProps()} className="min-h-screen relative">
