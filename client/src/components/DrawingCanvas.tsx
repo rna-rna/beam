@@ -101,28 +101,32 @@ export function DrawingCanvas({
 
     // Draw all saved paths
     savedPaths.forEach(({ pathData }) => {
-      const path = new Path2D();
-      const commands = pathData.split(' ');
+      try {
+        const path = new Path2D();
+        const commands = pathData.split(' ');
 
-      for (let i = 0; i < commands.length; i += 3) {
-        const cmd = commands[i];
-        const x = parseFloat(commands[i + 1]);
-        const y = parseFloat(commands[i + 2]);
+        for (let i = 0; i < commands.length; i += 3) {
+          const cmd = commands[i];
+          const x = parseFloat(commands[i + 1]);
+          const y = parseFloat(commands[i + 2]);
 
-        // Convert percentage coordinates to canvas coordinates
-        const canvasX = (x / 100) * canvasSize.width;
-        const canvasY = (y / 100) * canvasSize.height;
+          // Convert percentage coordinates to canvas coordinates
+          const canvasX = (x / 100) * canvasSize.width;
+          const canvasY = (y / 100) * canvasSize.height;
 
-        if (cmd === 'M') {
-          path.moveTo(canvasX, canvasY);
-        } else if (cmd === 'L') {
-          path.lineTo(canvasX, canvasY);
+          if (cmd === 'M') {
+            path.moveTo(canvasX, canvasY);
+          } else if (cmd === 'L') {
+            path.lineTo(canvasX, canvasY);
+          }
         }
-      }
 
-      context.stroke(path);
+        context.stroke(path);
+      } catch (error) {
+        console.error('Error drawing path:', error);
+      }
     });
-  }, [savedPaths, canvasSize]);
+  }, [savedPaths, canvasSize.width, canvasSize.height]);
 
   const getCanvasPoint = (event: React.MouseEvent) => {
     const canvas = canvasRef.current;
@@ -181,16 +185,19 @@ export function DrawingCanvas({
   };
 
   const stopDrawing = () => {
-    if (!currentPath) return;
+    if (!currentPath || !contextRef.current || currentPath.points.length < 2) return;
 
     const pathData = currentPath.points.reduce((acc, point, i) => {
       const command = i === 0 ? 'M' : 'L';
       return `${acc} ${command} ${point.x} ${point.y}`;
-    }, '');
+    }, '').trim();
 
-    onSavePath?.(pathData);
+    if (pathData) {
+      onSavePath?.(pathData);
+    }
+
     setCurrentPath(null);
-    contextRef.current?.closePath();
+    contextRef.current.closePath();
   };
 
   return (
