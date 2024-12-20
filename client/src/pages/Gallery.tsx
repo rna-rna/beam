@@ -4,8 +4,7 @@ import { useDropzone } from "react-dropzone";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
-import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -28,24 +27,23 @@ import {
   MenuTrigger,
 } from "@/components/ui/menu";
 
-// Custom Components
-import { CommentBubble } from "@/components/CommentBubble";
-import { DrawingCanvas } from "@/components/DrawingCanvas";
-
 // Icons
 import {
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
   MessageCircle,
   Paintbrush,
   Settings,
   Link,
   Star,
-  Star as StarIcon,
   Download,
   Menu as MenuIcon,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
 } from "lucide-react";
+
+// Components
+import { CommentBubble } from "@/components/CommentBubble";
+import { DrawingCanvas } from "@/components/DrawingCanvas";
 
 interface Image {
   id: number;
@@ -53,7 +51,7 @@ interface Image {
   starred?: boolean;
   commentCount?: number;
   position?: number;
-  originalFilename?: string; // Added originalFilename
+  originalFilename?: string;
 }
 
 interface Gallery {
@@ -90,19 +88,14 @@ interface ImageDimensions {
 
 function GallerySkeleton() {
   return (
-    <motion.div
-      className="mb-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
+    <div className="mb-4">
       <div className="relative bg-card rounded-md overflow-hidden">
         <div className="w-full aspect-[3/2] bg-muted animate-pulse" />
         <div className="absolute top-2 right-2 flex gap-2">
           <div className="h-7 w-7 rounded-md bg-background/80 animate-pulse" />
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -125,7 +118,8 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
-  const [showFilename, setShowFilename] = useState(true); // Added showFilename state
+  const [showFilename, setShowFilename] = useState(true);
+  const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -463,6 +457,27 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
+  // Preload image function
+  const preloadImage = useCallback((url: string, imageId: number) => {
+    const img = new Image();
+    img.src = url;
+    img.onload = () => {
+      setPreloadedImages(prev => new Set([...prev, imageId]));
+    };
+  }, []);
+
+  // Preload images when gallery data is available
+  useEffect(() => {
+    if (gallery?.images) {
+      gallery.images.forEach(image => {
+        if (!preloadedImages.has(image.id)) {
+          preloadImage(image.url, image.id);
+        }
+      });
+    }
+  }, [gallery?.images, preloadImage, preloadedImages]);
+
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -472,24 +487,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
           columnClassName="pl-4 bg-background"
         >
           {Array.from({ length: skeletonCount }).map((_, i) => (
-            <motion.div 
-              key={`skeleton-${i}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{
-                duration: 0.2,
-                delay: i * 0.05,
-              }}
-              className="mb-4"
-            >
-              <div className="relative bg-card rounded-md overflow-hidden">
-                <div className="w-full aspect-[3/2] bg-muted animate-pulse" />
-                <div className="absolute top-2 right-2 flex gap-2">
-                  <div className="h-7 w-7 rounded-md bg-background/80 animate-pulse" />
-                </div>
-              </div>
-            </motion.div>
+            <GallerySkeleton key={i} />
           ))}
         </Masonry>
       </div>
@@ -528,104 +526,69 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
           className="flex -ml-4 w-auto"
           columnClassName="pl-4 bg-background"
         >
-          {isLoading ? (
-            // Skeleton loading state
-            Array.from({ length: skeletonCount }).map((_, i) => (
-              <motion.div 
-                key={`skeleton-${i}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{
-                  duration: 0.2,
-                  delay: i * 0.05,
-                }}
-                className="mb-4"
-              >
-                <div className="relative bg-card rounded-md overflow-hidden">
-                  <div className="w-full aspect-[3/2] bg-muted animate-pulse" />
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    <div className="h-7 w-7 rounded-md bg-background/80 animate-pulse" />
-                  </div>
-                </div>
-              </motion.div>
-            ))
-          ) : (
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={{
-                visible: {
-                  transition: {
-                    staggerChildren: 0.1,
-                    delayChildren: 0.1,
-                  },
-                },
-              }}
-              className="w-full"
-            >
-              {gallery?.images
-                .filter((image) => !showStarredOnly || image.starred)
-                .map((image, index) => (
-                  <motion.div
-                    key={image.id}
-                    className="mb-4"
-                    variants={{
-                      hidden: { opacity: 0, y: 20 },
-                      visible: { opacity: 1, y: 0 },
-                    }}
-                    transition={{
-                      duration: 0.4,
-                      ease: [0.25, 0.1, 0.25, 1],
-                    }}
-                    layout
+          <AnimatePresence>
+            {gallery?.images
+              .filter((image) => !showStarredOnly || image.starred)
+              .map((image, index) => (
+                <motion.div
+                  key={image.id}
+                  className="mb-4"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ 
+                    opacity: preloadedImages.has(image.id) ? 1 : 0,
+                    y: preloadedImages.has(image.id) ? 0 : 20
+                  }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{
+                    duration: 0.4,
+                    delay: Math.min(index * 0.05, 0.5),
+                    ease: [0.25, 0.1, 0.25, 1],
+                  }}
+                >
+                  <div 
+                    className="relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02]"
+                    onClick={() => setSelectedImageIndex(index)}
                   >
-                    <motion.div 
-                      className="relative bg-card rounded-md overflow-hidden cursor-pointer"
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ duration: 0.2 }}
-                      onClick={() => setSelectedImageIndex(index)}
-                    >
-                      <motion.img
+                    {!preloadedImages.has(image.id) ? (
+                      <div className="w-full aspect-[3/2] bg-muted animate-pulse" />
+                    ) : (
+                      <img
                         src={image.url}
                         alt=""
                         className="w-full h-auto object-cover"
                         loading="lazy"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.3 }}
                       />
-                      <div className="absolute top-2 right-2 flex gap-2">
-                        {image.commentCount > 0 && (
-                          <Badge
-                            className="bg-primary text-primary-foreground flex items-center gap-1"
-                            variant="secondary"
-                          >
-                            <MessageCircle className="w-3 h-3" />
-                            {image.commentCount}
-                          </Badge>
-                        )}
-                        <Button
+                    )}
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      {image.commentCount > 0 && (
+                        <Badge
+                          className="bg-primary text-primary-foreground flex items-center gap-1"
                           variant="secondary"
-                          size="icon"
-                          className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleStarMutation.mutate(image.id);
-                          }}
                         >
-                          {image.starred ? (
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          ) : (
-                            <Star className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                ))}
-            </motion.div>
-          )}
+                          <MessageCircle className="w-3 h-3" />
+                          {image.commentCount}
+                        </Badge>
+                      )}
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleStarMutation.mutate(image.id);
+                        }}
+                      >
+                        {image.starred ? (
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        ) : (
+                          <Star className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+          </AnimatePresence>
         </Masonry>
       </div>
 
