@@ -130,22 +130,23 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     }
   }, [isZoomed]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current || !isZoomed) return;
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLImageElement>) => {
+    if (!isZoomed || !imageContainerRef.current) return;
 
-    const dx = e.clientX - lastMousePosRef.current.x;
-    const dy = e.clientY - lastMousePosRef.current.y;
+    const image = e.currentTarget;
+    const rect = image.getBoundingClientRect();
 
-    translateRef.current = {
-      x: translateRef.current.x + dx,
-      y: translateRef.current.y + dy,
-    };
+    // Calculate relative position within the image
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
 
-    if (imageContainerRef.current) {
-      imageContainerRef.current.style.transform = `scale(1.5) translate(${translateRef.current.x}px, ${translateRef.current.y}px)`;
-    }
+    // Calculate the transform origin for zooming
+    const transformOriginX = x * 100;
+    const transformOriginY = y * 100;
 
-    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+    // Apply the transform
+    imageContainerRef.current.style.transformOrigin = `${transformOriginX}% ${transformOriginY}%`;
+    imageContainerRef.current.style.transform = 'scale(2.5)';
   }, [isZoomed]);
 
   const handleMouseUp = useCallback(() => {
@@ -155,27 +156,15 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     }
   }, [isZoomed]);
 
+  const handleMouseLeave = useCallback(() => {
+    if (!imageContainerRef.current) return;
+    imageContainerRef.current.style.transform = 'scale(1)';
+  }, []);
+
   const handleZoomClick = useCallback((e: React.MouseEvent<HTMLImageElement>) => {
     e.preventDefault();
     if (isAnnotationMode || isCommentPlacementMode) return;
-
-    setIsZoomed(prev => {
-      if (!prev) {
-        // Reset transform when zooming in
-        translateRef.current = { x: 0, y: 0 };
-        if (imageContainerRef.current) {
-          imageContainerRef.current.style.transform = 'scale(1.5) translate(0px, 0px)';
-          imageContainerRef.current.style.cursor = 'grab';
-        }
-      } else {
-        // Reset when zooming out
-        if (imageContainerRef.current) {
-          imageContainerRef.current.style.transform = 'scale(1) translate(0px, 0px)';
-          imageContainerRef.current.style.cursor = 'zoom-in';
-        }
-      }
-      return !prev;
-    });
+    setIsZoomed(prev => !prev);
   }, [isAnnotationMode, isCommentPlacementMode]);
 
 
@@ -781,18 +770,18 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
               >
                 <div
                   ref={imageContainerRef}
-                  className="relative transition-all duration-200 ease-out origin-center"
+                  className="relative transition-all duration-200 ease-out will-change-transform"
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
+                  onMouseLeave={handleMouseLeave}
                   style={{
                     cursor: isCommentPlacementMode
                       ? "crosshair"
                       : isAnnotationMode
                       ? "crosshair"
                       : isZoomed
-                      ? "grab"
+                      ? "zoom-out"
                       : "zoom-in",
                   }}
                 >
@@ -803,7 +792,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                     onClick={handleZoomClick}
                     draggable={false}
                   />
-
                   {/* Drawing Canvas */}
                   <div className={`absolute inset-0 ${isZoomed ? "hidden" : ""}`}>
                     <DrawingCanvas
