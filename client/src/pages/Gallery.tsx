@@ -116,7 +116,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const scaleMotion = useMotionValue(1);
-
+  const constraintsRef = useRef(null);
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -465,7 +465,9 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
           const now = Date.now();
           if (now - lastTapTime.current < 300) {
             // Double tap detected - toggle zoom
-            setImageScale(imageScale === 1 ? 2 : 1);
+            const newScale = imageScale === 1 ? 2 : 1;
+            setImageScale(newScale);
+            scaleMotion.set(newScale);
             x.set(0);
             y.set(0);
           }
@@ -475,11 +477,22 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
 
         if (imageScale > 1) {
           // Only allow panning when zoomed in
-          x.set(mx);
-          y.set(my);
-        } else if (!tap) {
+          const newX = x.get() + mx;
+          const newY = y.get() + my;
+
+          // Calculate bounds based on current scale
+          const bounds = imageRef.current?.getBoundingClientRect();
+          if (bounds) {
+            const maxX = (bounds.width * (imageScale - 1)) / 2;
+            const maxY = (bounds.height * (imageScale - 1)) / 2;
+
+            // Apply constraints with smooth easing
+            x.set(Math.max(-maxX, Math.min(maxX, newX)));
+            y.set(Math.max(-maxY, Math.min(maxY, newY)));
+          }
+        } else if (!tap && last) {
           // Swipe navigation when not zoomed
-          if (last && Math.abs(mx) > 50) {
+          if (Math.abs(mx) > 50) {
             if (!gallery?.images?.length) return;
 
             if (mx > 0) {
@@ -492,21 +505,38 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
           }
         }
       },
-      onPinch: ({ offset: [d], event }) => {
+      onPinch: ({ offset: [scale], origin: [ox, oy], first, event }) => {
         event.preventDefault();
-        const newScale = Math.min(Math.max(1, d), 4);
-        setImageScale(newScale);
-        scaleMotion.set(newScale);
+
+        // Normalize scale value between 1 and 3
+        const normalizedScale = Math.min(Math.max(1, scale / 200), 3);
+
+        if (first) {
+          // Store the initial position relative to the image
+          const bounds = imageRef.current?.getBoundingClientRect();
+          if (bounds) {
+            const centerX = bounds.left + bounds.width / 2;
+            const centerY = bounds.top + bounds.height / 2;
+            x.set((ox - centerX) * (normalizedScale - 1));
+            y.set((oy - centerY) * (normalizedScale - 1));
+          }
+        }
+
+        setImageScale(normalizedScale);
+        scaleMotion.set(normalizedScale);
       },
     },
     {
       drag: {
         from: () => [x.get(), y.get()],
         rubberband: true,
+        bounds: constraintsRef,
+        preventScroll: true,
       },
       pinch: {
-        distanceBounds: { min: 50, max: 400 },
+        distanceBounds: { min: 0, max: 600 },
         rubberband: true,
+        preventDefault: true,
       },
     }
   );
@@ -514,7 +544,6 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   // Reset position and scale when changing images
   useEffect(() => {
     setImageScale(1);
-    setImagePanPosition({ x: 0, y: 0 });
     x.set(0);
     y.set(0);
     scaleMotion.set(1);
