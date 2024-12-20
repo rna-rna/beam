@@ -28,6 +28,10 @@ import {
   MenuTrigger,
 } from "@/components/ui/menu";
 
+// Custom Components
+import { CommentBubble } from "@/components/CommentBubble";
+import { DrawingCanvas } from "@/components/DrawingCanvas";
+
 // Icons
 import {
   ArrowUpDown,
@@ -288,15 +292,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
       });
     };
 
-    const handleReorderToggle = () => {
-      if (isReorderMode && reorderImageMutation.isPending) return;
-      setIsReorderMode(!isReorderMode);
-    };
-
-    const handleStarredToggle = () => {
-      setShowStarredOnly(!showStarredOnly);
-    };
-
     const handleDownloadAll = async () => {
       try {
         toast({
@@ -328,6 +323,15 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
           variant: "destructive",
         });
       }
+    };
+
+    const handleReorderToggle = () => {
+      if (isReorderMode && reorderImageMutation.isPending) return;
+      setIsReorderMode(!isReorderMode);
+    };
+
+    const handleStarredToggle = () => {
+      setShowStarredOnly(!showStarredOnly);
     };
 
     return (
@@ -397,10 +401,10 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     isReorderMode,
     reorderImageMutation.isPending,
     showStarredOnly,
-    setIsReorderMode,
-    setShowStarredOnly,
     handleCopyLink,
     handleDownloadAll,
+    handleReorderToggle,
+    handleStarredToggle,
     toast
   ]);
 
