@@ -107,16 +107,17 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
   const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
-  const [imageScale, setImageScale] = useState(1);
-  const [imagePanPosition, setImagePanPosition] = useState({ x: 0, y: 0 });
-  const lastTapTime = useRef(0);
-  const imageRef = useRef<HTMLImageElement>(null);
+  const [imageScale, setImageScale] = useState(1); // Added from edited snippet
+  const lastTapTime = useRef(0); // Added from edited snippet
+  const imageRef = useRef<HTMLImageElement>(null); // Added from edited snippet
+  const containerRef = useRef<HTMLDivElement>(null); // Added from edited snippet
+
 
   // Motion values for smooth animations
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const scaleMotion = useMotionValue(1);
-  const constraintsRef = useRef(null);
+
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -530,7 +531,6 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
       drag: {
         from: () => [x.get(), y.get()],
         rubberband: true,
-        bounds: constraintsRef,
         preventScroll: true,
       },
       pinch: {
@@ -782,6 +782,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
               className={`relative w-full h-full flex items-center justify-center ${
                 isCommentPlacementMode ? "cursor-crosshair" : ""
               }`}
+              ref={containerRef} // Added ref to the container
               {...bind()}
               style={{ touchAction: 'none' }} // Prevent browser touch actions
             >
@@ -798,7 +799,6 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                     scale: scaleMotion,
                   }}
                   drag={imageScale > 1}
-                  dragConstraints={imageRef}
                   dragElastic={0.1}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: imageScale }}
