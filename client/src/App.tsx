@@ -47,7 +47,7 @@ function App() {
       const previousGallery = queryClient.getQueryData(['/api/galleries/current']);
 
       // Optimistically update to the new value
-      queryClient.setQueryData(['/api/galleries/current'], old => ({
+      queryClient.setQueryData(['/api/galleries/current'], (old: any) => ({
         ...old,
         title: newTitle
       }));
@@ -65,7 +65,7 @@ function App() {
       });
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['/api/galleries/current'], old => ({
+      queryClient.setQueryData(['/api/galleries/current'], (old: any) => ({
         ...old,
         title: data
       }));
