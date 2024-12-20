@@ -7,6 +7,7 @@ import Masonry from "react-masonry-css";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { InlineEdit } from "@/components/InlineEdit";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -515,6 +516,18 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
           <div className="text-lg font-medium text-primary">Drop images to add to gallery</div>
         </div>
       )}
+
+      {/* Add Header Section */}
+      <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+          <InlineEdit
+            value={title}
+            onSave={handleTitleChange}
+            className="text-lg font-semibold tracking-tight"
+          />
+          {renderGalleryControls()}
+        </div>
+      </div>
 
       <div className="px-4 md:px-6 lg:px-8 py-8">
         <AnimatePresence>
