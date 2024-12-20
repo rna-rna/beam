@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -95,7 +95,12 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
-  const [panPosition, setPanPosition] = useState({ x: 50, y: 50 });
+
+  // Refs for zoom and pan
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const lastMousePosRef = useRef({ x: 0, y: 0 });
+  const translateRef = useRef({ x: 0, y: 0 });
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -412,6 +417,50 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     );
   }
 
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!isZoomed) return;
+    isDraggingRef.current = true;
+    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+  }, [isZoomed]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !isZoomed) return;
+
+    const dx = e.clientX - lastMousePosRef.current.x;
+    const dy = e.clientY - lastMousePosRef.current.y;
+
+    translateRef.current = {
+      x: translateRef.current.x + dx,
+      y: translateRef.current.y + dy,
+    };
+
+    if (imageContainerRef.current) {
+      imageContainerRef.current.style.transform = 
+        `translate(${translateRef.current.x}px, ${translateRef.current.y}px)`;
+    }
+
+    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+  }, [isZoomed]);
+
+  const handleMouseUp = useCallback(() => {
+    isDraggingRef.current = false;
+  }, []);
+
+  const handleZoomClick = useCallback((e: React.MouseEvent) => {
+    if (isAnnotationMode || isCommentPlacementMode) return;
+
+    setIsZoomed(prev => {
+      if (!prev) {
+        // Reset transform when zooming in
+        translateRef.current = { x: 0, y: 0 };
+        if (imageContainerRef.current) {
+          imageContainerRef.current.style.transform = 'translate(0, 0)';
+        }
+      }
+      return !prev;
+    });
+  }, [isAnnotationMode, isCommentPlacementMode]);
+
   return (
     <div {...getRootProps()} className="min-h-screen relative">
       <input {...getInputProps()} />
@@ -587,8 +636,8 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
           if (!open) {
             setSelectedImageIndex(-1);
             setNewCommentPos(null);
-            setIsZoomed(false); //Added to reset zoom on close
-            setPanPosition({x: 50, y:50}); //Reset pan position
+            setIsZoomed(false);
+            translateRef.current = { x: 0, y: 0 };
           }
         }}
       >
@@ -707,106 +756,96 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                 setIsCommentPlacementMode(false);
               }}
             >
-              <div className="relative">
-                <div
-                  className={`relative w-full h-full flex items-center justify-center`}
-                  style={{
-                    cursor: isCommentPlacementMode ? "crosshair" :
-                           isAnnotationMode ? "crosshair" :
-                           isZoomed ? "move" : "zoom-in"
-                  }}
-                >
-                  <img
-                    src={selectedImage.url}
-                    alt=""
-                    className={`w-auto h-auto object-contain transition-transform duration-300 transform ${
-                      isZoomed ? 'scale-150' : ''
-                    }`}
-                    style={{
-                      transformOrigin: isZoomed ? `${panPosition.x}% ${panPosition.y}%` : "center",
-                    }}
-                    onClick={(e) => {
-                      if (isAnnotationMode || isCommentPlacementMode) return;
-                      e.stopPropagation();
-                      setIsZoomed(!isZoomed);
-                    }}
-                    onMouseMove={(e) => {
-                      if (!isZoomed) return;
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const x = ((e.clientX - rect.left) / rect.width) * 100;
-                      const y = ((e.clientY - rect.top) / rect.height) * 100;
-                      setPanPosition({ x, y });
+              <div 
+                ref={imageContainerRef}
+                className="relative transition-transform duration-300 ease-out"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                style={{
+                  cursor: isCommentPlacementMode ? "crosshair" :
+                         isAnnotationMode ? "crosshair" :
+                         isZoomed ? "grab" : "zoom-in",
+                }}
+              >
+                <img
+                  src={selectedImage.url}
+                  alt=""
+                  className={`max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain transition-transform duration-300 ${
+                    isZoomed ? 'scale-150' : ''
+                  }`}
+                  onClick={handleZoomClick}
+                  draggable={false}
+                />
+
+                {/* Drawing Canvas */}
+                <div className={`absolute inset-0 ${isZoomed ? 'hidden' : ''}`}>
+                  <DrawingCanvas
+                    width={800}
+                    height={600}
+                    isDrawing={isAnnotationMode}
+                    savedPaths={showAnnotations ? annotations : []}
+                    onSavePath={async (pathData) => {
+                      try {
+                        await fetch(`/api/images/${selectedImage.id}/annotations`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ pathData }),
+                        });
+
+                        queryClient.invalidateQueries({
+                          queryKey: [`/api/images/${selectedImage.id}/annotations`],
+                        });
+
+                        toast({
+                          title: "Annotation saved",
+                          description: "Your drawing has been saved successfully.",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to save annotation. Please try again.",
+                          variant: "destructive",
+                        });
+                      }
                     }}
                   />
-
-                  {/* Drawing Canvas */}
-                  <div className={`absolute inset-0 ${isZoomed ? 'hidden' : ''}`}>
-                    <DrawingCanvas
-                      width={800}
-                      height={600}
-                      isDrawing={isAnnotationMode}
-                      savedPaths={showAnnotations ? annotations : []}
-                      onSavePath={async (pathData) => {
-                        try {
-                          await fetch(`/api/images/${selectedImage.id}/annotations`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ pathData }),
-                          });
-
-                          queryClient.invalidateQueries({
-                            queryKey: [`/api/images/${selectedImage.id}/annotations`],
-                          });
-
-                          toast({
-                            title: "Annotation saved",
-                            description: "Your drawing has been saved successfully.",
-                          });
-                        } catch (error) {
-                          toast({
-                            title: "Error",
-                            description: "Failed to save annotation. Please try again.",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {/* Comments */}
-                  {!isZoomed && showAnnotations &&
-                    comments.map((comment) => (
-                      <CommentBubble
-                        key={comment.id}
-                        x={comment.xPosition}
-                        y={comment.yPosition}
-                        content={comment.content}
-                        author={comment.author}
-                        savedAuthor={userName}
-                      />
-                    ))}
-
-                  {/* New comment */}
-                  {!isZoomed && newCommentPos && (
-                    <CommentBubble
-                      x={newCommentPos.x}
-                      y={newCommentPos.y}
-                      isNew
-                      savedAuthor={userName}
-                      onSubmit={(content, author) => {
-                        const newAuthor = author.trim() || userName || "Anonymous";
-                        setUserName(newAuthor);
-                        createCommentMutation.mutate({
-                          imageId: selectedImage.id,
-                          content,
-                          author: newAuthor,
-                          x: newCommentPos.x,
-                          y: newCommentPos.y,
-                        });
-                      }}
-                    />
-                  )}
                 </div>
+
+                {/* Comments */}
+                {!isZoomed && showAnnotations &&
+                  comments.map((comment) => (
+                    <CommentBubble
+                      key={comment.id}
+                      x={comment.xPosition}
+                      y={comment.yPosition}
+                      content={comment.content}
+                      author={comment.author}
+                      savedAuthor={userName}
+                    />
+                  ))}
+
+                {/* New comment */}
+                {!isZoomed && newCommentPos && (
+                  <CommentBubble
+                    x={newCommentPos.x}
+                    y={newCommentPos.y}
+                    isNew
+                    savedAuthor={userName}
+                    onSubmit={(content, author) => {
+                      const newAuthor = author.trim() || userName || "Anonymous";
+                      setUserName(newAuthor);
+                      createCommentMutation.mutate({
+                        imageId: selectedImage.id,
+                        content,
+                        author: newAuthor,
+                        x: newCommentPos.x,
+                        y: newCommentPos.y,
+                      });
+                    }}
+                  />
+                )}
               </div>
             </div>
           )}
