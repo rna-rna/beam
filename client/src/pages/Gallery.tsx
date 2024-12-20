@@ -79,6 +79,11 @@ interface Annotation {
   pathData: string;
 }
 
+interface ImageDimensions {
+  width: number;
+  height: number;
+}
+
 function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
   const params = useParams();
@@ -97,6 +102,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -707,17 +713,27 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
               }}
             >
               <div className="relative">
+                {/* Image with onLoad handler */}
                 <img
                   src={selectedImage.url}
                   alt=""
                   className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    setImageDimensions({
+                      width: img.clientWidth,
+                      height: img.clientHeight,
+                    });
+                  }}
                 />
 
                 {/* Drawing Canvas */}
                 <div className="absolute inset-0">
                   <DrawingCanvas
-                    width={800}
-                    height={600}
+                    width={imageDimensions?.width || 800}
+                    height={imageDimensions?.height || 600}
+                    imageWidth={imageDimensions?.width}
+                    imageHeight={imageDimensions?.height}
                     isDrawing={isAnnotationMode}
                     savedPaths={showAnnotations ? annotations : []}
                     onSavePath={async (pathData) => {

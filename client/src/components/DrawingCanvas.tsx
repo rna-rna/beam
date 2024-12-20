@@ -12,6 +12,8 @@ interface DrawingCanvasProps {
   className?: string;
   onSavePath?: (pathData: string) => void;
   savedPaths?: { id: number; pathData: string }[];
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 export function DrawingCanvas({ 
@@ -20,12 +22,14 @@ export function DrawingCanvas({
   isDrawing, 
   className = "",
   onSavePath,
-  savedPaths = []
+  savedPaths = [],
+  imageWidth,
+  imageHeight
 }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [currentPath, setCurrentPath] = useState<Path | null>(null);
-  
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -35,16 +39,22 @@ export function DrawingCanvas({
       const container = canvas.parentElement;
       if (!container) return;
 
-      const rect = container.getBoundingClientRect();
+      // Get the image dimensions or container dimensions
+      const targetWidth = imageWidth || container.clientWidth;
+      const targetHeight = imageHeight || container.clientHeight;
+
       const dpr = window.devicePixelRatio;
 
       // Set display size (CSS pixels)
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
+      canvas.style.width = `${targetWidth}px`;
+      canvas.style.height = `${targetHeight}px`;
 
       // Calculate physical pixel dimensions
-      const physicalWidth = Math.floor(rect.width * dpr);
-      const physicalHeight = Math.floor(rect.height * dpr);
+      const physicalWidth = Math.floor(targetWidth * dpr);
+      const physicalHeight = Math.floor(targetHeight * dpr);
+
+      // Update canvas size state
+      setCanvasSize({ width: targetWidth, height: targetHeight });
 
       // Only update if dimensions have changed
       if (canvas.width !== physicalWidth || canvas.height !== physicalHeight) {
@@ -63,21 +73,7 @@ export function DrawingCanvas({
         context.strokeStyle = "rgba(255, 105, 180, 0.8)"; // Hot pink with some transparency
         context.lineWidth = 3; // Increased line width for better visibility
         contextRef.current = context;
-
-        // Redraw saved paths after resize
-        drawSavedPaths();
       }
-    };
-
-    const drawSavedPaths = () => {
-      const context = contextRef.current;
-      if (!context || !canvas) return;
-
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      savedPaths.forEach(({ pathData }) => {
-        const path = new Path2D(pathData);
-        context.stroke(path);
-      });
     };
 
     // Initial setup
@@ -85,83 +81,92 @@ export function DrawingCanvas({
 
     // Add resize listener
     const resizeObserver = new ResizeObserver(resizeCanvas);
-    resizeObserver.observe(canvas.parentElement as Element);
+    if (canvas.parentElement) {
+      resizeObserver.observe(canvas.parentElement);
+    }
 
     return () => {
       resizeObserver.disconnect();
     };
-  }, [width, height]);
+  }, [imageWidth, imageHeight]);
 
   // Update drawing when savedPaths change
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = contextRef.current;
-    if (!canvas || !context) return;
+    if (!canvas || !context || !canvasSize.width || !canvasSize.height) return;
 
     // Clear canvas
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw all saved paths
     savedPaths.forEach(({ pathData }) => {
-      // Convert percentage coordinates back to canvas coordinates
-      const pixelPathData = pathData.replace(/([ML])\s*(\d*\.?\d+)\s*(\d*\.?\d+)/g, (_, command, x, y) => {
-        const rect = canvas.getBoundingClientRect();
-        const canvasX = (parseFloat(x) / 100) * rect.width;
-        const canvasY = (parseFloat(y) / 100) * rect.height;
-        return `${command} ${canvasX} ${canvasY}`;
-      });
-      const path = new Path2D(pixelPathData);
+      const path = new Path2D();
+      const commands = pathData.split(' ');
+
+      for (let i = 0; i < commands.length; i += 3) {
+        const cmd = commands[i];
+        const x = parseFloat(commands[i + 1]);
+        const y = parseFloat(commands[i + 2]);
+
+        // Convert percentage coordinates to canvas coordinates
+        const canvasX = (x / 100) * canvasSize.width;
+        const canvasY = (y / 100) * canvasSize.height;
+
+        if (cmd === 'M') {
+          path.moveTo(canvasX, canvasY);
+        } else if (cmd === 'L') {
+          path.lineTo(canvasX, canvasY);
+        }
+      }
+
       context.stroke(path);
     });
-  }, [savedPaths]);
+  }, [savedPaths, canvasSize]);
 
   const getCanvasPoint = (event: React.MouseEvent) => {
     const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    
+    if (!canvas || !canvasSize.width || !canvasSize.height) return { x: 0, y: 0 };
+
     const rect = canvas.getBoundingClientRect();
-    const scaleX = rect.width / canvas.width;
-    const scaleY = rect.height / canvas.height;
-    
-    // Convert mouse position to canvas coordinates
+
+    // Convert mouse position to percentage coordinates
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
-    
-    return { x, y };
-  };
 
-  const convertToCanvasPoint = (percentX: number, percentY: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    
-    const rect = canvas.getBoundingClientRect();
-    // Convert percentage to canvas coordinates
-    const x = (percentX / 100) * rect.width;
-    const y = (percentY / 100) * rect.height;
-    
     return { x, y };
   };
 
   const startDrawing = (event: React.MouseEvent) => {
-    if (!isDrawing) return;
+    if (!isDrawing || !contextRef.current) return;
+
     const { x, y } = getCanvasPoint(event);
-    const canvasPoint = convertToCanvasPoint(x, y);
-    
+    const canvas = canvasRef.current;
+    if (!canvas || !canvasSize.width || !canvasSize.height) return;
+
+    // Convert percentage to canvas coordinates for drawing
+    const canvasX = (x / 100) * canvasSize.width;
+    const canvasY = (y / 100) * canvasSize.height;
+
     setCurrentPath({
       points: [{ x, y }]
     });
-    
-    if (contextRef.current) {
-      contextRef.current.beginPath();
-      contextRef.current.moveTo(canvasPoint.x, canvasPoint.y);
-    }
+
+    contextRef.current.beginPath();
+    contextRef.current.moveTo(canvasX, canvasY);
   };
 
   const draw = (event: React.MouseEvent) => {
-    if (!isDrawing || !currentPath) return;
+    if (!isDrawing || !currentPath || !contextRef.current) return;
+
     const { x, y } = getCanvasPoint(event);
-    const canvasPoint = convertToCanvasPoint(x, y);
-    
+    const canvas = canvasRef.current;
+    if (!canvas || !canvasSize.width || !canvasSize.height) return;
+
+    // Convert percentage to canvas coordinates for drawing
+    const canvasX = (x / 100) * canvasSize.width;
+    const canvasY = (y / 100) * canvasSize.height;
+
     setCurrentPath(prev => {
       if (!prev) return null;
       return {
@@ -169,26 +174,20 @@ export function DrawingCanvas({
         points: [...prev.points, { x, y }]
       };
     });
-    
-    if (contextRef.current) {
-      const context = contextRef.current;
-      context.lineTo(canvasPoint.x, canvasPoint.y);
-      // Clear the current path
-      context.stroke();
-      // Begin a new path to ensure continuous line visibility
-      context.beginPath();
-      context.moveTo(canvasPoint.x, canvasPoint.y);
-    }
+
+    const context = contextRef.current;
+    context.lineTo(canvasX, canvasY);
+    context.stroke();
   };
 
   const stopDrawing = () => {
     if (!currentPath) return;
-    
+
     const pathData = currentPath.points.reduce((acc, point, i) => {
       const command = i === 0 ? 'M' : 'L';
       return `${acc} ${command} ${point.x} ${point.y}`;
     }, '');
-    
+
     onSavePath?.(pathData);
     setCurrentPath(null);
     contextRef.current?.closePath();
