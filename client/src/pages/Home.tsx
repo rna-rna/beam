@@ -36,7 +36,6 @@ export default function Home() {
           }
 
           const data = await res.json();
-          console.log('Created gallery:', data);
           setGalleryId(newGalleryId);
           setIsGalleryCreated(true);
           setTitle(data.title);
@@ -52,7 +51,7 @@ export default function Home() {
     };
 
     initializeGallery();
-  }, []);
+  }, [galleryId, isGalleryCreated, title, toast]);
 
   // Update gallery title
   const updateTitleMutation = useMutation({
@@ -93,6 +92,7 @@ export default function Home() {
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
+      if (!galleryId) return;
       setIsUploading(true);
       setUploadProgress(0);
 
@@ -116,16 +116,13 @@ export default function Home() {
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             setUploadProgress(100);
-            // Keep the progress indicator visible during transition
+            // Start transition before navigation
+            setIsNavigating(true);
+            // Delay navigation slightly to allow for animations
             setTimeout(() => {
-              // Start navigation animation first
-              setIsNavigating(true);
-              // Short delay to ensure smooth transition
-              setTimeout(() => {
-                setLocation(`/gallery/${galleryId!}`);
-              }, 300);
+              setLocation(`/gallery/${galleryId}`);
             }, 500);
-            resolve(true);
+            resolve(xhr.response);
           } else {
             setIsUploading(false);
             reject(new Error('Upload failed'));
@@ -136,12 +133,14 @@ export default function Home() {
           setIsUploading(false);
           reject(new Error('Upload failed'));
         };
+
         xhr.send(formData);
       });
     },
     onError: () => {
       setIsUploading(false);
       setUploadProgress(0);
+      setIsNavigating(false);
       toast({
         title: "Error",
         description: "Failed to upload images. Please try again.",
@@ -151,14 +150,17 @@ export default function Home() {
   });
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    uploadMutation.mutate(acceptedFiles);
-  }, [uploadMutation]);
+    if (!isUploading && acceptedFiles.length > 0) {
+      uploadMutation.mutate(acceptedFiles);
+    }
+  }, [isUploading, uploadMutation]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
-    }
+    },
+    disabled: isUploading || isNavigating
   });
 
   return (
@@ -170,19 +172,21 @@ export default function Home() {
         }
       }}
     >
-      <div className={`h-[calc(100vh-4rem)]`}>
+      <div className="h-[calc(100vh-4rem)]">
         <Card
           {...getRootProps()}
           className={`w-full h-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed transition-colors rounded-none
-            ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+            ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
+            ${isUploading || isNavigating ? 'pointer-events-none' : ''}
+            ${isNavigating ? 'opacity-0 transition-opacity duration-300' : ''}`}
         >
           <input {...getInputProps()} />
 
-          {isUploading ? (
+          {isUploading || isNavigating ? (
             <div className="w-full max-w-md flex flex-col items-center gap-4 p-8">
               <Progress value={uploadProgress} className="w-full" />
               <p className="text-sm text-muted-foreground">
-                Uploading... {Math.round(uploadProgress)}%
+                {isNavigating ? "Preparing gallery..." : `Uploading... ${Math.round(uploadProgress)}%`}
               </p>
             </div>
           ) : (
