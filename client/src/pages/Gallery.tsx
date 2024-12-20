@@ -26,10 +26,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-import { InlineEdit } from "@/components/InlineEdit";
-import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { motion } from "framer-motion";
+import { DrawingCanvas } from "@/components/DrawingCanvas";
 
 interface GalleryProps {
   slug?: string;
@@ -340,73 +338,66 @@ export default function Gallery({ slug: propSlug, title, onTitleChange }: Galler
     <div {...getRootProps()} className="min-h-screen">
       <input {...getInputProps()} />
 
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
-        <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
-          <InlineEdit
-            value={gallery?.title || "Untitled Project"}
-            onSave={(newTitle) => updateTitleMutation.mutate(newTitle)}
-            className="text-xl font-semibold"
-          />
-          {isUploading && (
-            <div className="flex-1 flex items-center gap-4">
-              <Progress value={undefined} className="flex-1" />
-              <span className="text-sm text-muted-foreground">Uploading...</span>
-            </div>
-          )}
-
-          <div className="ml-auto flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                if (isReorderMode && reorderImageMutation.isPending) return;
-                setIsReorderMode(!isReorderMode);
-              }}
-              disabled={reorderImageMutation.isPending}
-              className={isReorderMode ? 'bg-primary/10' : ''}
-            >
-              {isReorderMode && reorderImageMutation.isPending ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              ) : (
-                <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? 'text-primary' : ''}`} />
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowStarredOnly(!showStarredOnly)}
-              className={showStarredOnly ? 'bg-primary/10' : ''}
-            >
-              <Star className={`h-4 w-4 ${showStarredOnly ? 'fill-primary text-primary' : ''}`} />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                toast({
-                  title: "Link Copied",
-                  description: "Gallery link copied to clipboard",
-                });
-              }}
-            >
-              <Share2 className="h-4 w-4" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>More Settings</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem disabled className="text-muted-foreground">
-                  Coming soon...
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+      <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
+        {isUploading && (
+          <div className="flex-1 flex items-center gap-4">
+            <Progress value={undefined} className="flex-1" />
+            <span className="text-sm text-muted-foreground">Uploading...</span>
           </div>
+        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              if (isReorderMode && reorderImageMutation.isPending) return;
+              setIsReorderMode(!isReorderMode);
+            }}
+            disabled={reorderImageMutation.isPending}
+            className={isReorderMode ? 'bg-primary/10' : ''}
+          >
+            {isReorderMode && reorderImageMutation.isPending ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            ) : (
+              <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? 'text-primary' : ''}`} />
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowStarredOnly(!showStarredOnly)}
+            className={showStarredOnly ? 'bg-primary/10' : ''}
+          >
+            <Star className={`h-4 w-4 ${showStarredOnly ? 'fill-primary text-primary' : ''}`} />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              toast({
+                title: "Link Copied",
+                description: "Gallery link copied to clipboard",
+              });
+            }}
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>More Settings</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled className="text-muted-foreground">
+                Coming soon...
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
