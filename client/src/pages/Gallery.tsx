@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
+import { motion } from "framer-motion";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -39,6 +40,8 @@ import {
   Settings,
   Share2,
   Star,
+  X,
+  Star as StarIcon,
 } from "lucide-react";
 
 interface Image {
@@ -94,13 +97,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
-  const [isZoomed, setIsZoomed] = useState(false);
-
-  // Refs for zoom and pan
-  const imageContainerRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
-  const lastMousePosRef = useRef({ x: 0, y: 0 });
-  const translateRef = useRef({ x: 0, y: 0 });
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -119,54 +115,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     queryKey: [`/api/images/${selectedImage?.id}/comments`],
     enabled: !!selectedImage?.id,
   });
-
-  // Mouse event handlers for zoom and pan
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isZoomed) return;
-    isDraggingRef.current = true;
-    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-    if (imageContainerRef.current) {
-      imageContainerRef.current.style.cursor = "grabbing";
-    }
-  }, [isZoomed]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLImageElement>) => {
-    if (!isZoomed || !imageContainerRef.current) return;
-
-    const image = e.currentTarget;
-    const rect = image.getBoundingClientRect();
-
-    // Calculate relative position within the image
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-
-    // Calculate the transform origin for zooming
-    const transformOriginX = x * 100;
-    const transformOriginY = y * 100;
-
-    // Apply the transform
-    imageContainerRef.current.style.transformOrigin = `${transformOriginX}% ${transformOriginY}%`;
-    imageContainerRef.current.style.transform = 'scale(2.5)';
-  }, [isZoomed]);
-
-  const handleMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
-    if (imageContainerRef.current) {
-      imageContainerRef.current.style.cursor = isZoomed ? "grab" : "zoom-in";
-    }
-  }, [isZoomed]);
-
-  const handleMouseLeave = useCallback(() => {
-    if (!imageContainerRef.current) return;
-    imageContainerRef.current.style.transform = 'scale(1)';
-  }, []);
-
-  const handleZoomClick = useCallback((e: React.MouseEvent<HTMLImageElement>) => {
-    e.preventDefault();
-    if (isAnnotationMode || isCommentPlacementMode) return;
-    setIsZoomed(prev => !prev);
-  }, [isAnnotationMode, isCommentPlacementMode]);
-
 
   // Mutations
   const uploadMutation = useMutation({
@@ -372,7 +320,11 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
         >
           <Star className={`h-4 w-4 ${showStarredOnly ? "fill-primary text-primary" : ""}`} />
         </Button>
-        <Button variant="outline" size="icon" onClick={handleCopyLink}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleCopyLink}
+        >
           <Share2 className="h-4 w-4" />
         </Button>
         <DropdownMenu>
@@ -395,17 +347,19 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     gallery,
     isUploading,
     isReorderMode,
-    showStarredOnly,
     reorderImageMutation.isPending,
-    toast,
+    showStarredOnly,
     setIsReorderMode,
     setShowStarredOnly,
+    toast
   ]);
 
   // Effects
   useEffect(() => {
-    if (selectedImageIndex >= 0 && gallery?.images?.length) {
+    if (selectedImageIndex >= 0) {
       const handleKeyDown = (e: KeyboardEvent) => {
+        if (!gallery?.images?.length) return;
+
         if (e.key === "ArrowLeft") {
           setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
         } else if (e.key === "ArrowRight") {
@@ -419,18 +373,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
   }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
-
-  // Cleanup zoom/pan state when component unmounts
-  useEffect(() => {
-    return () => {
-      if (imageContainerRef.current) {
-        imageContainerRef.current.style.transform = 'scale(1) translate(0px, 0px)';
-        imageContainerRef.current.style.cursor = 'zoom-in';
-      }
-      setIsZoomed(false);
-      translateRef.current = { x: 0, y: 0 };
-    };
-  }, []);
 
   useEffect(() => {
     const controls = renderGalleryControls();
@@ -538,7 +480,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                                   loading="lazy"
                                 />
                                 <div className="absolute top-2 right-2 flex gap-2">
-                                  {image.commentCount && image.commentCount > 0 && (
+                                  {image.commentCount > 0 && (
                                     <Badge
                                       className="bg-primary text-primary-foreground flex items-center gap-1"
                                       variant="secondary"
@@ -595,7 +537,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                         loading="lazy"
                       />
                       <div className="absolute top-2 right-2 flex gap-2">
-                        {image.commentCount && image.commentCount > 0 && (
+                        {image.commentCount > 0 && (
                           <Badge
                             className="bg-primary text-primary-foreground flex items-center gap-1"
                             variant="secondary"
@@ -646,11 +588,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
           if (!open) {
             setSelectedImageIndex(-1);
             setNewCommentPos(null);
-            setIsZoomed(false);
-            if (imageContainerRef.current) {
-              imageContainerRef.current.style.transform = 'scale(1) translate(0px, 0px)';
-              imageContainerRef.current.style.cursor = 'zoom-in';
-            }
           }
         }}
       >
@@ -658,210 +595,193 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
           className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
           aria-describedby="gallery-lightbox-description"
         >
-          {selectedImage && (
-            <>
-              <div id="gallery-lightbox-description" className="sr-only">
-                Image viewer with annotation and commenting capabilities
-              </div>
+          <div id="gallery-lightbox-description" className="sr-only">
+            Image viewer with annotation and commenting capabilities
+          </div>
 
-              {/* Navigation buttons */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
-                onClick={() => {
-                  setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-                }}
-              >
-                <ChevronLeft className="h-8 w-8 text-white" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
-                onClick={() => {
-                  setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-                }}
-              >
-                <ChevronRight className="h-8 w-8 text-white" />
-              </Button>
+          {/* Navigation buttons */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
+            onClick={() => {
+              setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+            }}
+          >
+            <ChevronLeft className="h-8 w-8 text-white" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
+            onClick={() => {
+              setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+            }}
+          >
+            <ChevronRight className="h-8 w-8 text-white" />
+          </Button>
 
-              {/* Controls */}
-              <div className="absolute right-4 top-4 flex items-center gap-2 z-50 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2">
+          {/* Controls */}
+          <div className="absolute right-4 top-4 flex items-center gap-2 z-50 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleStarMutation.mutate(selectedImage!.id);
+              }}
+            >
+              {selectedImage?.starred ? (
+                <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+              ) : (
+                <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+              )}
+            </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex gap-2">
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
+                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                    isAnnotationMode ? "bg-primary/20" : ""
+                  }`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleStarMutation.mutate(selectedImage!.id);
+                    setIsAnnotationMode(!isAnnotationMode);
+                    setIsCommentPlacementMode(false);
+                    setNewCommentPos(null);
                   }}
+                  title="Toggle Drawing Mode"
                 >
-                  {selectedImage?.starred ? (
-                    <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
-                  ) : (
-                    <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
-                  )}
-                </Button>
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
-                        isAnnotationMode ? "bg-primary/20" : ""
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsAnnotationMode(!isAnnotationMode);
-                        setIsCommentPlacementMode(false);
-                        setNewCommentPos(null);
-                      }}
-                      title="Toggle Drawing Mode"
-                    >
-                      <Paintbrush
-                        className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                          isAnnotationMode ? "text-primary" : ""
-                        }`}
-                      />
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
-                        isCommentPlacementMode ? "bg-primary/20" : ""
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsCommentPlacementMode(!isCommentPlacementMode);
-                        setIsAnnotationMode(false);
-                        setNewCommentPos(null);
-                      }}
-                      title="Add Comment"
-                    >
-                      <MessageCircle
-                        className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                          isCommentPlacementMode ? "text-primary" : ""
-                        }`}
-                      />
-                    </Button>
-                  </div>
-                  <div className="ml-4">
-                    <Switch
-                      checked={showAnnotations}
-                      onCheckedChange={setShowAnnotations}
-                      className="data-[state=checked]:bg-primary"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className="relative w-full h-full flex items-center justify-center"
-                onClick={(e) => {
-                  if (!isCommentPlacementMode) return;
-                  const target = e.currentTarget;
-                  const rect = target.getBoundingClientRect();
-                  const x = ((e.clientX - rect.left) / rect.width) * 100;
-                  const y = ((e.clientY - rect.top) / rect.height) * 100;
-                  setNewCommentPos({ x, y });
-                  setIsCommentPlacementMode(false);
-                }}
-              >
-                <div
-                  ref={imageContainerRef}
-                  className="relative transition-all duration-200 ease-out will-change-transform"
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseLeave}
-                  style={{
-                    cursor: isCommentPlacementMode
-                      ? "crosshair"
-                      : isAnnotationMode
-                      ? "crosshair"
-                      : isZoomed
-                      ? "zoom-out"
-                      : "zoom-in",
-                  }}
-                >
-                  <img
-                    src={selectedImage.url}
-                    alt=""
-                    className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain select-none"
-                    onClick={handleZoomClick}
-                    draggable={false}
+                  <Paintbrush
+                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                      isAnnotationMode ? "text-primary" : ""
+                    }`}
                   />
-                  {/* Drawing Canvas */}
-                  <div className={`absolute inset-0 ${isZoomed ? "hidden" : ""}`}>
-                    <DrawingCanvas
-                      width={800}
-                      height={600}
-                      isDrawing={isAnnotationMode}
-                      savedPaths={showAnnotations ? annotations : []}
-                      onSavePath={async (pathData) => {
-                        try {
-                          await fetch(`/api/images/${selectedImage.id}/annotations`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ pathData }),
-                          });
-
-                          queryClient.invalidateQueries({
-                            queryKey: [`/api/images/${selectedImage.id}/annotations`],
-                          });
-
-                          toast({
-                            title: "Annotation saved",
-                            description: "Your drawing has been saved successfully.",
-                          });
-                        } catch (error) {
-                          toast({
-                            title: "Error",
-                            description: "Failed to save annotation. Please try again.",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {/* Comments */}
-                  {!isZoomed && showAnnotations &&
-                    comments.map((comment) => (
-                      <CommentBubble
-                        key={comment.id}
-                        x={comment.xPosition}
-                        y={comment.yPosition}
-                        content={comment.content}
-                        author={comment.author}
-                        savedAuthor={userName}
-                      />
-                    ))}
-
-                  {/* New comment */}
-                  {!isZoomed && newCommentPos && (
-                    <CommentBubble
-                      x={newCommentPos.x}
-                      y={newCommentPos.y}
-                      isNew
-                      savedAuthor={userName}
-                      onSubmit={(content, author) => {
-                        const newAuthor = author.trim() || userName || "Anonymous";
-                        setUserName(newAuthor);
-                        createCommentMutation.mutate({
-                          imageId: selectedImage.id,
-                          content,
-                          author: newAuthor,
-                          x: newCommentPos.x,
-                          y: newCommentPos.y,
-                        });
-                      }}
-                    />
-                  )}
-                </div>
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                    isCommentPlacementMode ? "bg-primary/20" : ""
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCommentPlacementMode(!isCommentPlacementMode);
+                    setIsAnnotationMode(false);
+                    setNewCommentPos(null);
+                  }}
+                  title="Add Comment"
+                >
+                  <MessageCircle
+                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                      isCommentPlacementMode ? "text-primary" : ""
+                    }`}
+                  />
+                </Button>
               </div>
-            </>
+              <div className="ml-4">
+                <Switch
+                  checked={showAnnotations}
+                  onCheckedChange={setShowAnnotations}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          {selectedImage && (
+            <div
+              className={`relative w-full h-full flex items-center justify-center ${
+                isCommentPlacementMode ? "cursor-crosshair" : ""
+              }`}
+              onClick={(e) => {
+                if (!isCommentPlacementMode) return;
+                const target = e.currentTarget;
+                const rect = target.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                setNewCommentPos({ x, y });
+                setIsCommentPlacementMode(false);
+              }}
+            >
+              <div className="relative">
+                <img
+                  src={selectedImage.url}
+                  alt=""
+                  className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
+                />
+
+                {/* Drawing Canvas */}
+                <div className="absolute inset-0">
+                  <DrawingCanvas
+                    width={800}
+                    height={600}
+                    isDrawing={isAnnotationMode}
+                    savedPaths={showAnnotations ? annotations : []}
+                    onSavePath={async (pathData) => {
+                      try {
+                        await fetch(`/api/images/${selectedImage.id}/annotations`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ pathData }),
+                        });
+
+                        queryClient.invalidateQueries({
+                          queryKey: [`/api/images/${selectedImage.id}/annotations`],
+                        });
+
+                        toast({
+                          title: "Annotation saved",
+                          description: "Your drawing has been saved successfully.",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to save annotation. Please try again.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Comments */}
+                {showAnnotations &&
+                  comments.map((comment) => (
+                    <CommentBubble
+                      key={comment.id}
+                      x={comment.xPosition}
+                      y={comment.yPosition}
+                      content={comment.content}
+                      author={comment.author}
+                      savedAuthor={userName}
+                    />
+                  ))}
+
+                {/* New comment */}
+                {newCommentPos && (
+                  <CommentBubble
+                    x={newCommentPos.x}
+                    y={newCommentPos.y}
+                    isNew
+                    savedAuthor={userName}
+                    onSubmit={(content, author) => {
+                      const newAuthor = author.trim() || userName || "Anonymous";
+                      setUserName(newAuthor);
+                      createCommentMutation.mutate({
+                        imageId: selectedImage.id,
+                        content,
+                        author: newAuthor,
+                        x: newCommentPos.x,
+                        y: newCommentPos.y,
+                      });
+                    }}
+                  />
+                )}
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
