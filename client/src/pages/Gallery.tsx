@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import Masonry from "react-masonry-css";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -523,7 +524,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                   key={image.id}
                   className="mb-4"
                   initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0 }}
+                  animate={{ opacity: Array.from(preloadedImages).includes(image.id) ? 1 : 0 }}
                   exit={{ opacity: 0 }}
                   transition={{
                     duration: 0.4,
@@ -534,7 +535,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                     className="relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02]"
                     onClick={() => setSelectedImageIndex(index)}
                   >
-                    {preloadedImages.has(image.id) && (
+                    {Array.from(preloadedImages).includes(image.id) && (
                       <img
                         src={image.url}
                         alt=""
