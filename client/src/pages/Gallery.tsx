@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
+import { useParams } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
-import { useParams } from "wouter";
 import { motion } from "framer-motion";
 
 // UI Components
@@ -11,6 +12,10 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,10 +25,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 
 // Custom Components
 import { CommentBubble } from "@/components/CommentBubble";
@@ -43,9 +44,6 @@ import {
 } from "lucide-react";
 import { Star as StarIcon } from "lucide-react";
 
-// Hooks
-import { useToast } from "@/hooks/use-toast";
-
 interface GalleryProps {
   slug?: string;
   title: string;
@@ -62,14 +60,19 @@ interface Comment {
 }
 
 export default function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }: GalleryProps) {
+  // URL Parameters
   const params = useParams();
   const slug = propSlug || params?.slug;
+
+  // Global Hooks
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // State Management
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
-  const [scale, setScale] = useState(100); // Scale percentage
+  const [scale, setScale] = useState(100);
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [userName, setUserName] = useState<string>("");
@@ -77,12 +80,8 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
 
-  const { data: gallery, isLoading, error } = useQuery<{
-    id: number;
-    slug: string;
-    title: string;
-    images: any[];
-  }>({
+  // Queries
+  const { data: gallery, isLoading, error } = useQuery({
     queryKey: [`/api/galleries/${slug}`],
     enabled: !!slug,
     onSuccess: (data) => {
@@ -99,24 +98,30 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
     },
   });
 
+  const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
+
+  const { data: annotations = [] } = useQuery({
+    queryKey: [`/api/images/${selectedImage?.id}/annotations`],
+    enabled: !!selectedImage?.id,
+  });
+
+  const { data: comments = [] } = useQuery({
+    queryKey: [`/api/images/${selectedImage?.id}/comments`],
+    enabled: !!selectedImage?.id,
+  });
+
+  // Mutations
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
       setIsUploading(true);
       try {
         const formData = new FormData();
-        files.forEach((file) => {
-          formData.append("images", file);
-        });
-
+        files.forEach((file) => formData.append("images", file));
         const res = await fetch(`/api/galleries/${slug}/images`, {
           method: "POST",
           body: formData,
         });
-
-        if (!res.ok) {
-          throw new Error("Failed to upload images");
-        }
-
+        if (!res.ok) throw new Error("Failed to upload images");
         return res.json();
       } finally {
         setIsUploading(false);
@@ -138,52 +143,6 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
     },
   });
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (selectedImageIndex >= 0) return; // Don't upload if lightbox is open
-    uploadMutation.mutate(acceptedFiles);
-  }, [uploadMutation, selectedImageIndex]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      "image/*": [".jpeg", ".jpg", ".png", ".gif", ".webp"],
-    },
-    noClick: true, // Only accept drag and drop
-  });
-
-  const selectedImage = gallery?.images[selectedImageIndex] ?? null;
-
-  // Fetch annotations when an image is selected
-  const { data: annotations = [] } = useQuery<Array<{ id: number; pathData: string }>>({
-    queryKey: [`/api/images/${selectedImage?.id}/annotations`],
-    enabled: !!selectedImage?.id,
-  });
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (!gallery?.images.length) return;
-
-    if (e.key === "ArrowLeft") {
-      setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-    } else if (e.key === "ArrowRight") {
-      setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-    } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
-      // Toggle star status when F or S is pressed
-      toggleStarMutation.mutate(selectedImage.id);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedImageIndex >= 0) {
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [selectedImageIndex, gallery?.images.length, selectedImage?.id]);
-
-  const { data: comments = [] } = useQuery<Comment[]>({
-    queryKey: [`/api/images/${selectedImage?.id}/comments`],
-    enabled: !!selectedImage?.id,
-  });
-
   const toggleStarMutation = useMutation({
     mutationFn: async (imageId: number) => {
       const res = await fetch(`/api/images/${imageId}/star`, {
@@ -200,6 +159,33 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
       toast({
         title: "Error",
         description: "Failed to toggle star. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const reorderImageMutation = useMutation({
+    mutationFn: async (newOrder: number[]) => {
+      const res = await fetch(`/api/galleries/${slug}/reorder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: newOrder }),
+      });
+      if (!res.ok) throw new Error("Failed to reorder images");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      setIsReorderMode(false);
+      toast({
+        title: "Success",
+        description: "Image order updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update image order. Please try again.",
         variant: "destructive",
       });
     },
@@ -279,85 +265,40 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
     },
   });
 
-  const reorderImageMutation = useMutation({
-    mutationFn: async (newOrder: number[]) => {
-      const res = await fetch(`/api/galleries/${slug}/reorder`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order: newOrder }),
-      });
 
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(`Failed to reorder images: ${error}`);
-      }
+  // Callbacks
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      if (selectedImageIndex >= 0) return;
+      uploadMutation.mutate(acceptedFiles);
+    },
+    [uploadMutation, selectedImageIndex]
+  );
 
-      return res.json();
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "image/*": [".jpeg", ".jpg", ".png", ".gif", ".webp"],
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      toast({
-        title: "Order Saved",
-        description: "Image order saved successfully.",
-      });
-      setIsReorderMode(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to save image order: ${error.message}`,
-        variant: "destructive",
-      });
-    },
+    noClick: true,
   });
 
+  // Memoized Values
+  const breakpointCols = useMemo(
+    () => ({
+      default: Math.max(1, Math.floor(6 * (100 / scale))),
+      2560: Math.max(1, Math.floor(5 * (100 / scale))),
+      1920: Math.max(1, Math.floor(4 * (100 / scale))),
+      1536: Math.max(1, Math.floor(3 * (100 / scale))),
+      1024: Math.max(1, Math.floor(2 * (100 / scale))),
+      640: 1,
+    }),
+    [scale]
+  );
 
-  // Calculate breakpoints based on scale
-  const breakpointCols = {
-    default: Math.max(1, Math.floor(6 * (100 / scale))), // More columns when zoomed out
-    2560: Math.max(1, Math.floor(5 * (100 / scale))),
-    1920: Math.max(1, Math.floor(4 * (100 / scale))),
-    1536: Math.max(1, Math.floor(3 * (100 / scale))),
-    1024: Math.max(1, Math.floor(2 * (100 / scale))),
-    640: 1,
-  };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Masonry
-          breakpointCols={breakpointCols}
-          className="flex -ml-4 w-auto"
-          columnClassName="pl-4 bg-background"
-        >
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="mb-4">
-              <Skeleton className="w-full h-48 md:h-64 lg:h-80" />
-            </div>
-          ))}
-        </Masonry>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-2xl font-bold text-foreground">Failed to load gallery</h1>
-      </div>
-    );
-  }
-
-  if (!gallery) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-2xl font-bold text-foreground">Gallery not found</h1>
-      </div>
-    );
-  }
-
-  // Memoize the gallery controls
   const galleryControls = useMemo(() => {
+    if (!gallery) return null;
+
     const handleCopyLink = () => {
       navigator.clipboard.writeText(window.location.href);
       toast({
@@ -443,24 +384,79 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
       </div>
     );
   }, [
+    gallery,
     isUploading,
     scale,
+    setScale,
     isReorderMode,
+    setIsReorderMode,
     reorderImageMutation.isPending,
     showStarredOnly,
-    setScale,
-    setIsReorderMode,
     setShowStarredOnly,
     toast,
     navigator
   ]);
 
-  // Effect to update header actions
+  // Effects
+  useEffect(() => {
+    if (selectedImageIndex >= 0) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (!gallery?.images?.length) return;
+
+        if (e.key === "ArrowLeft") {
+          setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+        } else if (e.key === "ArrowRight") {
+          setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+        } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
+          toggleStarMutation.mutate(selectedImage.id);
+        }
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
+
   useEffect(() => {
     onHeaderActionsChange?.(galleryControls);
   }, [onHeaderActionsChange, galleryControls]);
 
-  // Main component render
+  // Loading and Error States
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Masonry
+          breakpointCols={breakpointCols}
+          className="flex -ml-4 w-auto"
+          columnClassName="pl-4 bg-background"
+        >
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="mb-4">
+              <Skeleton className="w-full h-48 md:h-64 lg:h-80" />
+            </div>
+          ))}
+        </Masonry>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <h1 className="text-2xl font-bold text-foreground">Failed to load gallery</h1>
+      </div>
+    );
+  }
+
+  if (!gallery) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <h1 className="text-2xl font-bold text-foreground">Gallery not found</h1>
+      </div>
+    );
+  }
+
+  // Main Render
   return (
     <div {...getRootProps()} className="min-h-screen">
       <input {...getInputProps()} />
