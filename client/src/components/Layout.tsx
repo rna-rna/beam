@@ -23,14 +23,16 @@ export function Layout({ children, title, onTitleChange, actions }: LayoutProps)
           ) : (
             <h1 className="text-xl font-semibold">{title}</h1>
           )}
-          
+
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
             {actions}
           </div>
         </div>
       </div>
-      {children}
+      <main className="relative">
+        {children}
+      </main>
     </div>
   );
 }
