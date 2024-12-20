@@ -54,6 +54,7 @@ interface Image {
   starred?: boolean;
   commentCount?: number;
   position?: number;
+  originalFilename?: string; // Added originalFilename
 }
 
 interface Gallery {
@@ -107,6 +108,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
+  const [showFilename, setShowFilename] = useState(true); // Added showFilename state
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -735,12 +737,23 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                   />
                 </Button>
               </div>
-              <div className="ml-4">
-                <Switch
-                  checked={showAnnotations}
-                  onCheckedChange={setShowAnnotations}
-                  className="data-[state=checked]:bg-primary"
-                />
+              <div className="ml-4 flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={showAnnotations}
+                    onCheckedChange={setShowAnnotations}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                  <span className="text-sm">Annotations</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={showFilename}
+                    onCheckedChange={setShowFilename}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                  <span className="text-sm">Filename</span>
+                </div>
               </div>
             </div>
           </div>
@@ -774,6 +787,13 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                     });
                   }}
                 />
+
+                {/* Filename display */}
+                {showFilename && selectedImage.originalFilename && (
+                  <div className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm rounded px-2 py-1 text-sm">
+                    {selectedImage.originalFilename}
+                  </div>
+                )}
 
                 {/* Drawing Canvas */}
                 <div className="absolute inset-0">
