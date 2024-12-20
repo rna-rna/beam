@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useDropzone } from "react-dropzone";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
@@ -91,6 +90,8 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
   const slug = propSlug || params?.slug;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const titleUpdateTimeout = useRef<NodeJS.Timeout>();
+  const isInitialMount = useRef(true);
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
@@ -106,8 +107,7 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
   const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
-  const initialTitleSet = useRef(false);
-  const userInitiatedUpdate = useRef(false);
+
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -273,7 +273,6 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
     },
     onSuccess: () => {
       console.log('Title update successful');
-      userInitiatedUpdate.current = false;
       toast({
         title: "Success",
         description: "Gallery title updated successfully",
@@ -281,7 +280,6 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
     },
     onError: (error) => {
       console.error('Title update error:', error);
-      userInitiatedUpdate.current = false;
       if (gallery?.title) {
         onTitleChange(gallery.title);
       }
@@ -496,25 +494,37 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
 
   // Effect to initialize gallery title
   useEffect(() => {
-    if (gallery?.title && !initialTitleSet.current) {
-      console.log('Setting initial title:', gallery.title);
-      initialTitleSet.current = true;
+    if (gallery?.title && isInitialMount.current) {
+      console.log('Setting initial gallery title:', gallery.title);
+      isInitialMount.current = false;
       onTitleChange(gallery.title);
     }
   }, [gallery?.title, onTitleChange]);
 
-  // Effect to update gallery title when changed by user
+  // Effect to handle title updates with debouncing
   useEffect(() => {
-    if (!initialTitleSet.current || !gallery) {
-      console.log('Skipping title update - not initialized or no gallery');
+    if (isInitialMount.current || !gallery || title === gallery.title) {
       return;
     }
 
-    if (title !== gallery.title && !userInitiatedUpdate.current && !updateTitleMutation.isPending) {
-      console.log('Title changed, updating:', { current: title, previous: gallery.title });
-      userInitiatedUpdate.current = true;
-      updateTitleMutation.mutate(title);
+    console.log('Title changed, scheduling update:', { current: title, previous: gallery.title });
+
+    // Clear any pending update
+    if (titleUpdateTimeout.current) {
+      clearTimeout(titleUpdateTimeout.current);
     }
+
+    // Schedule new update
+    titleUpdateTimeout.current = setTimeout(() => {
+      console.log('Executing debounced title update:', title);
+      updateTitleMutation.mutate(title);
+    }, 1000); // Debounce for 1 second
+
+    return () => {
+      if (titleUpdateTimeout.current) {
+        clearTimeout(titleUpdateTimeout.current);
+      }
+    };
   }, [title, gallery?.title, updateTitleMutation]);
 
   if (error) {
