@@ -42,7 +42,6 @@ import {
   Settings,
   Link,
   Star,
-  X,
   Star as StarIcon,
   Download,
   Menu as MenuIcon,
@@ -655,6 +654,13 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             Image viewer with annotation and commenting capabilities
           </div>
 
+          {/* Filename display */}
+          {showFilename && selectedImage?.originalFilename && (
+            <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
+              {selectedImage.originalFilename}
+            </div>
+          )}
+
           {/* Navigation buttons */}
           <Button
             variant="ghost"
@@ -787,13 +793,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                     });
                   }}
                 />
-
-                {/* Filename display */}
-                {showFilename && selectedImage.originalFilename && (
-                  <div className="absolute bottom-2 left-2 bg-background/80 backdrop-blur-sm rounded px-2 py-1 text-sm">
-                    {selectedImage.originalFilename}
-                  </div>
-                )}
 
                 {/* Drawing Canvas */}
                 <div className="absolute inset-0">
