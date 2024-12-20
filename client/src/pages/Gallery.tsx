@@ -581,19 +581,19 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                 .map((image, index) => (
                   <motion.div
                     key={image.id}
-                    className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
+                    className="mb-4 cursor-pointer"
                     onClick={() => setSelectedImageIndex(index)}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ 
-                      duration: 0.3,
-                      delay: index * 0.1,
-                      ease: "easeOut"
+                      duration: 0.2,
+                      delay: index * 0.05, 
+                      ease: [0.4, 0, 0.2, 1] 
                     }}
                     viewport={{ once: true }}
-                    whileHover={{ scale: 1.02 }}
+                    layout 
                   >
-                    <div className="relative">
+                    <div className="relative transform transition-transform duration-100 hover:scale-[1.02]">
                       <motion.img
                         src={image.url}
                         alt=""
@@ -601,7 +601,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                         loading="lazy"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.15 }}
                       />
                       <div className="absolute top-2 right-2 flex gap-2">
                         {image.commentCount > 0 && (
@@ -623,9 +623,9 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                           }}
                         >
                           {image.starred ? (
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-100 scale-110" />
                           ) : (
-                            <Star className="h-4 w-4 transition-all duration-300 hover:scale-110" />
+                            <Star className="h-4 w-4 transition-all duration-100 hover:scale-110" />
                           )}
                         </Button>
                       </div>
