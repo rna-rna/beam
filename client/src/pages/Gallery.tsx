@@ -90,7 +90,7 @@ interface ImageDimensions {
 
 function GallerySkeleton() {
   return (
-    <motion.div 
+    <motion.div
       className="mb-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -472,7 +472,24 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
           columnClassName="pl-4 bg-background"
         >
           {Array.from({ length: skeletonCount }).map((_, i) => (
-            <GallerySkeleton key={i} />
+            <motion.div 
+              key={`skeleton-${i}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: 0.2,
+                delay: i * 0.05,
+              }}
+              className="mb-4"
+            >
+              <div className="relative bg-card rounded-md overflow-hidden">
+                <div className="w-full aspect-[3/2] bg-muted animate-pulse" />
+                <div className="absolute top-2 right-2 flex gap-2">
+                  <div className="h-7 w-7 rounded-md bg-background/80 animate-pulse" />
+                </div>
+              </div>
+            </motion.div>
           ))}
         </Masonry>
       </div>
@@ -505,130 +522,78 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
         </div>
       )}
 
-      <div className="px-6 md:px-8 lg:px-12 py-8">
-        <div
-          style={{
-            width: "100%",
-            maxWidth: scale < 100 ? "100%" : `${scale}%`,
-            margin: "0 auto",
-            transition: "max-width 0.2s ease-out",
-          }}
+      <div className="container mx-auto px-4 py-8">
+        <Masonry
+          breakpointCols={breakpointCols}
+          className="flex -ml-4 w-auto"
+          columnClassName="pl-4 bg-background"
         >
-          {isReorderMode ? (
-            <DragDropContext
-              onDragEnd={(result) => {
-                const { destination, source } = result;
-                if (!destination) return;
-                if (destination.index === source.index) return;
-
-                const visibleImages = gallery.images.filter((img) => !showStarredOnly || img.starred);
-                const reorderedImages = Array.from(visibleImages);
-                const [removed] = reorderedImages.splice(source.index, 1);
-                reorderedImages.splice(destination.index, 0, removed);
-
-                const newOrder = reorderedImages.map((img) => img.id);
-                reorderImageMutation.mutate(newOrder);
-              }}
-            >
-              <Droppable droppableId="gallery">
-                {(provided) => (
-                  <div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                  >
-                    {gallery.images
-                      .filter((image) => !showStarredOnly || image.starred)
-                      .map((image, index) => (
-                        <Draggable
-                          key={`image-${image.id}`}
-                          draggableId={`image-${image.id}`}
-                          index={index}
-                        >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`cursor-move transition-transform duration-200 ${
-                                snapshot.isDragging ? "scale-105 shadow-xl z-50" : ""
-                              }`}
-                            >
-                              <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
-                                <img
-                                  src={image.url}
-                                  alt=""
-                                  className="w-full h-auto object-cover"
-                                  loading="lazy"
-                                />
-                                <div className="absolute top-2 right-2 flex gap-2">
-                                  {image.commentCount > 0 && (
-                                    <Badge
-                                      className="bg-primary text-primary-foreground flex items-center gap-1"
-                                      variant="secondary"
-                                    >
-                                      <MessageCircle className="w-3 h-3" />
-                                      {image.commentCount}
-                                    </Badge>
-                                  )}
-                                  <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleStarMutation.mutate(image.id);
-                                    }}
-                                  >
-                                    {image.starred ? (
-                                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
-                                    ) : (
-                                      <Star className="h-4 w-4 transition-all duration-300 hover:scale-110" />
-                                    )}
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                    {provided.placeholder}
+          {isLoading ? (
+            // Skeleton loading state
+            Array.from({ length: skeletonCount }).map((_, i) => (
+              <motion.div 
+                key={`skeleton-${i}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{
+                  duration: 0.2,
+                  delay: i * 0.05,
+                }}
+                className="mb-4"
+              >
+                <div className="relative bg-card rounded-md overflow-hidden">
+                  <div className="w-full aspect-[3/2] bg-muted animate-pulse" />
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <div className="h-7 w-7 rounded-md bg-background/80 animate-pulse" />
                   </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+                </div>
+              </motion.div>
+            ))
           ) : (
-            <Masonry
-              breakpointCols={breakpointCols}
-              className="flex -ml-4 w-[calc(100%+1rem)]"
-              columnClassName="pl-4 bg-background"
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={{
+                visible: {
+                  transition: {
+                    staggerChildren: 0.1,
+                    delayChildren: 0.1,
+                  },
+                },
+              }}
+              className="w-full"
             >
-              {gallery.images
+              {gallery?.images
                 .filter((image) => !showStarredOnly || image.starred)
                 .map((image, index) => (
                   <motion.div
                     key={image.id}
-                    className="mb-4 cursor-pointer"
-                    onClick={() => setSelectedImageIndex(index)}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ 
-                      duration: 0.2,
-                      delay: Math.min(index * 0.05, 1), // Cap maximum delay at 1s
-                      ease: [0.4, 0, 0.2, 1] 
+                    className="mb-4"
+                    variants={{
+                      hidden: { opacity: 0, y: 20 },
+                      visible: { opacity: 1, y: 0 },
                     }}
-                    viewport={{ once: true }}
-                    layout 
+                    transition={{
+                      duration: 0.4,
+                      ease: [0.25, 0.1, 0.25, 1],
+                    }}
+                    layout
                   >
-                    <div className="relative transform transition-transform duration-100 hover:scale-[1.02]">
+                    <motion.div 
+                      className="relative bg-card rounded-md overflow-hidden cursor-pointer"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.2 }}
+                      onClick={() => setSelectedImageIndex(index)}
+                    >
                       <motion.img
                         src={image.url}
                         alt=""
-                        className="w-full h-auto object-contain rounded-md"
+                        className="w-full h-auto object-cover"
                         loading="lazy"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 0.15 }}
+                        transition={{ duration: 0.3 }}
                       />
                       <div className="absolute top-2 right-2 flex gap-2">
                         {image.commentCount > 0 && (
@@ -650,18 +615,18 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                           }}
                         >
                           {image.starred ? (
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-100 scale-110" />
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                           ) : (
-                            <Star className="h-4 w-4 transition-all duration-100 hover:scale-110" />
+                            <Star className="h-4 w-4" />
                           )}
                         </Button>
                       </div>
-                    </div>
+                    </motion.div>
                   </motion.div>
                 ))}
-            </Masonry>
+            </motion.div>
           )}
-        </div>
+        </Masonry>
       </div>
 
       {/* Scale Slider */}
