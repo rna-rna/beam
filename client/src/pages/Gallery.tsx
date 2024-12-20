@@ -112,14 +112,7 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
     queryKey: [`/api/galleries/${slug}`],
-    enabled: !!slug,
-    onSuccess: (data) => {
-      // Set initial title only once when gallery data is first loaded
-      if (!initialTitleSet.current && data.title) {
-        initialTitleSet.current = true;
-        onTitleChange(data.title);
-      }
-    }
+    enabled: !!slug
   });
 
   const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
@@ -262,22 +255,31 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
   // Title update mutation
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
+      console.log('Updating title to:', newTitle);
       const res = await fetch(`/api/galleries/${slug}/title`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: newTitle }),
       });
-      if (!res.ok) throw new Error("Failed to update gallery title");
-      return res.json();
+
+      if (!res.ok) {
+        console.error('Title update failed:', await res.text());
+        throw new Error("Failed to update gallery title");
+      }
+
+      const data = await res.json();
+      console.log('Title update response:', data);
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Title update successful:', data);
       toast({
         title: "Success",
         description: "Gallery title updated successfully",
       });
     },
-    onError: () => {
-      // Revert to gallery title on error
+    onError: (error) => {
+      console.error('Title update error:', error);
       if (gallery?.title) {
         onTitleChange(gallery.title);
       }
@@ -490,12 +492,24 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
   }, [onHeaderActionsChange, renderGalleryControls]);
 
 
-  // Effect to update gallery title when local title changes
+  // Effect to initialize gallery title
   useEffect(() => {
-    if (!initialTitleSet.current || !gallery) return;
+    if (gallery?.title && !initialTitleSet.current) {
+      console.log('Setting initial title:', gallery.title);
+      initialTitleSet.current = true;
+      onTitleChange(gallery.title);
+    }
+  }, [gallery?.title, onTitleChange]);
 
-    // Only update if the title actually changed
+  // Effect to update gallery title when changed by user
+  useEffect(() => {
+    if (!initialTitleSet.current || !gallery) {
+      console.log('Skipping title update - not initialized or no gallery');
+      return;
+    }
+
     if (title !== gallery.title) {
+      console.log('Title changed, updating:', { current: title, previous: gallery.title });
       updateTitleMutation.mutate(title);
     }
   }, [title, gallery?.title, updateTitleMutation]);
