@@ -88,6 +88,24 @@ interface ImageDimensions {
   height: number;
 }
 
+function GallerySkeleton() {
+  return (
+    <motion.div 
+      className="mb-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <div className="relative bg-card rounded-md overflow-hidden">
+        <div className="w-full aspect-[3/2] bg-muted animate-pulse" />
+        <div className="absolute top-2 right-2 flex gap-2">
+          <div className="h-7 w-7 rounded-md bg-background/80 animate-pulse" />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
   const params = useParams();
@@ -282,6 +300,17 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     [scale]
   );
 
+  // Calculate number of skeleton items based on viewport
+  const skeletonCount = useMemo(() => {
+    const width = window.innerWidth;
+    if (width >= 1920) return 15;
+    if (width >= 1536) return 12;
+    if (width >= 1024) return 9;
+    if (width >= 640) return 6;
+    return 4;
+  }, []);
+
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     toast({
@@ -442,10 +471,8 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
           className="flex -ml-4 w-auto"
           columnClassName="pl-4 bg-background"
         >
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="mb-4">
-              <Skeleton className="w-full h-48 md:h-64 lg:h-80" />
-            </div>
+          {Array.from({ length: skeletonCount }).map((_, i) => (
+            <GallerySkeleton key={i} />
           ))}
         </Masonry>
       </div>
@@ -587,7 +614,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ 
                       duration: 0.2,
-                      delay: index * 0.05, 
+                      delay: Math.min(index * 0.05, 1), // Cap maximum delay at 1s
                       ease: [0.4, 0, 0.2, 1] 
                     }}
                     viewport={{ once: true }}
