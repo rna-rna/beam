@@ -116,12 +116,15 @@ export default function Home() {
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             setUploadProgress(100);
-            // Start navigation animation first
-            setIsNavigating(true);
-            // Short delay to ensure smooth transition
+            // Keep the progress indicator visible during transition
             setTimeout(() => {
-              setLocation(`/gallery/${galleryId!}`);
-            }, 300);
+              // Start navigation animation first
+              setIsNavigating(true);
+              // Short delay to ensure smooth transition
+              setTimeout(() => {
+                setLocation(`/gallery/${galleryId!}`);
+              }, 300);
+            }, 500);
             resolve(true);
           } else {
             setIsUploading(false);
@@ -168,7 +171,7 @@ export default function Home() {
       }}
     >
       <div 
-        className={`transition-opacity duration-300 ${isNavigating ? 'opacity-0' : 'opacity-100'}`}
+        className={`transition-all duration-300 ${isNavigating ? 'opacity-0' : 'opacity-100'}`}
       >
         <div className="h-[calc(100vh-4rem)]">
           <Card
