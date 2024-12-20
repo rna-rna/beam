@@ -3,10 +3,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
-import { motion, AnimatePresence, useTransform, useMotionValue } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { useGesture } from '@use-gesture/react';
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -107,17 +106,6 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
   const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
-  const [imageScale, setImageScale] = useState(1);
-  const lastTapTime = useRef(0);
-  const imageRef = useRef<HTMLImageElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-
-  // Motion values for smooth animations
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const scaleMotion = useMotionValue(1);
-
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -456,98 +444,6 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
-  // Gesture binding for advanced touch interactions
-  const bind = useGesture(
-    {
-      onDrag: ({ movement: [mx, my], first, last, tap, event }) => {
-        event.preventDefault();
-
-        if (tap) {
-          const now = Date.now();
-          if (now - lastTapTime.current < 300) {
-            // Double tap detected - toggle zoom
-            const newScale = imageScale === 1 ? 2 : 1;
-            setImageScale(newScale);
-            scaleMotion.set(newScale);
-            x.set(0);
-            y.set(0);
-          }
-          lastTapTime.current = now;
-          return;
-        }
-
-        if (imageScale > 1) {
-          // Only allow panning when zoomed in
-          const newX = x.get() + mx;
-          const newY = y.get() + my;
-
-          // Calculate bounds based on current scale
-          const bounds = imageRef.current?.getBoundingClientRect();
-          if (bounds) {
-            const maxX = (bounds.width * (imageScale - 1)) / 2;
-            const maxY = (bounds.height * (imageScale - 1)) / 2;
-
-            // Apply constraints with smooth easing
-            x.set(Math.max(-maxX, Math.min(maxX, newX)));
-            y.set(Math.max(-maxY, Math.min(maxY, newY)));
-          }
-        } else if (!tap && last) {
-          // Swipe navigation when not zoomed
-          if (Math.abs(mx) > 50) {
-            if (!gallery?.images?.length) return;
-
-            if (mx > 0) {
-              // Swipe right - previous image
-              setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-            } else {
-              // Swipe left - next image
-              setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-            }
-          }
-        }
-      },
-      onPinch: ({ offset: [scale], origin: [ox, oy], first, event }) => {
-        event.preventDefault();
-
-        // Normalize scale value between 1 and 3
-        const normalizedScale = Math.min(Math.max(1, scale / 200), 3);
-
-        if (first) {
-          // Store the initial position relative to the image
-          const bounds = imageRef.current?.getBoundingClientRect();
-          if (bounds) {
-            const centerX = bounds.left + bounds.width / 2;
-            const centerY = bounds.top + bounds.height / 2;
-            x.set((ox - centerX) * (normalizedScale - 1));
-            y.set((oy - centerY) * (normalizedScale - 1));
-          }
-        }
-
-        setImageScale(normalizedScale);
-        scaleMotion.set(normalizedScale);
-      },
-    },
-    {
-      drag: {
-        from: () => [x.get(), y.get()],
-        rubberband: true,
-        preventScroll: true,
-      },
-      pinch: {
-        distanceBounds: { min: 0, max: 600 },
-        rubberband: true,
-        preventDefault: true,
-      },
-    }
-  );
-
-  // Reset position and scale when changing images
-  useEffect(() => {
-    setImageScale(1);
-    x.set(0);
-    y.set(0);
-    scaleMotion.set(1);
-  }, [selectedImageIndex]);
 
   if (error) {
     return (
@@ -568,12 +464,12 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   return (
     <div className="min-h-screen relative">
 
-      <div className="px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
+      <div className="px-4 md:px-6 lg:px-8 py-8">
         <AnimatePresence>
           <Masonry
             breakpointCols={breakpointCols}
-            className="flex -ml-2 sm:-ml-4 w-[calc(100%+0.5rem)] sm:w-[calc(100%+1rem)]"
-            columnClassName="pl-2 sm:pl-4 bg-background"
+            className="flex -ml-4 w-[calc(100%+1rem)]"
+            columnClassName="pl-4 bg-background"
           >
             {gallery?.images
               .filter((image) => !showStarredOnly || image.starred)
@@ -634,15 +530,15 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
         </AnimatePresence>
       </div>
 
-      {/* Scale Slider - make it more touch friendly */}
-      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-4 shadow-lg">
+      {/* Scale Slider */}
+      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-2 shadow-lg">
         <Slider
           value={[scale]}
           onValueChange={([value]) => setScale(value)}
           min={50}
           max={150}
           step={10}
-          className="w-[120px] touch-none"
+          className="w-[100px]"
         />
       </div>
 
@@ -656,7 +552,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
         }}
       >
         <DialogContent
-          className="max-w-[95vw] h-[90vh] p-4 sm:p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
+          className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
           aria-describedby="gallery-lightbox-description"
         >
           <div id="gallery-lightbox-description" className="sr-only">
@@ -694,12 +590,12 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
             <ChevronRight className="h-8 w-8 text-white" />
           </Button>
 
-          {/* Controls - make them more touch-friendly */}
-          <div className="absolute right-4 top-4 flex items-center gap-3 z-50 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-3">
+          {/* Controls */}
+          <div className="absolute right-4 top-4 flex items-center gap-2 z-50 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2">
             <Button
               variant="secondary"
               size="icon"
-              className="h-14 w-14 bg-background/95 hover:bg-background shadow-lg"
+              className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleStarMutation.mutate(selectedImage!.id);
@@ -711,11 +607,11 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                 <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
               )}
             </Button>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <Button
                 variant="secondary"
                 size="icon"
-                className={`h-14 w-14 bg-background/95 hover:bg-background shadow-lg ${
+                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
                   isAnnotationMode ? "bg-primary/20" : ""
                 }`}
                 onClick={(e) => {
@@ -735,7 +631,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
               <Button
                 variant="secondary"
                 size="icon"
-                className={`h-14 w-14 bg-background/95 hover:bg-background shadow-lg ${
+                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
                   isCommentPlacementMode ? "bg-primary/20" : ""
                 }`}
                 onClick={(e) => {
@@ -755,24 +651,24 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
             </div>
           </div>
 
-          {/* Settings toggles - make them more touch-friendly */}
+          {/* Settings toggles */}
           <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
-            <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-3">
-              <div className="flex items-center gap-3">
+            <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
+              <div className="flex items-center gap-2">
                 <Switch
                   checked={showAnnotations}
                   onCheckedChange={setShowAnnotations}
-                  className="data-[state=checked]:bg-primary h-6 w-11"
+                  className="data-[state=checked]:bg-primary h-5 w-9"
                 />
-                <span className="text-sm font-medium">Comments</span>
+                <span className="text-xs font-medium">Comments</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Switch
                   checked={showFilename}
                   onCheckedChange={setShowFilename}
-                  className="data-[state=checked]:bg-primary h-6 w-11"
+                  className="data-[state=checked]:bg-primary h-5 w-9"
                 />
-                <span className="text-sm font-medium">Filename</span>
+                <span className="text-xs font-medium">Filename</span>
               </div>
             </div>
           </div>
@@ -782,31 +678,25 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
               className={`relative w-full h-full flex items-center justify-center ${
                 isCommentPlacementMode ? "cursor-crosshair" : ""
               }`}
-              ref={containerRef}
-              {...bind()}
-              style={{ touchAction: 'none' }}
+              onClick={(e) => {
+                if (!isCommentPlacementMode) return;
+                const target = e.currentTarget;
+                const rect = target.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                setNewCommentPos({ x, y });
+                setIsCommentPlacementMode(false);
+              }}
             >
               <div className="relative">
                 {/* Image with onLoad handler */}
                 <motion.img
-                  ref={imageRef}
                   src={selectedImage.url}
                   alt=""
                   className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
-                  style={{
-                    x,
-                    y,
-                    scale: scaleMotion,
-                  }}
-                  drag={imageScale > 1}
-                  dragElastic={0.1}
                   initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: imageScale }}
-                  transition={{
-                    type: "spring",
-                    damping: 20,
-                    stiffness: 300,
-                  }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
                   onLoad={(e) => {
                     const img = e.currentTarget;
                     setImageDimensions({
