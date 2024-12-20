@@ -29,6 +29,7 @@ import {
 
 import { InlineEdit } from "@/components/InlineEdit";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface Comment {
   id: number;
@@ -53,7 +54,7 @@ export default function Gallery() {
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
-  const { data: gallery, isLoading } = useQuery<{ 
+  const { data: gallery, isLoading } = useQuery<{
     id: number;
     slug: string;
     title: string;
@@ -121,16 +122,16 @@ export default function Gallery() {
     queryKey: [`/api/images/${selectedImage?.id}/annotations`],
     enabled: !!selectedImage?.id,
   });
-  
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!gallery?.images.length) return;
-    
+
     if (e.key === 'ArrowLeft') {
-      setSelectedImageIndex(prev => 
+      setSelectedImageIndex(prev =>
         prev <= 0 ? gallery.images.length - 1 : prev - 1
       );
     } else if (e.key === 'ArrowRight') {
-      setSelectedImageIndex(prev => 
+      setSelectedImageIndex(prev =>
         prev >= gallery.images.length - 1 ? 0 : prev + 1
       );
     }
@@ -174,11 +175,11 @@ export default function Gallery() {
       const res = await fetch(`/api/images/${imageId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          content, 
+        body: JSON.stringify({
+          content,
           author: author.trim() || 'Anonymous',
-          xPosition: x, 
-          yPosition: y 
+          xPosition: x,
+          yPosition: y
         }),
       });
       if (!res.ok) throw new Error('Failed to create comment');
@@ -208,11 +209,11 @@ export default function Gallery() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title }),
       });
-      
+
       if (!res.ok) {
         throw new Error('Failed to update gallery title');
       }
-      
+
       return res.json();
     },
     onSuccess: () => {
@@ -238,12 +239,12 @@ export default function Gallery() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: newOrder }),
       });
-      
+
       if (!res.ok) {
         const error = await res.text();
         throw new Error(`Failed to reorder images: ${error}`);
       }
-      
+
       return res.json();
     },
     onSuccess: () => {
@@ -305,7 +306,7 @@ export default function Gallery() {
   return (
     <div {...getRootProps()} className="min-h-screen">
       <input {...getInputProps()} />
-      
+
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
         <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
           <InlineEdit
@@ -319,8 +320,9 @@ export default function Gallery() {
               <span className="text-sm text-muted-foreground">Uploading...</span>
             </div>
           )}
-          
+
           <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
             <Button
               variant="outline"
               size="icon"
@@ -375,7 +377,7 @@ export default function Gallery() {
           </div>
         </div>
       </div>
-      
+
       {isDragActive && (
         <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 flex items-center justify-center">
           <div className="text-lg font-medium text-primary">
@@ -385,7 +387,7 @@ export default function Gallery() {
       )}
 
       <div className="px-6 md:px-8 lg:px-12 py-8">
-        <div style={{ 
+        <div style={{
           width: '100%',
           maxWidth: scale < 100 ? '100%' : `${scale}%`,
           margin: '0 auto',
@@ -400,17 +402,17 @@ export default function Gallery() {
                   source: result.source,
                   destination: result.destination
                 });
-                
+
                 if (!destination) {
                   console.log('No valid destination found, skipping reorder');
                   return;
                 }
-                
+
                 if (destination.index === source.index) {
                   console.log('Source and destination indexes are same, no reorder needed');
                   return;
                 }
-                
+
                 if (!gallery?.images) {
                   console.error('Gallery images not available');
                   toast({
@@ -420,7 +422,7 @@ export default function Gallery() {
                   });
                   return;
                 }
-                
+
                 // Log the current state
                 console.log('Current gallery state:', {
                   totalImages: gallery.images.length,
@@ -428,22 +430,22 @@ export default function Gallery() {
                   destinationIndex: destination.index,
                   draggableId: result.draggableId
                 });
-                
+
                 try {
                   console.log('Processing drag end:', {
                     sourceIndex: source.index,
                     destinationIndex: destination.index,
                     totalImages: gallery.images.length,
                   });
-                  
+
                   // Get visible images (either all or only starred)
                   const visibleImages = gallery.images.filter(img => !showStarredOnly || img.starred);
-                  
+
                   // Create a new array and perform the move
                   const reorderedImages = Array.from(visibleImages);
                   const [removed] = reorderedImages.splice(source.index, 1);
                   reorderedImages.splice(destination.index, 0, removed);
-                  
+
                   // Create a new array with updated positions
                   const updatedImages = gallery.images.map(img => {
                     const newIndex = reorderedImages.findIndex(rImg => rImg.id === img.id);
@@ -452,24 +454,24 @@ export default function Gallery() {
                       position: newIndex >= 0 ? newIndex : img.position
                     };
                   });
-                  
+
                   // Get the order of image IDs
                   const newOrder = updatedImages
                     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
                     .map(img => img.id);
-                  
+
                   console.log('Reordering images:', {
                     visibleImages: visibleImages.length,
                     reorderedImages: reorderedImages.length,
                     newOrder,
                   });
-                  
+
                   // Optimistically update the UI
                   queryClient.setQueryData([`/api/galleries/${slug}`], {
                     ...gallery,
                     images: updatedImages
                   });
-                  
+
                   // Update the backend
                   reorderImageMutation.mutate(newOrder, {
                     onError: (error) => {
@@ -507,57 +509,57 @@ export default function Gallery() {
                         const draggableId = `image-${image.id}`;
                         console.log('Rendering draggable:', { id: image.id, draggableId, index });
                         return (
-                          <Draggable 
+                          <Draggable
                             key={`image-${image.id}`}
                             draggableId={`image-${image.id}`}
                             index={index}
                           >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`cursor-move transition-transform duration-200 ${
-                                snapshot.isDragging ? 'scale-105 shadow-xl z-50' : ''
-                              }`}
-                            >
-                              <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
-                                <img
-                                  src={image.url}
-                                  alt=""
-                                  className="w-full h-auto object-cover"
-                                  loading="lazy"
-                                />
-                                <div className="absolute top-2 right-2 flex gap-2">
-                                  {image.commentCount > 0 && (
-                                    <Badge 
-                                      className="bg-primary text-primary-foreground flex items-center gap-1"
-                                      variant="secondary"
-                                    >
-                                      <MessageCircle className="w-3 h-3" />
-                                      {image.commentCount}
-                                    </Badge>
-                                  )}
-                                  <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleStarMutation.mutate(image.id);
-                                    }}
-                                  >
-                                    {image.starred ? (
-                                      <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
-                                    ) : (
-                                      <Star className="h-4 w-4 transition-all duration-300 hover:scale-110" />
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className={`cursor-move transition-transform duration-200 ${
+                                  snapshot.isDragging ? 'scale-105 shadow-xl z-50' : ''
+                                }`}
+                              >
+                                <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
+                                  <img
+                                    src={image.url}
+                                    alt=""
+                                    className="w-full h-auto object-cover"
+                                    loading="lazy"
+                                  />
+                                  <div className="absolute top-2 right-2 flex gap-2">
+                                    {image.commentCount > 0 && (
+                                      <Badge
+                                        className="bg-primary text-primary-foreground flex items-center gap-1"
+                                        variant="secondary"
+                                      >
+                                        <MessageCircle className="w-3 h-3" />
+                                        {image.commentCount}
+                                      </Badge>
                                     )}
-                                  </Button>
+                                    <Button
+                                      variant="secondary"
+                                      size="icon"
+                                      className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleStarMutation.mutate(image.id);
+                                      }}
+                                    >
+                                      {image.starred ? (
+                                        <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                                      ) : (
+                                        <Star className="h-4 w-4 transition-all duration-300 hover:scale-110" />
+                                      )}
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
-                        </Draggable>
+                            )}
+                          </Draggable>
                         );
                       })}
                     {provided.placeholder}
@@ -574,51 +576,51 @@ export default function Gallery() {
               {gallery.images
                 .filter((image: any) => !showStarredOnly || image.starred) // Apply filter
                 .map((image: any, index: number) => (
-                <div 
-                  key={image.id} 
-                  className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
-                  onClick={() => setSelectedImageIndex(index)}
-                  style={{
-                    width: '100%',
-                    transition: 'transform 0.2s'
-                  }}
-                >
-                  <div className="relative">
-                    <img
-                      src={image.url}
-                      alt=""
-                      className="w-full h-auto object-contain rounded-md"
-                      loading="lazy"
-                    />
-                    <div className="absolute top-2 right-2 flex gap-2">
-                      {image.commentCount > 0 && (
-                        <Badge 
-                          className="bg-primary text-primary-foreground flex items-center gap-1"
-                          variant="secondary"
-                        >
-                          <MessageCircle className="w-3 h-3" />
-                          {image.commentCount}
-                        </Badge>
-                      )}
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleStarMutation.mutate(image.id);
-                        }}
-                      >
-                        {image.starred ? (
-                          <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
-                        ) : (
-                          <Star className="h-4 w-4 transition-all duration-300 hover:scale-110" />
+                  <div
+                    key={image.id}
+                    className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
+                    onClick={() => setSelectedImageIndex(index)}
+                    style={{
+                      width: '100%',
+                      transition: 'transform 0.2s'
+                    }}
+                  >
+                    <div className="relative">
+                      <img
+                        src={image.url}
+                        alt=""
+                        className="w-full h-auto object-contain rounded-md"
+                        loading="lazy"
+                      />
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        {image.commentCount > 0 && (
+                          <Badge
+                            className="bg-primary text-primary-foreground flex items-center gap-1"
+                            variant="secondary"
+                          >
+                            <MessageCircle className="w-3 h-3" />
+                            {image.commentCount}
+                          </Badge>
                         )}
-                      </Button>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStarMutation.mutate(image.id);
+                          }}
+                        >
+                          {image.starred ? (
+                            <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                          ) : (
+                            <Star className="h-4 w-4 transition-all duration-300 hover:scale-110" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </Masonry>
           )}
         </div>
@@ -630,7 +632,7 @@ export default function Gallery() {
           setNewCommentPos(null);
         }
       }}>
-        <DialogContent 
+        <DialogContent
           className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
           aria-describedby="gallery-lightbox-description"
         >
@@ -718,7 +720,7 @@ export default function Gallery() {
             </div>
           </div>
           {selectedImage && (
-            <div 
+            <div
               className={`relative w-full h-full flex items-center justify-center ${isCommentPlacementMode ? 'cursor-crosshair' : ''}`}
               onClick={(e) => {
                 if (!isCommentPlacementMode) return;
@@ -758,28 +760,28 @@ export default function Gallery() {
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ pathData })
                         });
-                          
-                          // Refresh annotations
-                          queryClient.invalidateQueries({
-                            queryKey: [`/api/images/${selectedImage.id}/annotations`]
-                          });
-                          
-                          toast({
-                            title: "Annotation saved",
-                            description: "Your drawing has been saved successfully.",
-                          });
-                        } catch (error) {
-                          toast({
-                            title: "Error",
-                            description: "Failed to save annotation. Please try again.",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    />
-                  </div>
+
+                        // Refresh annotations
+                        queryClient.invalidateQueries({
+                          queryKey: [`/api/images/${selectedImage.id}/annotations`]
+                        });
+
+                        toast({
+                          title: "Annotation saved",
+                          description: "Your drawing has been saved successfully.",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to save annotation. Please try again.",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
+                  />
+                </div>
               </div>
-              
+
               {/* Existing comments */}
               {showAnnotations && comments.map((comment) => (
                 <CommentBubble
@@ -791,7 +793,7 @@ export default function Gallery() {
                   savedAuthor={userName}
                 />
               ))}
-              
+
               {/* New comment */}
               {newCommentPos && (
                 <CommentBubble
@@ -817,23 +819,23 @@ export default function Gallery() {
         </DialogContent>
       </Dialog>
       {/* Fixed controls */}
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-4">
-          <div className="bg-background/95 backdrop-blur-sm rounded-lg border shadow-lg p-4">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium">Scale: {scale}%</span>
-              <Slider
-                value={[scale]}
-                onValueChange={([value]) => setScale(value)}
-                min={50}
-                max={150}
-                step={10}
-                className="w-[200px]"
-              />
-            </div>
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-4">
+        <div className="bg-background/95 backdrop-blur-sm rounded-lg border shadow-lg p-4">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium">Scale: {scale}%</span>
+            <Slider
+              value={[scale]}
+              onValueChange={([value]) => setScale(value)}
+              min={50}
+              max={150}
+              step={10}
+              className="w-[200px]"
+            />
           </div>
-          
-          
         </div>
+
+
+      </div>
     </div>
   );
 }
