@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Upload } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { InlineEdit } from "@/components/InlineEdit";
+import { Layout } from "@/components/Layout";
 import { v4 as uuidv4 } from 'uuid';
 
 export default function Home() {
@@ -17,6 +17,7 @@ export default function Home() {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isGalleryCreated, setIsGalleryCreated] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Generate a unique gallery ID and create gallery on mount
   useEffect(() => {
@@ -115,12 +116,11 @@ export default function Home() {
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             setUploadProgress(100);
-            // Start navigation first, keep upload state true until transition
+            // Start navigation animation first
             setIsNavigating(true);
+            // Short delay to ensure smooth transition
             setTimeout(() => {
               setLocation(`/gallery/${galleryId!}`);
-              // Only reset upload state after navigation starts
-              setIsUploading(false);
             }, 300);
             resolve(true);
           } else {
@@ -158,57 +158,47 @@ export default function Home() {
     }
   });
 
-  const [isNavigating, setIsNavigating] = useState(false);
-
-  const navigateToGallery = useCallback((galleryId: string) => {
-    setIsNavigating(true);
-    setTimeout(() => setLocation(`/gallery/${galleryId}`), 300);
-  }, [setLocation]);
-
   return (
-    <div className={`min-h-screen w-full bg-background transition-opacity duration-300 ${isNavigating ? 'opacity-0' : 'opacity-100'}`}>
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
-        <div className="px-6 md:px-8 lg:px-12 py-4">
-          <InlineEdit
-            value={title}
-            onSave={(newTitle) => {
-              if (isGalleryCreated && newTitle !== title) {
-                updateTitleMutation.mutate(newTitle);
-              }
-            }}
-            className="text-xl font-semibold"
-          />
+    <Layout
+      title={title}
+      onTitleChange={(newTitle) => {
+        if (isGalleryCreated && newTitle !== title) {
+          updateTitleMutation.mutate(newTitle);
+        }
+      }}
+    >
+      <div 
+        className={`transition-opacity duration-300 ${isNavigating ? 'opacity-0' : 'opacity-100'}`}
+      >
+        <div className="h-[calc(100vh-4rem)]">
+          <Card
+            {...getRootProps()}
+            className={`w-full h-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed transition-colors rounded-none
+              ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+          >
+            <input {...getInputProps()} />
+
+            {isUploading ? (
+              <div className="w-full max-w-md flex flex-col items-center gap-4 p-8">
+                <Progress value={uploadProgress} className="w-full" />
+                <p className="text-sm text-muted-foreground">
+                  Uploading... {Math.round(uploadProgress)}%
+                </p>
+              </div>
+            ) : (
+              <>
+                <Upload className="w-16 h-16 text-muted-foreground mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  Drop images here
+                </h2>
+                <p className="text-muted-foreground text-center">
+                  or click to select files
+                </p>
+              </>
+            )}
+          </Card>
         </div>
       </div>
-
-      <div className="flex-1 h-[calc(100vh-4rem)]">
-        <Card
-          {...getRootProps()}
-          className={`w-full h-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed transition-colors rounded-none
-            ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
-        >
-          <input {...getInputProps()} />
-
-          {isUploading ? (
-            <div className="w-full max-w-md flex flex-col items-center gap-4 p-8">
-              <Progress value={uploadProgress} className="w-full" />
-              <p className="text-sm text-muted-foreground">
-                Uploading... {Math.round(uploadProgress)}%
-              </p>
-            </div>
-          ) : (
-            <>
-              <Upload className="w-16 h-16 text-muted-foreground mb-4" />
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Drop images here
-              </h2>
-              <p className="text-muted-foreground text-center">
-                or click to select files
-              </p>
-            </>
-          )}
-        </Card>
-      </div>
-    </div>
+    </Layout>
   );
 }
