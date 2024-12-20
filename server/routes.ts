@@ -18,13 +18,13 @@ async function migrateSchema() {
       FROM information_schema.columns 
       WHERE table_name = 'images' AND column_name = 'starred'
     `);
-
+    
     // If starred already exists, no need to migrate
     if (starredExists.rows && starredExists.rows.length > 0) {
       console.log('Starred column already exists, no migration needed');
       return;
     }
-
+    
     // Check if flagged column exists
     const flaggedExists = await db.execute(sql`
       SELECT column_name 
@@ -133,15 +133,15 @@ export function registerRoutes(app: Express): Server {
         console.log('No files in request:', req.files);
         return res.status(400).json({ message: 'No images uploaded' });
       }
-
+      
       console.log(`Processing ${req.files.length} files`);
-
+      
       const [gallery] = await db.insert(galleries).values({
         slug: generateSlug()
       }).returning();
-
+      
       console.log('Created gallery with ID:', gallery.id);
-
+      
       try {
         const imageInserts = [];
         for (const file of req.files) {
@@ -198,6 +198,7 @@ export function registerRoutes(app: Express): Server {
           galleryId: gallery.id,
           url: `/uploads/${file.filename}`,
           publicId: file.filename,
+          originalFilename: file.originalname, // Store the original filename
           width: 800, // placeholder
           height: 600 // placeholder
         }).returning();
@@ -224,21 +225,21 @@ export function registerRoutes(app: Express): Server {
       if (!title || typeof title !== 'string') {
         return res.status(400).json({ message: 'Invalid title' });
       }
-
+      
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
-
+      
       if (!gallery) {
         return res.status(404).json({ message: 'Gallery not found' });
       }
-
+      
       const [updated] = await db
         .update(galleries)
         .set({ title })
         .where(eq(galleries.slug, req.params.slug))
         .returning();
-
+      
       res.json(updated);
     } catch (error) {
       console.error('Error updating gallery title:', error);
@@ -252,11 +253,11 @@ export function registerRoutes(app: Express): Server {
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
-
+      
       if (!gallery) {
         return res.status(404).json({ message: 'Gallery not found' });
       }
-
+      
       const galleryImages = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
         orderBy: (images, { asc }) => [
@@ -264,7 +265,7 @@ export function registerRoutes(app: Express): Server {
           asc(images.createdAt)
         ]
       });
-
+      
       // Get comment counts for each image
       // Get comment counts for each image
       const commentCounts = await Promise.all(
@@ -280,7 +281,7 @@ export function registerRoutes(app: Express): Server {
           }
         })
       );
-
+      
       const processedImages = galleryImages.map(img => ({
         id: img.id,
         url: img.url,
@@ -290,7 +291,7 @@ export function registerRoutes(app: Express): Server {
         starred: img.starred,
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
-
+      
       res.json({
         id: gallery.id,
         slug: gallery.slug,
@@ -310,7 +311,7 @@ export function registerRoutes(app: Express): Server {
         where: eq(comments.imageId, parseInt(req.params.imageId)),
         orderBy: (comments, { asc }) => [asc(comments.createdAt)]
       });
-
+      
       res.json(imageComments);
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -334,25 +335,25 @@ export function registerRoutes(app: Express): Server {
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
-
+      
       if (!gallery) {
         console.error('Gallery not found:', req.params.slug);
         return res.status(404).json({ message: 'Gallery not found' });
       }
-
+      
       console.log('Found gallery:', gallery.id);
-
+      
       // Validate all images belong to this gallery
       const galleryImages = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
       });
-
+      
       const validImageIds = new Set(galleryImages.map(img => img.id));
       if (!order.every(id => validImageIds.has(id))) {
         console.error('Invalid image IDs in order');
         return res.status(400).json({ message: 'Invalid image IDs in order' });
       }
-
+      
       // Update order for each image in a transaction
       await db.transaction(async (tx) => {
         for (let i = 0; i < order.length; i++) {
@@ -366,7 +367,7 @@ export function registerRoutes(app: Express): Server {
             ));
         }
       });
-
+      
       console.log('Successfully updated image positions');
       res.json({ success: true });
     } catch (error) {
@@ -388,18 +389,18 @@ export function registerRoutes(app: Express): Server {
       const image = await db.query.images.findFirst({
         where: eq(images.id, imageId)
       });
-
+      
       if (!image) {
         return res.status(404).json({ message: 'Image not found' });
       }
-
+      
       // Toggle star status
       const [updatedImage] = await db
         .update(images)
         .set({ starred: !image.starred })
         .where(eq(images.id, imageId))
         .returning();
-
+      
       res.json(updatedImage);
     } catch (error) {
       console.error('Error starring image:', error);
@@ -411,7 +412,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const { content, xPosition, yPosition, author } = req.body;
       const imageId = parseInt(req.params.imageId);
-
+      
       console.log('Creating comment with data:', {
         imageId,
         content,
@@ -419,16 +420,16 @@ export function registerRoutes(app: Express): Server {
         yPosition,
         author
       });
-
+      
       // Verify image exists
       const image = await db.query.images.findFirst({
         where: eq(images.id, imageId)
       });
-
+      
       if (!image) {
         return res.status(404).json({ message: 'Image not found' });
       }
-
+      
       const [comment] = await db.insert(comments)
         .values({
           imageId,
@@ -438,7 +439,7 @@ export function registerRoutes(app: Express): Server {
           author: author || 'Anonymous'
         })
         .returning();
-
+      
       console.log('Created comment:', comment);
       res.json(comment);
     } catch (error) {
@@ -452,14 +453,14 @@ export function registerRoutes(app: Express): Server {
     try {
       const imageId = parseInt(req.params.imageId);
       const { pathData } = req.body;
-
+      
       const [annotation] = await db.insert(annotations)
         .values({
           imageId,
           pathData
         })
         .returning();
-
+      
       res.json(annotation);
     } catch (error) {
       console.error('Error creating annotation:', error);
@@ -474,7 +475,7 @@ export function registerRoutes(app: Express): Server {
         where: eq(annotations.imageId, parseInt(req.params.imageId)),
         orderBy: (annotations, { asc }) => [asc(annotations.createdAt)]
       });
-
+      
       res.json(results);
     } catch (error) {
       console.error('Error fetching annotations:', error);

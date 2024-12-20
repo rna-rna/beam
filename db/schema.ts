@@ -14,6 +14,7 @@ export const images = pgTable('images', {
   galleryId: integer('gallery_id').references(() => galleries.id).notNull(),
   url: text('url').notNull(),
   publicId: text('public_id').notNull(),
+  originalFilename: text('original_filename').notNull(),
   width: integer('width').notNull(),
   height: integer('height').notNull(),
   starred: boolean('starred').default(false).notNull(),
