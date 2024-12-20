@@ -92,6 +92,8 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
   const queryClient = useQueryClient();
   const titleUpdateTimeout = useRef<NodeJS.Timeout>();
   const isInitialMount = useRef(true);
+  const isInitialLoad = useRef(true);
+  const isUpdatingTitle = useRef(false);
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
@@ -251,10 +253,10 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
     },
   });
 
-  // Title update mutation
+  // Update title mutation
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
-      console.log('Updating title to:', newTitle);
+      console.log('Gallery: Updating title to:', newTitle);
       const res = await fetch(`/api/galleries/${slug}/title`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -262,23 +264,22 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
       });
 
       if (!res.ok) {
-        console.error('Title update failed:', await res.text());
         throw new Error("Failed to update gallery title");
       }
 
-      const data = await res.json();
-      console.log('Title update response:', data);
-      return data;
+      return res.json();
     },
     onSuccess: () => {
-      console.log('Title update successful');
+      console.log('Gallery: Title update successful');
+      isUpdatingTitle.current = false;
       toast({
         title: "Success",
         description: "Gallery title updated successfully",
       });
     },
     onError: (error) => {
-      console.error('Title update error:', error);
+      console.error('Gallery: Title update error:', error);
+      isUpdatingTitle.current = false;
       if (gallery?.title) {
         onTitleChange(gallery.title);
       }
@@ -483,40 +484,26 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
-
   // Effect to initialize gallery title
   useEffect(() => {
-    if (gallery?.title && isInitialMount.current) {
-      console.log('Setting initial gallery title:', gallery.title);
-      isInitialMount.current = false;
+    if (gallery?.title && isInitialLoad.current) {
+      console.log('Gallery: Setting initial title:', gallery.title);
+      isInitialLoad.current = false;
       onTitleChange(gallery.title);
     }
   }, [gallery?.title, onTitleChange]);
 
-  // Effect to handle title updates with debouncing
+  // Effect to update gallery title when changed
   useEffect(() => {
-    if (isInitialMount.current || !gallery || title === gallery.title) {
+    if (!gallery || isInitialLoad.current || isUpdatingTitle.current) {
       return;
     }
 
-    console.log('Title changed, scheduling update:', { current: title, previous: gallery.title });
-
-    // Clear any pending update
-    if (titleUpdateTimeout.current) {
-      clearTimeout(titleUpdateTimeout.current);
-    }
-
-    // Schedule new update
-    titleUpdateTimeout.current = setTimeout(() => {
-      console.log('Executing debounced title update:', title);
+    if (title !== gallery.title) {
+      console.log('Gallery: Title changed, updating:', { current: title, previous: gallery.title });
+      isUpdatingTitle.current = true;
       updateTitleMutation.mutate(title);
-    }, 1000); // Debounce for 1 second
-
-    return () => {
-      if (titleUpdateTimeout.current) {
-        clearTimeout(titleUpdateTimeout.current);
-      }
-    };
+    }
   }, [title, gallery?.title, updateTitleMutation]);
 
   if (error) {
