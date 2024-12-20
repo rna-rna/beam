@@ -312,7 +312,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     const img = new Image();
     img.src = url;
     img.onload = () => {
-      setPreloadedImages(prev => new Set([...prev, imageId]));
+      setPreloadedImages(prev => new Set([...Array.from(prev), imageId]));
     };
   }, []);
 
@@ -619,6 +619,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             size="icon"
             className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
             onClick={() => {
+              if (!gallery?.images?.length) return;
               setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
             }}
           >
@@ -629,6 +630,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             size="icon"
             className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
             onClick={() => {
+              if (!gallery?.images?.length) return;
               setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
             }}
           >
