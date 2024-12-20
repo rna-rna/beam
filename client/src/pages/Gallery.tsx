@@ -107,10 +107,10 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
   const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
-  const [imageScale, setImageScale] = useState(1); // Added from edited snippet
-  const lastTapTime = useRef(0); // Added from edited snippet
-  const imageRef = useRef<HTMLImageElement>(null); // Added from edited snippet
-  const containerRef = useRef<HTMLDivElement>(null); // Added from edited snippet
+  const [imageScale, setImageScale] = useState(1);
+  const lastTapTime = useRef(0);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
 
   // Motion values for smooth animations
@@ -782,9 +782,9 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
               className={`relative w-full h-full flex items-center justify-center ${
                 isCommentPlacementMode ? "cursor-crosshair" : ""
               }`}
-              ref={containerRef} // Added ref to the container
+              ref={containerRef}
               {...bind()}
-              style={{ touchAction: 'none' }} // Prevent browser touch actions
+              style={{ touchAction: 'none' }}
             >
               <div className="relative">
                 {/* Image with onLoad handler */}
