@@ -57,7 +57,6 @@ interface GalleryProps {
   slug?: string;
   title: string;
   onTitleChange: (title: string) => void;
-  onHeaderActionsChange?: (actions: React.ReactNode) => void;
 }
 
 interface Comment {
@@ -78,14 +77,12 @@ interface ImageDimensions {
   height: number;
 }
 
-function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }: GalleryProps) {
-  // URL Parameters and Global Hooks
+function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
   const params = useParams();
   const slug = propSlug || params?.slug;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // State Management
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
@@ -100,7 +97,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
 
-  // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
     queryKey: [`/api/galleries/${slug}`],
     enabled: !!slug,
@@ -118,7 +114,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     enabled: !!selectedImage?.id,
   });
 
-  // Mutations
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
       setIsUploading(true);
@@ -270,7 +265,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     },
   });
 
-  // Callbacks
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (selectedImageIndex >= 0) return;
@@ -287,7 +281,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     noClick: true,
   });
 
-  // Memoized Values
   const breakpointCols = useMemo(
     () => ({
       default: Math.max(1, Math.floor(6 * (100 / scale))),
@@ -300,7 +293,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     [scale]
   );
 
-  // Preload image function
   const preloadImage = useCallback((url: string, imageId: number) => {
     const img = new Image();
     img.src = url;
@@ -309,7 +301,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     };
   }, []);
 
-  // Preload images when gallery data is available
   useEffect(() => {
     if (gallery?.images) {
       gallery.images.forEach(image => {
@@ -444,12 +435,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     handleStarredToggle,
   ]);
 
-  useEffect(() => {
-    const controls = renderGalleryControls();
-    onHeaderActionsChange?.(controls);
-  }, [onHeaderActionsChange, renderGalleryControls]);
-
-  // Handle title change
   const handleTitleChange = useCallback((newTitle: string) => {
     if (!slug) return;
     updateTitleMutation.mutate(newTitle);
@@ -498,9 +483,8 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
         </div>
       )}
 
-      {/* Header Section */}
       <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+        <div className="container h-14 flex items-center justify-between gap-4">
           <InlineEdit
             value={title}
             onSave={handleTitleChange}
@@ -576,7 +560,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
         </AnimatePresence>
       </div>
 
-      {/* Scale Slider */}
       <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-2 shadow-lg">
         <Slider
           value={[scale]}
@@ -605,14 +588,12 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             Image viewer with annotation and commenting capabilities
           </div>
 
-          {/* Filename display */}
           {showFilename && selectedImage?.originalFilename && (
             <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
               {selectedImage.originalFilename}
             </div>
           )}
 
-          {/* Navigation buttons */}
           <Button
             variant="ghost"
             size="icon"
@@ -630,7 +611,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             <ChevronRight className="h-8 w-8 text-white" />
           </Button>
 
-          {/* Controls */}
           <div className="absolute right-4 top-4 flex items-center gap-2 z-50 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2">
             <Button
               variant="secondary"
@@ -691,7 +671,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             </div>
           </div>
 
-          {/* Settings toggles */}
           <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
             <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
               <div className="flex items-center gap-2">
@@ -729,7 +708,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
               }}
             >
               <div className="relative">
-                {/* Image with onLoad handler */}
                 <motion.img
                   src={selectedImage.url}
                   alt=""
@@ -746,7 +724,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                   }}
                 />
 
-                {/* Drawing Canvas */}
                 <div className="absolute inset-0">
                   <DrawingCanvas
                     width={imageDimensions?.width || 800}
@@ -782,7 +759,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                   />
                 </div>
 
-                {/* Comments */}
                 {showAnnotations &&
                   comments.map((comment) => (
                     <CommentBubble
@@ -795,7 +771,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                     />
                   ))}
 
-                {/* New comment */}
                 {newCommentPos && (
                   <CommentBubble
                     x={newCommentPos.x}
