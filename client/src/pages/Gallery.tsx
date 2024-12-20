@@ -1,5 +1,5 @@
 interface GalleryProps {
-  slug: string;
+  slug?: string;
   title: string;
   onTitleChange: (title: string) => void;
 }
@@ -36,6 +36,7 @@ import {
 import { InlineEdit } from "@/components/InlineEdit";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { motion } from "framer-motion";
 
 interface Comment {
   id: number;
@@ -45,7 +46,9 @@ interface Comment {
   author?: string;
 }
 
-export default function Gallery({ slug, title, onTitleChange }: GalleryProps) {
+export default function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
+  const params = useParams();
+  const slug = propSlug || params?.slug;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
@@ -59,14 +62,27 @@ export default function Gallery({ slug, title, onTitleChange }: GalleryProps) {
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
-  const { data: gallery, isLoading } = useQuery<{
+  const { data: gallery, isLoading, error } = useQuery<{
     id: number;
     slug: string;
     title: string;
     images: any[];
   }>({
     queryKey: [`/api/galleries/${slug}`],
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to load gallery. Please try again.",
+        variant: "destructive"
+      });
+    }
   });
+
+  useEffect(() => {
+    if (gallery?.title && gallery.title !== title) {
+      onTitleChange(gallery.title);
+    }
+  }, [gallery?.title, onTitleChange, title]);
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
@@ -297,6 +313,16 @@ export default function Gallery({ slug, title, onTitleChange }: GalleryProps) {
             </div>
           ))}
         </Masonry>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <h1 className="text-2xl font-bold text-foreground">
+          Failed to load gallery
+        </h1>
       </div>
     );
   }
