@@ -1,5 +1,4 @@
 import { useCallback, useState, useEffect } from "react";
-import Masonry from "react-masonry-css";
 import { useDropzone } from "react-dropzone";
 import { useLocation } from "wouter";
 import { Progress } from "@/components/ui/progress";
@@ -8,7 +7,7 @@ import { Upload } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { InlineEdit } from "@/components/InlineEdit";
-import { v4 as uuidv4 } from 'uuid'; // Import uuid library
+import { v4 as uuidv4 } from 'uuid';
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -17,7 +16,6 @@ export default function Home() {
   const [title, setTitle] = useState("Untitled Project");
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
-  // Flag to track if gallery has been created
   const [isGalleryCreated, setIsGalleryCreated] = useState(false);
 
   // Generate a unique gallery ID and create gallery on mount
@@ -40,7 +38,7 @@ export default function Home() {
           console.log('Created gallery:', data);
           setGalleryId(newGalleryId);
           setIsGalleryCreated(true);
-          setTitle(data.title); // Set initial title from server response
+          setTitle(data.title);
         } catch (error) {
           console.error('Gallery creation error:', error);
           toast({
@@ -53,8 +51,7 @@ export default function Home() {
     };
 
     initializeGallery();
-  }, []); // Empty dependency array since this should only run once on mount
-
+  }, []);
 
   // Update gallery title
   const updateTitleMutation = useMutation({
@@ -93,9 +90,6 @@ export default function Home() {
     }
   });
 
-  // Remove the automatic title update effect as we'll only update when the user explicitly changes the title
-
-
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
       setIsUploading(true);
@@ -117,14 +111,13 @@ export default function Home() {
         };
 
         xhr.open('POST', `/api/galleries/${galleryId}/images`);
-        
+
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             setUploadProgress(100);
-            // Small delay to show 100% before transition
             setTimeout(() => {
               setIsUploading(false);
-              navigateToGallery(galleryId);
+              navigateToGallery(galleryId!);
             }, 300);
             resolve(true);
           } else {
@@ -153,7 +146,7 @@ export default function Home() {
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     uploadMutation.mutate(acceptedFiles);
-  }, [uploadMutation, galleryId]);
+  }, [uploadMutation]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -162,13 +155,10 @@ export default function Home() {
     }
   });
 
-  // Track if we're transitioning away
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // Wrap setLocation to include transition
   const navigateToGallery = useCallback((galleryId: string) => {
     setIsNavigating(true);
-    // Small delay to allow fade out animation
     setTimeout(() => setLocation(`/gallery/${galleryId}`), 300);
   }, [setLocation]);
 
@@ -188,32 +178,33 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="flex-1 h-[calc(100vh-4rem)]">
         <Card
           {...getRootProps()}
-          className={`w-full mx-auto max-w-6xl mb-8 flex flex-col items-center justify-center p-8 cursor-pointer border-2 border-dashed transition-colors
+          className={`w-full h-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed transition-colors rounded-none
             ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
         >
           <input {...getInputProps()} />
-          <Upload className="w-16 h-16 text-muted-foreground mb-4" />
-          <h2 className="text-2xl font-bold text-foreground mb-2">
-            Drop images here
-          </h2>
-          <p className="text-muted-foreground text-center">
-            or click to select files
-          </p>
-        </Card>
 
-        {isUploading && (
-          <div className="w-full max-w-md mx-auto mt-8">
-            <div className="flex flex-col items-center gap-4 p-8 rounded-lg border bg-card">
+          {isUploading ? (
+            <div className="w-full max-w-md flex flex-col items-center gap-4 p-8">
               <Progress value={uploadProgress} className="w-full" />
               <p className="text-sm text-muted-foreground">
                 Uploading... {Math.round(uploadProgress)}%
               </p>
             </div>
-          </div>
-        )}
+          ) : (
+            <>
+              <Upload className="w-16 h-16 text-muted-foreground mb-4" />
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                Drop images here
+              </h2>
+              <p className="text-muted-foreground text-center">
+                or click to select files
+              </p>
+            </>
+          )}
+        </Card>
       </div>
     </div>
   );
