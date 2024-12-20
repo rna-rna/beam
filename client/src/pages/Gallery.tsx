@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -84,19 +83,6 @@ interface Annotation {
 interface ImageDimensions {
   width: number;
   height: number;
-}
-
-function GallerySkeleton() {
-  return (
-    <div className="mb-4">
-      <div className="relative bg-card rounded-md overflow-hidden">
-        <div className="w-full aspect-[3/2] bg-muted animate-pulse" />
-        <div className="absolute top-2 right-2 flex gap-2">
-          <div className="h-7 w-7 rounded-md bg-background/80 animate-pulse" />
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }: GalleryProps) {
@@ -294,16 +280,25 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     [scale]
   );
 
-  // Calculate number of skeleton items based on viewport
-  const skeletonCount = useMemo(() => {
-    const width = window.innerWidth;
-    if (width >= 1920) return 15;
-    if (width >= 1536) return 12;
-    if (width >= 1024) return 9;
-    if (width >= 640) return 6;
-    return 4;
+  // Preload image function
+  const preloadImage = useCallback((url: string, imageId: number) => {
+    const img = new Image();
+    img.src = url;
+    img.onload = () => {
+      setPreloadedImages(prev => new Set([...prev, imageId]));
+    };
   }, []);
 
+  // Preload images when gallery data is available
+  useEffect(() => {
+    if (gallery?.images) {
+      gallery.images.forEach(image => {
+        if (!preloadedImages.has(image.id)) {
+          preloadImage(image.url, image.id);
+        }
+      });
+    }
+  }, [gallery?.images, preloadImage, preloadedImages]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -321,7 +316,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
       });
 
       const zip = new JSZip();
-      const imagePromises = gallery.images.map(async (image, index) => {
+      const imagePromises = gallery!.images.map(async (image, index) => {
         const response = await fetch(image.url);
         const blob = await response.blob();
         const extension = image.url.split('.').pop() || 'jpg';
@@ -330,7 +325,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
 
       await Promise.all(imagePromises);
       const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, `${gallery.title || 'gallery'}-images.zip`);
+      saveAs(content, `${gallery!.title || 'gallery'}-images.zip`);
 
       toast({
         title: "Success",
@@ -429,10 +424,8 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     handleDownloadAll,
     handleReorderToggle,
     handleStarredToggle,
-    toast
   ]);
 
-  // Effects
   useEffect(() => {
     if (selectedImageIndex >= 0) {
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -457,43 +450,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
-  // Preload image function
-  const preloadImage = useCallback((url: string, imageId: number) => {
-    const img = new Image();
-    img.src = url;
-    img.onload = () => {
-      setPreloadedImages(prev => new Set([...prev, imageId]));
-    };
-  }, []);
-
-  // Preload images when gallery data is available
-  useEffect(() => {
-    if (gallery?.images) {
-      gallery.images.forEach(image => {
-        if (!preloadedImages.has(image.id)) {
-          preloadImage(image.url, image.id);
-        }
-      });
-    }
-  }, [gallery?.images, preloadImage, preloadedImages]);
-
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Masonry
-          breakpointCols={breakpointCols}
-          className="flex -ml-4 w-auto"
-          columnClassName="pl-4 bg-background"
-        >
-          {Array.from({ length: skeletonCount }).map((_, i) => (
-            <GallerySkeleton key={i} />
-          ))}
-        </Masonry>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -502,7 +458,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     );
   }
 
-  if (!gallery) {
+  if (!gallery && !isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <h1 className="text-2xl font-bold text-foreground">Gallery not found</h1>
@@ -521,12 +477,12 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
       )}
 
       <div className="container mx-auto px-4 py-8">
-        <Masonry
-          breakpointCols={breakpointCols}
-          className="flex -ml-4 w-auto"
-          columnClassName="pl-4 bg-background"
-        >
-          <AnimatePresence>
+        <AnimatePresence>
+          <Masonry
+            breakpointCols={breakpointCols}
+            className="flex -ml-4 w-auto"
+            columnClassName="pl-4 bg-background"
+          >
             {gallery?.images
               .filter((image) => !showStarredOnly || image.starred)
               .map((image, index) => (
@@ -534,24 +490,18 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                   key={image.id}
                   className="mb-4"
                   initial={{ opacity: 0, y: 20 }}
-                  animate={{ 
-                    opacity: preloadedImages.has(image.id) ? 1 : 0,
-                    y: preloadedImages.has(image.id) ? 0 : 20
-                  }}
-                  exit={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0 }}
+                  exit={{ opacity: 0 }}
                   transition={{
                     duration: 0.4,
                     delay: Math.min(index * 0.05, 0.5),
-                    ease: [0.25, 0.1, 0.25, 1],
                   }}
                 >
                   <div 
                     className="relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02]"
                     onClick={() => setSelectedImageIndex(index)}
                   >
-                    {!preloadedImages.has(image.id) ? (
-                      <div className="w-full aspect-[3/2] bg-muted animate-pulse" />
-                    ) : (
+                    {preloadedImages.has(image.id) && (
                       <img
                         src={image.url}
                         alt=""
@@ -560,7 +510,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                       />
                     )}
                     <div className="absolute top-2 right-2 flex gap-2">
-                      {image.commentCount > 0 && (
+                      {image.commentCount! > 0 && (
                         <Badge
                           className="bg-primary text-primary-foreground flex items-center gap-1"
                           variant="secondary"
@@ -588,8 +538,8 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                   </div>
                 </motion.div>
               ))}
-          </AnimatePresence>
-        </Masonry>
+          </Masonry>
+        </AnimatePresence>
       </div>
 
       {/* Scale Slider */}
