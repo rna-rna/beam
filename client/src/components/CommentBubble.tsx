@@ -47,21 +47,21 @@ export function CommentBubble({ x, y, content, author, savedAuthor, onSubmit, is
       }}
     >
       <div className="relative">
-        {/* Comment dot/icon - increased touch target */}
-        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg touch-manipulation">
-          <MessageCircle className="w-5 h-5" />
+        {/* Comment dot/icon */}
+        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+          <MessageCircle className="w-4 h-4" />
         </div>
 
         {/* Comment bubble */}
-        <Card className={`absolute left-10 top-0 -translate-y-1/2 w-max max-w-[320px] ${isEditing ? 'p-3' : 'p-4'} bg-card shadow-lg border-primary/20`}>
+        <Card className={`absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px] ${isEditing ? 'p-2' : 'p-3'} bg-card shadow-lg border-primary/20`}>
           {isEditing ? (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-2">
               {isNameStep ? (
                 <Input
                   type="text"
                   value={authorName}
                   onChange={(e) => setAuthorName(e.target.value)}
-                  className="min-w-[240px] h-10 text-base"
+                  className="min-w-[200px] h-8"
                   placeholder="Enter your name"
                   autoFocus
                 />
@@ -70,7 +70,7 @@ export function CommentBubble({ x, y, content, author, savedAuthor, onSubmit, is
                   type="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  className="min-w-[240px] h-10 text-base"
+                  className="min-w-[200px] h-8"
                   placeholder="Add comment..."
                   data-comment-input
                   autoFocus
@@ -79,13 +79,13 @@ export function CommentBubble({ x, y, content, author, savedAuthor, onSubmit, is
             </form>
           ) : (
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <UserAvatar name={author || "Anonymous"} className="w-8 h-8 text-sm" />
-                <p className="text-sm font-medium text-muted-foreground">
+              <div className="flex items-center gap-2 mb-2">
+                <UserAvatar name={author || "Anonymous"} className="w-6 h-6 text-xs" />
+                <p className="text-xs font-medium text-muted-foreground">
                   {author || "Anonymous"}
                 </p>
               </div>
-              <p className="text-base text-foreground whitespace-pre-wrap leading-relaxed">{content}</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
             </div>
           )}
         </Card>
