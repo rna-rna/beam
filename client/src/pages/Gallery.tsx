@@ -579,17 +579,29 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
               {gallery.images
                 .filter((image) => !showStarredOnly || image.starred)
                 .map((image, index) => (
-                  <div
+                  <motion.div
                     key={image.id}
                     className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
                     onClick={() => setSelectedImageIndex(index)}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ 
+                      duration: 0.3,
+                      delay: index * 0.1,
+                      ease: "easeOut"
+                    }}
+                    viewport={{ once: true }}
+                    whileHover={{ scale: 1.02 }}
                   >
                     <div className="relative">
-                      <img
+                      <motion.img
                         src={image.url}
                         alt=""
                         className="w-full h-auto object-contain rounded-md"
                         loading="lazy"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.2 }}
                       />
                       <div className="absolute top-2 right-2 flex gap-2">
                         {image.commentCount > 0 && (
@@ -618,7 +630,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                         </Button>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
             </Masonry>
           )}
@@ -753,7 +765,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                   onCheckedChange={setShowAnnotations}
                   className="data-[state=checked]:bg-primary h-5 w-9"
                 />
-                <span className="text-xs font-medium">Annotations</span>
+                <span className="text-xs font-medium">Comments</span>
               </div>
               <div className="flex items-center gap-2">
                 <Switch
@@ -783,10 +795,13 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             >
               <div className="relative">
                 {/* Image with onLoad handler */}
-                <img
+                <motion.img
                   src={selectedImage.url}
                   alt=""
                   className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
                   onLoad={(e) => {
                     const img = e.currentTarget;
                     setImageDimensions({
