@@ -228,7 +228,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: 'Invalid title' });
       }
 
-      // Find the gallery by slug
+      // Find the gallery by slug first
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
@@ -240,7 +240,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Found gallery:', gallery);
 
-      // Update the gallery title
+      // Update the gallery title using proper database update
       const [updated] = await db
         .update(galleries)
         .set({ title: title.trim() })
@@ -254,7 +254,7 @@ export function registerRoutes(app: Express): Server {
         throw new Error('Failed to update gallery title');
       }
 
-      // Return the updated gallery
+      // Return the updated gallery data
       res.json(updated);
     } catch (error) {
       console.error('Error updating gallery title:', error);
