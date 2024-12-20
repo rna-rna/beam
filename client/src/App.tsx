@@ -20,7 +20,6 @@ function App() {
       return res.json();
     },
     enabled: true,
-    staleTime: 0,
   });
 
   // Mutation for updating title
@@ -40,19 +39,40 @@ function App() {
 
       return (await res.json()).title;
     },
-    onSuccess: (newTitle) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries/current'] });
-      toast({
-        title: "Success",
-        description: "Gallery title updated successfully",
-      });
+    onMutate: async (newTitle) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['/api/galleries/current'] });
+
+      // Snapshot the previous value
+      const previousGallery = queryClient.getQueryData(['/api/galleries/current']);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['/api/galleries/current'], old => ({
+        ...old,
+        title: newTitle
+      }));
+
+      // Return a context object with the snapshotted value
+      return { previousGallery };
     },
-    onError: () => {
+    onError: (err, newTitle, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      queryClient.setQueryData(['/api/galleries/current'], context?.previousGallery);
       toast({
         title: "Error",
         description: "Failed to update title",
         variant: "destructive"
       });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: "Gallery title updated successfully",
+      });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure we're up to date
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries/current'] });
     }
   });
 

@@ -239,13 +239,20 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Found gallery:', gallery);
 
+      // Update the gallery title
       const [updated] = await db
         .update(galleries)
-        .set({ title })
+        .set({ title: title.trim() })
         .where(eq(galleries.id, gallery.id))
         .returning();
 
       console.log('Updated gallery:', updated);
+
+      // Verify the update was successful
+      if (!updated) {
+        throw new Error('Failed to update gallery title');
+      }
+
       res.json(updated);
     } catch (error) {
       console.error('Error updating gallery title:', error);
@@ -497,12 +504,12 @@ export function registerRoutes(app: Express): Server {
       const gallery = await db.query.galleries.findFirst({
         orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
       });
-
+      
       if (!gallery) {
         console.log('No galleries found');
         return res.status(404).json({ message: 'No galleries found' });
       }
-
+      
       console.log('Found current gallery:', gallery);
       res.json(gallery);
     } catch (error) {
