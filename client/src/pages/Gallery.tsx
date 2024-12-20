@@ -45,7 +45,7 @@ interface Image {
   id: number;
   url: string;
   starred?: boolean;
-  commentCount: number;
+  commentCount?: number;
   position?: number;
 }
 
@@ -119,6 +119,65 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     queryKey: [`/api/images/${selectedImage?.id}/comments`],
     enabled: !!selectedImage?.id,
   });
+
+  // Mouse event handlers for zoom and pan
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isZoomed) return;
+    isDraggingRef.current = true;
+    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+    if (imageContainerRef.current) {
+      imageContainerRef.current.style.cursor = "grabbing";
+    }
+  }, [isZoomed]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current || !isZoomed) return;
+
+    const dx = e.clientX - lastMousePosRef.current.x;
+    const dy = e.clientY - lastMousePosRef.current.y;
+
+    translateRef.current = {
+      x: translateRef.current.x + dx,
+      y: translateRef.current.y + dy,
+    };
+
+    if (imageContainerRef.current) {
+      imageContainerRef.current.style.transform = `scale(1.5) translate(${translateRef.current.x}px, ${translateRef.current.y}px)`;
+    }
+
+    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+  }, [isZoomed]);
+
+  const handleMouseUp = useCallback(() => {
+    isDraggingRef.current = false;
+    if (imageContainerRef.current) {
+      imageContainerRef.current.style.cursor = isZoomed ? "grab" : "zoom-in";
+    }
+  }, [isZoomed]);
+
+  const handleZoomClick = useCallback((e: React.MouseEvent<HTMLImageElement>) => {
+    e.preventDefault();
+    if (isAnnotationMode || isCommentPlacementMode) return;
+
+    setIsZoomed(prev => {
+      if (!prev) {
+        // Reset transform when zooming in
+        translateRef.current = { x: 0, y: 0 };
+        if (imageContainerRef.current) {
+          imageContainerRef.current.style.transform = 'scale(1.5) translate(0px, 0px)';
+          imageContainerRef.current.style.cursor = 'grab';
+        }
+      } else {
+        // Reset when zooming out
+        if (imageContainerRef.current) {
+          imageContainerRef.current.style.transform = 'scale(1) translate(0px, 0px)';
+          imageContainerRef.current.style.cursor = 'zoom-in';
+        }
+      }
+      return !prev;
+    });
+  }, [isAnnotationMode, isCommentPlacementMode]);
+
 
   // Mutations
   const uploadMutation = useMutation({
@@ -246,63 +305,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   });
 
   // Callbacks
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!isZoomed) return;
-    isDraggingRef.current = true;
-    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-    if (imageContainerRef.current) {
-      imageContainerRef.current.style.cursor = "grabbing";
-    }
-  }, [isZoomed]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDraggingRef.current || !isZoomed) return;
-
-    const dx = e.clientX - lastMousePosRef.current.x;
-    const dy = e.clientY - lastMousePosRef.current.y;
-
-    translateRef.current = {
-      x: translateRef.current.x + dx,
-      y: translateRef.current.y + dy,
-    };
-
-    if (imageContainerRef.current) {
-      imageContainerRef.current.style.transform = `scale(1.5) translate(${translateRef.current.x}px, ${translateRef.current.y}px)`;
-    }
-
-    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-  }, [isZoomed]);
-
-  const handleMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
-    if (imageContainerRef.current) {
-      imageContainerRef.current.style.cursor = isZoomed ? "grab" : "zoom-in";
-    }
-  }, [isZoomed]);
-
-  const handleZoomClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    if (isAnnotationMode || isCommentPlacementMode) return;
-
-    setIsZoomed(prev => {
-      if (!prev) {
-        // Reset transform when zooming in
-        translateRef.current = { x: 0, y: 0 };
-        if (imageContainerRef.current) {
-          imageContainerRef.current.style.transform = 'scale(1.5) translate(0px, 0px)';
-          imageContainerRef.current.style.cursor = 'grab';
-        }
-      } else {
-        // Reset when zooming out
-        if (imageContainerRef.current) {
-          imageContainerRef.current.style.transform = 'scale(1) translate(0px, 0px)';
-          imageContainerRef.current.style.cursor = 'zoom-in';
-        }
-      }
-      return !prev;
-    });
-  }, [isAnnotationMode, isCommentPlacementMode]);
-
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (selectedImageIndex >= 0) return;
@@ -429,6 +431,18 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     }
   }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
 
+  // Cleanup zoom/pan state when component unmounts
+  useEffect(() => {
+    return () => {
+      if (imageContainerRef.current) {
+        imageContainerRef.current.style.transform = 'scale(1) translate(0px, 0px)';
+        imageContainerRef.current.style.cursor = 'zoom-in';
+      }
+      setIsZoomed(false);
+      translateRef.current = { x: 0, y: 0 };
+    };
+  }, []);
+
   useEffect(() => {
     const controls = renderGalleryControls();
     onHeaderActionsChange?.(controls);
@@ -467,6 +481,8 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
       </div>
     );
   }
+
+  if (!selectedImage) return null;
 
   return (
     <div {...getRootProps()} className="min-h-screen relative">
