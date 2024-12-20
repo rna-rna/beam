@@ -355,7 +355,6 @@ export default function Gallery({ slug: propSlug, title, onTitleChange }: Galler
           )}
 
           <div className="ml-auto flex items-center gap-2">
-            <ThemeToggle />
             <Button
               variant="outline"
               size="icon"
