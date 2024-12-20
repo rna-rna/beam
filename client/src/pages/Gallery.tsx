@@ -108,7 +108,6 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
   const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
 
-
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
     queryKey: [`/api/galleries/${slug}`],
@@ -300,13 +299,6 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
     [uploadMutation, selectedImageIndex]
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      "image/*": [".jpeg", ".jpg", ".png", ".gif", ".webp"],
-    },
-    noClick: true,
-  });
 
   // Memoized Values
   const breakpointCols = useMemo(
@@ -544,14 +536,7 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
   }
 
   return (
-    <div {...getRootProps()} className="min-h-screen relative">
-      <input {...getInputProps()} />
-
-      {isDragActive && (
-        <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 flex items-center justify-center">
-          <div className="text-lg font-medium text-primary">Drop images to add to gallery</div>
-        </div>
-      )}
+    <div className="min-h-screen relative">
 
       <div className="px-4 md:px-6 lg:px-8 py-8">
         <AnimatePresence>
