@@ -361,80 +361,6 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
     setShowStarredOnly(!showStarredOnly);
   };
 
-  const renderGalleryControls = useCallback(() => {
-    if (!gallery) return null;
-
-    return (
-      <div className="flex items-center gap-2">
-        {isUploading && (
-          <div className="flex items-center gap-4">
-            <Progress value={undefined} className="w-24" />
-            <span className="text-sm text-muted-foreground">Uploading...</span>
-          </div>
-        )}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleReorderToggle}
-          disabled={reorderImageMutation.isPending}
-          className={isReorderMode ? "bg-primary/10" : ""}
-        >
-          {isReorderMode && reorderImageMutation.isPending ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          ) : (
-            <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? "text-primary" : ""}`} />
-          )}
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleStarredToggle}
-          className={showStarredOnly ? "bg-primary/10" : ""}
-        >
-          <Star className={`h-4 w-4 ${showStarredOnly ? "fill-primary text-primary" : ""}`} />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleCopyLink}
-          title="Copy gallery link"
-        >
-          <Link className="h-4 w-4" />
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon">
-              <MenuIcon className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Gallery Options</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleDownloadAll}>
-              <Download className="mr-2 h-4 w-4" />
-              <span>Download All as .ZIP</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem disabled className="text-muted-foreground">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>More Settings...</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    );
-  }, [
-    gallery,
-    isUploading,
-    isReorderMode,
-    reorderImageMutation.isPending,
-    showStarredOnly,
-    handleCopyLink,
-    handleDownloadAll,
-    handleReorderToggle,
-    handleStarredToggle,
-  ]);
-
   const handleTitleChange = useCallback((newTitle: string) => {
     if (!slug) return;
     updateTitleMutation.mutate(newTitle);
@@ -446,6 +372,15 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
     }
   }, [gallery?.title, title, onTitleChange]);
 
+  const handlePrevImage = useCallback(() => {
+    if (!gallery?.images.length) return;
+    setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+  }, [gallery?.images.length]);
+
+  const handleNextImage = useCallback(() => {
+    if (!gallery?.images.length) return;
+    setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+  }, [gallery?.images.length]);
 
   if (error) {
     return (
@@ -463,16 +398,6 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
     );
   }
 
-  const handlePrevImage = useCallback(() => {
-    if (!gallery?.images.length) return;
-    setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-  }, [gallery?.images.length]);
-
-  const handleNextImage = useCallback(() => {
-    if (!gallery?.images.length) return;
-    setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-  }, [gallery?.images.length]);
-
   return (
     <div {...getRootProps()} className="min-h-screen relative">
       <input {...getInputProps()} />
@@ -483,18 +408,79 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
         </div>
       )}
 
-      <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container h-14 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex items-center justify-between h-14">
           <InlineEdit
             value={title}
             onSave={handleTitleChange}
             className="text-lg font-semibold tracking-tight"
           />
-          {renderGalleryControls()}
-        </div>
-      </div>
 
-      <div className="px-4 md:px-6 lg:px-8 py-8">
+          <div className="flex items-center gap-2">
+            {isUploading && (
+              <div className="flex items-center gap-4">
+                <Progress value={undefined} className="w-24" />
+                <span className="text-sm text-muted-foreground">Uploading...</span>
+              </div>
+            )}
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleReorderToggle}
+              disabled={reorderImageMutation.isPending}
+              className={isReorderMode ? "bg-primary/10" : ""}
+            >
+              {isReorderMode && reorderImageMutation.isPending ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? "text-primary" : ""}`} />
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleStarredToggle}
+              className={showStarredOnly ? "bg-primary/10" : ""}
+            >
+              <Star className={`h-4 w-4 ${showStarredOnly ? "fill-primary text-primary" : ""}`} />
+            </Button>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleCopyLink}
+              title="Copy gallery link"
+            >
+              <Link className="h-4 w-4" />
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MenuIcon className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Gallery Options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleDownloadAll}>
+                  <Download className="mr-2 h-4 w-4" />
+                  <span>Download All as .ZIP</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled className="text-muted-foreground">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>More Settings...</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </header>
+
+      <main className="px-4 md:px-6 lg:px-8 py-8">
         <AnimatePresence>
           <Masonry
             breakpointCols={breakpointCols}
@@ -558,7 +544,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
               ))}
           </Masonry>
         </AnimatePresence>
-      </div>
+      </main>
 
       <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-2 shadow-lg">
         <Slider
