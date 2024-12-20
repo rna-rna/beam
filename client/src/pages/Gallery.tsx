@@ -94,6 +94,7 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
   const isInitialMount = useRef(true);
   const isInitialLoad = useRef(true);
   const isUpdatingTitle = useRef(false);
+  const isUserInitiated = useRef(false);
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
@@ -272,14 +273,19 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
     onSuccess: () => {
       console.log('Gallery: Title update successful');
       isUpdatingTitle.current = false;
-      toast({
-        title: "Success",
-        description: "Gallery title updated successfully",
-      });
+      // Only show toast for user-initiated updates
+      if (isUserInitiated.current) {
+        toast({
+          title: "Success",
+          description: "Gallery title updated successfully",
+        });
+        isUserInitiated.current = false;
+      }
     },
     onError: (error) => {
       console.error('Gallery: Title update error:', error);
       isUpdatingTitle.current = false;
+      isUserInitiated.current = false;
       if (gallery?.title) {
         onTitleChange(gallery.title);
       }
@@ -502,6 +508,7 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
     if (title !== gallery.title) {
       console.log('Gallery: Title changed, updating:', { current: title, previous: gallery.title });
       isUpdatingTitle.current = true;
+      isUserInitiated.current = true;
       updateTitleMutation.mutate(title);
     }
   }, [title, gallery?.title, updateTitleMutation]);
