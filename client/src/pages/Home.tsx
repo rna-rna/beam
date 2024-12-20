@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Upload } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { AnimatedLayout } from "@/components/AnimatedLayout";
+import { motion } from "framer-motion";
 import { v4 as uuidv4 } from 'uuid';
 
 export default function Home() {
@@ -116,9 +116,7 @@ export default function Home() {
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             setUploadProgress(100);
-            // Start transition before navigation
             setIsNavigating(true);
-            // Delay navigation slightly to allow for animations
             setTimeout(() => {
               setLocation(`/gallery/${galleryId}`);
             }, 500);
@@ -164,44 +162,50 @@ export default function Home() {
   });
 
   return (
-    <AnimatedLayout
-      title={title}
-      onTitleChange={(newTitle) => {
-        if (isGalleryCreated && newTitle !== title) {
-          updateTitleMutation.mutate(newTitle);
-        }
-      }}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="w-full"
     >
-      <div className="h-[calc(100vh-4rem)]">
-        <Card
-          {...getRootProps()}
-          className={`w-full h-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed transition-colors rounded-none
-            ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
-            ${isUploading || isNavigating ? 'pointer-events-none' : ''}
-            ${isNavigating ? 'opacity-0 transition-opacity duration-300' : ''}`}
+      <div className="h-[calc(100vh-4rem)] p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
         >
-          <input {...getInputProps()} />
+          <Card
+            {...getRootProps()}
+            className={`w-full h-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed transition-colors rounded-none
+              ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
+              ${isUploading || isNavigating ? 'pointer-events-none' : ''}
+              ${isNavigating ? 'opacity-0 transition-opacity duration-300' : ''}`}
+          >
+            <input {...getInputProps()} />
 
-          {isUploading || isNavigating ? (
-            <div className="w-full max-w-md flex flex-col items-center gap-4 p-8">
-              <Progress value={uploadProgress} className="w-full" />
-              <p className="text-sm text-muted-foreground">
-                {isNavigating ? "Preparing gallery..." : `Uploading... ${Math.round(uploadProgress)}%`}
-              </p>
-            </div>
-          ) : (
-            <>
-              <Upload className="w-16 h-16 text-muted-foreground mb-4" />
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Drop images here
-              </h2>
-              <p className="text-muted-foreground text-center">
-                or click to select files
-              </p>
-            </>
-          )}
-        </Card>
+            {isUploading || isNavigating ? (
+              <div className="w-full max-w-md flex flex-col items-center gap-4 p-8">
+                <Progress value={uploadProgress} className="w-full" />
+                <p className="text-sm text-muted-foreground">
+                  {isNavigating ? "Preparing gallery..." : `Uploading... ${Math.round(uploadProgress)}%`}
+                </p>
+              </div>
+            ) : (
+              <>
+                <Upload className="w-16 h-16 text-muted-foreground mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  Drop images here
+                </h2>
+                <p className="text-muted-foreground text-center">
+                  or click to select files
+                </p>
+              </>
+            )}
+          </Card>
+        </motion.div>
       </div>
-    </AnimatedLayout>
+    </motion.div>
   );
 }
