@@ -11,6 +11,7 @@ function App() {
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
 
   const handleTitleChange = useCallback((newTitle: string) => {
+    console.log('App: Title change requested:', newTitle);
     setTitle(newTitle);
   }, []);
 
