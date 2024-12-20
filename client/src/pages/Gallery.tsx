@@ -250,6 +250,9 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     if (!isZoomed) return;
     isDraggingRef.current = true;
     lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+    if (imageContainerRef.current) {
+      imageContainerRef.current.style.cursor = "grabbing";
+    }
   }, [isZoomed]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -264,7 +267,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     };
 
     if (imageContainerRef.current) {
-      imageContainerRef.current.style.transform = `translate(${translateRef.current.x}px, ${translateRef.current.y}px)`;
+      imageContainerRef.current.style.transform = `scale(1.5) translate(${translateRef.current.x}px, ${translateRef.current.y}px)`;
     }
 
     lastMousePosRef.current = { x: e.clientX, y: e.clientY };
@@ -272,9 +275,13 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
 
   const handleMouseUp = useCallback(() => {
     isDraggingRef.current = false;
-  }, []);
+    if (imageContainerRef.current) {
+      imageContainerRef.current.style.cursor = isZoomed ? "grab" : "zoom-in";
+    }
+  }, [isZoomed]);
 
   const handleZoomClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     if (isAnnotationMode || isCommentPlacementMode) return;
 
     setIsZoomed(prev => {
@@ -282,7 +289,14 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
         // Reset transform when zooming in
         translateRef.current = { x: 0, y: 0 };
         if (imageContainerRef.current) {
-          imageContainerRef.current.style.transform = 'translate(0, 0)';
+          imageContainerRef.current.style.transform = 'scale(1.5) translate(0px, 0px)';
+          imageContainerRef.current.style.cursor = 'grab';
+        }
+      } else {
+        // Reset when zooming out
+        if (imageContainerRef.current) {
+          imageContainerRef.current.style.transform = 'scale(1) translate(0px, 0px)';
+          imageContainerRef.current.style.cursor = 'zoom-in';
         }
       }
       return !prev;
@@ -630,7 +644,10 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             setSelectedImageIndex(-1);
             setNewCommentPos(null);
             setIsZoomed(false);
-            translateRef.current = { x: 0, y: 0 };
+            if (imageContainerRef.current) {
+              imageContainerRef.current.style.transform = 'scale(1) translate(0px, 0px)';
+              imageContainerRef.current.style.cursor = 'zoom-in';
+            }
           }
         }}
       >
@@ -749,7 +766,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             >
               <div
                 ref={imageContainerRef}
-                className="relative transition-transform duration-300 ease-out"
+                className="relative transition-all duration-200 ease-out origin-center"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -767,9 +784,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                 <img
                   src={selectedImage.url}
                   alt=""
-                  className={`max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain transition-transform duration-300 ${
-                    isZoomed ? "scale-150" : ""
-                  }`}
+                  className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain select-none"
                   onClick={handleZoomClick}
                   draggable={false}
                 />
