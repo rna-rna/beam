@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import Masonry from "react-masonry-css";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -17,15 +16,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import {
-  Menu,
-  MenuContent,
-  MenuGroup,
-  MenuItem,
-  MenuLabel,
-  MenuSeparator,
-  MenuTrigger,
-} from "@/components/ui/menu";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 // Icons
 import {
@@ -321,7 +312,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   useEffect(() => {
     if (gallery?.images) {
       gallery.images.forEach(image => {
-        if (!preloadedImages.has(image.id)) {
+        if (!Array.from(preloadedImages).includes(image.id)) {
           preloadImage(image.url, image.id);
         }
       });
@@ -418,28 +409,26 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
         >
           <Link className="h-4 w-4" />
         </Button>
-        <Menu>
-          <MenuTrigger asChild>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon">
               <MenuIcon className="h-4 w-4" />
             </Button>
-          </MenuTrigger>
-          <MenuContent align="end" className="w-56">
-            <MenuLabel>Gallery Options</MenuLabel>
-            <MenuSeparator />
-            <MenuGroup>
-              <MenuItem onClick={handleDownloadAll}>
-                <Download className="mr-2 h-4 w-4" />
-                <span>Download All as .ZIP</span>
-              </MenuItem>
-              <MenuSeparator />
-              <MenuItem disabled className="text-muted-foreground">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>More Settings...</span>
-              </MenuItem>
-            </MenuGroup>
-          </MenuContent>
-        </Menu>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Gallery Options</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleDownloadAll}>
+              <Download className="mr-2 h-4 w-4" />
+              <span>Download All as .ZIP</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled className="text-muted-foreground">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>More Settings...</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     );
   }, [
@@ -487,6 +476,16 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
       </div>
     );
   }
+
+  const handlePrevImage = useCallback(() => {
+    if (!gallery?.images.length) return;
+    setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+  }, [gallery?.images.length]);
+
+  const handleNextImage = useCallback(() => {
+    if (!gallery?.images.length) return;
+    setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+  }, [gallery?.images.length]);
 
   return (
     <div {...getRootProps()} className="min-h-screen relative">
@@ -617,9 +616,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             variant="ghost"
             size="icon"
             className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
-            onClick={() => {
-              setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-            }}
+            onClick={handlePrevImage}
           >
             <ChevronLeft className="h-8 w-8 text-white" />
           </Button>
@@ -627,9 +624,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             variant="ghost"
             size="icon"
             className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
-            onClick={() => {
-              setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-            }}
+            onClick={handleNextImage}
           >
             <ChevronRight className="h-8 w-8 text-white" />
           </Button>
