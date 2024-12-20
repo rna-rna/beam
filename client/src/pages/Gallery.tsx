@@ -357,84 +357,110 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
   }
 
   // Memoize the gallery controls
-  const galleryControls = useMemo(() => (
-    <div className="flex items-center gap-2">
-      {isUploading && (
-        <div className="flex items-center gap-4">
-          <Progress value={undefined} className="w-24" />
-          <span className="text-sm text-muted-foreground">Uploading...</span>
-        </div>
-      )}
-      <div className="flex items-center gap-4 mr-4">
-        <span className="text-sm font-medium">Scale: {scale}%</span>
-        <Slider
-          value={[scale]}
-          onValueChange={([value]) => setScale(value)}
-          min={50}
-          max={150}
-          step={10}
-          className="w-[200px]"
-        />
-      </div>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => {
-          if (isReorderMode && reorderImageMutation.isPending) return;
-          setIsReorderMode(!isReorderMode);
-        }}
-        disabled={reorderImageMutation.isPending}
-        className={isReorderMode ? "bg-primary/10" : ""}
-      >
-        {isReorderMode && reorderImageMutation.isPending ? (
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        ) : (
-          <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? "text-primary" : ""}`} />
+  const galleryControls = useMemo(() => {
+    const handleCopyLink = () => {
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Link Copied",
+        description: "Gallery link copied to clipboard",
+      });
+    };
+
+    const handleReorderToggle = () => {
+      if (isReorderMode && reorderImageMutation.isPending) return;
+      setIsReorderMode(!isReorderMode);
+    };
+
+    const handleStarredToggle = () => {
+      setShowStarredOnly(!showStarredOnly);
+    };
+
+    const handleScaleChange = (value: number) => {
+      setScale(value);
+    };
+
+    return (
+      <div className="flex items-center gap-2">
+        {isUploading && (
+          <div className="flex items-center gap-4">
+            <Progress value={undefined} className="w-24" />
+            <span className="text-sm text-muted-foreground">Uploading...</span>
+          </div>
         )}
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => setShowStarredOnly(!showStarredOnly)}
-        className={showStarredOnly ? "bg-primary/10" : ""}
-      >
-        <Star className={`h-4 w-4 ${showStarredOnly ? "fill-primary text-primary" : ""}`} />
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => {
-          navigator.clipboard.writeText(window.location.href);
-          toast({
-            title: "Link Copied",
-            description: "Gallery link copied to clipboard",
-          });
-        }}
-      >
-        <Share2 className="h-4 w-4" />
-      </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon">
-            <Settings className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>More Settings</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem disabled className="text-muted-foreground">
-            Coming soon...
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  ), [isUploading, scale, isReorderMode, reorderImageMutation.isPending, showStarredOnly]);
+        <div className="flex items-center gap-4 mr-4">
+          <span className="text-sm font-medium">Scale: {scale}%</span>
+          <Slider
+            value={[scale]}
+            onValueChange={([value]) => handleScaleChange(value)}
+            min={50}
+            max={150}
+            step={10}
+            className="w-[200px]"
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleReorderToggle}
+          disabled={reorderImageMutation.isPending}
+          className={isReorderMode ? "bg-primary/10" : ""}
+        >
+          {isReorderMode && reorderImageMutation.isPending ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          ) : (
+            <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? "text-primary" : ""}`} />
+          )}
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleStarredToggle}
+          className={showStarredOnly ? "bg-primary/10" : ""}
+        >
+          <Star className={`h-4 w-4 ${showStarredOnly ? "fill-primary text-primary" : ""}`} />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleCopyLink}
+        >
+          <Share2 className="h-4 w-4" />
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon">
+              <Settings className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>More Settings</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled className="text-muted-foreground">
+              Coming soon...
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  }, [
+    isUploading,
+    scale,
+    isReorderMode,
+    reorderImageMutation.isPending,
+    showStarredOnly,
+    setScale,
+    setIsReorderMode,
+    setShowStarredOnly,
+    toast,
+    navigator
+  ]);
 
   // Effect to update header actions
   useEffect(() => {
     onHeaderActionsChange?.(galleryControls);
   }, [onHeaderActionsChange, galleryControls]);
 
+  // Main component render
   return (
     <div {...getRootProps()} className="min-h-screen">
       <input {...getInputProps()} />
@@ -890,7 +916,6 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
           )}
         </DialogContent>
       </Dialog>
-      {galleryControls}
     </div>
   );
 }
