@@ -28,11 +28,6 @@ import {
   MenuTrigger,
 } from "@/components/ui/menu";
 
-
-// Custom Components
-import { CommentBubble } from "@/components/CommentBubble";
-import { DrawingCanvas } from "@/components/DrawingCanvas";
-
 // Icons
 import {
   ArrowUpDown,
@@ -41,7 +36,7 @@ import {
   MessageCircle,
   Paintbrush,
   Settings,
-  Share2,
+  Link,
   Star,
   X,
   Star as StarIcon,
@@ -364,6 +359,14 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
         >
           <Star className={`h-4 w-4 ${showStarredOnly ? "fill-primary text-primary" : ""}`} />
         </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleCopyLink}
+          title="Copy gallery link"
+        >
+          <Link className="h-4 w-4" />
+        </Button>
         <Menu>
           <MenuTrigger asChild>
             <Button variant="outline" size="icon">
@@ -374,13 +377,9 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             <MenuLabel>Gallery Options</MenuLabel>
             <MenuSeparator />
             <MenuGroup>
-              <MenuItem onClick={handleCopyLink}>
-                <Share2 className="mr-2 h-4 w-4" />
-                <span>Share Gallery</span>
-              </MenuItem>
               <MenuItem onClick={handleDownloadAll}>
                 <Download className="mr-2 h-4 w-4" />
-                <span>Download All Images</span>
+                <span>Download All as .ZIP</span>
               </MenuItem>
               <MenuSeparator />
               <MenuItem disabled className="text-muted-foreground">
@@ -400,6 +399,8 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     showStarredOnly,
     setIsReorderMode,
     setShowStarredOnly,
+    handleCopyLink,
+    handleDownloadAll,
     toast
   ]);
 
