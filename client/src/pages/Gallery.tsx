@@ -476,11 +476,11 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
         </div>
       )}
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="px-4 md:px-6 lg:px-8 py-8">
         <AnimatePresence>
           <Masonry
             breakpointCols={breakpointCols}
-            className="flex -ml-4 w-auto"
+            className="flex -ml-4 w-[calc(100%+1rem)]"
             columnClassName="pl-4 bg-background"
           >
             {gallery?.images
