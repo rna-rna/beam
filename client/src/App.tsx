@@ -25,7 +25,7 @@ function App() {
   // Mutation for updating title
   const titleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
-      if (!gallery?.slug) return newTitle;
+      if (!gallery?.slug) throw new Error("No gallery found");
 
       const res = await fetch(`/api/galleries/${gallery.slug}/title`, {
         method: "PATCH",
@@ -65,6 +65,10 @@ function App() {
       });
     },
     onSuccess: (data) => {
+      queryClient.setQueryData(['/api/galleries/current'], old => ({
+        ...old,
+        title: data
+      }));
       toast({
         title: "Success",
         description: "Gallery title updated successfully",
