@@ -289,6 +289,7 @@ export function registerRoutes(app: Express): Server {
         height: img.height,
         aspectRatio: img.width / img.height,
         starred: img.starred,
+        originalFilename: img.originalFilename,
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
       
