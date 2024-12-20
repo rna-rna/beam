@@ -700,66 +700,68 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                 <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
               )}
             </Button>
-            <div className="flex items-center gap-2">
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
-                    isAnnotationMode ? "bg-primary/20" : ""
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="icon"
+                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                  isAnnotationMode ? "bg-primary/20" : ""
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsAnnotationMode(!isAnnotationMode);
+                  setIsCommentPlacementMode(false);
+                  setNewCommentPos(null);
+                }}
+                title="Toggle Drawing Mode"
+              >
+                <Paintbrush
+                  className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                    isAnnotationMode ? "text-primary" : ""
                   }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsAnnotationMode(!isAnnotationMode);
-                    setIsCommentPlacementMode(false);
-                    setNewCommentPos(null);
-                  }}
-                  title="Toggle Drawing Mode"
-                >
-                  <Paintbrush
-                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                      isAnnotationMode ? "text-primary" : ""
-                    }`}
-                  />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
-                    isCommentPlacementMode ? "bg-primary/20" : ""
+                />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                  isCommentPlacementMode ? "bg-primary/20" : ""
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCommentPlacementMode(!isCommentPlacementMode);
+                  setIsAnnotationMode(false);
+                  setNewCommentPos(null);
+                }}
+                title="Add Comment"
+              >
+                <MessageCircle
+                  className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                    isCommentPlacementMode ? "text-primary" : ""
                   }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsCommentPlacementMode(!isCommentPlacementMode);
-                    setIsAnnotationMode(false);
-                    setNewCommentPos(null);
-                  }}
-                  title="Add Comment"
-                >
-                  <MessageCircle
-                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                      isCommentPlacementMode ? "text-primary" : ""
-                    }`}
-                  />
-                </Button>
+                />
+              </Button>
+            </div>
+          </div>
+
+          {/* Settings toggles */}
+          <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
+            <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={showAnnotations}
+                  onCheckedChange={setShowAnnotations}
+                  className="data-[state=checked]:bg-primary h-5 w-9"
+                />
+                <span className="text-xs font-medium">Annotations</span>
               </div>
-              <div className="ml-4 flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={showAnnotations}
-                    onCheckedChange={setShowAnnotations}
-                    className="data-[state=checked]:bg-primary"
-                  />
-                  <span className="text-sm">Annotations</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={showFilename}
-                    onCheckedChange={setShowFilename}
-                    className="data-[state=checked]:bg-primary"
-                  />
-                  <span className="text-sm">Filename</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={showFilename}
+                  onCheckedChange={setShowFilename}
+                  className="data-[state=checked]:bg-primary h-5 w-9"
+                />
+                <span className="text-xs font-medium">Filename</span>
               </div>
             </div>
           </div>
