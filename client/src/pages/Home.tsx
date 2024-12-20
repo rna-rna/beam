@@ -7,7 +7,6 @@ import { Upload } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { v4 as uuidv4 } from 'uuid';
 
 const creativeQuotes = [
   "Art enables us to find ourselves and lose ourselves at the same time. - Thomas Merton",
@@ -42,11 +41,10 @@ export default function Home({ title, onTitleChange }: HomeProps) {
     const initializeGallery = async () => {
       if (!galleryId && !isGalleryCreated) {
         try {
-          const newGalleryId = uuidv4();
           const res = await fetch('/api/galleries/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, slug: newGalleryId })
+            body: JSON.stringify({ title })
           });
 
           if (!res.ok) {
@@ -54,8 +52,13 @@ export default function Home({ title, onTitleChange }: HomeProps) {
           }
 
           const data = await res.json();
-          setGalleryId(newGalleryId);
+          setGalleryId(data.slug);
           setIsGalleryCreated(true);
+
+          // Update the title if it's different from what came back from the server
+          if (data.title !== title) {
+            onTitleChange(data.title);
+          }
         } catch (error) {
           console.error('Gallery creation error:', error);
           toast({
@@ -68,7 +71,7 @@ export default function Home({ title, onTitleChange }: HomeProps) {
     };
 
     initializeGallery();
-  }, [galleryId, isGalleryCreated, title, toast]);
+  }, [galleryId, isGalleryCreated, title, toast, onTitleChange]);
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {

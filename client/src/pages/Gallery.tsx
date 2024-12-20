@@ -270,8 +270,8 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
 
       return res.json();
     },
-    onSuccess: () => {
-      console.log('Gallery: Title update successful');
+    onSuccess: (data) => {
+      console.log('Gallery: Title update successful:', data);
       isUpdatingTitle.current = false;
       // Only show toast for user-initiated updates
       if (isUserInitiated.current) {
@@ -280,6 +280,11 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
           description: "Gallery title updated successfully",
         });
         isUserInitiated.current = false;
+      }
+
+      // Update local state to match server state
+      if (data.title !== title) {
+        onTitleChange(data.title);
       }
     },
     onError: (error) => {
