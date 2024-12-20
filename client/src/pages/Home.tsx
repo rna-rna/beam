@@ -56,43 +56,6 @@ export default function Home({ title, onTitleChange }: HomeProps) {
     initializeGallery();
   }, [galleryId, isGalleryCreated, title, toast]);
 
-  // Update gallery title
-  const updateTitleMutation = useMutation({
-    mutationFn: async (newTitle: string) => {
-      if (!galleryId || !isGalleryCreated) {
-        throw new Error('Gallery not initialized');
-      }
-
-      const res = await fetch(`/api/galleries/${galleryId}/title`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTitle })
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error || 'Failed to update title');
-      }
-
-      return res.json();
-    },
-    onSuccess: (data) => {
-      onTitleChange(data.title);
-      toast({
-        title: "Success",
-        description: "Gallery title updated",
-      });
-    },
-    onError: (error) => {
-      console.error('Title update error:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update gallery title",
-        variant: "destructive"
-      });
-    }
-  });
-
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
       if (!galleryId) return;
@@ -170,18 +133,19 @@ export default function Home({ title, onTitleChange }: HomeProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="w-full"
+      className="w-full h-[calc(100vh-4rem)]"
     >
-      <div className="h-[calc(100vh-4rem)] p-6">
+      <div className="p-4 md:p-6 lg:p-8 h-full">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3 }}
+          className="h-full"
         >
           <Card
             {...getRootProps()}
-            className={`w-full h-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed transition-colors rounded-none
+            className={`w-full h-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed transition-colors rounded-lg
               ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
               ${isUploading || isNavigating ? 'pointer-events-none' : ''}
               ${isNavigating ? 'opacity-0 transition-opacity duration-300' : ''}`}
