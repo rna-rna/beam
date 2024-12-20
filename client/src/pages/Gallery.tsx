@@ -41,8 +41,23 @@ import {
   Share2,
   Star,
   X,
+  Star as StarIcon,
 } from "lucide-react";
-import { Star as StarIcon } from "lucide-react";
+
+interface Image {
+  id: number;
+  url: string;
+  starred?: boolean;
+  commentCount?: number;
+  position?: number;
+}
+
+interface Gallery {
+  id: number;
+  slug: string;
+  title: string;
+  images: Image[];
+}
 
 interface GalleryProps {
   slug?: string;
@@ -59,12 +74,15 @@ interface Comment {
   author?: string;
 }
 
-export default function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }: GalleryProps) {
-  // URL Parameters
+interface Annotation {
+  id: number;
+  pathData: string;
+}
+
+function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }: GalleryProps) {
+  // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
-
-  // Global Hooks
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -81,31 +99,19 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
 
   // Queries
-  const { data: gallery, isLoading, error } = useQuery({
+  const { data: gallery, isLoading, error } = useQuery<Gallery>({
     queryKey: [`/api/galleries/${slug}`],
     enabled: !!slug,
-    onSuccess: (data) => {
-      if (data?.title && data.title !== title) {
-        onTitleChange(data.title);
-      }
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to load gallery. Please try again.",
-        variant: "destructive",
-      });
-    },
   });
 
   const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
 
-  const { data: annotations = [] } = useQuery({
+  const { data: annotations = [] } = useQuery<Annotation[]>({
     queryKey: [`/api/images/${selectedImage?.id}/annotations`],
     enabled: !!selectedImage?.id,
   });
 
-  const { data: comments = [] } = useQuery({
+  const { data: comments = [] } = useQuery<Comment[]>({
     queryKey: [`/api/images/${selectedImage?.id}/comments`],
     enabled: !!selectedImage?.id,
   });
@@ -235,37 +241,6 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
     },
   });
 
-  const updateTitleMutation = useMutation({
-    mutationFn: async (title: string) => {
-      const res = await fetch(`/api/galleries/${slug}/title`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to update gallery title");
-      }
-
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      toast({
-        title: "Success",
-        description: "Gallery title updated",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update gallery title",
-        variant: "destructive",
-      });
-    },
-  });
-
-
   // Callbacks
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -296,7 +271,7 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
     [scale]
   );
 
-  const galleryControls = useMemo(() => {
+  const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
 
     const handleCopyLink = () => {
@@ -387,14 +362,13 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
     gallery,
     isUploading,
     scale,
-    setScale,
     isReorderMode,
-    setIsReorderMode,
     reorderImageMutation.isPending,
     showStarredOnly,
+    setScale,
+    setIsReorderMode,
     setShowStarredOnly,
-    toast,
-    navigator
+    toast
   ]);
 
   // Effects
@@ -418,10 +392,10 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
   }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
 
   useEffect(() => {
-    onHeaderActionsChange?.(galleryControls);
-  }, [onHeaderActionsChange, galleryControls]);
+    const controls = renderGalleryControls();
+    onHeaderActionsChange?.(controls);
+  }, [onHeaderActionsChange, renderGalleryControls]);
 
-  // Loading and Error States
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -456,7 +430,6 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
     );
   }
 
-  // Main Render
   return (
     <div {...getRootProps()} className="min-h-screen">
       <input {...getInputProps()} />
@@ -480,103 +453,16 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
             <DragDropContext
               onDragEnd={(result) => {
                 const { destination, source } = result;
-                console.log("Starting drag operation:", {
-                  draggableId: result.draggableId,
-                  source: result.source,
-                  destination: result.destination,
-                });
+                if (!destination) return;
+                if (destination.index === source.index) return;
 
-                if (!destination) {
-                  console.log("No valid destination found, skipping reorder");
-                  return;
-                }
+                const visibleImages = gallery.images.filter((img) => !showStarredOnly || img.starred);
+                const reorderedImages = Array.from(visibleImages);
+                const [removed] = reorderedImages.splice(source.index, 1);
+                reorderedImages.splice(destination.index, 0, removed);
 
-                if (destination.index === source.index) {
-                  console.log("Source and destination indexes are same, no reorder needed");
-                  return;
-                }
-
-                if (!gallery?.images) {
-                  console.error("Gallery images not available");
-                  toast({
-                    title: "Error",
-                    description: "Unable to reorder images. Please try again.",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-
-                // Log the current state
-                console.log("Current gallery state:", {
-                  totalImages: gallery.images.length,
-                  sourceIndex: source.index,
-                  destinationIndex: destination.index,
-                  draggableId: result.draggableId,
-                });
-
-                try {
-                  console.log("Processing drag end:", {
-                    sourceIndex: source.index,
-                    destinationIndex: destination.index,
-                    totalImages: gallery.images.length,
-                  });
-
-                  // Get visible images (either all or only starred)
-                  const visibleImages = gallery.images.filter((img) => !showStarredOnly || img.starred);
-
-                  // Create a new array and perform the move
-                  const reorderedImages = Array.from(visibleImages);
-                  const [removed] = reorderedImages.splice(source.index, 1);
-                  reorderedImages.splice(destination.index, 0, removed);
-
-                  // Create a new array with updated positions
-                  const updatedImages = gallery.images.map((img) => {
-                    const newIndex = reorderedImages.findIndex((rImg) => rImg.id === img.id);
-                    return {
-                      ...img,
-                      position: newIndex >= 0 ? newIndex : img.position,
-                    };
-                  });
-
-                  // Get the order of image IDs
-                  const newOrder = updatedImages
-                    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-                    .map((img) => img.id);
-
-                  console.log("Reordering images:", {
-                    visibleImages: visibleImages.length,
-                    reorderedImages: reorderedImages.length,
-                    newOrder,
-                  });
-
-                  // Optimistically update the UI
-                  queryClient.setQueryData([`/api/galleries/${slug}`], {
-                    ...gallery,
-                    images: updatedImages,
-                  });
-
-                  // Update the backend
-                  reorderImageMutation.mutate(newOrder, {
-                    onError: (error) => {
-                      console.error("Failed to save reorder:", error);
-                      // Revert optimistic update
-                      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-                      toast({
-                        title: "Error",
-                        description: "Failed to save the new order. Please try again.",
-                        variant: "destructive",
-                      });
-                    },
-                  });
-                } catch (error) {
-                  console.error("Error during drag operation:", error);
-                  queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-                  toast({
-                    title: "Error",
-                    description: "Failed to reorder images. Please try again.",
-                    variant: "destructive",
-                  });
-                }
+                const newOrder = reorderedImages.map((img) => img.id);
+                reorderImageMutation.mutate(newOrder);
               }}
             >
               <Droppable droppableId="gallery">
@@ -588,59 +474,59 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
                   >
                     {gallery.images
                       .filter((image) => !showStarredOnly || image.starred)
-                      .map((image, index) => {
-                        const draggableId = `image-${image.id}`;
-                        console.log("Rendering draggable:", { id: image.id, draggableId, index });
-                        return (
-                          <Draggable key={`image-${image.id}`} draggableId={`image-${image.id}`} index={index}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`cursor-move transition-transform duration-200 ${
-                                  snapshot.isDragging ? "scale-105 shadow-xl z-50" : ""
-                                }`}
-                              >
-                                <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
-                                  <img
-                                    src={image.url}
-                                    alt=""
-                                    className="w-full h-auto object-cover"
-                                    loading="lazy"
-                                  />
-                                  <div className="absolute top-2 right-2 flex gap-2">
-                                    {image.commentCount > 0 && (
-                                      <Badge
-                                        className="bg-primary text-primary-foreground flex items-center gap-1"
-                                        variant="secondary"
-                                      >
-                                        <MessageCircle className="w-3 h-3" />
-                                        {image.commentCount}
-                                      </Badge>
-                                    )}
-                                    <Button
+                      .map((image, index) => (
+                        <Draggable
+                          key={`image-${image.id}`}
+                          draggableId={`image-${image.id}`}
+                          index={index}
+                        >
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={`cursor-move transition-transform duration-200 ${
+                                snapshot.isDragging ? "scale-105 shadow-xl z-50" : ""
+                              }`}
+                            >
+                              <div className="relative bg-card rounded-lg overflow-hidden border border-border/50">
+                                <img
+                                  src={image.url}
+                                  alt=""
+                                  className="w-full h-auto object-cover"
+                                  loading="lazy"
+                                />
+                                <div className="absolute top-2 right-2 flex gap-2">
+                                  {image.commentCount > 0 && (
+                                    <Badge
+                                      className="bg-primary text-primary-foreground flex items-center gap-1"
                                       variant="secondary"
-                                      size="icon"
-                                      className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleStarMutation.mutate(image.id);
-                                      }}
                                     >
-                                      {image.starred ? (
-                                        <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
-                                      ) : (
-                                        <Star className="h-4 w-4 transition-all duration-300 hover:scale-110" />
-                                      )}
-                                    </Button>
-                                  </div>
+                                      <MessageCircle className="w-3 h-3" />
+                                      {image.commentCount}
+                                    </Badge>
+                                  )}
+                                  <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleStarMutation.mutate(image.id);
+                                    }}
+                                  >
+                                    {image.starred ? (
+                                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                                    ) : (
+                                      <Star className="h-4 w-4 transition-all duration-300 hover:scale-110" />
+                                    )}
+                                  </Button>
                                 </div>
                               </div>
-                            )}
-                          </Draggable>
-                        );
-                      })}
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
                     {provided.placeholder}
                   </div>
                 )}
@@ -653,16 +539,12 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
               columnClassName="pl-4 bg-background"
             >
               {gallery.images
-                .filter((image: any) => !showStarredOnly || image.starred)
-                .map((image: any, index: number) => (
+                .filter((image) => !showStarredOnly || image.starred)
+                .map((image, index) => (
                   <div
                     key={image.id}
                     className="mb-4 cursor-pointer transition-transform hover:scale-[1.02]"
                     onClick={() => setSelectedImageIndex(index)}
-                    style={{
-                      width: "100%",
-                      transition: "transform 0.2s",
-                    }}
                   >
                     <div className="relative">
                       <img
@@ -691,7 +573,7 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
                           }}
                         >
                           {image.starred ? (
-                            <StarIcon className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
                           ) : (
                             <Star className="h-4 w-4 transition-all duration-300 hover:scale-110" />
                           )}
@@ -705,12 +587,15 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
         </div>
       </div>
 
-      <Dialog open={selectedImageIndex >= 0} onOpenChange={(open) => {
-        if (!open) {
-          setSelectedImageIndex(-1);
-          setNewCommentPos(null);
-        }
-      }}>
+      <Dialog
+        open={selectedImageIndex >= 0}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedImageIndex(-1);
+            setNewCommentPos(null);
+          }
+        }}
+      >
         <DialogContent
           className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
           aria-describedby="gallery-lightbox-description"
@@ -718,14 +603,14 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
           <div id="gallery-lightbox-description" className="sr-only">
             Image viewer with annotation and commenting capabilities
           </div>
+
           {/* Navigation buttons */}
           <Button
             variant="ghost"
             size="icon"
             className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleKeyDown({ key: "ArrowLeft" } as KeyboardEvent);
+            onClick={() => {
+              setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
             }}
           >
             <ChevronLeft className="h-8 w-8 text-white" />
@@ -734,13 +619,14 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
             variant="ghost"
             size="icon"
             className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleKeyDown({ key: "ArrowRight" } as KeyboardEvent);
+            onClick={() => {
+              setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
             }}
           >
             <ChevronRight className="h-8 w-8 text-white" />
           </Button>
+
+          {/* Controls */}
           <div className="absolute right-4 top-4 flex items-center gap-2 z-50 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2">
             <Button
               variant="secondary"
@@ -752,7 +638,7 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
               }}
             >
               {selectedImage?.starred ? (
-                <StarIcon className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
               ) : (
                 <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
               )}
@@ -802,7 +688,6 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
               </div>
               <div className="ml-4">
                 <Switch
-                  id="show-annotations"
                   checked={showAnnotations}
                   onCheckedChange={setShowAnnotations}
                   className="data-[state=checked]:bg-primary"
@@ -810,6 +695,7 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
               </div>
             </div>
           </div>
+
           {selectedImage && (
             <div
               className={`relative w-full h-full flex items-center justify-center ${
@@ -822,7 +708,7 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
                 const x = ((e.clientX - rect.left) / rect.width) * 100;
                 const y = ((e.clientY - rect.top) / rect.height) * 100;
                 setNewCommentPos({ x, y });
-                setIsCommentPlacementMode(false); // Exit comment placement mode after placing
+                setIsCommentPlacementMode(false);
               }}
             >
               <div className="relative">
@@ -830,20 +716,13 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
                   src={selectedImage.url}
                   alt=""
                   className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
-                  onClick={(e) => {
-                    if (!isAnnotationMode) {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const x = ((e.clientX - rect.left) / rect.width) * 100;
-                      const y = ((e.clientY - rect.top) / rect.height) * 100;
-                      setNewCommentPos({ x, y });
-                    }
-                  }}
                 />
-                {/* Drawing Canvas - Always present but only active in drawing mode */}
+
+                {/* Drawing Canvas */}
                 <div className="absolute inset-0">
                   <DrawingCanvas
-                    width={800} // Default width if image dimensions aren't available
-                    height={600} // Default height if image dimensions aren't available
+                    width={800}
+                    height={600}
                     isDrawing={isAnnotationMode}
                     savedPaths={showAnnotations ? annotations : []}
                     onSavePath={async (pathData) => {
@@ -854,7 +733,6 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
                           body: JSON.stringify({ pathData }),
                         });
 
-                        // Refresh annotations
                         queryClient.invalidateQueries({
                           queryKey: [`/api/images/${selectedImage.id}/annotations`],
                         });
@@ -873,41 +751,41 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
                     }}
                   />
                 </div>
-              </div>
 
-              {/* Existing comments */}
-              {showAnnotations &&
-                comments.map((comment) => (
+                {/* Comments */}
+                {showAnnotations &&
+                  comments.map((comment) => (
+                    <CommentBubble
+                      key={comment.id}
+                      x={comment.xPosition}
+                      y={comment.yPosition}
+                      content={comment.content}
+                      author={comment.author}
+                      savedAuthor={userName}
+                    />
+                  ))}
+
+                {/* New comment */}
+                {newCommentPos && (
                   <CommentBubble
-                    key={comment.id}
-                    x={comment.xPosition}
-                    y={comment.yPosition}
-                    content={comment.content}
-                    author={comment.author}
+                    x={newCommentPos.x}
+                    y={newCommentPos.y}
+                    isNew
                     savedAuthor={userName}
+                    onSubmit={(content, author) => {
+                      const newAuthor = author.trim() || userName || "Anonymous";
+                      setUserName(newAuthor);
+                      createCommentMutation.mutate({
+                        imageId: selectedImage.id,
+                        content,
+                        author: newAuthor,
+                        x: newCommentPos.x,
+                        y: newCommentPos.y,
+                      });
+                    }}
                   />
-                ))}
-
-              {/* New comment */}
-              {newCommentPos && (
-                <CommentBubble
-                  x={newCommentPos.x}
-                  y={newCommentPos.y}
-                  isNew
-                  savedAuthor={userName}
-                  onSubmit={(content, author) => {
-                    const newAuthor = author.trim() || userName || "Anonymous";
-                    setUserName(newAuthor); // Save the username for future comments
-                    createCommentMutation.mutate({
-                      imageId: selectedImage.id,
-                      content,
-                      author: newAuthor,
-                      x: newCommentPos.x,
-                      y: newCommentPos.y,
-                    });
-                  }}
-                />
-              )}
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
@@ -915,3 +793,5 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
     </div>
   );
 }
+
+export default Gallery;
