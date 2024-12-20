@@ -107,6 +107,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
   const initialTitleSet = useRef(false);
+  const userInitiatedUpdate = useRef(false);
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -263,15 +264,14 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
       return res.json();
     },
     onSuccess: (data) => {
-      // Only update the UI title, don't trigger another save
-      initialTitleSet.current = true;
-      onTitleChange(data.title);
+      userInitiatedUpdate.current = false;
       toast({
         title: "Success",
         description: "Gallery title updated successfully",
       });
     },
     onError: () => {
+      userInitiatedUpdate.current = false;
       toast({
         title: "Error",
         description: "Failed to update gallery title. Please try again.",
@@ -483,19 +483,19 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   // Effect to sync initial gallery title
   useEffect(() => {
     if (gallery?.title && !initialTitleSet.current) {
-      onTitleChange(gallery.title);
       initialTitleSet.current = true;
+      onTitleChange(gallery.title);
     }
   }, [gallery?.title, onTitleChange]);
 
 
   // Effect to handle title changes from user
   useEffect(() => {
-    // Only update if we've loaded the gallery and the title has been initialized
-    if (gallery && initialTitleSet.current && title !== gallery.title) {
+    if (!userInitiatedUpdate.current && gallery && initialTitleSet.current && title !== gallery.title) {
+      userInitiatedUpdate.current = true;
       updateTitleMutation.mutate(title);
     }
-  }, [title, gallery?.title]);
+  }, [title, gallery?.title, updateTitleMutation]);
 
   if (error) {
     return (
