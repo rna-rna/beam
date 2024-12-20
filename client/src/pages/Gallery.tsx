@@ -291,10 +291,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
       setShowStarredOnly(!showStarredOnly);
     };
 
-    const handleScaleChange = (value: number) => {
-      setScale(value);
-    };
-
     return (
       <div className="flex items-center gap-2">
         {isUploading && (
@@ -303,17 +299,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             <span className="text-sm text-muted-foreground">Uploading...</span>
           </div>
         )}
-        <div className="flex items-center gap-4 mr-4">
-          <span className="text-sm font-medium">Scale: {scale}%</span>
-          <Slider
-            value={[scale]}
-            onValueChange={([value]) => handleScaleChange(value)}
-            min={50}
-            max={150}
-            step={10}
-            className="w-[200px]"
-          />
-        </div>
         <Button
           variant="outline"
           size="icon"
@@ -361,11 +346,9 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   }, [
     gallery,
     isUploading,
-    scale,
     isReorderMode,
     reorderImageMutation.isPending,
     showStarredOnly,
-    setScale,
     setIsReorderMode,
     setShowStarredOnly,
     toast
@@ -431,7 +414,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   }
 
   return (
-    <div {...getRootProps()} className="min-h-screen">
+    <div {...getRootProps()} className="min-h-screen relative">
       <input {...getInputProps()} />
 
       {isDragActive && (
@@ -585,6 +568,18 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
             </Masonry>
           )}
         </div>
+      </div>
+
+      {/* Scale Slider */}
+      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-2 shadow-lg">
+        <Slider
+          value={[scale]}
+          onValueChange={([value]) => setScale(value)}
+          min={50}
+          max={150}
+          step={10}
+          className="w-[100px]"
+        />
       </div>
 
       <Dialog
