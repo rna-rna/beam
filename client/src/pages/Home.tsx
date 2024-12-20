@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Upload } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Layout } from "@/components/Layout";
+import { AnimatedLayout } from "@/components/AnimatedLayout";
 import { v4 as uuidv4 } from 'uuid';
 
 export default function Home() {
@@ -162,7 +162,7 @@ export default function Home() {
   });
 
   return (
-    <Layout
+    <AnimatedLayout
       title={title}
       onTitleChange={(newTitle) => {
         if (isGalleryCreated && newTitle !== title) {
@@ -170,38 +170,34 @@ export default function Home() {
         }
       }}
     >
-      <div 
-        className={`transition-all duration-300 ${isNavigating ? 'opacity-0' : 'opacity-100'}`}
-      >
-        <div className="h-[calc(100vh-4rem)]">
-          <Card
-            {...getRootProps()}
-            className={`w-full h-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed transition-colors rounded-none
-              ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
-          >
-            <input {...getInputProps()} />
+      <div className={`h-[calc(100vh-4rem)]`}>
+        <Card
+          {...getRootProps()}
+          className={`w-full h-full flex flex-col items-center justify-center cursor-pointer border-2 border-dashed transition-colors rounded-none
+            ${isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+        >
+          <input {...getInputProps()} />
 
-            {isUploading ? (
-              <div className="w-full max-w-md flex flex-col items-center gap-4 p-8">
-                <Progress value={uploadProgress} className="w-full" />
-                <p className="text-sm text-muted-foreground">
-                  Uploading... {Math.round(uploadProgress)}%
-                </p>
-              </div>
-            ) : (
-              <>
-                <Upload className="w-16 h-16 text-muted-foreground mb-4" />
-                <h2 className="text-2xl font-bold text-foreground mb-2">
-                  Drop images here
-                </h2>
-                <p className="text-muted-foreground text-center">
-                  or click to select files
-                </p>
-              </>
-            )}
-          </Card>
-        </div>
+          {isUploading ? (
+            <div className="w-full max-w-md flex flex-col items-center gap-4 p-8">
+              <Progress value={uploadProgress} className="w-full" />
+              <p className="text-sm text-muted-foreground">
+                Uploading... {Math.round(uploadProgress)}%
+              </p>
+            </div>
+          ) : (
+            <>
+              <Upload className="w-16 h-16 text-muted-foreground mb-4" />
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                Drop images here
+              </h2>
+              <p className="text-muted-foreground text-center">
+                or click to select files
+              </p>
+            </>
+          )}
+        </Card>
       </div>
-    </Layout>
+    </AnimatedLayout>
   );
 }
