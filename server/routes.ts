@@ -221,8 +221,10 @@ export function registerRoutes(app: Express): Server {
   app.patch('/api/galleries/:slug/title', async (req, res) => {
     try {
       const { title } = req.body;
+      console.log('Updating gallery title:', { slug: req.params.slug, title });
 
       if (!title || typeof title !== 'string') {
+        console.error('Invalid title provided:', title);
         return res.status(400).json({ message: 'Invalid title' });
       }
 
@@ -231,8 +233,11 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
+        console.error('Gallery not found:', req.params.slug);
         return res.status(404).json({ message: 'Gallery not found' });
       }
+
+      console.log('Found gallery:', gallery);
 
       const [updated] = await db
         .update(galleries)
@@ -240,6 +245,7 @@ export function registerRoutes(app: Express): Server {
         .where(eq(galleries.id, gallery.id))
         .returning();
 
+      console.log('Updated gallery:', updated);
       res.json(updated);
     } catch (error) {
       console.error('Error updating gallery title:', error);
@@ -487,20 +493,24 @@ export function registerRoutes(app: Express): Server {
   // Get current gallery (most recently created/accessed)
   app.get('/api/galleries/current', async (req, res) => {
     try {
+      console.log('Fetching current gallery');
       const gallery = await db.query.galleries.findFirst({
         orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
       });
 
       if (!gallery) {
+        console.log('No galleries found');
         return res.status(404).json({ message: 'No galleries found' });
       }
 
+      console.log('Found current gallery:', gallery);
       res.json(gallery);
     } catch (error) {
       console.error('Error fetching current gallery:', error);
       res.status(500).json({ message: 'Failed to fetch current gallery' });
     }
   });
+
 
 
   const httpServer = createServer(app);
