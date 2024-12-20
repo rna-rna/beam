@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { motion } from "framer-motion";
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -17,14 +19,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Menu,
+  MenuContent,
+  MenuGroup,
+  MenuItem,
+  MenuLabel,
+  MenuSeparator,
+  MenuTrigger,
+} from "@/components/ui/menu";
+
 
 // Custom Components
 import { CommentBubble } from "@/components/CommentBubble";
@@ -42,6 +45,8 @@ import {
   Star,
   X,
   Star as StarIcon,
+  Download,
+  Menu as MenuIcon,
 } from "lucide-react";
 
 interface Image {
@@ -297,6 +302,39 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
       setShowStarredOnly(!showStarredOnly);
     };
 
+    const handleDownloadAll = async () => {
+      try {
+        toast({
+          title: "Preparing Download",
+          description: "Creating ZIP file of all images...",
+        });
+
+        const zip = new JSZip();
+        const imagePromises = gallery.images.map(async (image, index) => {
+          const response = await fetch(image.url);
+          const blob = await response.blob();
+          const extension = image.url.split('.').pop() || 'jpg';
+          zip.file(`image-${index + 1}.${extension}`, blob);
+        });
+
+        await Promise.all(imagePromises);
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, `${gallery.title || 'gallery'}-images.zip`);
+
+        toast({
+          title: "Success",
+          description: "Images downloaded successfully",
+        });
+      } catch (error) {
+        console.error('Download error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to download images. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
     return (
       <div className="flex items-center gap-2">
         {isUploading && (
@@ -326,27 +364,32 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
         >
           <Star className={`h-4 w-4 ${showStarredOnly ? "fill-primary text-primary" : ""}`} />
         </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleCopyLink}
-        >
-          <Share2 className="h-4 w-4" />
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        <Menu>
+          <MenuTrigger asChild>
             <Button variant="outline" size="icon">
-              <Settings className="h-4 w-4" />
+              <MenuIcon className="h-4 w-4" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>More Settings</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem disabled className="text-muted-foreground">
-              Coming soon...
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </MenuTrigger>
+          <MenuContent align="end" className="w-56">
+            <MenuLabel>Gallery Options</MenuLabel>
+            <MenuSeparator />
+            <MenuGroup>
+              <MenuItem onClick={handleCopyLink}>
+                <Share2 className="mr-2 h-4 w-4" />
+                <span>Share Gallery</span>
+              </MenuItem>
+              <MenuItem onClick={handleDownloadAll}>
+                <Download className="mr-2 h-4 w-4" />
+                <span>Download All Images</span>
+              </MenuItem>
+              <MenuSeparator />
+              <MenuItem disabled className="text-muted-foreground">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>More Settings...</span>
+              </MenuItem>
+            </MenuGroup>
+          </MenuContent>
+        </Menu>
       </div>
     );
   }, [
