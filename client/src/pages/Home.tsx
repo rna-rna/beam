@@ -54,11 +54,6 @@ export default function Home({ title, onTitleChange }: HomeProps) {
           const data = await res.json();
           setGalleryId(data.slug);
           setIsGalleryCreated(true);
-
-          // Update the title if it's different from what came back from the server
-          if (data.title !== title) {
-            onTitleChange(data.title);
-          }
         } catch (error) {
           console.error('Gallery creation error:', error);
           toast({
@@ -71,7 +66,7 @@ export default function Home({ title, onTitleChange }: HomeProps) {
     };
 
     initializeGallery();
-  }, [galleryId, isGalleryCreated, title, toast, onTitleChange]);
+  }, [galleryId, isGalleryCreated, title, toast]);
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
