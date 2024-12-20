@@ -180,17 +180,17 @@ export function registerRoutes(app: Express): Server {
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
-
+      
       if (!gallery) {
         return res.status(404).json({ message: 'Gallery not found' });
       }
-
+      
       if (!req.files || !Array.isArray(req.files)) {
         return res.status(400).json({ message: 'No images uploaded' });
       }
-
+      
       console.log(`Adding ${req.files.length} images to gallery ${gallery.id}`);
-
+      
       const imageInserts = [];
       for (const file of req.files) {
         console.log('Processing file:', file.filename);
@@ -205,7 +205,7 @@ export function registerRoutes(app: Express): Server {
         imageInserts.push(image);
         console.log('Successfully processed file:', file.filename);
       }
-
+      
       console.log(`Successfully added ${imageInserts.length} images`);
       res.json({ success: true });
     } catch (error) {
@@ -221,25 +221,25 @@ export function registerRoutes(app: Express): Server {
   app.patch('/api/galleries/:slug/title', async (req, res) => {
     try {
       const { title } = req.body;
-      
+
       if (!title || typeof title !== 'string') {
         return res.status(400).json({ message: 'Invalid title' });
       }
-      
+
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
-      
+
       if (!gallery) {
         return res.status(404).json({ message: 'Gallery not found' });
       }
-      
+
       const [updated] = await db
         .update(galleries)
         .set({ title })
-        .where(eq(galleries.slug, req.params.slug))
+        .where(eq(galleries.id, gallery.id))
         .returning();
-      
+
       res.json(updated);
     } catch (error) {
       console.error('Error updating gallery title:', error);
@@ -483,6 +483,25 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: 'Failed to fetch annotations' });
     }
   });
+
+  // Get current gallery (most recently created/accessed)
+  app.get('/api/galleries/current', async (req, res) => {
+    try {
+      const gallery = await db.query.galleries.findFirst({
+        orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'No galleries found' });
+      }
+
+      res.json(gallery);
+    } catch (error) {
+      console.error('Error fetching current gallery:', error);
+      res.status(500).json({ message: 'Failed to fetch current gallery' });
+    }
+  });
+
 
   const httpServer = createServer(app);
   return httpServer;
