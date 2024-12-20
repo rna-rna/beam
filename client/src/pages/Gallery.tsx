@@ -1,3 +1,9 @@
+interface GalleryProps {
+  slug: string;
+  title: string;
+  onTitleChange: (title: string) => void;
+}
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
@@ -39,15 +45,14 @@ interface Comment {
   author?: string;
 }
 
-export default function Gallery() {
-  const { slug } = useParams();
+export default function Gallery({ slug, title, onTitleChange }: GalleryProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isUploading, setIsUploading] = useState(false);
   const [galleryTitle, setGalleryTitle] = useState<string>("Untitled Project");
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
   const [scale, setScale] = useState(100); // Scale percentage
-  const [isUploading, setIsUploading] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [userName, setUserName] = useState<string>("");

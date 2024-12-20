@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
-import { useDropzone } from "react-dropzone";
+import { useDropzone } from 'react-dropzone';
 import { useLocation } from "wouter";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
@@ -9,17 +9,21 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { v4 as uuidv4 } from 'uuid';
 
-export default function Home() {
+interface HomeProps {
+  title: string;
+  onTitleChange: (title: string) => void;
+}
+
+export default function Home({ title, onTitleChange }: HomeProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [galleryId, setGalleryId] = useState<string | null>(null);
-  const [title, setTitle] = useState("Untitled Project");
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [isGalleryCreated, setIsGalleryCreated] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isGalleryCreated, setIsGalleryCreated] = useState(false);
 
-  // Generate a unique gallery ID and create gallery on mount
+  // Create gallery only once on mount
   useEffect(() => {
     const initializeGallery = async () => {
       if (!galleryId && !isGalleryCreated) {
@@ -38,7 +42,6 @@ export default function Home() {
           const data = await res.json();
           setGalleryId(newGalleryId);
           setIsGalleryCreated(true);
-          setTitle(data.title);
         } catch (error) {
           console.error('Gallery creation error:', error);
           toast({
@@ -74,7 +77,7 @@ export default function Home() {
       return res.json();
     },
     onSuccess: (data) => {
-      setTitle(data.title);
+      onTitleChange(data.title);
       toast({
         title: "Success",
         description: "Gallery title updated",
