@@ -115,9 +115,12 @@ export default function Home() {
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             setUploadProgress(100);
+            // Start navigation first, keep upload state true until transition
+            setIsNavigating(true);
             setTimeout(() => {
+              setLocation(`/gallery/${galleryId!}`);
+              // Only reset upload state after navigation starts
               setIsUploading(false);
-              navigateToGallery(galleryId!);
             }, 300);
             resolve(true);
           } else {
