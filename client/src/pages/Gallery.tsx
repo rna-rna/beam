@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -106,6 +106,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
   const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
+  const initialTitleSet = useRef(false);
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -262,6 +263,8 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
       return res.json();
     },
     onSuccess: (data) => {
+      // Only update the UI title, don't trigger another save
+      initialTitleSet.current = true;
       onTitleChange(data.title);
       toast({
         title: "Success",
@@ -477,13 +480,22 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
-  // Add effect to sync title with server
+  // Effect to sync initial gallery title
   useEffect(() => {
-    if (gallery?.title && gallery.title !== title) {
+    if (gallery?.title && !initialTitleSet.current) {
+      onTitleChange(gallery.title);
+      initialTitleSet.current = true;
+    }
+  }, [gallery?.title, onTitleChange]);
+
+
+  // Effect to handle title changes from user
+  useEffect(() => {
+    // Only update if we've loaded the gallery and the title has been initialized
+    if (gallery && initialTitleSet.current && title !== gallery.title) {
       updateTitleMutation.mutate(title);
     }
-  }, [gallery?.title, title, updateTitleMutation]);
-
+  }, [title, gallery?.title]);
 
   if (error) {
     return (
@@ -532,7 +544,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                     delay: Math.min(index * 0.05, 0.5),
                   }}
                 >
-                  <div 
+                  <div
                     className="relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02]"
                     onClick={() => setSelectedImageIndex(index)}
                   >
