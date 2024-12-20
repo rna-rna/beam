@@ -271,8 +271,8 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
       console.log('Title update response:', data);
       return data;
     },
-    onSuccess: (data) => {
-      console.log('Title update successful:', data);
+    onSuccess: () => {
+      console.log('Title update successful');
       userInitiatedUpdate.current = false;
       toast({
         title: "Success",

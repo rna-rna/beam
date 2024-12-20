@@ -3,16 +3,16 @@ import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import { AnimatePresence } from "framer-motion";
 import { Layout } from "@/components/Layout";
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, useCallback } from "react";
 
 function App() {
   const [location] = useLocation();
   const [title, setTitle] = useState("Untitled Project");
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
 
-  const handleTitleChange = (newTitle: string) => {
+  const handleTitleChange = useCallback((newTitle: string) => {
     setTitle(newTitle);
-  };
+  }, []);
 
   return (
     <Layout title={title} onTitleChange={handleTitleChange} actions={headerActions}>
