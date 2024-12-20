@@ -250,6 +250,33 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     },
   });
 
+  const updateTitleMutation = useMutation({
+    mutationFn: async (newTitle: string) => {
+      const res = await fetch(`/api/galleries/${slug}/title`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle }),
+      });
+      if (!res.ok) throw new Error("Failed to update title");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      onTitleChange?.(data.title);
+      toast({
+        title: "Success",
+        description: "Gallery title updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update title. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Callbacks
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -449,6 +476,19 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     const controls = renderGalleryControls();
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
+
+  // Handle title change
+  const handleTitleChange = useCallback((newTitle: string) => {
+    if (!slug) return;
+    updateTitleMutation.mutate(newTitle);
+  }, [slug, updateTitleMutation]);
+
+  useEffect(() => {
+    if (gallery?.title && title !== gallery.title) {
+      onTitleChange?.(gallery.title);
+    }
+  }, [gallery?.title, title, onTitleChange]);
+
 
   if (error) {
     return (
