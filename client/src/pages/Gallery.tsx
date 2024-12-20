@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
 import Masonry from "react-masonry-css";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
@@ -356,8 +356,8 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
     );
   }
 
-  // Render gallery controls for the header
-  const renderGalleryControls = () => (
+  // Memoize the gallery controls
+  const galleryControls = useMemo(() => (
     <div className="flex items-center gap-2">
       {isUploading && (
         <div className="flex items-center gap-4">
@@ -428,18 +428,12 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-  );
+  ), [isUploading, scale, isReorderMode, reorderImageMutation.isPending, showStarredOnly]);
 
   // Effect to update header actions
   useEffect(() => {
-    onHeaderActionsChange?.(renderGalleryControls());
-  }, [
-    isUploading,
-    isReorderMode,
-    reorderImageMutation.isPending,
-    showStarredOnly,
-    scale,
-  ]);
+    onHeaderActionsChange?.(galleryControls);
+  }, [onHeaderActionsChange, galleryControls]);
 
   return (
     <div {...getRootProps()} className="min-h-screen">
@@ -896,7 +890,7 @@ export default function Gallery({ slug: propSlug, title, onTitleChange, onHeader
           )}
         </DialogContent>
       </Dialog>
-      {renderGalleryControls()}
+      {galleryControls}
     </div>
   );
 }
