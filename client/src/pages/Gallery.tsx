@@ -273,6 +273,7 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
     },
     onSuccess: (data) => {
       console.log('Title update successful:', data);
+      userInitiatedUpdate.current = false;
       toast({
         title: "Success",
         description: "Gallery title updated successfully",
@@ -280,6 +281,7 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
     },
     onError: (error) => {
       console.error('Title update error:', error);
+      userInitiatedUpdate.current = false;
       if (gallery?.title) {
         onTitleChange(gallery.title);
       }
@@ -508,8 +510,9 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
       return;
     }
 
-    if (title !== gallery.title) {
+    if (title !== gallery.title && !userInitiatedUpdate.current && !updateTitleMutation.isPending) {
       console.log('Title changed, updating:', { current: title, previous: gallery.title });
+      userInitiatedUpdate.current = true;
       updateTitleMutation.mutate(title);
     }
   }, [title, gallery?.title, updateTitleMutation]);
