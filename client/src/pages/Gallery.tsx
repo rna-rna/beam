@@ -281,58 +281,58 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     [scale]
   );
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({
+      title: "Link Copied",
+      description: "Gallery link copied to clipboard",
+    });
+  };
+
+  const handleDownloadAll = async () => {
+    try {
+      toast({
+        title: "Preparing Download",
+        description: "Creating ZIP file of all images...",
+      });
+
+      const zip = new JSZip();
+      const imagePromises = gallery.images.map(async (image, index) => {
+        const response = await fetch(image.url);
+        const blob = await response.blob();
+        const extension = image.url.split('.').pop() || 'jpg';
+        zip.file(`image-${index + 1}.${extension}`, blob);
+      });
+
+      await Promise.all(imagePromises);
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `${gallery.title || 'gallery'}-images.zip`);
+
+      toast({
+        title: "Success",
+        description: "Images downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download images. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReorderToggle = () => {
+    if (isReorderMode && reorderImageMutation.isPending) return;
+    setIsReorderMode(!isReorderMode);
+  };
+
+  const handleStarredToggle = () => {
+    setShowStarredOnly(!showStarredOnly);
+  };
+
   const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
-
-    const handleCopyLink = () => {
-      navigator.clipboard.writeText(window.location.href);
-      toast({
-        title: "Link Copied",
-        description: "Gallery link copied to clipboard",
-      });
-    };
-
-    const handleDownloadAll = async () => {
-      try {
-        toast({
-          title: "Preparing Download",
-          description: "Creating ZIP file of all images...",
-        });
-
-        const zip = new JSZip();
-        const imagePromises = gallery.images.map(async (image, index) => {
-          const response = await fetch(image.url);
-          const blob = await response.blob();
-          const extension = image.url.split('.').pop() || 'jpg';
-          zip.file(`image-${index + 1}.${extension}`, blob);
-        });
-
-        await Promise.all(imagePromises);
-        const content = await zip.generateAsync({ type: "blob" });
-        saveAs(content, `${gallery.title || 'gallery'}-images.zip`);
-
-        toast({
-          title: "Success",
-          description: "Images downloaded successfully",
-        });
-      } catch (error) {
-        console.error('Download error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to download images. Please try again.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    const handleReorderToggle = () => {
-      if (isReorderMode && reorderImageMutation.isPending) return;
-      setIsReorderMode(!isReorderMode);
-    };
-
-    const handleStarredToggle = () => {
-      setShowStarredOnly(!showStarredOnly);
-    };
 
     return (
       <div className="flex items-center gap-2">
