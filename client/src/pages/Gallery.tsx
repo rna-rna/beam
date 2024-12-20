@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -574,110 +574,6 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
             Image viewer with annotation and commenting capabilities
           </div>
 
-          {showFilename && selectedImage?.originalFilename && (
-            <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
-              {selectedImage.originalFilename}
-            </div>
-          )}
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
-            onClick={handlePrevImage}
-          >
-            <ChevronLeft className="h-8 w-8 text-white" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
-            onClick={handleNextImage}
-          >
-            <ChevronRight className="h-8 w-8 text-white" />
-          </Button>
-
-          <div className="absolute right-4 top-4 flex items-center gap-2 z-50 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2">
-            <Button
-              variant="secondary"
-              size="icon"
-              className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleStarMutation.mutate(selectedImage!.id);
-              }}
-            >
-              {selectedImage?.starred ? (
-                <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
-              ) : (
-                <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
-              )}
-            </Button>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="icon"
-                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
-                  isAnnotationMode ? "bg-primary/20" : ""
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsAnnotationMode(!isAnnotationMode);
-                  setIsCommentPlacementMode(false);
-                  setNewCommentPos(null);
-                }}
-                title="Toggle Drawing Mode"
-              >
-                <Paintbrush
-                  className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                    isAnnotationMode ? "text-primary" : ""
-                  }`}
-                />
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
-                  isCommentPlacementMode ? "bg-primary/20" : ""
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsCommentPlacementMode(!isCommentPlacementMode);
-                  setIsAnnotationMode(false);
-                  setNewCommentPos(null);
-                }}
-                title="Add Comment"
-              >
-                <MessageCircle
-                  className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                    isCommentPlacementMode ? "text-primary" : ""
-                  }`}
-                />
-              </Button>
-            </div>
-          </div>
-
-          <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
-            <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={showAnnotations}
-                  onCheckedChange={setShowAnnotations}
-                  className="data-[state=checked]:bg-primary h-5 w-9"
-                />
-                <span className="text-xs font-medium">Comments</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={showFilename}
-                  onCheckedChange={setShowFilename}
-                  className="data-[state=checked]:bg-primary h-5 w-9"
-                />
-                <span className="text-xs font-medium">Filename</span>
-              </div>
-            </div>
-          </div>
-
           {selectedImage && (
             <div
               className={`relative w-full h-full flex items-center justify-center ${
@@ -694,6 +590,117 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
               }}
             >
               <div className="relative">
+                {showFilename && selectedImage.originalFilename && (
+                  <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
+                    {selectedImage.originalFilename}
+                  </div>
+                )}
+
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 z-50">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="bg-background/20 hover:bg-background/40"
+                    onClick={handlePrevImage}
+                  >
+                    <ChevronLeft className="h-8 w-8 text-white" />
+                  </Button>
+                </div>
+
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 z-50">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="bg-background/20 hover:bg-background/40"
+                    onClick={handleNextImage}
+                  >
+                    <ChevronRight className="h-8 w-8 text-white" />
+                  </Button>
+                </div>
+
+                <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleStarMutation.mutate(selectedImage.id);
+                    }}
+                  >
+                    {selectedImage.starred ? (
+                      <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                    ) : (
+                      <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+                    )}
+                  </Button>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                        isAnnotationMode ? "bg-primary/20" : ""
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsAnnotationMode(!isAnnotationMode);
+                        setIsCommentPlacementMode(false);
+                        setNewCommentPos(null);
+                      }}
+                      title="Toggle Drawing Mode"
+                    >
+                      <Paintbrush
+                        className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                          isAnnotationMode ? "text-primary" : ""
+                        }`}
+                      />
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                        isCommentPlacementMode ? "bg-primary/20" : ""
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCommentPlacementMode(!isCommentPlacementMode);
+                        setIsAnnotationMode(false);
+                        setNewCommentPos(null);
+                      }}
+                      title="Add Comment"
+                    >
+                      <MessageCircle
+                        className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                          isCommentPlacementMode ? "text-primary" : ""
+                        }`}
+                      />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
+                  <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={showAnnotations}
+                        onCheckedChange={setShowAnnotations}
+                        className="data-[state=checked]:bg-primary h-5 w-9"
+                      />
+                      <span className="text-xs font-medium">Comments</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={showFilename}
+                        onCheckedChange={setShowFilename}
+                        className="data-[state=checked]:bg-primary h-5 w-9"
+                      />
+                      <span className="text-xs font-medium">Filename</span>
+                    </div>
+                  </div>
+                </div>
+
                 <motion.img
                   src={selectedImage.url}
                   alt=""
