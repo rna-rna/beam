@@ -10,17 +10,21 @@ function App() {
   const [title, setTitle] = useState("Untitled Project");
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
 
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle);
+  };
+
   return (
-    <Layout title={title} onTitleChange={setTitle} actions={headerActions}>
+    <Layout title={title} onTitleChange={handleTitleChange} actions={headerActions}>
       <AnimatePresence mode="wait" initial={false}>
         <Switch key={location} location={location}>
-          <Route path="/" component={() => <Home title={title} onTitleChange={setTitle} />} />
+          <Route path="/" component={() => <Home title={title} onTitleChange={handleTitleChange} />} />
           <Route path="/gallery/:slug">
             {(params) => (
               <Gallery 
                 slug={params.slug} 
                 title={title} 
-                onTitleChange={setTitle}
+                onTitleChange={handleTitleChange}
                 onHeaderActionsChange={setHeaderActions}
               />
             )}
