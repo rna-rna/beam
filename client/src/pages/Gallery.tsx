@@ -62,7 +62,6 @@ interface Gallery {
 interface GalleryProps {
   slug?: string;
   title: string;
-  onTitleChange: (title: string) => void;
   onHeaderActionsChange?: (actions: React.ReactNode) => void;
 }
 
@@ -84,17 +83,14 @@ interface ImageDimensions {
   height: number;
 }
 
-export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }: GalleryProps) {
+export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const titleUpdateTimeout = useRef<NodeJS.Timeout>();
-  const isInitialMount = useRef(true);
   const isInitialLoad = useRef(true);
-  const isUpdatingTitle = useRef(false);
-  const isUserInitiated = useRef(false);
+
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
@@ -254,53 +250,6 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
     },
   });
 
-  // Update title mutation
-  const updateTitleMutation = useMutation({
-    mutationFn: async (newTitle: string) => {
-      console.log('Gallery: Updating title to:', newTitle);
-      const res = await fetch(`/api/galleries/${slug}/title`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to update gallery title");
-      }
-
-      return res.json();
-    },
-    onSuccess: (data) => {
-      console.log('Gallery: Title update successful:', data);
-      isUpdatingTitle.current = false;
-      // Only show toast for user-initiated updates
-      if (isUserInitiated.current) {
-        toast({
-          title: "Success",
-          description: "Gallery title updated successfully",
-        });
-        isUserInitiated.current = false;
-      }
-
-      // Update local state to match server state
-      if (data.title !== title) {
-        onTitleChange(data.title);
-      }
-    },
-    onError: (error) => {
-      console.error('Gallery: Title update error:', error);
-      isUpdatingTitle.current = false;
-      isUserInitiated.current = false;
-      if (gallery?.title) {
-        onTitleChange(gallery.title);
-      }
-      toast({
-        title: "Error",
-        description: "Failed to update gallery title. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
 
   // Callbacks
   const onDrop = useCallback(
@@ -495,28 +444,6 @@ export function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsC
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
-  // Effect to initialize gallery title
-  useEffect(() => {
-    if (gallery?.title && isInitialLoad.current) {
-      console.log('Gallery: Setting initial title:', gallery.title);
-      isInitialLoad.current = false;
-      onTitleChange(gallery.title);
-    }
-  }, [gallery?.title, onTitleChange]);
-
-  // Effect to update gallery title when changed
-  useEffect(() => {
-    if (!gallery || isInitialLoad.current || isUpdatingTitle.current) {
-      return;
-    }
-
-    if (title !== gallery.title) {
-      console.log('Gallery: Title changed, updating:', { current: title, previous: gallery.title });
-      isUpdatingTitle.current = true;
-      isUserInitiated.current = true;
-      updateTitleMutation.mutate(title);
-    }
-  }, [title, gallery?.title, updateTitleMutation]);
 
   if (error) {
     return (
