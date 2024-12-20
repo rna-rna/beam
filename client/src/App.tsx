@@ -15,7 +15,13 @@ function App() {
         <Switch key={location} location={location}>
           <Route path="/" component={() => <Home title={title} onTitleChange={setTitle} />} />
           <Route path="/gallery/:slug">
-            {(params) => <Gallery slug={params.slug} title={title} onTitleChange={setTitle} />}
+            {(params) => (
+              <Gallery 
+                slug={params.slug} 
+                title={title} 
+                onTitleChange={setTitle}
+              />
+            )}
           </Route>
         </Switch>
       </AnimatePresence>

@@ -1,9 +1,3 @@
-interface GalleryProps {
-  slug?: string;
-  title: string;
-  onTitleChange: (title: string) => void;
-}
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
@@ -35,8 +29,13 @@ import {
 
 import { InlineEdit } from "@/components/InlineEdit";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { motion } from "framer-motion";
+
+interface GalleryProps {
+  slug?: string;
+  title: string;
+  onTitleChange: (title: string) => void;
+}
 
 interface Comment {
   id: number;
@@ -52,7 +51,6 @@ export default function Gallery({ slug: propSlug, title, onTitleChange }: Galler
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
-  const [galleryTitle, setGalleryTitle] = useState<string>("Untitled Project");
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
   const [scale, setScale] = useState(100); // Scale percentage
@@ -62,6 +60,7 @@ export default function Gallery({ slug: propSlug, title, onTitleChange }: Galler
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
+
   const { data: gallery, isLoading, error } = useQuery<{
     id: number;
     slug: string;
@@ -69,7 +68,13 @@ export default function Gallery({ slug: propSlug, title, onTitleChange }: Galler
     images: any[];
   }>({
     queryKey: [`/api/galleries/${slug}`],
-    onError: (error) => {
+    enabled: !!slug,
+    onSuccess: (data) => {
+      if (data?.title && data.title !== title) {
+        onTitleChange(data.title);
+      }
+    },
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to load gallery. Please try again.",
@@ -77,12 +82,6 @@ export default function Gallery({ slug: propSlug, title, onTitleChange }: Galler
       });
     }
   });
-
-  useEffect(() => {
-    if (gallery?.title && gallery.title !== title) {
-      onTitleChange(gallery.title);
-    }
-  }, [gallery?.title, onTitleChange, title]);
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
