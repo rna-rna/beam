@@ -455,25 +455,6 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
   ]);
 
   useEffect(() => {
-    if (selectedImageIndex >= 0) {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (!gallery?.images?.length) return;
-
-        if (e.key === "ArrowLeft") {
-          setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-        } else if (e.key === "ArrowRight") {
-          setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-        } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
-          toggleStarMutation.mutate(selectedImage.id);
-        }
-      };
-
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
-
-  useEffect(() => {
     const controls = renderGalleryControls();
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
@@ -517,7 +498,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
         </div>
       )}
 
-      {/* Add Header Section */}
+      {/* Header Section */}
       <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
           <InlineEdit
