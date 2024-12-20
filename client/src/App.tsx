@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route } from "wouter";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import { Layout } from "@/components/Layout";
@@ -7,21 +7,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 function App() {
-  const [location] = useLocation();
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Query for gallery title
+  // Query for current gallery
   const { data: gallery } = useQuery({
     queryKey: ['/api/galleries/current'],
     queryFn: async () => {
       const res = await fetch('/api/galleries/current');
-      if (!res.ok) {
-        return { title: "Untitled Project" };
-      }
+      if (!res.ok) throw new Error('Failed to fetch current gallery');
       return res.json();
     },
+    enabled: true,
+    staleTime: 0,
   });
 
   // Mutation for updating title
@@ -42,10 +41,7 @@ function App() {
       return (await res.json()).title;
     },
     onSuccess: (newTitle) => {
-      queryClient.setQueryData(['/api/galleries/current'], old => ({
-        ...old,
-        title: newTitle
-      }));
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries/current'] });
       toast({
         title: "Success",
         description: "Gallery title updated successfully",
@@ -66,7 +62,7 @@ function App() {
       onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
       actions={headerActions}
     >
-      <Switch key={location}>
+      <Switch>
         <Route 
           path="/" 
           component={() => (
