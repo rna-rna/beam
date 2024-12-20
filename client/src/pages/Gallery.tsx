@@ -736,9 +736,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
 
           {selectedImage && (
             <div
-              className={`relative w-full h-full flex items-center justify-center ${
-                isCommentPlacementMode ? "cursor-crosshair" : ""
-              }`}
+              className="relative w-full h-full flex items-center justify-center"
               onClick={(e) => {
                 if (!isCommentPlacementMode) return;
                 const target = e.currentTarget;
