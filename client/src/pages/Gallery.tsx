@@ -5,6 +5,8 @@ import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
+
+// UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,15 +39,13 @@ import {
   Settings,
   Share2,
   Star,
-  X,
-  Star as StarIcon,
 } from "lucide-react";
 
 interface Image {
   id: number;
   url: string;
   starred?: boolean;
-  commentCount?: number;
+  commentCount: number;
   position?: number;
 }
 
@@ -355,7 +355,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     showStarredOnly,
     setIsReorderMode,
     setShowStarredOnly,
-    toast
+    toast,
   ]);
 
   // Effects
@@ -435,8 +435,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
     };
 
     if (imageContainerRef.current) {
-      imageContainerRef.current.style.transform = 
-        `translate(${translateRef.current.x}px, ${translateRef.current.y}px)`;
+      imageContainerRef.current.style.transform = `translate(${translateRef.current.x}px, ${translateRef.current.y}px)`;
     }
 
     lastMousePosRef.current = { x: e.clientX, y: e.clientY };
@@ -756,7 +755,7 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                 setIsCommentPlacementMode(false);
               }}
             >
-              <div 
+              <div
                 ref={imageContainerRef}
                 className="relative transition-transform duration-300 ease-out"
                 onMouseDown={handleMouseDown}
@@ -764,23 +763,27 @@ function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
                 style={{
-                  cursor: isCommentPlacementMode ? "crosshair" :
-                         isAnnotationMode ? "crosshair" :
-                         isZoomed ? "grab" : "zoom-in",
+                  cursor: isCommentPlacementMode
+                    ? "crosshair"
+                    : isAnnotationMode
+                    ? "crosshair"
+                    : isZoomed
+                    ? "grab"
+                    : "zoom-in",
                 }}
               >
                 <img
                   src={selectedImage.url}
                   alt=""
                   className={`max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain transition-transform duration-300 ${
-                    isZoomed ? 'scale-150' : ''
+                    isZoomed ? "scale-150" : ""
                   }`}
                   onClick={handleZoomClick}
                   draggable={false}
                 />
 
                 {/* Drawing Canvas */}
-                <div className={`absolute inset-0 ${isZoomed ? 'hidden' : ''}`}>
+                <div className={`absolute inset-0 ${isZoomed ? "hidden" : ""}`}>
                   <DrawingCanvas
                     width={800}
                     height={600}
