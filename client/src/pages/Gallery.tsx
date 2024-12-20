@@ -134,6 +134,9 @@ export default function Gallery() {
       setSelectedImageIndex(prev =>
         prev >= gallery.images.length - 1 ? 0 : prev + 1
       );
+    } else if (selectedImage && (e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 's')) {
+      // Toggle star status when F or S is pressed
+      toggleStarMutation.mutate(selectedImage.id);
     }
   };
 
@@ -142,7 +145,7 @@ export default function Gallery() {
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [selectedImageIndex, gallery?.images.length]);
+  }, [selectedImageIndex, gallery?.images.length, selectedImage?.id]);
 
   const { data: comments = [] } = useQuery<Comment[]>({
     queryKey: [`/api/images/${selectedImage?.id}/comments`],
