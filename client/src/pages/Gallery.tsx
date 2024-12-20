@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +7,6 @@ import Masonry from "react-masonry-css";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { InlineEdit } from "@/components/InlineEdit";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -17,7 +16,15 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import {
+  Menu,
+  MenuContent,
+  MenuGroup,
+  MenuItem,
+  MenuLabel,
+  MenuSeparator,
+  MenuTrigger,
+} from "@/components/ui/menu";
 
 // Icons
 import {
@@ -57,6 +64,7 @@ interface GalleryProps {
   slug?: string;
   title: string;
   onTitleChange: (title: string) => void;
+  onHeaderActionsChange?: (actions: React.ReactNode) => void;
 }
 
 interface Comment {
@@ -77,12 +85,14 @@ interface ImageDimensions {
   height: number;
 }
 
-function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
+function Gallery({ slug: propSlug, title, onTitleChange, onHeaderActionsChange }: GalleryProps) {
+  // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // State Management
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
@@ -97,6 +107,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
   const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
 
+  // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
     queryKey: [`/api/galleries/${slug}`],
     enabled: !!slug,
@@ -114,6 +125,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
     enabled: !!selectedImage?.id,
   });
 
+  // Mutations
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
       setIsUploading(true);
@@ -238,33 +250,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
     },
   });
 
-  const updateTitleMutation = useMutation({
-    mutationFn: async (newTitle: string) => {
-      const res = await fetch(`/api/galleries/${slug}/title`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle }),
-      });
-      if (!res.ok) throw new Error("Failed to update title");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      onTitleChange?.(data.title);
-      toast({
-        title: "Success",
-        description: "Gallery title updated successfully",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update title. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
+  // Callbacks
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (selectedImageIndex >= 0) return;
@@ -281,6 +267,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
     noClick: true,
   });
 
+  // Memoized Values
   const breakpointCols = useMemo(
     () => ({
       default: Math.max(1, Math.floor(6 * (100 / scale))),
@@ -293,6 +280,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
     [scale]
   );
 
+  // Preload image function
   const preloadImage = useCallback((url: string, imageId: number) => {
     const img = new Image();
     img.src = url;
@@ -301,10 +289,11 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
     };
   }, []);
 
+  // Preload images when gallery data is available
   useEffect(() => {
     if (gallery?.images) {
       gallery.images.forEach(image => {
-        if (!Array.from(preloadedImages).includes(image.id)) {
+        if (!preloadedImages.has(image.id)) {
           preloadImage(image.url, image.id);
         }
       });
@@ -361,26 +350,105 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
     setShowStarredOnly(!showStarredOnly);
   };
 
-  const handleTitleChange = useCallback((newTitle: string) => {
-    if (!slug) return;
-    updateTitleMutation.mutate(newTitle);
-  }, [slug, updateTitleMutation]);
+  const renderGalleryControls = useCallback(() => {
+    if (!gallery) return null;
+
+    return (
+      <div className="flex items-center gap-2">
+        {isUploading && (
+          <div className="flex items-center gap-4">
+            <Progress value={undefined} className="w-24" />
+            <span className="text-sm text-muted-foreground">Uploading...</span>
+          </div>
+        )}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleReorderToggle}
+          disabled={reorderImageMutation.isPending}
+          className={isReorderMode ? "bg-primary/10" : ""}
+        >
+          {isReorderMode && reorderImageMutation.isPending ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          ) : (
+            <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? "text-primary" : ""}`} />
+          )}
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleStarredToggle}
+          className={showStarredOnly ? "bg-primary/10" : ""}
+        >
+          <Star className={`h-4 w-4 ${showStarredOnly ? "fill-primary text-primary" : ""}`} />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleCopyLink}
+          title="Copy gallery link"
+        >
+          <Link className="h-4 w-4" />
+        </Button>
+        <Menu>
+          <MenuTrigger asChild>
+            <Button variant="outline" size="icon">
+              <MenuIcon className="h-4 w-4" />
+            </Button>
+          </MenuTrigger>
+          <MenuContent align="end" className="w-56">
+            <MenuLabel>Gallery Options</MenuLabel>
+            <MenuSeparator />
+            <MenuGroup>
+              <MenuItem onClick={handleDownloadAll}>
+                <Download className="mr-2 h-4 w-4" />
+                <span>Download All as .ZIP</span>
+              </MenuItem>
+              <MenuSeparator />
+              <MenuItem disabled className="text-muted-foreground">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>More Settings...</span>
+              </MenuItem>
+            </MenuGroup>
+          </MenuContent>
+        </Menu>
+      </div>
+    );
+  }, [
+    gallery,
+    isUploading,
+    isReorderMode,
+    reorderImageMutation.isPending,
+    showStarredOnly,
+    handleCopyLink,
+    handleDownloadAll,
+    handleReorderToggle,
+    handleStarredToggle,
+  ]);
 
   useEffect(() => {
-    if (gallery?.title && title !== gallery.title) {
-      onTitleChange?.(gallery.title);
+    if (selectedImageIndex >= 0) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (!gallery?.images?.length) return;
+
+        if (e.key === "ArrowLeft") {
+          setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+        } else if (e.key === "ArrowRight") {
+          setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+        } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
+          toggleStarMutation.mutate(selectedImage.id);
+        }
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [gallery?.title, title, onTitleChange]);
+  }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
 
-  const handlePrevImage = useCallback(() => {
-    if (!gallery?.images.length) return;
-    setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-  }, [gallery?.images.length]);
-
-  const handleNextImage = useCallback(() => {
-    if (!gallery?.images.length) return;
-    setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-  }, [gallery?.images.length]);
+  useEffect(() => {
+    const controls = renderGalleryControls();
+    onHeaderActionsChange?.(controls);
+  }, [onHeaderActionsChange, renderGalleryControls]);
 
   if (error) {
     return (
@@ -408,79 +476,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
         </div>
       )}
 
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex items-center justify-between h-14">
-          <InlineEdit
-            value={title}
-            onSave={handleTitleChange}
-            className="text-lg font-semibold tracking-tight"
-          />
-
-          <div className="flex items-center gap-2">
-            {isUploading && (
-              <div className="flex items-center gap-4">
-                <Progress value={undefined} className="w-24" />
-                <span className="text-sm text-muted-foreground">Uploading...</span>
-              </div>
-            )}
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleReorderToggle}
-              disabled={reorderImageMutation.isPending}
-              className={isReorderMode ? "bg-primary/10" : ""}
-            >
-              {isReorderMode && reorderImageMutation.isPending ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              ) : (
-                <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? "text-primary" : ""}`} />
-              )}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleStarredToggle}
-              className={showStarredOnly ? "bg-primary/10" : ""}
-            >
-              <Star className={`h-4 w-4 ${showStarredOnly ? "fill-primary text-primary" : ""}`} />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleCopyLink}
-              title="Copy gallery link"
-            >
-              <Link className="h-4 w-4" />
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <MenuIcon className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Gallery Options</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleDownloadAll}>
-                  <Download className="mr-2 h-4 w-4" />
-                  <span>Download All as .ZIP</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem disabled className="text-muted-foreground">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>More Settings...</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </header>
-
-      <main className="px-4 md:px-6 lg:px-8 py-8">
+      <div className="px-4 md:px-6 lg:px-8 py-8">
         <AnimatePresence>
           <Masonry
             breakpointCols={breakpointCols}
@@ -494,7 +490,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
                   key={image.id}
                   className="mb-4"
                   initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: Array.from(preloadedImages).includes(image.id) ? 1 : 0 }}
+                  animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0 }}
                   exit={{ opacity: 0 }}
                   transition={{
                     duration: 0.4,
@@ -505,7 +501,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
                     className="relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02]"
                     onClick={() => setSelectedImageIndex(index)}
                   >
-                    {Array.from(preloadedImages).includes(image.id) && (
+                    {preloadedImages.has(image.id) && (
                       <img
                         src={image.url}
                         alt=""
@@ -544,8 +540,9 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
               ))}
           </Masonry>
         </AnimatePresence>
-      </main>
+      </div>
 
+      {/* Scale Slider */}
       <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-2 shadow-lg">
         <Slider
           value={[scale]}
@@ -574,6 +571,118 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
             Image viewer with annotation and commenting capabilities
           </div>
 
+          {/* Filename display */}
+          {showFilename && selectedImage?.originalFilename && (
+            <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
+              {selectedImage.originalFilename}
+            </div>
+          )}
+
+          {/* Navigation buttons */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
+            onClick={() => {
+              setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+            }}
+          >
+            <ChevronLeft className="h-8 w-8 text-white" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
+            onClick={() => {
+              setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+            }}
+          >
+            <ChevronRight className="h-8 w-8 text-white" />
+          </Button>
+
+          {/* Controls */}
+          <div className="absolute right-4 top-4 flex items-center gap-2 z-50 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleStarMutation.mutate(selectedImage!.id);
+              }}
+            >
+              {selectedImage?.starred ? (
+                <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+              ) : (
+                <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+              )}
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="icon"
+                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                  isAnnotationMode ? "bg-primary/20" : ""
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsAnnotationMode(!isAnnotationMode);
+                  setIsCommentPlacementMode(false);
+                  setNewCommentPos(null);
+                }}
+                title="Toggle Drawing Mode"
+              >
+                <Paintbrush
+                  className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                    isAnnotationMode ? "text-primary" : ""
+                  }`}
+                />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                  isCommentPlacementMode ? "bg-primary/20" : ""
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCommentPlacementMode(!isCommentPlacementMode);
+                  setIsAnnotationMode(false);
+                  setNewCommentPos(null);
+                }}
+                title="Add Comment"
+              >
+                <MessageCircle
+                  className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                    isCommentPlacementMode ? "text-primary" : ""
+                  }`}
+                />
+              </Button>
+            </div>
+          </div>
+
+          {/* Settings toggles */}
+          <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
+            <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={showAnnotations}
+                  onCheckedChange={setShowAnnotations}
+                  className="data-[state=checked]:bg-primary h-5 w-9"
+                />
+                <span className="text-xs font-medium">Comments</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={showFilename}
+                  onCheckedChange={setShowFilename}
+                  className="data-[state=checked]:bg-primary h-5 w-9"
+                />
+                <span className="text-xs font-medium">Filename</span>
+              </div>
+            </div>
+          </div>
+
           {selectedImage && (
             <div
               className={`relative w-full h-full flex items-center justify-center ${
@@ -590,117 +699,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
               }}
             >
               <div className="relative">
-                {showFilename && selectedImage.originalFilename && (
-                  <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
-                    {selectedImage.originalFilename}
-                  </div>
-                )}
-
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 z-50">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="bg-background/20 hover:bg-background/40"
-                    onClick={handlePrevImage}
-                  >
-                    <ChevronLeft className="h-8 w-8 text-white" />
-                  </Button>
-                </div>
-
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 z-50">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="bg-background/20 hover:bg-background/40"
-                    onClick={handleNextImage}
-                  >
-                    <ChevronRight className="h-8 w-8 text-white" />
-                  </Button>
-                </div>
-
-                <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleStarMutation.mutate(selectedImage.id);
-                    }}
-                  >
-                    {selectedImage.starred ? (
-                      <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
-                    ) : (
-                      <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
-                    )}
-                  </Button>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
-                        isAnnotationMode ? "bg-primary/20" : ""
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsAnnotationMode(!isAnnotationMode);
-                        setIsCommentPlacementMode(false);
-                        setNewCommentPos(null);
-                      }}
-                      title="Toggle Drawing Mode"
-                    >
-                      <Paintbrush
-                        className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                          isAnnotationMode ? "text-primary" : ""
-                        }`}
-                      />
-                    </Button>
-
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
-                        isCommentPlacementMode ? "bg-primary/20" : ""
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsCommentPlacementMode(!isCommentPlacementMode);
-                        setIsAnnotationMode(false);
-                        setNewCommentPos(null);
-                      }}
-                      title="Add Comment"
-                    >
-                      <MessageCircle
-                        className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                          isCommentPlacementMode ? "text-primary" : ""
-                        }`}
-                      />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
-                  <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={showAnnotations}
-                        onCheckedChange={setShowAnnotations}
-                        className="data-[state=checked]:bg-primary h-5 w-9"
-                      />
-                      <span className="text-xs font-medium">Comments</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={showFilename}
-                        onCheckedChange={setShowFilename}
-                        className="data-[state=checked]:bg-primary h-5 w-9"
-                      />
-                      <span className="text-xs font-medium">Filename</span>
-                    </div>
-                  </div>
-                </div>
-
+                {/* Image with onLoad handler */}
                 <motion.img
                   src={selectedImage.url}
                   alt=""
@@ -717,6 +716,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
                   }}
                 />
 
+                {/* Drawing Canvas */}
                 <div className="absolute inset-0">
                   <DrawingCanvas
                     width={imageDimensions?.width || 800}
@@ -752,6 +752,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
                   />
                 </div>
 
+                {/* Comments */}
                 {showAnnotations &&
                   comments.map((comment) => (
                     <CommentBubble
@@ -764,6 +765,7 @@ function Gallery({ slug: propSlug, title, onTitleChange }: GalleryProps) {
                     />
                   ))}
 
+                {/* New comment */}
                 {newCommentPos && (
                   <CommentBubble
                     x={newCommentPos.x}
