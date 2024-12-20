@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useTransform, useMotionValue } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { useGesture } from '@use-gesture/react';
@@ -107,6 +107,16 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
   const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
+  const [imageScale, setImageScale] = useState(1);
+  const [imagePanPosition, setImagePanPosition] = useState({ x: 0, y: 0 });
+  const lastTapTime = useRef(0);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  // Motion values for smooth animations
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const scaleMotion = useMotionValue(1);
+
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -445,20 +455,70 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
-  // Add gesture binding for swipe navigation
-  const bind = useGesture({
-    onDrag: ({ swipe: [swipeX] }) => {
-      if (!gallery?.images?.length) return;
+  // Gesture binding for advanced touch interactions
+  const bind = useGesture(
+    {
+      onDrag: ({ movement: [mx, my], first, last, tap, event }) => {
+        event.preventDefault();
 
-      if (swipeX > 0) {
-        // Swipe right - go to previous image
-        setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-      } else if (swipeX < 0) {
-        // Swipe left - go to next image
-        setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-      }
+        if (tap) {
+          const now = Date.now();
+          if (now - lastTapTime.current < 300) {
+            // Double tap detected - toggle zoom
+            setImageScale(imageScale === 1 ? 2 : 1);
+            x.set(0);
+            y.set(0);
+          }
+          lastTapTime.current = now;
+          return;
+        }
+
+        if (imageScale > 1) {
+          // Only allow panning when zoomed in
+          x.set(mx);
+          y.set(my);
+        } else if (!tap) {
+          // Swipe navigation when not zoomed
+          if (last && Math.abs(mx) > 50) {
+            if (!gallery?.images?.length) return;
+
+            if (mx > 0) {
+              // Swipe right - previous image
+              setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+            } else {
+              // Swipe left - next image
+              setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+            }
+          }
+        }
+      },
+      onPinch: ({ offset: [d], event }) => {
+        event.preventDefault();
+        const newScale = Math.min(Math.max(1, d), 4);
+        setImageScale(newScale);
+        scaleMotion.set(newScale);
+      },
     },
-  });
+    {
+      drag: {
+        from: () => [x.get(), y.get()],
+        rubberband: true,
+      },
+      pinch: {
+        distanceBounds: { min: 50, max: 400 },
+        rubberband: true,
+      },
+    }
+  );
+
+  // Reset position and scale when changing images
+  useEffect(() => {
+    setImageScale(1);
+    setImagePanPosition({ x: 0, y: 0 });
+    x.set(0);
+    y.set(0);
+    scaleMotion.set(1);
+  }, [selectedImageIndex]);
 
   if (error) {
     return (
@@ -482,14 +542,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
       <div className="px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
         <AnimatePresence>
           <Masonry
-            breakpointCols={{
-              default: Math.max(1, Math.floor(6 * (100 / scale))),
-              2560: Math.max(1, Math.floor(5 * (100 / scale))),
-              1920: Math.max(1, Math.floor(4 * (100 / scale))),
-              1536: Math.max(1, Math.floor(3 * (100 / scale))),
-              1024: Math.max(1, Math.floor(2 * (100 / scale))),
-              640: 1,
-            }}
+            breakpointCols={breakpointCols}
             className="flex -ml-2 sm:-ml-4 w-[calc(100%+0.5rem)] sm:w-[calc(100%+1rem)]"
             columnClassName="pl-2 sm:pl-4 bg-background"
           >
@@ -701,25 +754,30 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                 isCommentPlacementMode ? "cursor-crosshair" : ""
               }`}
               {...bind()}
-              onClick={(e) => {
-                if (!isCommentPlacementMode) return;
-                const target = e.currentTarget;
-                const rect = target.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 100;
-                const y = ((e.clientY - rect.top) / rect.height) * 100;
-                setNewCommentPos({ x, y });
-                setIsCommentPlacementMode(false);
-              }}
+              style={{ touchAction: 'none' }} // Prevent browser touch actions
             >
               <div className="relative">
                 {/* Image with onLoad handler */}
                 <motion.img
+                  ref={imageRef}
                   src={selectedImage.url}
                   alt=""
                   className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
+                  style={{
+                    x,
+                    y,
+                    scale: scaleMotion,
+                  }}
+                  drag={imageScale > 1}
+                  dragConstraints={imageRef}
+                  dragElastic={0.1}
                   initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  animate={{ opacity: 1, scale: imageScale }}
+                  transition={{
+                    type: "spring",
+                    damping: 20,
+                    stiffness: 300,
+                  }}
                   onLoad={(e) => {
                     const img = e.currentTarget;
                     setImageDimensions({
