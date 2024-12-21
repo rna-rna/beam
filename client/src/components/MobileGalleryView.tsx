@@ -102,10 +102,13 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                   initial={{
                     x: index > currentIndex ? '100%' : '-100%',
                     opacity: 1,
+                    scale: 0.98,
                   }}
                   animate={{
                     x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
-                    opacity: isActive ? 1 : 0.7,  // Keep non-active images partially visible
+                    opacity: isActive ? 1 : 0.85,  // Keep non-active images more visible
+                    scale: isActive ? 1 : 0.98,
+                    filter: isActive ? 'blur(0px)' : 'blur(2px)',  // Subtle blur for non-active
                     transition: {
                       type: "spring",
                       stiffness: 150,
@@ -115,7 +118,9 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                   }}
                   exit={{
                     x: index > currentIndex ? '100%' : '-100%',
-                    opacity: 0.5,  // Keep exiting images slightly visible
+                    opacity: 0.8,  // Keep high visibility during exit
+                    scale: 0.98,
+                    filter: 'blur(4px)',  // Blur effect on exit
                     transition: { duration: 0.15 }
                   }}
                 >
@@ -127,7 +132,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       draggable={false}
                       initial={false}
                       animate={{
-                        scale: isActive ? 1 : 0.95,
+                        scale: isActive ? 1 : 0.98,
                       }}
                       transition={{
                         type: "spring",
