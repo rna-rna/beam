@@ -15,6 +15,9 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   // Motion values for gestures
   const dragX = useMotionValue(0);
   const dragY = useMotionValue(0);
+  const scaleValue = useMotionValue(1);
+  const offsetX = useMotionValue(0);
+  const offsetY = useMotionValue(0);
 
   // Transform values for animations
   const opacity = useTransform(dragY, [0, 200], [1, 0]);
@@ -23,8 +26,41 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   useEffect(() => {
     // Lock body scroll when gallery is open
     document.body.style.overflow = 'hidden';
+
+    // Handle pinch zoom gestures
+    const handleTouchMove = (event: TouchEvent) => {
+      if (event.touches.length === 2) {
+        event.preventDefault();
+        const touch1 = event.touches[0];
+        const touch2 = event.touches[1];
+
+        const dx = touch1.pageX - touch2.pageX;
+        const dy = touch1.pageY - touch2.pageY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        const scaleFactor = Math.min(Math.max(distance / 200, 1), 3); // Clamp between 1x and 3x
+        scaleValue.set(scaleFactor);
+      }
+    };
+
+    // Reset zoom on double tap
+    const resetZoom = () => {
+      scaleValue.set(1, { 
+        type: "spring",
+        stiffness: 300,
+        damping: 15,
+      });
+      offsetX.set(0);
+      offsetY.set(0);
+    };
+
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('dblclick', resetZoom);
+
     return () => {
       document.body.style.overflow = 'unset';
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('dblclick', resetZoom);
     };
   }, []);
 
@@ -32,6 +68,14 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const xOffset = info.offset.x;
     const yOffset = info.offset.y;
     const velocity = info.velocity.x;
+
+    // Only process horizontal swipes when not zoomed
+    if (scaleValue.get() > 1) {
+      // Update pan position when zoomed
+      offsetX.set(offsetX.get() + info.delta.x);
+      offsetY.set(offsetY.get() + info.delta.y);
+      return;
+    }
 
     // Close if vertical swipe exceeds threshold
     if (Math.abs(yOffset) > 120 && Math.abs(xOffset) < 60) {
@@ -136,13 +180,21 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       draggable={false}
                       initial={false}
                       animate={{
-                        scale: isActive ? 1 : 1,
+                        scale: isActive ? scaleValue : 1,
+                        x: isActive ? offsetX : 0,
+                        y: isActive ? offsetY : 0,
                       }}
                       transition={{
                         type: "spring",
                         stiffness: 300,  // Increased for snappier scaling
                         damping: 15,     // Lowered for faster response
                         mass: 0.3        // Lighter mass
+                      }}
+                      onWheel={(event) => {
+                        if (isActive) {
+                          const deltaScale = event.deltaY * -0.001;
+                          scaleValue.set(Math.min(Math.max(scaleValue.get() + deltaScale, 1), 3));
+                        }
                       }}
                     />
                   </div>
