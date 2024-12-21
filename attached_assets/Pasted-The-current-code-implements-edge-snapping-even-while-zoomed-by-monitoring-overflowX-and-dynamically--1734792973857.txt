@@ -1,0 +1,54 @@
+The current code implements edge snapping even while zoomed by monitoring overflowX and dynamically transitioning to the next image. To fully isolate the zoomed image and prevent snapping to adjacent images, we need to:
+
+Disable Image Transition Logic When Zoomed In:
+Currently, handlePan and handleDragEnd trigger transitions regardless of zoom level.
+Clamp Panning Within Image Bounds Only:
+Allow the image to pan within its zoomed bounds but prevent it from sliding off to reveal the next image.
+Fix – Remove Edge Snapping for Zoomed Images
+Key Changes:
+
+Modify handlePan to disable snapping if zoomed (scale > 1).
+Clamp offsets (offsetX and offsetY) to prevent sliding beyond image edges.
+Code Update:
+tsx
+Copy code
+const handlePan = (event: any, info: PanInfo) => {
+  const scale = scaleValue.get();
+  const maxX = (window.innerWidth / 2) * (scale - 1);
+  const maxY = (window.innerHeight / 2) * (scale - 1);
+
+  const newX = offsetX.get() + info.delta.x;
+  const newY = offsetY.get() + info.delta.y;
+
+  // If zoomed in, disable snapping to next image
+  if (scale > 1) {
+    offsetX.set(clampPan(newX, maxX));
+    offsetY.set(clampPan(newY, maxY));
+  } else {
+    // Allow swipe to next image if at default zoom
+    const overflowX = Math.abs(newX) - maxX;
+    const dynamicThreshold = scale > 1 ? 9999 : 150;  // Prevent snapping while zoomed
+
+    if (overflowX > dynamicThreshold) {
+      offsetX.set(newX * 1.2);
+      setTimeout(() => {
+        const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
+        const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+
+        // Reset zoom and offsets after switching images
+        scaleValue.set(1);
+        offsetX.set(0);
+        offsetY.set(0);
+
+        setCurrentIndex(clampedIndex);
+      }, 50);
+    } else {
+      offsetX.set(clampPan(newX, maxX));
+      offsetY.set(clampPan(newY, maxY));
+    }
+  }
+};
+How This Works:
+Zoom Isolation: If scale > 1, the image cannot trigger snapping to the next image, regardless of horizontal pan (offsetX).
+Pan Clamping: The offsetX and offsetY are clamped within the image bounds (maxX and maxY). This prevents dragging beyond the image's edges.
+Transition Unlocking: When zoomed out (scale === 1), normal swiping to the next image resumes.

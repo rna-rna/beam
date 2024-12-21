@@ -59,9 +59,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     };
 
     const resetZoom = () => {
-      scaleValue.set(1, { type: "spring", stiffness: 250, damping: 20 });
-      offsetX.set(0, { type: "spring", stiffness: 250, damping: 20 });
-      offsetY.set(0, { type: "spring", stiffness: 250, damping: 20 });
+      scaleValue.set(1);
+      offsetX.set(0);
+      offsetY.set(0);
+      dragX.set(0);
+      dragY.set(0);
     };
 
     window.addEventListener('touchstart', handleTouchStart);
@@ -83,24 +85,26 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
 
     const newX = offsetX.get() + info.delta.x;
     const newY = offsetY.get() + info.delta.y;
+
+    // If zoomed in, only allow panning within image bounds
+    if (scale > 1) {
+      offsetX.set(clampPan(newX, maxX));
+      offsetY.set(clampPan(newY, maxY));
+      return; // Prevent transitioning to next image while zoomed
+    }
+
+    // Only allow swipe transitions when not zoomed
     const overflowX = Math.abs(newX) - maxX;
+    if (overflowX > 150) {
+      const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
+      const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
 
-    // Dynamic threshold based on zoom level
-    const dynamicThreshold = scale > 1 ? 200 : 100;  // More resistance when zoomed
+      // Reset zoom and position before switching images
+      scaleValue.set(1);
+      offsetX.set(0);
+      offsetY.set(0);
 
-    if (overflowX > dynamicThreshold) {
-      offsetX.set(newX * 1.2);  // Add slight inertia
-      setTimeout(() => {
-        const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
-        const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
-
-        // Reset zoom and position smoothly
-        scaleValue.set(1);
-        offsetX.set(0);
-        offsetY.set(0);
-
-        setCurrentIndex(clampedIndex);
-      }, 50);
+      setCurrentIndex(clampedIndex);
     } else {
       offsetX.set(clampPan(newX, maxX));
       offsetY.set(clampPan(newY, maxY));
@@ -111,13 +115,25 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const xOffset = info.offset.x;
     const yOffset = info.offset.y;
     const velocity = info.velocity.x;
+    const scale = scaleValue.get();
 
+    // Handle vertical swipe to close
     if (Math.abs(yOffset) > 150 && Math.abs(xOffset) < 50) {
       onClose();
       return;
     }
 
-    const swipeThreshold = window.innerWidth * 0.25;  // Lower threshold for responsiveness
+    // Prevent image transitions when zoomed
+    if (scale > 1) {
+      const maxX = (window.innerWidth / 2) * (scale - 1);
+      const maxY = (window.innerHeight / 2) * (scale - 1);
+
+      offsetX.set(clampPan(offsetX.get(), maxX));
+      offsetY.set(clampPan(offsetY.get(), maxY));
+      return;
+    }
+
+    const swipeThreshold = window.innerWidth * 0.25;
     const velocityThreshold = 0.25;
 
     const shouldChangeImage =
@@ -135,6 +151,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       setCurrentIndex(clampedIndex);
     }
 
+    // Smooth bounce-back
     dragX.set(0, {
       type: "spring",
       stiffness: 250,
@@ -213,11 +230,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                         scale: isActive ? (scaleValue.get() > 1 ? scaleValue : dragScale) : 1,
                         x: offsetX,
                         y: offsetY,
-                        opacity: imageOpacity,  // Lock opacity during zoom
+                        opacity: imageOpacity,
                       }}
                       drag={scaleValue.get() > 1}
                       dragElastic={0.1}
-                      dragMomentum={false}  // Disable momentum to prevent offset issues
+                      dragMomentum={false}
                       transition={{
                         type: "spring",
                         stiffness: 250,
