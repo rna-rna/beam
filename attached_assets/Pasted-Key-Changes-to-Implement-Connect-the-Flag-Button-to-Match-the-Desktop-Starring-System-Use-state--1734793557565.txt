@@ -1,0 +1,109 @@
+Key Changes to Implement:
+Connect the 'Flag' Button to Match the Desktop Starring System:
+Use state to track flagged images.
+Toggle the Flag button to reflect the current flagged state (highlighted or not).
+Minimize Toolbar Size and Position It Centrally:
+Reduce the toolbar height to make it more compact.
+Adjust the width and spacing to ensure it feels sleek and unobtrusive.
+Maintain Gesture Flow:
+Ensure the toolbar does not interfere with image swipe/zoom.
+Pass gestures through the toolbar when zooming (pointerEvents: none when scale > 1).
+Updated Code (Toolbar Enhancements and Flagging Logic):
+tsx
+Copy code
+const [flaggedImages, setFlaggedImages] = useState<Record<number, boolean>>({});
+
+// Toggle flag function
+const toggleFlagImage = () => {
+  setFlaggedImages((prev) => ({
+    ...prev,
+    [currentIndex]: !prev[currentIndex],
+  }));
+};
+
+// Check if current image is flagged
+const isFlagged = flaggedImages[currentIndex] ?? false;
+
+// Updated toolbar with functional flagging and smaller design
+<motion.div
+  className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-black/70 backdrop-blur-md rounded-full shadow-lg transition-all duration-200 ${
+    toolbarExpanded ? 'h-24' : 'h-12'
+  }`}
+  style={{
+    width: '80%',  // Smaller width
+    opacity: toolbarOpacity,
+    y: toolbarY,
+    pointerEvents: scaleValue.get() > 1 ? 'none' : 'auto',  // Disable during zoom
+  }}
+  drag="y"
+  dragConstraints={{ top: -80, bottom: 0 }}
+  dragElastic={0.2}
+  onDrag={handleToolbarDrag}
+  onDragEnd={(event, info) => {
+    if (info.offset.y < -40) {
+      setToolbarExpanded(true);
+      toolbarY.set(-80);
+    } else {
+      setToolbarExpanded(false);
+      toolbarY.set(0);
+    }
+  }}
+>
+  {/* Main Toolbar */}
+  <div className="flex justify-around items-center h-12 px-3">
+    <button
+      onClick={toggleFlagImage}
+      className={`transition-colors ${
+        isFlagged ? 'text-yellow-400' : 'text-white/90 hover:text-white'
+      }`}
+    >
+      <Flag className="w-5 h-5" />
+    </button>
+    <button
+      onClick={handleComment}
+      className="text-white/90 hover:text-white transition-colors"
+    >
+      <MessageCircle className="w-5 h-5" />
+    </button>
+    <button
+      onClick={handleShareImage}
+      className="text-white/90 hover:text-white transition-colors"
+    >
+      <Share2 className="w-5 h-5" />
+    </button>
+    <button
+      onClick={handleDeleteImage}
+      className="text-red-500/90 hover:text-red-500 transition-colors"
+    >
+      <Trash2 className="w-5 h-5" />
+    </button>
+  </div>
+
+  {/* Expanded Toolbar Content */}
+  {toolbarExpanded && (
+    <motion.div
+      className="h-12 flex justify-around items-center px-3 border-t border-white/10"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <span className="text-sm text-white/70">Swipe up for more options</span>
+    </motion.div>
+  )}
+</motion.div>
+Changes and Why They Work:
+Flagging System:
+The Flag button toggles a state (flaggedImages) to track flagged images by index.
+The button visually changes to yellow (text-yellow-400) when flagged, mimicking iOS interactions.
+Compact Toolbar Design:
+The toolbar height is reduced (h-12) and the width is set to 80% to occupy less screen space.
+A floating, rounded design improves aesthetics and usability, inspired by iOS.
+Gesture Pass-Through:
+The toolbar becomes non-interactive when zooming (pointerEvents: none) to ensure swipe/zoom gestures apply to the image, not the toolbar.
+Testing Focus:
+Flagging Functionality:
+Tap the Flag button to toggle the state. The icon should change color to reflect the flag status.
+Zoom and Pan (Toolbar Behavior):
+Zoom into the image. The toolbar should fade slightly and become unresponsive during zoom but reappear at full opacity on zoom out.
+Toolbar Swipe Up/Down:
+Swipe the toolbar up to expand or down to collapse. It should not interfere with image swipes or panning.

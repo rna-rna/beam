@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { Image } from "@/types/gallery";
-import { Flag, MessageCircle, Share2, Trash2 } from "lucide-react";
+import { Star, MessageCircle, Share2, Trash2 } from "lucide-react";
 
 interface MobileGalleryViewProps {
   images: Image[];
@@ -13,6 +13,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isDragging, setIsDragging] = useState(false);
   const [toolbarExpanded, setToolbarExpanded] = useState(false);
+  const [starredImages, setStarredImages] = useState<Record<number, boolean>>({});
   const startDistanceRef = useRef(0);
 
   // Motion values for gestures
@@ -36,8 +37,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   };
 
   // Handle toolbar actions
-  const handleFlagImage = () => {
-    console.log("Image flagged");
+  const toggleStarImage = () => {
+    setStarredImages(prev => ({
+      ...prev,
+      [currentIndex]: !prev[currentIndex]
+    }));
   };
 
   const handleShareImage = () => {
@@ -296,7 +300,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           toolbarExpanded ? 'h-32' : 'h-16'
         }`}
         style={{
-          width: '90%',
+          width: '80%',
           opacity: toolbarOpacity,
           y: toolbarY,
           pointerEvents: scaleValue.get() > 1 ? 'none' : 'auto',
@@ -318,10 +322,14 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         {/* Primary toolbar actions */}
         <div className="flex justify-around items-center h-16 px-4">
           <button
-            onClick={handleFlagImage}
-            className="text-white/90 hover:text-white transition-colors"
+            onClick={toggleStarImage}
+            className={`transition-colors ${
+              starredImages[currentIndex]
+                ? 'text-yellow-400 hover:text-yellow-300'
+                : 'text-white/90 hover:text-white'
+            }`}
           >
-            <Flag className="w-6 h-6" />
+            <Star className="w-6 h-6" fill={starredImages[currentIndex] ? "currentColor" : "none"} />
           </button>
           <button
             onClick={handleComment}
