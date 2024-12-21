@@ -1,0 +1,102 @@
+Why the Snap to Next Image Isn't Working Properly (Analysis):
+Upon reviewing the code, the core issue stems from the interaction between zoomed panning and gallery swiping.
+
+Key Issues:
+
+Panning While Zoomed Doesn't Trigger Gallery Swipe:
+When zoomed in, panning (offsetX and offsetY) keeps the image within bounds (clampPan), but it never triggers a swipe to the next image.
+No Escape From Max Pan Limits:
+Even when the user drags hard enough to reach the image's edge, the pan action simply stops at the limit (maxX), causing it to "stick" rather than transitioning to the next image.
+Drag End Logic Blocks Swiping During Zoom:
+handleDragEnd focuses on returning to center when zoomed but doesn't allow transition between images even if dragged far enough.
+Solution – Implementing Edge Detection with Snap to Next Image:
+Approach:
+
+Detect Over-Panning at Edges:
+When the user drags the image to the edge, detect the excess drag amount (overflowX). If this overflow surpasses a threshold, trigger the gallery swipe to the next or previous image.
+Release the Image for Swipe:
+If the image is zoomed and reaches the boundary (maxX), switch focus from panning to gallery swiping.
+Updated Code (Snap to Next on Edge Drag):
+tsx
+Copy code
+const handlePan = (event: any, info: PanInfo) => {
+  const scale = scaleValue.get();
+  const maxX = (window.innerWidth / 2) * (scale - 1);
+  const maxY = (window.innerHeight / 2) * (scale - 1);
+
+  const newX = offsetX.get() + info.delta.x;
+  const newY = offsetY.get() + info.delta.y;
+
+  const overflowX = Math.abs(newX) - maxX;  // Detect over-drag beyond boundary
+
+  // If overflow exceeds threshold, trigger image change
+  if (overflowX > 40) {
+    const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
+    const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+    setCurrentIndex(clampedIndex);
+    offsetX.set(0);  // Reset panning after image switch
+  } else {
+    // Regular panning if within bounds
+    offsetX.set(clampPan(newX, maxX));
+    offsetY.set(clampPan(newY, maxY));
+  }
+};
+Changes and Why They Work:
+Edge Detection (OverflowX):
+overflowX calculates how far the user drags beyond the image boundary.
+If this exceeds a threshold (40px), the next image is triggered, replicating the iPhone gallery swipe effect.
+Snapping and Resetting:
+After swiping to the next image, offsetX resets to 0, ensuring the image doesn’t carry over the pan offset.
+Handle Drag End for Smooth Transitions:
+tsx
+Copy code
+const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const xOffset = info.offset.x;
+  const yOffset = info.offset.y;
+  const velocity = info.velocity.x;
+
+  if (scaleValue.get() > 1) {
+    // Allow snap-to-next behavior if over-panned
+    const scale = scaleValue.get();
+    const maxX = (window.innerWidth / 2) * (scale - 1);
+    const overflowX = Math.abs(offsetX.get()) - maxX;
+
+    if (overflowX > 40) {
+      const nextIndex = currentIndex + (offsetX.get() < 0 ? 1 : -1);
+      const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+      setCurrentIndex(clampedIndex);
+      offsetX.set(0);
+    } else {
+      // Snap back if swipe wasn't strong enough
+      offsetX.set(clampPan(offsetX.get(), maxX));
+      offsetY.set(clampPan(offsetY.get(), maxY));
+    }
+    return;
+  }
+
+  // Normal swipe for non-zoomed images
+  if (Math.abs(yOffset) > 120 && Math.abs(xOffset) < 60) {
+    onClose();
+    return;
+  }
+
+  const swipeThreshold = window.innerWidth * 0.3;
+  const velocityThreshold = 0.2;
+
+  const shouldChangeImage =
+    Math.abs(velocity) > velocityThreshold || Math.abs(xOffset) > swipeThreshold;
+
+  if (shouldChangeImage) {
+    const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
+    const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+    setCurrentIndex(clampedIndex);
+  }
+
+  dragX.set(0);
+  dragY.set(0);
+  setIsDragging(false);
+};
+Key Points in Drag End Behavior:
+When zoomed, overflow detection is prioritized, allowing users to swipe between images while zoomed in.
+If the pan isn’t hard enough (overflowX < 40), the image snaps back to its original position.
+Vertical drag still triggers the gallery close action (onClose).
