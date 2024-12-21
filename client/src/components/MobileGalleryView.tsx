@@ -18,7 +18,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
 
   // Transform values for animations
   const opacity = useTransform(dragY, [0, 200], [1, 0]);
-  const scale = useTransform(dragY, [0, 200], [1, 0.9]);
+  const scale = useTransform(dragY, [0, 200], [1, 0.95]);
 
   useEffect(() => {
     // Lock body scroll when gallery is open
@@ -33,35 +33,26 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const yOffset = info.offset.y;
     const velocity = info.velocity.x;
 
-    // Handle vertical dismissal
+    // Close if vertical swipe exceeds threshold
     if (Math.abs(yOffset) > 120 && Math.abs(xOffset) < 60) {
       onClose();
       return;
     }
 
-    // Constants for swipe behavior
-    const swipeThreshold = window.innerWidth * 0.45; // Increased to 45%
-    const velocityThreshold = 0.3; // Lowered for smoother detection
+    const swipeThreshold = window.innerWidth * 0.45;
+    const velocityThreshold = 0.3;
 
     const shouldChangeImage =
       Math.abs(velocity) > velocityThreshold || Math.abs(xOffset) > swipeThreshold;
 
     if (shouldChangeImage) {
       const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
-      // Clamp index to prevent overshooting
       const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
-      if (clampedIndex !== currentIndex) {
-        setCurrentIndex(clampedIndex);
-      }
-    }
+      setCurrentIndex(clampedIndex);
+    } 
 
-    // Smooth return animation if swipe doesn't meet threshold
-    dragX.set(0, { 
-      type: "spring",
-      stiffness: 150,
-      damping: 20,
-      mass: 0.5 
-    });
+    // Smooth return if swipe doesn't meet threshold
+    dragX.set(0, { type: "spring", stiffness: 150, damping: 20 });
     dragY.set(0);
     setIsDragging(false);
   };
@@ -80,7 +71,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           opacity 
         }}
         drag
-        dragElastic={0.15}
+        dragElastic={0.1}
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragDirectionLock
         onDragStart={() => setIsDragging(true)}
@@ -90,23 +81,13 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           dragY.set(info.offset.y);
         }}
       >
-        <div 
-          className="w-full h-full flex overflow-hidden"
-          style={{
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch'
-          }}
-        >
-          <AnimatePresence 
-            initial={false} 
-            mode="popLayout"
-          >
+        <div className="w-full h-full flex items-center justify-center">
+          <AnimatePresence initial={false} mode="wait">
             {images.map((image, index) => {
-              // Only render current, previous, and next images
               if (Math.abs(index - currentIndex) > 1) return null;
 
               const isActive = index === currentIndex;
-              const zIndex = isActive ? 10 : 5;  // Changed to 5 for non-active to allow overlap
+              const zIndex = isActive ? 10 : 0;
 
               return (
                 <motion.div
@@ -116,28 +97,26 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                     zIndex,
                     scrollSnapAlign: 'start',
                     scrollSnapStop: 'always',
-                    x: isActive ? dragX : undefined,
-                    pointerEvents: isActive ? 'auto' : 'none', 
+                    pointerEvents: isActive ? 'auto' : 'none',
                   }}
                   initial={{
                     x: index > currentIndex ? '100%' : '-100%',
-                    opacity: 1,  // Start visible
+                    opacity: 1,
                   }}
                   animate={{
                     x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
-                    opacity: isActive ? 1 : 0.5,  // Keep slightly visible for smooth transition
+                    opacity: isActive ? 1 : 0,
                     transition: {
                       type: "spring",
                       stiffness: 150,
                       damping: 20,
-                      mass: 0.5,
-                      opacity: { duration: 0.2 }
+                      opacity: { duration: 0.15 }
                     }
                   }}
                   exit={{
                     x: index > currentIndex ? '100%' : '-100%',
-                    opacity: 0.2,  // Keep slightly visible during exit
-                    transition: { duration: 0.1 }  // Quick but not instant
+                    opacity: 0,
+                    transition: { duration: 0.1 }
                   }}
                 >
                   <div className="relative w-full h-full px-4">
@@ -154,7 +133,6 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                         type: "spring",
                         stiffness: 150,
                         damping: 20,
-                        mass: 0.5
                       }}
                     />
                   </div>

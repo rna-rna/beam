@@ -1,0 +1,83 @@
+The overlapping opacity issue persists because the exiting image is not fully removed from the DOM before the next image animates in. The opacity: 0.5 during exit allows lingering images to stay partially visible, creating visual clutter.
+
+Root Cause:
+AnimatePresence with popLayout: While popLayout ensures smoother overlapping animations, it doesn't immediately remove the exiting image from the DOM.
+exit Opacity: Setting opacity: 0.5 during exit causes visual stacking. Even if zIndex is lower, the image remains partially visible.
+Image Rendering Condition:
+tsx
+Copy code
+if (Math.abs(index - currentIndex) > 1) return null;
+This limits rendering to only adjacent images, but overlapping still happens during quick transitions.
+Solution:
+Force Immediate Exit:
+Ensure that the exiting image fully disappears by setting opacity: 0 and using a very short duration (or exitBeforeEnter).
+
+Conditional Rendering Fix:
+Only animate the active image and immediately unmount the previous one by using stricter conditions.
+
+Updated Code (Fix for Overlapping):
+tsx
+Copy code
+<AnimatePresence initial={false} mode="wait">  {/* Use 'wait' to ensure clean exits */}
+  {images.map((image, index) => {
+    if (Math.abs(index - currentIndex) > 1) return null;
+
+    const isActive = index === currentIndex;
+    const zIndex = isActive ? 10 : 0;
+
+    return (
+      <motion.div
+        key={image.id}
+        className="absolute inset-0 w-full h-full flex items-center justify-center"
+        style={{
+          zIndex,
+          scrollSnapAlign: 'start',
+          scrollSnapStop: 'always',
+          pointerEvents: isActive ? 'auto' : 'none',
+        }}
+        initial={{
+          x: index > currentIndex ? '100%' : '-100%',
+          opacity: 1,
+        }}
+        animate={{
+          x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
+          opacity: isActive ? 1 : 0,
+          transition: {
+            type: "spring",
+            stiffness: 150,
+            damping: 20,
+            opacity: { duration: 0.15 }
+          }
+        }}
+        exit={{
+          x: index > currentIndex ? '100%' : '-100%',
+          opacity: 0,
+          transition: { duration: 0.1 }  // Quick and complete removal
+        }}
+      >
+        <div className="relative w-full h-full px-4">
+          <motion.img
+            src={image.url}
+            alt=""
+            className="w-full h-full object-contain select-none"
+            draggable={false}
+            initial={false}
+            animate={{
+              scale: isActive ? 1 : 0.95,
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 150,
+              damping: 20,
+            }}
+          />
+        </div>
+      </motion.div>
+    );
+  })}
+</AnimatePresence>
+Key Changes and Why They Work:
+mode="wait": This waits for the exit animation to fully complete before animating the next image in, preventing overlap.
+opacity: 0 on Exit: Exiting images immediately disappear, avoiding visual stacking during quick swipes.
+Conditional Rendering: Adjacent images only stay in the DOM for smoother transitions without lingering effects.
+Z-Index Management: Active images are consistently layered on top (zIndex: 10), and exiting images drop to 0.
