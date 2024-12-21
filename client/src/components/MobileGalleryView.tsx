@@ -11,10 +11,11 @@ interface MobileGalleryViewProps {
   onClose: () => void;
 }
 
-export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalleryViewProps) {
+export function MobileGalleryView({ images: initialImages, initialIndex, onClose }: MobileGalleryViewProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isDragging, setIsDragging] = useState(false);
   const [toolbarExpanded, setToolbarExpanded] = useState(false);
+  const [images, setImages] = useState(initialImages);
   const startDistanceRef = useRef(0);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -102,16 +103,18 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       ...updatedImages[currentIndex],
       starred: !isCurrentlyStarred
     };
-
-    // Force re-render with updated state
-    setCurrentIndex(currentIndex);
+    setImages(updatedImages);  // Update local state immediately
 
     // Trigger mutation
     starMutation.mutate(undefined, {
       onError: () => {
         // Revert on error
-        updatedImages[currentIndex].starred = isCurrentlyStarred;
-        setCurrentIndex(currentIndex); // Force re-render with updated state
+        const revertedImages = [...images];
+        revertedImages[currentIndex] = {
+          ...revertedImages[currentIndex],
+          starred: isCurrentlyStarred
+        };
+        setImages(revertedImages);
       }
     });
 
