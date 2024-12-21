@@ -15,46 +15,57 @@ export function Toolbar({ isStarred, onStarToggle, onComment, scaleValue }: Tool
       style={{
         width: '40%',
         opacity: scaleValue.get() > 1 ? 0.3 : 1,
-        pointerEvents: scaleValue.get() > 1 ? 'none' : 'auto',
+        pointerEvents: 'auto',
+        touchAction: 'none',
       }}
     >
-      <div className="flex justify-center gap-8 items-center h-12">
-        <motion.button
-          onClick={(e) => {
-            e.stopPropagation();
-            onStarToggle();
-          }}
-          whileTap={{ scale: 0.85 }}
-          className={`transition-colors ${
-            isStarred
-              ? 'text-yellow-400 hover:text-yellow-300'
-              : 'text-white/90 hover:text-white'
-          }`}
-          style={{ 
-            pointerEvents: 'auto',
-            touchAction: 'manipulation'
-          }}
-        >
-          <Star 
-            className="w-6 h-6"
-            fill={isStarred ? "currentColor" : "none"}
-          />
-        </motion.button>
+      <div className="flex justify-center gap-8 items-center h-12 pointer-events-auto">
+        <div className="relative">
+          <motion.button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onStarToggle();
+            }}
+            whileTap={{ scale: 0.85 }}
+            className={`transition-colors ${
+              isStarred
+                ? 'text-yellow-400 hover:text-yellow-300'
+                : 'text-white/90 hover:text-white'
+            }`}
+            style={{ 
+              pointerEvents: 'auto',
+              touchAction: 'manipulation',
+              position: 'relative',
+              zIndex: 20
+            }}
+          >
+            <Star 
+              className="w-6 h-6"
+              fill={isStarred ? "currentColor" : "none"}
+            />
+          </motion.button>
+        </div>
 
-        <motion.button
-          onClick={(e) => {
-            e.stopPropagation();
-            onComment();
-          }}
-          whileTap={{ scale: 0.85 }}
-          className="text-white/90 hover:text-white transition-colors"
-          style={{ 
-            pointerEvents: 'auto',
-            touchAction: 'manipulation'
-          }}
-        >
-          <MessageCircle className="w-5 h-5" />
-        </motion.button>
+        <div className="relative">
+          <motion.button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onComment();
+            }}
+            whileTap={{ scale: 0.85 }}
+            className="text-white/90 hover:text-white transition-colors"
+            style={{ 
+              pointerEvents: 'auto',
+              touchAction: 'manipulation',
+              position: 'relative',
+              zIndex: 20
+            }}
+          >
+            <MessageCircle className="w-5 h-5" />
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   );
