@@ -4,6 +4,7 @@ import { Image } from "@/types/gallery";
 import { Star, MessageCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { Toolbar } from "./Toolbar";
 
 interface MobileGalleryViewProps {
   images: Image[];
@@ -14,7 +15,6 @@ interface MobileGalleryViewProps {
 export function MobileGalleryView({ images: initialImages, initialIndex, onClose }: MobileGalleryViewProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isDragging, setIsDragging] = useState(false);
-  const [toolbarExpanded, setToolbarExpanded] = useState(false);
   const [images, setImages] = useState(initialImages);
   const startDistanceRef = useRef(0);
   const queryClient = useQueryClient();
@@ -26,7 +26,6 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
   const scaleValue = useMotionValue(1);
   const offsetX = useMotionValue(0);
   const offsetY = useMotionValue(0);
-  const toolbarY = useMotionValue(0);
 
   // Transform values for animations
   const imageOpacity = useTransform(scaleValue, [1, 3], [1, 1], { clamp: true });
@@ -51,9 +50,8 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
         title: images[currentIndex].starred ? "Removed from favorites" : "Added to favorites",
         duration: 2000
       });
-      // Add haptic feedback for mobile
       if ('vibrate' in navigator) {
-        navigator.vibrate(30);  // Subtle haptic feedback
+        navigator.vibrate(30);
       }
     },
     onError: () => {
@@ -117,11 +115,6 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
         setImages(revertedImages);
       }
     });
-
-    // Add haptic feedback
-    if ('vibrate' in navigator) {
-      navigator.vibrate(30);
-    }
   };
 
   const handleComment = () => {
@@ -133,19 +126,6 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
 
   const clampPan = (value: number, maxDistance: number) => {
     return Math.max(Math.min(value, maxDistance), -maxDistance);
-  };
-
-  const handleToolbarDrag = (event: any, info: PanInfo) => {
-    const newY = toolbarY.get() + info.delta.y;
-    if (newY < -80) {
-      setToolbarExpanded(true);
-      toolbarY.set(-80);
-    } else if (newY > 0) {
-      setToolbarExpanded(false);
-      toolbarY.set(0);
-    } else {
-      toolbarY.set(newY);
-    }
   };
 
   useEffect(() => {
@@ -234,7 +214,6 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
     const velocity = info.velocity.x;
     const scale = scaleValue.get();
 
-    // Handle vertical swipe to close
     if (Math.abs(yOffset) > 150 && Math.abs(xOffset) < 50) {
       onClose();
       return;
@@ -260,7 +239,6 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
       const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
       const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
 
-      // Reset zoom and position before transition
       scaleValue.set(1);
       offsetX.set(0);
       offsetY.set(0);
@@ -358,90 +336,13 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
         </div>
       </motion.div>
 
-      {/* Compact, centered toolbar */}
-      <motion.div
-        className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-black/70 backdrop-blur-md rounded-full shadow-lg transition-all duration-200 ${
-          toolbarExpanded ? 'h-24' : 'h-12'
-        }`}
-        style={{
-          width: '40%',
-          opacity: toolbarOpacity,
-          y: toolbarY,
-          pointerEvents: scaleValue.get() > 1 ? 'none' : 'auto',
-          x: '-50%',
-          margin: '0 auto',
-        }}
-        drag="y"
-        dragConstraints={{ top: -80, bottom: 0 }}
-        dragElastic={0.2}
-        onDrag={handleToolbarDrag}
-        onDragEnd={(event, info) => {
-          if (info.offset.y < -40) {
-            setToolbarExpanded(true);
-            toolbarY.set(-80);
-          } else {
-            setToolbarExpanded(false);
-            toolbarY.set(0);
-          }
-        }}
-      >
-        {/* Primary toolbar actions */}
-        <div className="flex justify-center gap-8 items-center h-12">
-          <motion.button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleStarImage();
-            }}
-            whileTap={{ scale: 0.85 }}
-            animate={{ scale: 1 }}
-            transition={{
-              type: "spring",
-              stiffness: 400,
-              damping: 20,
-            }}
-            style={{ 
-              pointerEvents: 'auto',
-              touchAction: 'manipulation'
-            }}
-            className={`transition-colors ${
-              images[currentIndex].starred
-                ? 'text-yellow-400 hover:text-yellow-300'
-                : 'text-white/90 hover:text-white'
-            }`}
-          >
-            <Star 
-              className="w-6 h-6"
-              fill={images[currentIndex].starred ? "currentColor" : "none"}
-            />
-          </motion.button>
-          <motion.button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleComment();
-            }}
-            whileTap={{ scale: 0.85 }}
-            style={{ 
-              pointerEvents: 'auto',
-              touchAction: 'manipulation'
-            }}
-            className="text-white/90 hover:text-white transition-colors"
-          >
-            <MessageCircle className="w-5 h-5" />
-          </motion.button>
-        </div>
-
-        {/* Expanded toolbar content */}
-        {toolbarExpanded && (
-          <motion.div
-            className="h-12 flex justify-around items-center border-t border-white/10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <span className="text-sm text-white/70">Swipe up for more options</span>
-          </motion.div>
-        )}
-      </motion.div>
+      {/* Use the new Toolbar component */}
+      <Toolbar
+        isStarred={images[currentIndex]?.starred ?? false}
+        onStarToggle={toggleStarImage}
+        onComment={handleComment}
+        scaleValue={scaleValue}
+      />
     </motion.div>
   );
 }
