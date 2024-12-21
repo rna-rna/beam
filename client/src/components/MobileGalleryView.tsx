@@ -58,12 +58,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     };
 
     const resetZoom = () => {
-      // Immediate reset without animations to prevent conflicts
-      scaleValue.set(1);
-      offsetX.set(0);
-      offsetY.set(0);
-      dragX.set(0);
-      dragY.set(0);
+      scaleValue.set(1, { type: "spring", stiffness: 250, damping: 20 });
+      offsetX.set(0, { type: "spring", stiffness: 250, damping: 20 });
+      offsetY.set(0, { type: "spring", stiffness: 250, damping: 20 });
+      dragX.set(0, { type: "spring", stiffness: 250, damping: 20 });
+      dragY.set(0, { type: "spring", stiffness: 250, damping: 20 });
     };
 
     window.addEventListener('touchstart', handleTouchStart);
@@ -87,22 +86,34 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const newY = offsetY.get() + info.delta.y;
     const overflowX = Math.abs(newX) - maxX;
 
-    // Dynamic threshold scaling based on zoom level
-    const dynamicThreshold = scale > 1 ? 300 : 150;  // Require more drag at higher zoom
+    // Lower threshold for more responsive swiping
+    const dynamicThreshold = scale > 1 ? 150 : 100;  // Reduced thresholds
 
     if (overflowX > dynamicThreshold) {
-      const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
-      const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+      offsetX.set(newX * 1.2);  // Add slight inertia
+      setTimeout(() => {
+        const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
+        const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
 
-      // Reset zoom and position immediately before transition
-      scaleValue.set(1);
-      offsetX.set(0);
-      offsetY.set(0);
+        // Reset zoom and position with smooth spring
+        scaleValue.set(1, { type: "spring", stiffness: 250, damping: 20 });
+        offsetX.set(0, { type: "spring", stiffness: 250, damping: 20 });
+        offsetY.set(0, { type: "spring", stiffness: 250, damping: 20 });
 
-      setCurrentIndex(clampedIndex);
+        setCurrentIndex(clampedIndex);
+      }, 50);  // Shorter delay for more responsive feel
     } else {
-      offsetX.set(clampPan(newX, maxX));
-      offsetY.set(clampPan(newY, maxY));
+      // Add spring animation for smooth edge bounce
+      offsetX.set(clampPan(newX, maxX), {
+        type: "spring",
+        stiffness: 250,
+        damping: 20,
+      });
+      offsetY.set(clampPan(newY, maxY), {
+        type: "spring",
+        stiffness: 250,
+        damping: 20,
+      });
     }
   };
 
@@ -116,21 +127,20 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       return;
     }
 
-    const swipeThreshold = window.innerWidth * 0.4;
-    const velocityThreshold = 0.4;  // Higher velocity requirement for snap
+    const swipeThreshold = window.innerWidth * 0.25;  // Reduced threshold
+    const velocityThreshold = 0.25;  // Lower velocity requirement
 
     const shouldChangeImage =
-      (Math.abs(velocity) > velocityThreshold && Math.abs(xOffset) > 200) ||  // Require both
-      Math.abs(xOffset) > swipeThreshold;
+      Math.abs(velocity) > velocityThreshold || Math.abs(xOffset) > swipeThreshold;
 
     if (shouldChangeImage) {
       const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
       const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
 
-      // Ensure reset happens immediately
-      scaleValue.set(1);
-      offsetX.set(0);
-      offsetY.set(0);
+      // Reset zoom and position with smooth spring
+      scaleValue.set(1, { type: "spring", stiffness: 250, damping: 20 });
+      offsetX.set(0, { type: "spring", stiffness: 250, damping: 20 });
+      offsetY.set(0, { type: "spring", stiffness: 250, damping: 20 });
 
       setCurrentIndex(clampedIndex);
     }
@@ -138,13 +148,13 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     // Smooth bounce-back for partial swipes
     dragX.set(0, {
       type: "spring",
-      stiffness: 300,
-      damping: 25,
+      stiffness: 250,
+      damping: 20,
     });
     dragY.set(0, {
       type: "spring",
-      stiffness: 300,
-      damping: 25,
+      stiffness: 250,
+      damping: 20,
     });
     setIsDragging(false);
   };
@@ -161,7 +171,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         className="absolute inset-0 w-full h-full"
         style={{ opacity: swipeOpacity }}
         drag={scaleValue.get() === 1}
-        dragElastic={0.2}
+        dragElastic={0.1}  // Reduced elastic feel
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragDirectionLock
         onDragStart={() => setIsDragging(true)}
@@ -194,8 +204,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                     opacity: 1,
                     transition: {
                       type: "spring",
-                      stiffness: 300,
-                      damping: 25,
+                      stiffness: 250,
+                      damping: 20,
                     },
                   }}
                   exit={{
@@ -216,8 +226,13 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                         y: offsetY,
                       }}
                       drag={scaleValue.get() > 1}
-                      dragElastic={0.2}
-                      dragMomentum={false}  // Disable momentum to prevent offset carryover
+                      dragElastic={0.1}
+                      dragMomentum={true}
+                      transition={{
+                        type: "spring",
+                        stiffness: 250,
+                        damping: 20,
+                      }}
                       onPan={handlePan}
                       onWheel={(event) => {
                         if (isActive) {
