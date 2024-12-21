@@ -34,29 +34,34 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const velocity = info.velocity.x;
 
     // Handle vertical dismissal
-    if (Math.abs(yOffset) > 100 && Math.abs(xOffset) < 50) {
+    if (Math.abs(yOffset) > 120 && Math.abs(xOffset) < 60) {
       onClose();
       return;
     }
 
     // Constants for swipe behavior
-    const swipeThreshold = window.innerWidth * 0.3; // 30% of screen width for distance-based swipe
-    const velocityThreshold = 0.5; // Lower threshold for smoother swipes
+    const swipeThreshold = window.innerWidth * 0.45; // Increased to 45%
+    const velocityThreshold = 0.3; // Lowered for smoother detection
 
-    // Determine if we should change image based on velocity or distance
-    const shouldChangeImage = 
-      Math.abs(velocity) > velocityThreshold || 
-      Math.abs(xOffset) > swipeThreshold;
+    const shouldChangeImage =
+      Math.abs(velocity) > velocityThreshold || Math.abs(xOffset) > swipeThreshold;
 
     if (shouldChangeImage) {
       const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
-      if (nextIndex >= 0 && nextIndex < images.length) {
-        setCurrentIndex(nextIndex);
+      // Clamp index to prevent overshooting
+      const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+      if (clampedIndex !== currentIndex) {
+        setCurrentIndex(clampedIndex);
       }
     }
 
-    // Reset motion values with spring animation
-    dragX.set(0);
+    // Smooth return animation if swipe doesn't meet threshold
+    dragX.set(0, { 
+      type: "spring",
+      stiffness: 150,
+      damping: 20,
+      mass: 0.5 // Added mass for more natural feel
+    });
     dragY.set(0);
     setIsDragging(false);
   };
@@ -75,7 +80,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           opacity 
         }}
         drag
-        dragElastic={0.1}
+        dragElastic={0.15} // Slightly increased for more natural feel
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragDirectionLock
         onDragStart={() => setIsDragging(true)}
@@ -111,21 +116,25 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                   initial={{
                     x: index > currentIndex ? '100%' : '-100%',
                     opacity: 0,
+                    scale: 0.95
                   }}
                   animate={{
                     x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
-                    opacity: isActive ? 1 : 0.3,
+                    opacity: isActive ? 1 : 0.6, // Increased opacity for better edge peeking
+                    scale: isActive ? 1 : 0.95,
                     transition: {
                       type: "spring",
-                      stiffness: 300,
-                      damping: 30,
-                      opacity: { duration: 0.2 }
+                      stiffness: 150, // Reduced for smoother transitions
+                      damping: 20,
+                      mass: 0.5,
+                      opacity: { duration: 0.3 }
                     }
                   }}
                   exit={{
                     x: index > currentIndex ? '100%' : '-100%',
                     opacity: 0,
-                    transition: { duration: 0.2 }
+                    scale: 0.95,
+                    transition: { duration: 0.3 }
                   }}
                 >
                   <div className="relative w-full h-full px-4">
@@ -140,8 +149,9 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       }}
                       transition={{
                         type: "spring",
-                        stiffness: 300,
-                        damping: 30
+                        stiffness: 150,
+                        damping: 20,
+                        mass: 0.5
                       }}
                     />
                   </div>
