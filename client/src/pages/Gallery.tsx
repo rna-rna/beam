@@ -355,7 +355,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
           <div className="flex items-center gap-4">
             <Progress value={undefined} className="w-24" />
             <span className="text-sm text-muted-foreground">Uploading...</span>
-          </motion.div>
+          </div>
         )}
         <Button
           variant="outline"
