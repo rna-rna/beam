@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { Image } from "@/types/gallery";
+import { Flag, MessageCircle, Share2, Trash2 } from "lucide-react";
 
 interface MobileGalleryViewProps {
   images: Image[];
@@ -11,6 +12,7 @@ interface MobileGalleryViewProps {
 export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalleryViewProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isDragging, setIsDragging] = useState(false);
+  const [toolbarExpanded, setToolbarExpanded] = useState(false);
   const startDistanceRef = useRef(0);
 
   // Motion values for gestures
@@ -19,16 +21,48 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   const scaleValue = useMotionValue(1);
   const offsetX = useMotionValue(0);
   const offsetY = useMotionValue(0);
+  const toolbarY = useMotionValue(0);
 
   // Transform values for animations
-  const imageOpacity = useTransform(scaleValue, [1, 3], [1, 1], { clamp: true });  // Lock opacity during zoom
+  const imageOpacity = useTransform(scaleValue, [1, 3], [1, 1], { clamp: true });
   const swipeOpacity = useTransform(dragY, [-400, 0, 400], [1, 1, 0], { clamp: true });
   const dragScale = useTransform(dragY, [0, 400], [1, 0.7]);
   const revealOpacity = useTransform(dragY, [-600, 0, 400], [0.1, 1, 0]);
+  const toolbarOpacity = useTransform(scaleValue, [1, 2], [1, 0.3], { clamp: true });
 
   // Utility function to clamp pan values
   const clampPan = (value: number, maxDistance: number) => {
     return Math.max(Math.min(value, maxDistance), -maxDistance);
+  };
+
+  // Handle toolbar actions
+  const handleFlagImage = () => {
+    console.log("Image flagged");
+  };
+
+  const handleShareImage = () => {
+    console.log("Share image");
+  };
+
+  const handleDeleteImage = () => {
+    console.log("Delete image");
+  };
+
+  const handleComment = () => {
+    console.log("Open comments");
+  };
+
+  const handleToolbarDrag = (event: any, info: PanInfo) => {
+    const newY = toolbarY.get() + info.delta.y;
+    if (newY < -100) {
+      setToolbarExpanded(true);
+      toolbarY.set(-100);
+    } else if (newY > 0) {
+      setToolbarExpanded(false);
+      toolbarY.set(0);
+    } else {
+      toolbarY.set(newY);
+    }
   };
 
   useEffect(() => {
@@ -254,6 +288,72 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
             })}
           </AnimatePresence>
         </div>
+      </motion.div>
+
+      {/* iOS-style toolbar */}
+      <motion.div
+        className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-md rounded-xl shadow-lg transition-all duration-200 ${
+          toolbarExpanded ? 'h-32' : 'h-16'
+        }`}
+        style={{
+          width: '90%',
+          opacity: toolbarOpacity,
+          y: toolbarY,
+          pointerEvents: scaleValue.get() > 1 ? 'none' : 'auto',
+        }}
+        drag="y"
+        dragConstraints={{ top: -100, bottom: 0 }}
+        dragElastic={0.2}
+        onDrag={handleToolbarDrag}
+        onDragEnd={(event, info) => {
+          if (info.offset.y < -50) {
+            setToolbarExpanded(true);
+            toolbarY.set(-100);
+          } else {
+            setToolbarExpanded(false);
+            toolbarY.set(0);
+          }
+        }}
+      >
+        {/* Primary toolbar actions */}
+        <div className="flex justify-around items-center h-16 px-4">
+          <button
+            onClick={handleFlagImage}
+            className="text-white/90 hover:text-white transition-colors"
+          >
+            <Flag className="w-6 h-6" />
+          </button>
+          <button
+            onClick={handleComment}
+            className="text-white/90 hover:text-white transition-colors"
+          >
+            <MessageCircle className="w-6 h-6" />
+          </button>
+          <button
+            onClick={handleShareImage}
+            className="text-white/90 hover:text-white transition-colors"
+          >
+            <Share2 className="w-6 h-6" />
+          </button>
+          <button
+            onClick={handleDeleteImage}
+            className="text-red-500/90 hover:text-red-500 transition-colors"
+          >
+            <Trash2 className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Expanded toolbar content */}
+        {toolbarExpanded && (
+          <motion.div
+            className="h-16 flex justify-around items-center px-4 border-t border-white/10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <span className="text-sm text-white/70">Swipe up for more options</span>
+          </motion.div>
+        )}
       </motion.div>
     </motion.div>
   );
