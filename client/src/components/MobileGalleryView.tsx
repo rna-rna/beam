@@ -92,14 +92,25 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     }
   });
 
-  // Utility function to clamp pan values
-  const clampPan = (value: number, maxDistance: number) => {
-    return Math.max(Math.min(value, maxDistance), -maxDistance);
-  };
-
   // Handle toolbar actions
   const toggleStarImage = () => {
-    starMutation.mutate();
+    const isCurrentlyStarred = images[currentIndex].starred;
+
+    // Optimistically update UI
+    const updatedImages = [...images];
+    updatedImages[currentIndex] = {
+      ...updatedImages[currentIndex],
+      starred: !isCurrentlyStarred
+    };
+
+    // Trigger mutation
+    starMutation.mutate(undefined, {
+      onError: () => {
+        // Revert on error
+        updatedImages[currentIndex].starred = isCurrentlyStarred;
+        setCurrentIndex(currentIndex); // Force re-render
+      }
+    });
   };
 
   const handleComment = () => {
@@ -107,6 +118,10 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     if (comment) {
       commentMutation.mutate(comment);
     }
+  };
+
+  const clampPan = (value: number, maxDistance: number) => {
+    return Math.max(Math.min(value, maxDistance), -maxDistance);
   };
 
   const handleToolbarDrag = (event: any, info: PanInfo) => {
@@ -379,6 +394,12 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           <motion.button
             onClick={toggleStarImage}
             whileTap={{ scale: 0.85 }}
+            animate={{ scale: 1 }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 20,
+            }}
             className={`transition-colors ${
               images[currentIndex].starred
                 ? 'text-yellow-400 hover:text-yellow-300'
@@ -386,7 +407,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
             }`}
           >
             <Star 
-              className="w-5 h-5" 
+              className="w-6 h-6"
               fill={images[currentIndex].starred ? "currentColor" : "none"}
             />
           </motion.button>
