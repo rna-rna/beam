@@ -99,14 +99,14 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         >
           <AnimatePresence 
             initial={false} 
-            mode="wait" 
+            mode="popLayout"
           >
             {images.map((image, index) => {
               // Only render current, previous, and next images
               if (Math.abs(index - currentIndex) > 1) return null;
 
               const isActive = index === currentIndex;
-              const zIndex = isActive ? 10 : 0; 
+              const zIndex = isActive ? 10 : 5;  // Changed to 5 for non-active to allow overlap
 
               return (
                 <motion.div
@@ -121,11 +121,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                   }}
                   initial={{
                     x: index > currentIndex ? '100%' : '-100%',
-                    opacity: 0,
+                    opacity: 1,  // Start visible
                   }}
                   animate={{
                     x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
-                    opacity: isActive ? 1 : 0, 
+                    opacity: isActive ? 1 : 0.5,  // Keep slightly visible for smooth transition
                     transition: {
                       type: "spring",
                       stiffness: 150,
@@ -136,8 +136,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                   }}
                   exit={{
                     x: index > currentIndex ? '100%' : '-100%',
-                    opacity: 0,
-                    transition: { duration: 0 } 
+                    opacity: 0.2,  // Keep slightly visible during exit
+                    transition: { duration: 0.1 }  // Quick but not instant
                   }}
                 >
                   <div className="relative w-full h-full px-4">
