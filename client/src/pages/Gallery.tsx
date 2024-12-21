@@ -269,9 +269,9 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
       1920: Math.max(1, Math.floor(5 * (100 / scale))),
       1536: Math.max(1, Math.floor(4 * (100 / scale))),
       1024: Math.max(1, Math.floor(3 * (100 / scale))),
-      768: Math.max(2, Math.floor(3 * (100 / scale))),
-      640: Math.max(2, Math.floor(2 * (100 / scale))),
-      480: Math.max(2, Math.floor(2 * (100 / scale))),
+      768: Math.max(1, Math.min(5, Math.floor(3 * (100 / scale)))),
+      640: Math.max(1, Math.min(5, Math.floor(2 * (100 / scale)))),
+      480: Math.max(1, Math.min(5, Math.floor(2 * (100 / scale)))),
     }),
     [scale]
   );
