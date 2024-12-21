@@ -1,0 +1,90 @@
+Objective:
+Enhance the image gallery by adding pinch-to-zoom functionality, replicating the smooth and responsive experience of iPhone Photos.
+
+Approach Overview:
+Use useMotionValue for Scale and Position:
+This allows dynamic scaling and panning of the image during pinch or drag gestures.
+Attach Gesture Handling with onWheel and touchmove:
+This will track pinch gestures and apply the scaling transform to the active image.
+Smooth Transitioning Back to Original Scale:
+Implement double-tap-to-reset and inertia to snap the image back to the base scale.
+Step-by-Step Implementation:
+1. Add State and Motion Values for Zoom:
+Define a motion value for tracking zoom (scaleValue) and offset for drag (offsetX and offsetY).
+
+tsx
+Copy code
+const scaleValue = useMotionValue(1);
+const offsetX = useMotionValue(0);
+const offsetY = useMotionValue(0);
+2. Handle Pinch and Drag Events:
+Use a combination of gesturestart, gesturechange, and gestureend for pinch gestures. For browsers that don't natively support these, fallback to touchmove and track the distance between two fingers.
+
+tsx
+Copy code
+useEffect(() => {
+  const handleTouchMove = (event: TouchEvent) => {
+    if (event.touches.length === 2) {
+      const touch1 = event.touches[0];
+      const touch2 = event.touches[1];
+
+      const dx = touch1.pageX - touch2.pageX;
+      const dy = touch1.pageY - touch2.pageY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      const scaleFactor = distance / 200;  // Adjust based on testing
+      scaleValue.set(scaleFactor);
+    }
+  };
+
+  const resetZoom = () => {
+    scaleValue.set(1);
+    offsetX.set(0);
+    offsetY.set(0);
+  };
+
+  window.addEventListener('touchmove', handleTouchMove);
+  window.addEventListener('dblclick', resetZoom);  // Double-tap to reset
+
+  return () => {
+    window.removeEventListener('touchmove', handleTouchMove);
+    window.removeEventListener('dblclick', resetZoom);
+  };
+}, []);
+3. Apply Scale and Position to the Image:
+Bind the zoom and pan transformations directly to the active image using Framer Motion’s transform property.
+
+tsx
+Copy code
+<motion.img
+  src={image.url}
+  alt=""
+  className="w-full h-full object-contain select-none"
+  draggable={false}
+  initial={false}
+  animate={{
+    scale: scaleValue,
+    x: offsetX,
+    y: offsetY,
+  }}
+  transition={{
+    type: "spring",
+    stiffness: 200,
+    damping: 20,
+  }}
+  onPan={(event, info) => {
+    offsetX.set(offsetX.get() + info.delta.x);
+    offsetY.set(offsetY.get() + info.delta.y);
+  }}
+  onWheel={(event) => {
+    const deltaScale = event.deltaY * -0.001;
+    scaleValue.set(Math.min(Math.max(scaleValue.get() + deltaScale, 1), 3));  // Clamp between 1x and 3x
+  }}
+/>
+Enhancements:
+Inertia-Based Zoom Reset:
+Add spring physics for the zoom reset, making the experience feel natural.
+Pinch Boundary Clamping:
+Prevent the image from zooming beyond a max scale (typically 3x).
+Drag Limitation During Zoom:
+Only allow dragging when the image is zoomed (scale > 1).
