@@ -264,11 +264,12 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   // Memoized Values
   const breakpointCols = useMemo(
     () => ({
-      default: Math.max(1, Math.floor(6 * (100 / scale))),
-      2560: Math.max(1, Math.floor(5 * (100 / scale))),
-      1920: Math.max(1, Math.floor(4 * (100 / scale))),
+      default: Math.max(1, Math.floor(4 * (100 / scale))),
+      2560: Math.max(1, Math.floor(4 * (100 / scale))),
+      1920: Math.max(1, Math.floor(3 * (100 / scale))),
       1536: Math.max(1, Math.floor(3 * (100 / scale))),
       1024: Math.max(1, Math.floor(2 * (100 / scale))),
+      768: Math.max(1, Math.floor(2 * (100 / scale))),
       640: 1,
     }),
     [scale]
@@ -531,14 +532,14 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
       </div>
 
       {/* Scale Slider */}
-      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-2 shadow-lg">
+      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-4 shadow-lg">
         <Slider
           value={[scale]}
           onValueChange={([value]) => setScale(value)}
           min={50}
           max={150}
           step={10}
-          className="w-[100px]"
+          className="w-[120px] touch-none"
         />
       </div>
 
