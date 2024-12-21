@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { Image } from "@/types/gallery";
 import { Star, MessageCircle, Share2, Trash2 } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface MobileGalleryViewProps {
   images: Image[];
@@ -13,8 +14,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isDragging, setIsDragging] = useState(false);
   const [toolbarExpanded, setToolbarExpanded] = useState(false);
-  const [starredImages, setStarredImages] = useState<Record<number, boolean>>({});
   const startDistanceRef = useRef(0);
+  const queryClient = useQueryClient();
 
   // Motion values for gestures
   const dragX = useMotionValue(0);
@@ -31,6 +32,38 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   const revealOpacity = useTransform(dragY, [-600, 0, 400], [0.1, 1, 0]);
   const toolbarOpacity = useTransform(scaleValue, [1, 2], [1, 0.3], { clamp: true });
 
+  // Star mutation
+  const starMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/images/${images[currentIndex].id}/star`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to star image');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+    }
+  });
+
+  // Comment mutation
+  const commentMutation = useMutation({
+    mutationFn: async (comment: string) => {
+      const response = await fetch(`/api/images/${images[currentIndex].id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: comment }),
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to add comment');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+    }
+  });
+
   // Utility function to clamp pan values
   const clampPan = (value: number, maxDistance: number) => {
     return Math.max(Math.min(value, maxDistance), -maxDistance);
@@ -38,10 +71,14 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
 
   // Handle toolbar actions
   const toggleStarImage = () => {
-    setStarredImages(prev => ({
-      ...prev,
-      [currentIndex]: !prev[currentIndex]
-    }));
+    starMutation.mutate();
+  };
+
+  const handleComment = () => {
+    const comment = prompt('Add a comment:');
+    if (comment) {
+      commentMutation.mutate(comment);
+    }
   };
 
   const handleShareImage = () => {
@@ -52,15 +89,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     console.log("Delete image");
   };
 
-  const handleComment = () => {
-    console.log("Open comments");
-  };
-
   const handleToolbarDrag = (event: any, info: PanInfo) => {
     const newY = toolbarY.get() + info.delta.y;
-    if (newY < -100) {
+    if (newY < -80) {
       setToolbarExpanded(true);
-      toolbarY.set(-100);
+      toolbarY.set(-80);
     } else if (newY > 0) {
       setToolbarExpanded(false);
       toolbarY.set(0);
@@ -294,25 +327,25 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         </div>
       </motion.div>
 
-      {/* iOS-style toolbar */}
+      {/* Compact, centered toolbar */}
       <motion.div
-        className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-md rounded-xl shadow-lg transition-all duration-200 ${
-          toolbarExpanded ? 'h-32' : 'h-16'
+        className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-black/70 backdrop-blur-md rounded-full shadow-lg transition-all duration-200 ${
+          toolbarExpanded ? 'h-24' : 'h-12'
         }`}
         style={{
-          width: '80%',
+          width: '60%', // More compact width
           opacity: toolbarOpacity,
           y: toolbarY,
           pointerEvents: scaleValue.get() > 1 ? 'none' : 'auto',
         }}
         drag="y"
-        dragConstraints={{ top: -100, bottom: 0 }}
+        dragConstraints={{ top: -80, bottom: 0 }}
         dragElastic={0.2}
         onDrag={handleToolbarDrag}
         onDragEnd={(event, info) => {
-          if (info.offset.y < -50) {
+          if (info.offset.y < -40) {
             setToolbarExpanded(true);
-            toolbarY.set(-100);
+            toolbarY.set(-80);
           } else {
             setToolbarExpanded(false);
             toolbarY.set(0);
@@ -320,41 +353,41 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         }}
       >
         {/* Primary toolbar actions */}
-        <div className="flex justify-around items-center h-16 px-4">
+        <div className="flex justify-around items-center h-12 px-3">
           <button
             onClick={toggleStarImage}
             className={`transition-colors ${
-              starredImages[currentIndex]
+              images[currentIndex].starred
                 ? 'text-yellow-400 hover:text-yellow-300'
                 : 'text-white/90 hover:text-white'
             }`}
           >
-            <Star className="w-6 h-6" fill={starredImages[currentIndex] ? "currentColor" : "none"} />
+            <Star className="w-5 h-5" fill={images[currentIndex].starred ? "currentColor" : "none"} />
           </button>
           <button
             onClick={handleComment}
             className="text-white/90 hover:text-white transition-colors"
           >
-            <MessageCircle className="w-6 h-6" />
+            <MessageCircle className="w-5 h-5" />
           </button>
           <button
             onClick={handleShareImage}
             className="text-white/90 hover:text-white transition-colors"
           >
-            <Share2 className="w-6 h-6" />
+            <Share2 className="w-5 h-5" />
           </button>
           <button
             onClick={handleDeleteImage}
             className="text-red-500/90 hover:text-red-500 transition-colors"
           >
-            <Trash2 className="w-6 h-6" />
+            <Trash2 className="w-5 h-5" />
           </button>
         </div>
 
         {/* Expanded toolbar content */}
         {toolbarExpanded && (
           <motion.div
-            className="h-16 flex justify-around items-center px-4 border-t border-white/10"
+            className="h-12 flex justify-around items-center px-3 border-t border-white/10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
