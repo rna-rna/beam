@@ -265,11 +265,13 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   const breakpointCols = useMemo(
     () => ({
       default: Math.max(1, Math.floor(6 * (100 / scale))),
-      2560: Math.max(1, Math.floor(5 * (100 / scale))),
-      1920: Math.max(1, Math.floor(4 * (100 / scale))),
-      1536: Math.max(1, Math.floor(3 * (100 / scale))),
-      1024: Math.max(1, Math.floor(2 * (100 / scale))),
-      640: 1,
+      2560: Math.max(1, Math.floor(6 * (100 / scale))),
+      1920: Math.max(1, Math.floor(5 * (100 / scale))),
+      1536: Math.max(1, Math.floor(4 * (100 / scale))),
+      1024: Math.max(1, Math.floor(3 * (100 / scale))),
+      768: Math.max(1, Math.min(5, Math.floor(3 * (100 / scale)))),
+      640: Math.max(1, Math.min(5, Math.floor(2 * (100 / scale)))),
+      480: Math.max(1, Math.min(5, Math.floor(2 * (100 / scale)))),
     }),
     [scale]
   );
@@ -406,7 +408,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
             </MenuGroup>
           </MenuContent>
         </Menu>
-      </div>
+      </motion.div>
     );
   }, [
     gallery,
@@ -449,7 +451,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     return (
       <div className="min-h-screen flex items-center justify-center">
         <h1 className="text-2xl font-bold text-foreground">Failed to load gallery</h1>
-      </div>
+      </motion.div>
     );
   }
 
@@ -457,7 +459,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     return (
       <div className="min-h-screen flex items-center justify-center">
         <h1 className="text-2xl font-bold text-foreground">Gallery not found</h1>
-      </div>
+      </motion.div>
     );
   }
 
@@ -522,25 +524,26 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                           <Star className="h-4 w-4" />
                         )}
                       </Button>
-                    </div>
-                  </div>
+                    </motion.div>
+                  </motion.div>
                 </motion.div>
               ))}
           </Masonry>
         </AnimatePresence>
-      </div>
+      </motion.div>
 
       {/* Scale Slider */}
-      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-2 shadow-lg">
+      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
         <Slider
           value={[scale]}
           onValueChange={([value]) => setScale(value)}
-          min={50}
+          min={25}
           max={150}
-          step={10}
-          className="w-[100px]"
+          step={5}
+          className="w-[150px] touch-none select-none"
+          aria-label="Adjust gallery scale"
         />
-      </div>
+      </motion.div>
 
       <Dialog
         open={selectedImageIndex >= 0}
@@ -557,13 +560,13 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
         >
           <div id="gallery-lightbox-description" className="sr-only">
             Image viewer with annotation and commenting capabilities
-          </div>
+          </motion.div>
 
           {/* Filename display */}
           {showFilename && selectedImage?.originalFilename && (
             <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
               {selectedImage.originalFilename}
-            </div>
+            </motion.div>
           )}
 
           {/* Navigation buttons */}
@@ -648,8 +651,8 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                   }`}
                 />
               </Button>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Settings toggles */}
           <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
@@ -661,7 +664,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                   className="data-[state=checked]:bg-primary h-5 w-9"
                 />
                 <span className="text-xs font-medium">Comments</span>
-              </div>
+              </motion.div>
               <div className="flex items-center gap-2">
                 <Switch
                   checked={showFilename}
@@ -669,15 +672,26 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                   className="data-[state=checked]:bg-primary h-5 w-9"
                 />
                 <span className="text-xs font-medium">Filename</span>
-              </div>
-            </div>
-          </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
 
           {selectedImage && (
-            <div
+            <motion.div
               className={`relative w-full h-full flex items-center justify-center ${
                 isCommentPlacementMode ? "cursor-crosshair" : ""
               }`}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={1}
+              onDragEnd={(e, { offset, velocity }) => {
+                const swipe = Math.abs(offset.x) * velocity.x;
+                if (swipe < -100 && selectedImageIndex < gallery!.images.length - 1) {
+                  setSelectedImageIndex(selectedImageIndex + 1);
+                } else if (swipe > 100 && selectedImageIndex > 0) {
+                  setSelectedImageIndex(selectedImageIndex - 1);
+                }
+              }}
               onClick={(e) => {
                 if (!isCommentPlacementMode) return;
                 const target = e.currentTarget;
@@ -740,7 +754,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                       }
                     }}
                   />
-                </div>
+                </motion.div>
 
                 {/* Comments */}
                 {showAnnotations &&
@@ -775,12 +789,12 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                     }}
                   />
                 )}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }
 
