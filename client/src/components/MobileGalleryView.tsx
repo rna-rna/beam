@@ -39,8 +39,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       return;
     }
 
-    const swipeThreshold = window.innerWidth * 0.45;
-    const velocityThreshold = 0.3;
+    const swipeThreshold = window.innerWidth * 0.3;  // Lowered to 30% for quicker triggers
+    const velocityThreshold = 0.2;  // Lowered for faster reaction
 
     const shouldChangeImage =
       Math.abs(velocity) > velocityThreshold || Math.abs(xOffset) > swipeThreshold;
@@ -49,10 +49,15 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
       const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
       setCurrentIndex(clampedIndex);
-    } 
+    }
 
     // Smooth return if swipe doesn't meet threshold
-    dragX.set(0, { type: "spring", stiffness: 150, damping: 20 });
+    dragX.set(0, { 
+      type: "spring", 
+      stiffness: 300,  // Increased for faster snap-back
+      damping: 15,    // Lowered for snappier motion
+      mass: 0.3       // Lighter mass for faster transitions
+    });
     dragY.set(0);
     setIsDragging(false);
   };
@@ -71,7 +76,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           opacity 
         }}
         drag
-        dragElastic={0.1}
+        dragElastic={0.1}  // Reduced for more precise control
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragDirectionLock
         onDragStart={() => setIsDragging(true)}
@@ -111,8 +116,9 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                     filter: isActive ? 'blur(0px)' : 'blur(2px)',  // Subtle blur for non-active
                     transition: {
                       type: "spring",
-                      stiffness: 150,
-                      damping: 20,
+                      stiffness: 300,  // Increased for snappier motion
+                      damping: 15,     // Lowered for faster response
+                      mass: 0.3,       // Lighter mass
                       opacity: { duration: 0.2 }
                     }
                   }}
@@ -136,8 +142,9 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       }}
                       transition={{
                         type: "spring",
-                        stiffness: 150,
-                        damping: 20,
+                        stiffness: 300,  // Increased for snappier scaling
+                        damping: 15,     // Lowered for faster response
+                        mass: 0.3        // Lighter mass
                       }}
                     />
                   </div>
