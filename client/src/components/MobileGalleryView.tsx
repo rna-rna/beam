@@ -24,6 +24,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   const opacity = useTransform(dragY, [0, 200], [1, 0]);
   const scale = useTransform(dragY, [0, 200], [1, 0.95]);
 
+  // Utility function to clamp pan values
+  const clampPan = (value: number, maxDistance: number) => {
+    return Math.max(Math.min(value, maxDistance), -maxDistance);
+  };
+
   useEffect(() => {
     // Lock body scroll when gallery is open
     document.body.style.overflow = 'hidden';
@@ -53,11 +58,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     };
 
     const resetZoom = () => {
-      scaleValue.set(1, { 
-        type: "spring",
-        stiffness: 300,
-        damping: 15,
-      });
+      scaleValue.set(1);
       offsetX.set(0);
       offsetY.set(0);
     };
@@ -74,6 +75,18 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     };
   }, []);
 
+  const handlePan = (event: any, info: PanInfo) => {
+    const scale = scaleValue.get();
+    const maxX = (window.innerWidth / 2) * (scale - 1);
+    const maxY = (window.innerHeight / 2) * (scale - 1);
+
+    const newX = clampPan(offsetX.get() + info.delta.x, maxX);
+    const newY = clampPan(offsetY.get() + info.delta.y, maxY);
+
+    offsetX.set(newX);
+    offsetY.set(newY);
+  };
+
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const xOffset = info.offset.x;
     const yOffset = info.offset.y;
@@ -81,9 +94,13 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
 
     // Only process horizontal swipes when not zoomed
     if (scaleValue.get() > 1) {
-      // Update pan position when zoomed
-      offsetX.set(offsetX.get() + info.delta.x);
-      offsetY.set(offsetY.get() + info.delta.y);
+      // Check if we need to bounce back from edges
+      const scale = scaleValue.get();
+      const maxX = (window.innerWidth / 2) * (scale - 1);
+      const maxY = (window.innerHeight / 2) * (scale - 1);
+
+      offsetX.set(clampPan(offsetX.get(), maxX));
+      offsetY.set(clampPan(offsetY.get(), maxY));
       return;
     }
 
@@ -106,12 +123,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     }
 
     // Smooth return if swipe doesn't meet threshold
-    dragX.set(0, { 
-      type: "spring", 
-      stiffness: 300,  // Increased for faster snap-back
-      damping: 15,    // Lowered for snappier motion
-      mass: 0.3       // Lighter mass for faster transitions
-    });
+    dragX.set(0);
     dragY.set(0);
     setIsDragging(false);
   };
@@ -188,19 +200,13 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       alt=""
                       className="w-full h-full object-contain select-none"
                       draggable={false}
-                      initial={false}
                       style={{
                         scale: scaleValue,
                         x: offsetX,
                         y: offsetY
                       }}
                       drag={scaleValue.get() > 1}  // Enable drag only when zoomed
-                      dragConstraints={{
-                        left: -window.innerWidth / 2,
-                        right: window.innerWidth / 2,
-                        top: -window.innerHeight / 2,
-                        bottom: window.innerHeight / 2,
-                      }}
+                      dragMomentum={false}  // Prevent overshoot momentum
                       dragElastic={0.2}  // Slight elasticity for smoother panning
                       transition={{
                         type: "spring",
@@ -208,10 +214,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                         damping: 15,     // Lowered for faster response
                         mass: 0.3        // Lighter mass
                       }}
-                      onDrag={(event, info) => {
-                        offsetX.set(offsetX.get() + info.delta.x);
-                        offsetY.set(offsetY.get() + info.delta.y);
-                      }}
+                      onDrag={handlePan}
                       onWheel={(event) => {
                         if (isActive) {
                           const deltaScale = event.deltaY * -0.001;
