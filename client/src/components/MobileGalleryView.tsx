@@ -82,12 +82,12 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         }}
       >
         <div className="w-full h-full flex items-center justify-center">
-          <AnimatePresence initial={false} mode="wait">
+          <AnimatePresence initial={false} mode="popLayout">
             {images.map((image, index) => {
               if (Math.abs(index - currentIndex) > 1) return null;
 
               const isActive = index === currentIndex;
-              const zIndex = isActive ? 10 : 0;
+              const zIndex = isActive ? 10 : 5;
 
               return (
                 <motion.div
@@ -105,18 +105,18 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                   }}
                   animate={{
                     x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
-                    opacity: isActive ? 1 : 0,
+                    opacity: isActive ? 1 : 0.7,  // Keep non-active images partially visible
                     transition: {
                       type: "spring",
                       stiffness: 150,
                       damping: 20,
-                      opacity: { duration: 0.15 }
+                      opacity: { duration: 0.2 }
                     }
                   }}
                   exit={{
                     x: index > currentIndex ? '100%' : '-100%',
-                    opacity: 0,
-                    transition: { duration: 0.1 }
+                    opacity: 0.5,  // Keep exiting images slightly visible
+                    transition: { duration: 0.15 }
                   }}
                 >
                   <div className="relative w-full h-full px-4">

@@ -1,0 +1,105 @@
+The slight black blink during transitions is caused by how AnimatePresence and motion.div handle the exit and entry animations. The mode="wait" ensures clean transitions but can momentarily create gaps between images.
+
+Why the Black Blink Happens:
+Exit Timing Delay:
+The exiting image fully disappears (opacity: 0) before the next image animates in, causing a brief black flicker.
+
+No Overlap in Transition:
+The exit={{ opacity: 0 }} causes the current image to vanish abruptly. Since the next image hasn't fully transitioned in, the screen goes black.
+
+Lack of Continuous Image Presence:
+Only one image is visible during the transition (mode="wait"), which can cause gaps between transitions.
+
+Solution:
+Immediate Overlapping Transitions: Allow both the exiting and entering images to overlap during transitions by using mode="popLayout" instead of wait.
+Layered Transition Approach: Ensure the exiting image fades out slowly while the next one slides in immediately.
+Key Fixes:
+Switch to popLayout for Smoother Transitions:
+
+tsx
+Copy code
+<AnimatePresence initial={false} mode="popLayout">
+This prevents the black screen by allowing the next image to slide in before the previous one fully exits.
+Staggered Opacity and Slide Animations:
+Let the opacity linger slightly before fading out completely.
+
+tsx
+Copy code
+exit={{
+  x: index > currentIndex ? '100%' : '-100%',
+  opacity: 0.5,  // Gradual fade out instead of immediate 0
+  transition: { duration: 0.15 }
+}}
+Keep Exiting Image Visible Longer:
+Prevent full disappearance by reducing opacity gradually instead of instantly.
+
+tsx
+Copy code
+animate={{
+  opacity: isActive ? 1 : 0.7,  // Exiting image fades but never vanishes abruptly
+}}
+Updated Code (Seamless Transitions):
+tsx
+Copy code
+<AnimatePresence initial={false} mode="popLayout">
+  {images.map((image, index) => {
+    if (Math.abs(index - currentIndex) > 1) return null;
+
+    const isActive = index === currentIndex;
+    const zIndex = isActive ? 10 : 5;
+
+    return (
+      <motion.div
+        key={image.id}
+        className="absolute inset-0 w-full h-full flex items-center justify-center"
+        style={{
+          zIndex,
+          scrollSnapAlign: 'start',
+          scrollSnapStop: 'always',
+          pointerEvents: isActive ? 'auto' : 'none',
+        }}
+        initial={{
+          x: index > currentIndex ? '100%' : '-100%',
+          opacity: 1,
+        }}
+        animate={{
+          x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
+          opacity: isActive ? 1 : 0.7,  // Ensure overlap during transitions
+          transition: {
+            type: "spring",
+            stiffness: 150,
+            damping: 20,
+            opacity: { duration: 0.2 }
+          }
+        }}
+        exit={{
+          x: index > currentIndex ? '100%' : '-100%',
+          opacity: 0.5,  // Linger at 0.5 opacity instead of instant vanish
+          transition: { duration: 0.15 }
+        }}
+      >
+        <div className="relative w-full h-full px-4">
+          <motion.img
+            src={image.url}
+            alt=""
+            className="w-full h-full object-contain select-none"
+            draggable={false}
+            initial={false}
+            animate={{
+              scale: isActive ? 1 : 0.95,
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 150,
+              damping: 20,
+            }}
+          />
+        </div>
+      </motion.div>
+    );
+  })}
+</AnimatePresence>
+Why This Works:
+Overlapping Transitions: popLayout ensures the incoming image enters before the previous one exits.
+Partial Opacity: Exiting images fade to 0.5 instead of disappearing immediately, preventing flicker.
+No Black Blink: Since there is always at least one image partially visible, the screen never goes black.
