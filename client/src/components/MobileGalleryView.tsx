@@ -60,7 +60,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       type: "spring",
       stiffness: 150,
       damping: 20,
-      mass: 0.5 // Added mass for more natural feel
+      mass: 0.5 
     });
     dragY.set(0);
     setIsDragging(false);
@@ -80,7 +80,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           opacity 
         }}
         drag
-        dragElastic={0.15} // Slightly increased for more natural feel
+        dragElastic={0.15}
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragDirectionLock
         onDragStart={() => setIsDragging(true)}
@@ -97,44 +97,47 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
             WebkitOverflowScrolling: 'touch'
           }}
         >
-          <AnimatePresence initial={false} mode="popLayout">
+          <AnimatePresence 
+            initial={false} 
+            mode="wait" 
+          >
             {images.map((image, index) => {
-              // Only render current, previous, and next images for performance
+              // Only render current, previous, and next images
               if (Math.abs(index - currentIndex) > 1) return null;
 
               const isActive = index === currentIndex;
+              const zIndex = isActive ? 10 : 0; 
 
               return (
                 <motion.div
                   key={image.id}
                   className="absolute inset-0 w-full h-full flex items-center justify-center"
                   style={{
+                    zIndex,
                     scrollSnapAlign: 'start',
                     scrollSnapStop: 'always',
                     x: isActive ? dragX : undefined,
+                    pointerEvents: isActive ? 'auto' : 'none', 
                   }}
                   initial={{
                     x: index > currentIndex ? '100%' : '-100%',
                     opacity: 0,
-                    scale: 0.95
                   }}
                   animate={{
                     x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
-                    opacity: isActive ? 1 : 0.6, // Increased opacity for better edge peeking
-                    scale: isActive ? 1 : 0.95,
+                    opacity: isActive ? 1 : 0, 
                     transition: {
                       type: "spring",
-                      stiffness: 150, // Reduced for smoother transitions
+                      stiffness: 150,
                       damping: 20,
                       mass: 0.5,
-                      opacity: { duration: 0.3 }
+                      opacity: { duration: 0.2 }
                     }
                   }}
                   exit={{
                     x: index > currentIndex ? '100%' : '-100%',
                     opacity: 0,
-                    scale: 0.95,
-                    transition: { duration: 0.3 }
+                    transition: { duration: 0 } 
                   }}
                 >
                   <div className="relative w-full h-full px-4">
