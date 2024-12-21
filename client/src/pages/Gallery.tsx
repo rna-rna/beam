@@ -105,6 +105,20 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
   const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Add mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768); // Consider tablets and phones as mobile
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<Gallery>({
@@ -682,17 +696,19 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
               className={`relative w-full h-full flex items-center justify-center ${
                 isCommentPlacementMode ? "cursor-crosshair" : ""
               }`}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={1}
-              onDragEnd={(e, { offset, velocity }) => {
-                const swipe = Math.abs(offset.x) * velocity.x;
-                if (swipe < -100 && selectedImageIndex < gallery!.images.length - 1) {
-                  setSelectedImageIndex(selectedImageIndex + 1);
-                } else if (swipe > 100 && selectedImageIndex > 0) {
-                  setSelectedImageIndex(selectedImageIndex - 1);
+              {...(isMobile && {
+                drag: "x",
+                dragConstraints: { left: 0, right: 0 },
+                dragElastic: 1,
+                onDragEnd: (e, { offset, velocity }) => {
+                  const swipe = Math.abs(offset.x) * velocity.x;
+                  if (swipe < -100 && selectedImageIndex < gallery!.images.length - 1) {
+                    setSelectedImageIndex(selectedImageIndex + 1);
+                  } else if (swipe > 100 && selectedImageIndex > 0) {
+                    setSelectedImageIndex(selectedImageIndex - 1);
+                  }
                 }
-              }}
+              })}
               onClick={(e) => {
                 if (!isCommentPlacementMode) return;
                 const target = e.currentTarget;
