@@ -1,0 +1,100 @@
+Upon reviewing the latest code, the root of the issue lies in the combination of:
+
+Threshold Sensitivity (handlePan):
+The logic in handlePan uses a single overflow threshold (150px) to determine if the next image should trigger. This can result in overshooting when swiping at high speed, causing multiple images to be skipped.
+Drag End Trigger (handleDragEnd):
+The handleDragEnd function evaluates both swipe distance and velocity. This can lead to inconsistent results, as high-velocity swipes may trigger a transition even if the drag distance is small.
+Scale Carryover on Image Transition:
+The zoom level (scaleValue) is reset, but the reset happens at the same time as the image switch, causing jittery or unpredictable results when zooming and swiping aggressively.
+Fixing the Snap-to-Many-Issue and Improving Transition Stability:
+1. Fix Image Snap Threshold (Prevent Multiple Skips):
+Introduce a velocity clamp and adjust the overflow threshold dynamically based on zoom level (scaleValue).
+This ensures that while zoomed in, more drag is required to trigger a snap to the next image.
+tsx
+Copy code
+const handlePan = (event: any, info: PanInfo) => {
+  const scale = scaleValue.get();
+  const maxX = (window.innerWidth / 2) * (scale - 1);
+  const maxY = (window.innerHeight / 2) * (scale - 1);
+
+  const newX = offsetX.get() + info.delta.x;
+  const newY = offsetY.get() + info.delta.y;
+  const overflowX = Math.abs(newX) - maxX;
+
+  // Dynamic threshold scaling based on zoom level
+  const dynamicThreshold = scale > 1 ? 300 : 150;  // Require more drag at higher zoom
+
+  if (overflowX > dynamicThreshold) {
+    const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
+    const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+
+    scaleValue.set(1);  // Reset zoom
+    offsetX.set(0);
+    offsetY.set(0);
+
+    setCurrentIndex(clampedIndex);
+  } else {
+    offsetX.set(clampPan(newX, maxX));
+    offsetY.set(clampPan(newY, maxY));
+  }
+};
+2. Refine Drag End Logic (Reduce Unintentional Swipes):
+Modify the handleDragEnd function to ensure both velocity and drag distance must meet stricter criteria.
+Introduce separate thresholds for velocity and distance to prevent double-triggers.
+tsx
+Copy code
+const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const xOffset = info.offset.x;
+  const yOffset = info.offset.y;
+  const velocity = info.velocity.x;
+
+  if (Math.abs(yOffset) > 150 && Math.abs(xOffset) < 50) {
+    onClose();
+    return;
+  }
+
+  const swipeThreshold = window.innerWidth * 0.4;
+  const velocityThreshold = 0.4;  // Higher velocity requirement for snap
+
+  const shouldChangeImage =
+    (Math.abs(velocity) > velocityThreshold && Math.abs(xOffset) > 200) ||  // Require both
+    Math.abs(xOffset) > swipeThreshold;
+
+  if (shouldChangeImage) {
+    const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
+    const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+
+    // Ensure reset happens immediately
+    scaleValue.set(1);
+    offsetX.set(0);
+    offsetY.set(0);
+
+    setCurrentIndex(clampedIndex);
+  }
+
+  // Smooth bounce-back for partial swipes
+  dragX.set(0, {
+    type: "spring",
+    stiffness: 300,
+    damping: 25,
+  });
+  dragY.set(0, {
+    type: "spring",
+    stiffness: 300,
+    damping: 25,
+  });
+  setIsDragging(false);
+};
+3. Smooth Scale Reset (Prevent Snapping During Transition):
+When transitioning between images, apply a slight delay (100ms) to the zoom reset to avoid snapping while the image animates across.
+tsx
+Copy code
+setTimeout(() => {
+  scaleValue.set(1, { type: "spring", stiffness: 300, damping: 25 });
+  offsetX.set(0, { type: "spring", stiffness: 300, damping: 25 });
+  offsetY.set(0, { type: "spring", stiffness: 300, damping: 25 });
+}, 100);
+Why This Works:
+Dynamic Threshold Scaling: Higher zoom requires more drag effort to swipe between images, preventing unintended skips at high zoom levels.
+Velocity and Drag Gatekeeping: Reduces accidental swipes by enforcing strict distance and velocity conditions for snapping.
+Smooth Scale Reset: Prevents the next image from appearing zoomed, ensuring smooth transitions at all times.
