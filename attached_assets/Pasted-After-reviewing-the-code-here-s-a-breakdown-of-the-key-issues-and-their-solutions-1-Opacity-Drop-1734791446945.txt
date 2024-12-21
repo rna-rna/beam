@@ -1,0 +1,89 @@
+After reviewing the code, here’s a breakdown of the key issues and their solutions:
+
+1. Opacity Drop During Zoom (Cause and Fix):
+Cause:
+The imageOpacity transform is mapped to scaleValue but incorrectly clamps between 1 and 1 ([1, 3], [1, 1]). This should not be causing opacity changes, but it's possible that the issue stems from overlapping opacity controls (swipeOpacity and revealOpacity).
+
+Fix:
+
+Ensure imageOpacity is fixed at 1 during zoom:
+tsx
+Copy code
+const imageOpacity = useTransform(scaleValue, [1, 3], [1, 1]);
+Apply opacity: 1 directly to the image to override conflicting transforms:
+tsx
+Copy code
+style={{
+  scale: isActive ? (scaleValue.get() > 1 ? scaleValue : dragScale) : 1,
+  x: offsetX,
+  y: offsetY,
+  opacity: 1,  // Override any opacity changes during zoom
+}}
+Why This Works:
+By forcing the image opacity to remain at 1, any unintended opacity reductions caused by overlapping transforms are negated.
+
+2. Swipe to Next Image Feels Too Sensitive (Tension Fix):
+Cause:
+The snap to the next image happens when overflowX > 100, which may still feel too sensitive during aggressive panning.
+
+Fix:
+
+Increase the threshold further to 150 for added resistance. This requires a more intentional drag to transition to the next image:
+tsx
+Copy code
+if (overflowX > 150) {
+Why This Works:
+This adds more tension to the swipe, reducing accidental transitions when zoomed in.
+
+3. Smooth Reset of Zoom and Pan on Image Change (Snap Fix):
+Cause:
+The zoom (scaleValue) and offset (offsetX, offsetY) are reset immediately when swiping to the next image. This can feel abrupt and may cause snapping issues.
+
+Fix:
+
+Use a spring animation to reset zoom and pan smoothly after transitioning:
+tsx
+Copy code
+scaleValue.set(1, { type: "spring", stiffness: 300, damping: 25 });
+offsetX.set(0, { type: "spring", stiffness: 300, damping: 25 });
+offsetY.set(0, { type: "spring", stiffness: 300, damping: 25 });
+Why This Works:
+This introduces a smoother reset, preventing harsh snapping and aligning the transition with the overall UI fluidity.
+
+Updated Code – Full Fix Implementation:
+tsx
+Copy code
+const handlePan = (event: any, info: PanInfo) => {
+  const scale = scaleValue.get();
+  const maxX = (window.innerWidth / 2) * (scale - 1);
+  const maxY = (window.innerHeight / 2) * (scale - 1);
+
+  const newX = offsetX.get() + info.delta.x;
+  const newY = offsetY.get() + info.delta.y;
+  const overflowX = Math.abs(newX) - maxX;
+
+  if (overflowX > 150) {  // Increase threshold for snap
+    offsetX.set(newX * 1.2);
+    setTimeout(() => {
+      const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
+      const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+      setCurrentIndex(clampedIndex);
+
+      // Smooth reset of zoom and pan
+      scaleValue.set(1, { type: "spring", stiffness: 300, damping: 25 });
+      offsetX.set(0, { type: "spring", stiffness: 300, damping: 25 });
+      offsetY.set(0, { type: "spring", stiffness: 300, damping: 25 });
+    }, 100);
+  } else {
+    offsetX.set(clampPan(newX, maxX), {
+      type: "spring",
+      stiffness: 250,
+      damping: 20,
+    });
+    offsetY.set(clampPan(newY, maxY), {
+      type: "spring",
+      stiffness: 250,
+      damping: 20,
+    });
+  }
+};
