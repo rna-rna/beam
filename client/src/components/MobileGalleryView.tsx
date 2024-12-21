@@ -210,9 +210,9 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       dragElastic={0.2}  // Slight elasticity for smoother panning
                       transition={{
                         type: "spring",
-                        stiffness: 300,  // Increased for snappier scaling
-                        damping: 15,     // Lowered for faster response
-                        mass: 0.3        // Lighter mass
+                        stiffness: 250,  // Reduced for softer motion
+                        damping: 20,     // Increased for smoother control
+                        mass: 0.4        // Increased for more stable feel
                       }}
                       onDrag={handlePan}
                       onWheel={(event) => {
