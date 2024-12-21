@@ -24,7 +24,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   const swipeOpacity = useTransform(dragY, [-400, 0, 400], [1, 1, 0]);
   const dragScale = useTransform(dragY, [0, 400], [1, 0.7]);
   const revealOpacity = useTransform(dragY, [-600, 0, 400], [0.1, 1, 0]);
-  const imageOpacity = useTransform(scaleValue, [1, 3], [1, 1]);
+  const imageOpacity = useTransform(scaleValue, [1, 3], [1, 1], { clamp: true });
 
   // Utility function to clamp pan values
   const clampPan = (value: number, maxDistance: number) => {
@@ -87,7 +87,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const newY = offsetY.get() + info.delta.y;
     const overflowX = Math.abs(newX) - maxX;
 
-    if (overflowX > 40) {
+    if (overflowX > 100) {  // Increased threshold for snap
       offsetX.set(newX * 1.2);
       setTimeout(() => {
         const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
@@ -100,8 +100,16 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         offsetY.set(0);
       }, 100);
     } else {
-      offsetX.set(clampPan(newX, maxX));
-      offsetY.set(clampPan(newY, maxY));
+      offsetX.set(clampPan(newX, maxX), {
+        type: "spring",
+        stiffness: 250,
+        damping: 20,
+      });
+      offsetY.set(clampPan(newY, maxY), {
+        type: "spring",
+        stiffness: 250,
+        damping: 20,
+      });
     }
   };
 
@@ -175,7 +183,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         className="absolute inset-0 w-full h-full"
         style={{ opacity: swipeOpacity }}
         drag={scaleValue.get() === 1}
-        dragElastic={0.1}
+        dragElastic={0.2}
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragDirectionLock
         onDragStart={() => setIsDragging(true)}
@@ -208,8 +216,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                     opacity: 1,
                     transition: {
                       type: "spring",
-                      stiffness: 220,
-                      damping: 25,
+                      stiffness: 250,
+                      damping: 20,
                     },
                   }}
                   exit={{
@@ -232,11 +240,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       }}
                       drag={scaleValue.get() > 1}
                       dragElastic={0.2}
-                      dragMomentum={false}
+                      dragMomentum={true}  // Enable momentum for smoother panning
                       transition={{
                         type: "spring",
-                        stiffness: 220,
-                        damping: 25,
+                        stiffness: 250,
+                        damping: 20,
                       }}
                       onPan={handlePan}
                       onWheel={(event) => {
