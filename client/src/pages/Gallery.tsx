@@ -532,14 +532,15 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
       </div>
 
       {/* Scale Slider */}
-      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-4 shadow-lg">
+      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
         <Slider
           value={[scale]}
           onValueChange={([value]) => setScale(value)}
           min={50}
           max={150}
           step={10}
-          className="w-[120px] touch-none"
+          className="w-[150px] touch-none select-none"
+          aria-label="Adjust gallery scale"
         />
       </div>
 
