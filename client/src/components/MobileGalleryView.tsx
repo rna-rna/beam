@@ -23,6 +23,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   // Transform values for animations
   const opacity = useTransform(dragY, [0, 200], [1, 0]);
   const scale = useTransform(dragY, [0, 200], [1, 0.95]);
+  const revealOpacity = useTransform(dragY, [-200, 0, 200], [0.5, 1, 0]);
 
   // Utility function to clamp pan values
   const clampPan = (value: number, maxDistance: number) => {
@@ -58,9 +59,24 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     };
 
     const resetZoom = () => {
-      scaleValue.set(1);
-      offsetX.set(0);
-      offsetY.set(0);
+      // Animate scale and position back to initial state
+      scaleValue.set(1, {
+        type: "spring",
+        stiffness: 200,
+        damping: 20
+      });
+      offsetX.set(0, {
+        type: "spring",
+        stiffness: 200,
+        damping: 20
+      });
+      offsetY.set(0, {
+        type: "spring",
+        stiffness: 200,
+        damping: 20
+      });
+      dragX.set(0);
+      dragY.set(0);
     };
 
     window.addEventListener('touchstart', handleTouchStart);
@@ -82,18 +98,19 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
 
     const newX = offsetX.get() + info.delta.x;
     const newY = offsetY.get() + info.delta.y;
+    const overflowX = Math.abs(newX) - maxX;
 
-    const overflowX = Math.abs(newX) - maxX;  // Detect over-drag beyond boundary
-
-    // If overflow exceeds threshold, trigger image change
     if (overflowX > 40) {
-      const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
-      const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
-      setCurrentIndex(clampedIndex);
-      offsetX.set(0);  // Reset panning after image switch
-      offsetY.set(0);
+      // Apply inertia for smoother snap
+      offsetX.set(newX * 1.2);
+      setTimeout(() => {
+        const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
+        const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+        setCurrentIndex(clampedIndex);
+        offsetX.set(0);
+        offsetY.set(0);
+      }, 100);
     } else {
-      // Regular panning if within bounds
       offsetX.set(clampPan(newX, maxX));
       offsetY.set(clampPan(newY, maxY));
     }
@@ -104,29 +121,28 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const yOffset = info.offset.y;
     const velocity = info.velocity.x;
 
-    if (scaleValue.get() > 1) {
-      // Allow snap-to-next behavior if over-panned
-      const scale = scaleValue.get();
-      const maxX = (window.innerWidth / 2) * (scale - 1);
-      const overflowX = Math.abs(offsetX.get()) - maxX;
-
-      if (overflowX > 40) {
-        const nextIndex = currentIndex + (offsetX.get() < 0 ? 1 : -1);
-        const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
-        setCurrentIndex(clampedIndex);
-        offsetX.set(0);
-        offsetY.set(0);
-      } else {
-        // Snap back if swipe wasn't strong enough
-        offsetX.set(clampPan(offsetX.get(), maxX));
-        offsetY.set(clampPan(offsetY.get(), maxY));
-      }
+    // Reveal background and dismiss if dragged far enough vertically
+    if (Math.abs(yOffset) > 150 && Math.abs(xOffset) < 50) {
+      onClose();
       return;
     }
 
-    // Close if vertical swipe exceeds threshold
-    if (Math.abs(yOffset) > 120 && Math.abs(xOffset) < 60) {
-      onClose();
+    if (scaleValue.get() > 1) {
+      const scale = scaleValue.get();
+      const maxX = (window.innerWidth / 2) * (scale - 1);
+      const maxY = (window.innerHeight / 2) * (scale - 1);
+
+      // Smooth bounce-back animation
+      offsetX.set(clampPan(offsetX.get(), maxX), {
+        type: "spring",
+        stiffness: 200,
+        damping: 20
+      });
+      offsetY.set(clampPan(offsetY.get(), maxY), {
+        type: "spring",
+        stiffness: 200,
+        damping: 20
+      });
       return;
     }
 
@@ -142,8 +158,16 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       setCurrentIndex(clampedIndex);
     }
 
-    dragX.set(0);
-    dragY.set(0);
+    dragX.set(0, {
+      type: "spring",
+      stiffness: 200,
+      damping: 20
+    });
+    dragY.set(0, {
+      type: "spring",
+      stiffness: 200,
+      damping: 20
+    });
     setIsDragging(false);
   };
 
@@ -153,6 +177,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      style={{ opacity: revealOpacity }}
     >
       <motion.div
         className="absolute inset-0 w-full h-full"
@@ -160,8 +185,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           scale,
           opacity 
         }}
-        drag={scaleValue.get() === 1}  // Lock gallery drag when zoomed
-        dragElastic={0.1}  // Reduced for more precise control
+        drag={scaleValue.get() === 1}
+        dragElastic={0.1}
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragDirectionLock
         onDragStart={() => setIsDragging(true)}
@@ -177,14 +202,13 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
               if (Math.abs(index - currentIndex) > 1) return null;
 
               const isActive = index === currentIndex;
-              const zIndex = isActive ? 15 : 10;
 
               return (
                 <motion.div
                   key={image.id}
                   className="absolute inset-0 w-full h-full flex items-center justify-center"
                   style={{
-                    zIndex,
+                    zIndex: isActive ? 15 : 10,
                     pointerEvents: isActive ? 'auto' : 'none',
                   }}
                   initial={{
@@ -217,14 +241,13 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                         x: offsetX,
                         y: offsetY,
                       }}
-                      drag={scaleValue.get() > 1}  // Only allow drag on zoom
+                      drag={scaleValue.get() > 1}
                       dragElastic={0.2}
                       dragMomentum={false}
                       transition={{
                         type: "spring",
-                        stiffness: 250,
+                        stiffness: 200,
                         damping: 20,
-                        mass: 0.4
                       }}
                       onPan={handlePan}
                       onWheel={(event) => {
