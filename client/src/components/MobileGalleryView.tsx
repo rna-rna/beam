@@ -103,6 +103,9 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       starred: !isCurrentlyStarred
     };
 
+    // Force re-render with updated state
+    setCurrentIndex(currentIndex);
+
     // Trigger mutation
     starMutation.mutate(undefined, {
       onError: () => {
@@ -111,6 +114,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         setCurrentIndex(currentIndex); // Force re-render with updated state
       }
     });
+
+    // Add haptic feedback
+    if ('vibrate' in navigator) {
+      navigator.vibrate(30);
+    }
   };
 
   const handleComment = () => {
