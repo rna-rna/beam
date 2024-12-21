@@ -1,0 +1,102 @@
+Upon reviewing the latest code, the following issues stand out:
+
+Opacity Drop During Zoom (Main Issue):
+The image's opacity is controlled by swipeOpacity, which is tied to vertical drag (dragY).
+However, zooming in/out (scaleValue) does not directly affect opacity. The slight opacity drop happens indirectly because of how transforms like dragScale and revealOpacity are layered.
+Zoomed Snap to Next Image Not Working Properly:
+The logic for switching images when zoomed (handlePan) relies on a dynamic threshold (dynamicThreshold).
+When zoomed in, the snap-to-next behavior triggers inconsistently due to offsetX and inertia being applied together. This creates unpredictable behavior.
+Fixes:
+1. Fix Opacity Drop During Zoom
+The opacity drop occurs because swipeOpacity is always active during drag or pan. However, zooming in should not affect opacity at all.
+
+Fix:
+
+Apply a separate opacity transform for zoom (imageOpacity) that locks to 1 at all zoom levels.
+Add This Below Existing Transforms:
+
+tsx
+Copy code
+const imageOpacity = useTransform(scaleValue, [1, 3], [1, 1], { clamp: true });
+Apply to Image:
+
+tsx
+Copy code
+<motion.img
+  src={image.url}
+  alt=""
+  className="w-full h-full object-contain select-none"
+  draggable={false}
+  style={{
+    scale: isActive ? (scaleValue.get() > 1 ? scaleValue : dragScale) : 1,
+    x: offsetX,
+    y: offsetY,
+    opacity: imageOpacity,  // Prevent opacity changes during zoom
+  }}
+  drag={scaleValue.get() > 1}
+  dragElastic={0.1}
+  dragMomentum={true}
+  transition={{
+    type: "spring",
+    stiffness: 250,
+    damping: 20,
+  }}
+  onPan={handlePan}
+/>
+2. Fix Zoomed Snap to Next Image (Pan Threshold Adjustment)
+The current issue stems from overflowX triggering the next image too easily when zoomed in. This happens because the threshold (dynamicThreshold) is too low for zoomed states.
+
+Fix:
+
+Increase the threshold when zoomed (scale > 1), requiring a more deliberate drag to transition images.
+Update the Threshold Logic in handlePan:
+
+tsx
+Copy code
+const dynamicThreshold = scale > 1 ? 300 : 150;  // More resistance when zoomed
+Why This Works:
+
+When zoomed in, more drag (300px) is required to switch images, preventing accidental image skips during panning.
+3. Smooth Snap Transition Without Zoom Glitch
+The snap to the next image sometimes carries over the zoom level briefly, causing a glitch effect. This occurs because the zoom reset (scaleValue.set(1)) happens at the same time as the image switch.
+
+Fix:
+
+Delay the zoom reset slightly (100ms) after the image switches to ensure the transition completes first.
+Update in handlePan:
+
+tsx
+Copy code
+if (overflowX > dynamicThreshold) {
+  offsetX.set(newX * 1.2);  
+  setTimeout(() => {
+    const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
+    const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+
+    setCurrentIndex(clampedIndex);
+
+    // Delay reset to prevent glitching mid-transition
+    setTimeout(() => {
+      scaleValue.set(1);
+      offsetX.set(0);
+      offsetY.set(0);
+    }, 100);  
+  }, 50);
+}
+4. Reduce Over-Sensitivity to Swipe (DragEnd Adjustment)
+If swipes are triggering too easily, the thresholds in handleDragEnd can be slightly increased to reduce over-sensitivity.
+Update in handleDragEnd:
+
+tsx
+Copy code
+const swipeThreshold = window.innerWidth * 0.3;  // Slightly lower
+const velocityThreshold = 0.3;  // Add more resistance to velocity
+Testing Focus Areas:
+Zoom and Pan:
+Zoom in and pan aggressively. Confirm that the opacity remains at 1 and does not flicker.
+Swipe Between Images:
+Zoom into an image and swipe left/right. The next image should smoothly transition without zoom carry-over.
+Partial Drag Behavior:
+Drag partially to ensure the image snaps back unless the swipe is strong enough to trigger a transition.
+Rapid Swiping:
+Quickly swipe between images while zoomed. Verify that the swipe is intentional and does not result in unexpected image skips.
