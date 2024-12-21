@@ -21,9 +21,9 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   const offsetY = useMotionValue(0);
 
   // Transform values for animations
-  const opacity = useTransform(dragY, [0, 200], [1, 0]);
-  const scale = useTransform(dragY, [0, 200], [1, 0.95]);
-  const revealOpacity = useTransform(dragY, [-200, 0, 200], [0.5, 1, 0]);
+  const opacity = useTransform(dragY, [-200, 0, 200], [1, 1, 0]);
+  const scale = useTransform(dragY, [0, 300], [1, 0.7]);  // Shrink to 70% when dragged down
+  const revealOpacity = useTransform(dragY, [-400, 0, 300], [0.2, 1, 0]);  // Extended range for darker hold
 
   // Utility function to clamp pan values
   const clampPan = (value: number, maxDistance: number) => {
@@ -59,22 +59,10 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     };
 
     const resetZoom = () => {
-      // Animate scale and position back to initial state
-      scaleValue.set(1, {
-        type: "spring",
-        stiffness: 200,
-        damping: 20
-      });
-      offsetX.set(0, {
-        type: "spring",
-        stiffness: 200,
-        damping: 20
-      });
-      offsetY.set(0, {
-        type: "spring",
-        stiffness: 200,
-        damping: 20
-      });
+      // Animate scale and position back to initial state with spring animation
+      scaleValue.set(1);
+      offsetX.set(0);
+      offsetY.set(0);
       dragX.set(0);
       dragY.set(0);
     };
@@ -121,7 +109,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const yOffset = info.offset.y;
     const velocity = info.velocity.x;
 
-    // Reveal background and dismiss if dragged far enough vertically
+    // Close if vertical swipe exceeds threshold
     if (Math.abs(yOffset) > 150 && Math.abs(xOffset) < 50) {
       onClose();
       return;
@@ -132,17 +120,9 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       const maxX = (window.innerWidth / 2) * (scale - 1);
       const maxY = (window.innerHeight / 2) * (scale - 1);
 
-      // Smooth bounce-back animation
-      offsetX.set(clampPan(offsetX.get(), maxX), {
-        type: "spring",
-        stiffness: 200,
-        damping: 20
-      });
-      offsetY.set(clampPan(offsetY.get(), maxY), {
-        type: "spring",
-        stiffness: 200,
-        damping: 20
-      });
+      // Smooth bounce-back animation with spring
+      offsetX.set(clampPan(offsetX.get(), maxX));
+      offsetY.set(clampPan(offsetY.get(), maxY));
       return;
     }
 
@@ -158,16 +138,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       setCurrentIndex(clampedIndex);
     }
 
-    dragX.set(0, {
-      type: "spring",
-      stiffness: 200,
-      damping: 20
-    });
-    dragY.set(0, {
-      type: "spring",
-      stiffness: 200,
-      damping: 20
-    });
+    dragX.set(0);
+    dragY.set(0);
     setIsDragging(false);
   };
 
