@@ -110,8 +110,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       return;
     }
 
-    const swipeThreshold = window.innerWidth * 0.3;  // Lowered for quicker triggers
-    const velocityThreshold = 0.2;  // Lowered for faster reaction
+    const swipeThreshold = window.innerWidth * 0.3;  // Lower threshold for quicker triggers
+    const velocityThreshold = 0.2;  // Lower velocity threshold for faster reaction
 
     const shouldChangeImage =
       Math.abs(velocity) > velocityThreshold || Math.abs(xOffset) > swipeThreshold;
@@ -141,7 +141,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           scale,
           opacity 
         }}
-        drag={scaleValue.get() === 1}  // Only allow drag when not zoomed
+        drag={scaleValue.get() === 1}  // Lock gallery drag when zoomed
         dragElastic={0.1}  // Reduced for more precise control
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragDirectionLock
@@ -166,32 +166,25 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                   className="absolute inset-0 w-full h-full flex items-center justify-center"
                   style={{
                     zIndex,
-                    scrollSnapAlign: 'start',
-                    scrollSnapStop: 'always',
                     pointerEvents: isActive ? 'auto' : 'none',
                   }}
                   initial={{
                     x: index > currentIndex ? '100%' : '-100%',
                     opacity: 1,
-                    scale: 1,
                   }}
                   animate={{
                     x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
-                    opacity: isActive ? 1 : 1,  // Keep full opacity for consistent visibility
-                    scale: isActive ? 1 : 1,
+                    opacity: 1,
                     transition: {
                       type: "spring",
-                      stiffness: 300,  // Increased for snappier motion
-                      damping: 15,     // Lowered for faster response
-                      mass: 0.3,       // Lighter mass
-                      opacity: { duration: 0.15 }
-                    }
+                      stiffness: 300,
+                      damping: 20,
+                    },
                   }}
                   exit={{
-                    x: index > currentIndex ? '105%' : '-105%',  // Push slightly beyond viewport
-                    opacity: 1,  // Maintain full opacity during exit
-                    scale: 1,
-                    transition: { duration: 0.12 }  // Quick exit
+                    x: index > currentIndex ? '105%' : '-105%',
+                    opacity: 1,
+                    transition: { duration: 0.12 },
                   }}
                 >
                   <div className="relative w-full h-full px-4">
@@ -203,18 +196,28 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       style={{
                         scale: scaleValue,
                         x: offsetX,
-                        y: offsetY
+                        y: offsetY,
                       }}
-                      drag={scaleValue.get() > 1}  // Enable drag only when zoomed
-                      dragMomentum={false}  // Prevent overshoot momentum
-                      dragElastic={0.2}  // Slight elasticity for smoother panning
+                      drag={scaleValue.get() > 1}  // Only allow drag on zoom
+                      dragElastic={0.2}
+                      dragMomentum={false}
                       transition={{
                         type: "spring",
-                        stiffness: 250,  // Reduced for softer motion
-                        damping: 20,     // Increased for smoother control
-                        mass: 0.4        // Increased for more stable feel
+                        stiffness: 250,
+                        damping: 20,
+                        mass: 0.4
                       }}
-                      onDrag={handlePan}
+                      onPan={(event, info) => {
+                        const scale = scaleValue.get();
+                        const maxX = (window.innerWidth / 2) * (scale - 1);
+                        const maxY = (window.innerHeight / 2) * (scale - 1);
+
+                        const newX = clampPan(offsetX.get() + info.delta.x, maxX);
+                        const newY = clampPan(offsetY.get() + info.delta.y, maxY);
+
+                        offsetX.set(newX);
+                        offsetY.set(newY);
+                      }}
                       onWheel={(event) => {
                         if (isActive) {
                           const deltaScale = event.deltaY * -0.001;
