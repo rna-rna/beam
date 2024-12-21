@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { Image } from "@/types/gallery";
 
@@ -11,6 +11,7 @@ interface MobileGalleryViewProps {
 export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalleryViewProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isDragging, setIsDragging] = useState(false);
+  const startDistanceRef = useRef(0);
 
   // Motion values for gestures
   const dragX = useMotionValue(0);
@@ -26,24 +27,31 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   useEffect(() => {
     // Lock body scroll when gallery is open
     document.body.style.overflow = 'hidden';
+    let startDistance = 0;
 
-    // Handle pinch zoom gestures
-    const handleTouchMove = (event: TouchEvent) => {
+    const handleTouchStart = (event: TouchEvent) => {
       if (event.touches.length === 2) {
-        event.preventDefault();
-        const touch1 = event.touches[0];
-        const touch2 = event.touches[1];
-
-        const dx = touch1.pageX - touch2.pageX;
-        const dy = touch1.pageY - touch2.pageY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        const scaleFactor = Math.min(Math.max(distance / 200, 1), 3); // Clamp between 1x and 3x
-        scaleValue.set(scaleFactor);
+        const dx = event.touches[0].pageX - event.touches[1].pageX;
+        const dy = event.touches[0].pageY - event.touches[1].pageY;
+        startDistance = Math.sqrt(dx * dx + dy * dy);
+        startDistanceRef.current = startDistance;
       }
     };
 
-    // Reset zoom on double tap
+    const handleTouchMove = (event: TouchEvent) => {
+      if (event.touches.length === 2) {
+        event.preventDefault();
+        const dx = event.touches[0].pageX - event.touches[1].pageX;
+        const dy = event.touches[0].pageY - event.touches[1].pageY;
+        const newDistance = Math.sqrt(dx * dx + dy * dy);
+
+        if (startDistanceRef.current > 0) {
+          const scaleFactor = Math.min(Math.max(newDistance / startDistanceRef.current, 1), 3);
+          scaleValue.set(scaleFactor);
+        }
+      }
+    };
+
     const resetZoom = () => {
       scaleValue.set(1, { 
         type: "spring",
@@ -54,11 +62,13 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       offsetY.set(0);
     };
 
+    window.addEventListener('touchstart', handleTouchStart);
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
     window.addEventListener('dblclick', resetZoom);
 
     return () => {
       document.body.style.overflow = 'unset';
+      window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('dblclick', resetZoom);
     };
@@ -119,7 +129,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           scale,
           opacity 
         }}
-        drag
+        drag={scaleValue.get() === 1}  // Only allow drag when not zoomed
         dragElastic={0.1}  // Reduced for more precise control
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragDirectionLock
@@ -179,10 +189,10 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       className="w-full h-full object-contain select-none"
                       draggable={false}
                       initial={false}
-                      animate={{
-                        scale: isActive ? scaleValue : 1,
-                        x: isActive ? offsetX : 0,
-                        y: isActive ? offsetY : 0,
+                      style={{
+                        scale: scaleValue,
+                        x: offsetX,
+                        y: offsetY
                       }}
                       transition={{
                         type: "spring",
