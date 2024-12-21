@@ -50,6 +50,10 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         title: images[currentIndex].starred ? "Removed from favorites" : "Added to favorites",
         duration: 2000
       });
+      // Add haptic feedback for mobile
+      if ('vibrate' in navigator) {
+        navigator.vibrate(50);
+      }
     },
     onError: () => {
       toast({
@@ -349,12 +353,12 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           toolbarExpanded ? 'h-24' : 'h-12'
         }`}
         style={{
-          width: '40%', // More compact width
+          width: '40%',
           opacity: toolbarOpacity,
           y: toolbarY,
           pointerEvents: scaleValue.get() > 1 ? 'none' : 'auto',
-          x: '-50%', // Ensure proper centering
-          margin: '0 auto', // Center horizontally
+          x: '-50%',
+          margin: '0 auto',
         }}
         drag="y"
         dragConstraints={{ top: -80, bottom: 0 }}
@@ -372,22 +376,27 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       >
         {/* Primary toolbar actions */}
         <div className="flex justify-center gap-8 items-center h-12">
-          <button
+          <motion.button
             onClick={toggleStarImage}
+            whileTap={{ scale: 0.85 }}
             className={`transition-colors ${
               images[currentIndex].starred
                 ? 'text-yellow-400 hover:text-yellow-300'
                 : 'text-white/90 hover:text-white'
             }`}
           >
-            <Star className="w-5 h-5" fill={images[currentIndex].starred ? "currentColor" : "none"} />
-          </button>
-          <button
+            <Star 
+              className="w-5 h-5" 
+              fill={images[currentIndex].starred ? "currentColor" : "none"}
+            />
+          </motion.button>
+          <motion.button
             onClick={handleComment}
+            whileTap={{ scale: 0.85 }}
             className="text-white/90 hover:text-white transition-colors"
           >
             <MessageCircle className="w-5 h-5" />
-          </button>
+          </motion.button>
         </div>
 
         {/* Expanded toolbar content */}
