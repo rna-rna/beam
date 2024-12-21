@@ -1,0 +1,56 @@
+Why Panning and Pinch-to-Zoom are Conflicting (Diagnosis):
+Panning Only Works in Non-Zoomed Mode:
+tsx
+Copy code
+drag={scaleValue.get() === 1}  // Only allow drag when not zoomed
+This condition disables panning when zoomed (scaleValue > 1). The image remains static during zoom.
+Dragging Moves the Entire Container, Not the Image:
+motion.div (the outer container) handles drag gestures, not the motion.img (the actual image).
+As a result, zooming causes the outer container to move, pulling adjacent images into view.
+Offset Not Applied Correctly for Panning:
+While offsetX and offsetY update during zoom, they don’t restrict the drag to the image boundaries.
+Solution – Separate Drag for Panning the Image:
+Allow motion.img to handle drag gestures when zoomed in, enabling free panning.
+Lock horizontal dragging of the outer container (motion.div) during zoom to avoid pulling adjacent images.
+Fix – Enable Panning Only on the Zoomed Image:
+tsx
+Copy code
+<motion.img
+  src={image.url}
+  alt=""
+  className="w-full h-full object-contain select-none"
+  draggable={false}
+  style={{
+    scale: scaleValue,
+    x: offsetX,
+    y: offsetY,
+  }}
+  drag={scaleValue.get() > 1}  // Enable drag only when zoomed
+  dragConstraints={{
+    left: -window.innerWidth / 2,
+    right: window.innerWidth / 2,
+    top: -window.innerHeight / 2,
+    bottom: window.innerHeight / 2,
+  }}
+  dragElastic={0.2}  // Slight elasticity for smoother panning
+  transition={{
+    type: "spring",
+    stiffness: 300,
+    damping: 15,
+    mass: 0.3,
+  }}
+  onDrag={(event, info) => {
+    offsetX.set(offsetX.get() + info.delta.x);
+    offsetY.set(offsetY.get() + info.delta.y);
+  }}
+/>
+Additional Changes (Fix Adjacent Image Pulling):
+Prevent the outer container from dragging horizontally when zoomed.
+
+tsx
+Copy code
+drag={scaleValue.get() === 1}  // Lock outer container drag if zoomed
+Why This Works:
+Drag Inside Zoom – Panning occurs directly on the image, allowing free movement during zoom.
+Boundary Protection – dragConstraints prevent the image from being dragged too far, simulating iOS-like bounce-back behavior.
+Fixed Container – The outer container no longer moves horizontally during zoom, preventing other images from sliding in.
