@@ -1,0 +1,87 @@
+Identified Issues:
+Swipe Sensitivity and Velocity:
+
+The swipe transition relies heavily on velocity (velocityThreshold) and **xOffset` (swipe distance).
+The thresholds (0.5 velocity, 30% screen width) can be too sensitive, causing unintended jumps between images.
+Drag Elasticity and Constraints:
+
+The use of dragElastic={0.1} reduces the springiness but may result in jerky behavior when the user attempts to swipe beyond the bounds.
+Animation Overlap:
+
+Animations for non-active images (opacity: 0.3) and the active image (opacity: 1) create abrupt visual changes, making the transition less fluid.
+Offset Reset:
+
+After a swipe, dragX.set(0) resets the offset abruptly, potentially causing visual snapping rather than smoothly returning to the initial state.
+Fixes and Improvements:
+Adjust Swipe Sensitivity:
+Increase the swipeThreshold to at least 40-50% of screen width.
+Lower the velocity requirement slightly to 0.3 for smoother detection.
+javascript
+Copy code
+const swipeThreshold = window.innerWidth * 0.45; // Increase to 45%
+const velocityThreshold = 0.3; // Lower velocity for smoother swipes
+Clamp Drag to Prevent Over-Swiping:
+Prevent swiping beyond the first or last image by clamping the index manually.
+javascript
+Copy code
+const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+setCurrentIndex(clampedIndex);
+Soft Snapping Instead of Resetting dragX:
+Gradually animate the offset back to 0 instead of an instant reset.
+javascript
+Copy code
+dragX.set(0, { duration: 0.3, ease: "easeOut" });
+Introduce Natural Inertia for Partial Swipes:
+Add inertia for incomplete swipes to smoothly return the image to its original position if the threshold isn’t met.
+javascript
+Copy code
+if (!shouldChangeImage) {
+  dragX.set(0, { type: "spring", stiffness: 150, damping: 20 });
+}
+Enhance Transition Smoothing (Opacity and Scale):
+Gradually scale down neighboring images to reduce visual jumps between slides.
+javascript
+Copy code
+animate={{
+  x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
+  opacity: isActive ? 1 : 0.6,
+  scale: isActive ? 1 : 0.95
+}}
+Updated Key Code (Drag End Handler Adjustment):
+javascript
+Copy code
+const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const xOffset = info.offset.x;
+  const yOffset = info.offset.y;
+  const velocity = info.velocity.x;
+
+  // Close if vertical swipe exceeds threshold
+  if (Math.abs(yOffset) > 120 && Math.abs(xOffset) < 60) {
+    onClose();
+    return;
+  }
+
+  const swipeThreshold = window.innerWidth * 0.45;
+  const velocityThreshold = 0.3;
+  
+  const shouldChangeImage =
+    Math.abs(velocity) > velocityThreshold || Math.abs(xOffset) > swipeThreshold;
+
+  if (shouldChangeImage) {
+    const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
+    const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+    setCurrentIndex(clampedIndex);
+  } 
+
+  // Smooth return if swipe doesn't meet threshold
+  dragX.set(0, { type: "spring", stiffness: 150, damping: 20 });
+  dragY.set(0);
+  setIsDragging(false);
+};
+Testing Notes:
+Real Device Testing: Simulate swipes on actual mobile devices (iPhones, Androids).
+Fine-Tune: Adjust swipeThreshold and velocityThreshold incrementally until the swipe feels fluid.
+Debugging: Log xOffset and velocity during swipes to detect erratic inputs:
+javascript
+Copy code
+console.log("Swipe Distance:", xOffset, "Velocity:", velocity);
