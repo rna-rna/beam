@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { Image } from "@/types/gallery";
-import { Star, MessageCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Toolbar } from "./Toolbar";
@@ -32,7 +31,6 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
   const swipeOpacity = useTransform(dragY, [-400, 0, 400], [1, 1, 0], { clamp: true });
   const dragScale = useTransform(dragY, [0, 400], [1, 0.7]);
   const revealOpacity = useTransform(dragY, [-600, 0, 400], [0.1, 1, 0]);
-  const toolbarOpacity = useTransform(scaleValue, [1, 2], [1, 0.3], { clamp: true });
 
   // Star mutation
   const starMutation = useMutation({
@@ -63,35 +61,6 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
     }
   });
 
-  // Comment mutation
-  const commentMutation = useMutation({
-    mutationFn: async (comment: string) => {
-      const response = await fetch(`/api/images/${images[currentIndex].id}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: comment }),
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to add comment');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
-      toast({
-        title: "Comment added",
-        duration: 2000
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Failed to add comment",
-        variant: "destructive",
-        duration: 2000
-      });
-    }
-  });
-
-  // Handle toolbar actions
   const toggleStarImage = () => {
     const isCurrentlyStarred = images[currentIndex].starred;
 
@@ -123,6 +92,34 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
       commentMutation.mutate(comment);
     }
   };
+
+  // Comment mutation
+  const commentMutation = useMutation({
+    mutationFn: async (comment: string) => {
+      const response = await fetch(`/api/images/${images[currentIndex].id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: comment }),
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to add comment');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+      toast({
+        title: "Comment added",
+        duration: 2000
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to add comment",
+        variant: "destructive",
+        duration: 2000
+      });
+    }
+  });
 
   const clampPan = (value: number, maxDistance: number) => {
     return Math.max(Math.min(value, maxDistance), -maxDistance);
@@ -336,7 +333,6 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
         </div>
       </motion.div>
 
-      {/* Use the new Toolbar component */}
       <Toolbar
         isStarred={images[currentIndex]?.starred ?? false}
         onStarToggle={toggleStarImage}

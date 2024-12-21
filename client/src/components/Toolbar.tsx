@@ -1,11 +1,11 @@
-import { motion } from "framer-motion";
+import { motion, MotionValue } from "framer-motion";
 import { Star, MessageCircle } from "lucide-react";
 
 interface ToolbarProps {
   isStarred: boolean;
   onStarToggle: () => void;
   onComment: () => void;
-  scaleValue: any; // MotionValue<number>
+  scaleValue: MotionValue<number>;
 }
 
 export function Toolbar({ isStarred, onStarToggle, onComment, scaleValue }: ToolbarProps) {
@@ -14,9 +14,11 @@ export function Toolbar({ isStarred, onStarToggle, onComment, scaleValue }: Tool
       className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-black/70 backdrop-blur-md rounded-full shadow-lg"
       style={{
         width: '40%',
-        opacity: scaleValue.get() > 1 ? 0.3 : 1,
         pointerEvents: 'auto',
         touchAction: 'none',
+      }}
+      animate={{
+        opacity: scaleValue.get() > 1 ? 0.3 : 1
       }}
     >
       <div className="flex justify-center gap-8 items-center h-12 pointer-events-auto">
