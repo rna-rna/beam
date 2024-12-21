@@ -388,13 +388,20 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
         {/* Primary toolbar actions */}
         <div className="flex justify-center gap-8 items-center h-12">
           <motion.button
-            onClick={toggleStarImage}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleStarImage();
+            }}
             whileTap={{ scale: 0.85 }}
             animate={{ scale: 1 }}
             transition={{
               type: "spring",
               stiffness: 400,
               damping: 20,
+            }}
+            style={{ 
+              pointerEvents: 'auto',
+              touchAction: 'manipulation'
             }}
             className={`transition-colors ${
               images[currentIndex].starred
@@ -408,8 +415,15 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
             />
           </motion.button>
           <motion.button
-            onClick={handleComment}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleComment();
+            }}
             whileTap={{ scale: 0.85 }}
+            style={{ 
+              pointerEvents: 'auto',
+              touchAction: 'manipulation'
+            }}
             className="text-white/90 hover:text-white transition-colors"
           >
             <MessageCircle className="w-5 h-5" />
