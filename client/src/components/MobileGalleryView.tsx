@@ -194,11 +194,23 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                         x: offsetX,
                         y: offsetY
                       }}
+                      drag={scaleValue.get() > 1}  // Enable drag only when zoomed
+                      dragConstraints={{
+                        left: -window.innerWidth / 2,
+                        right: window.innerWidth / 2,
+                        top: -window.innerHeight / 2,
+                        bottom: window.innerHeight / 2,
+                      }}
+                      dragElastic={0.2}  // Slight elasticity for smoother panning
                       transition={{
                         type: "spring",
                         stiffness: 300,  // Increased for snappier scaling
                         damping: 15,     // Lowered for faster response
                         mass: 0.3        // Lighter mass
+                      }}
+                      onDrag={(event, info) => {
+                        offsetX.set(offsetX.get() + info.delta.x);
+                        offsetY.set(offsetY.get() + info.delta.y);
                       }}
                       onWheel={(event) => {
                         if (isActive) {
