@@ -1,0 +1,143 @@
+Why the Zoom and Pan are Breaking (Diagnosis):
+Upon analyzing the latest code, the following issues are causing erratic behavior when zooming and panning:
+
+Panning Behavior Affects Image and Gallery Together
+The outer motion.div (gallery container) is draggable when scaleValue === 1, while the image (motion.img) is draggable when scaleValue > 1.
+This dual behavior causes drag overlap between the gallery and the zoomed image, leading to unpredictable panning results.
+Drag Constraints are Too Rigid
+The constraints for dragging (left: 0, right: 0) apply hard limits, preventing smooth panning and causing the image to snap back abruptly.
+Offset is Not Dynamically Adjusted Based on Scale
+Panning doesn't respect image scaling, allowing the image to move beyond its natural bounds, resulting in erratic bounce-back behavior.
+Solution – Decouple Gallery and Image Panning
+Lock Gallery Drag When Zoomed
+Prevent the outer gallery (motion.div) from dragging entirely when the image is zoomed. This ensures that panning only affects the image.
+Dynamic Panning Based on Scale
+Calculate max panning dynamically based on the image's scale and viewport size, ensuring smooth panning without excessive bounce.
+Smooth Bounce-Back at Edges
+Implement inertia-based bounce-back to prevent abrupt snapping at image edges, creating an iPhone-like panning experience.
+Updated Code (Fix for Zoom and Pan Breakage):
+tsx
+Copy code
+<motion.div
+  className="fixed inset-0 bg-black touch-none z-50 overflow-hidden"
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  exit={{ opacity: 0 }}
+>
+  <motion.div
+    className="absolute inset-0 w-full h-full"
+    style={{
+      scale,
+      opacity,
+    }}
+    drag={scaleValue.get() === 1}  // Lock gallery drag when zoomed
+    dragElastic={0.1}
+    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+    dragDirectionLock
+    onDragStart={() => setIsDragging(true)}
+    onDragEnd={handleDragEnd}
+  >
+    <div className="w-full h-full flex items-center justify-center">
+      <AnimatePresence initial={false} mode="popLayout">
+        {images.map((image, index) => {
+          if (Math.abs(index - currentIndex) > 1) return null;
+
+          const isActive = index === currentIndex;
+
+          return (
+            <motion.div
+              key={image.id}
+              className="absolute inset-0 w-full h-full flex items-center justify-center"
+              style={{
+                zIndex: isActive ? 15 : 10,
+                pointerEvents: isActive ? 'auto' : 'none',
+              }}
+              initial={{
+                x: index > currentIndex ? '100%' : '-100%',
+                opacity: 1,
+              }}
+              animate={{
+                x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
+                opacity: 1,
+                transition: {
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 20,
+                },
+              }}
+              exit={{
+                x: index > currentIndex ? '105%' : '-105%',
+                opacity: 1,
+                transition: { duration: 0.12 },
+              }}
+            >
+              <div className="relative w-full h-full px-4">
+                <motion.img
+                  src={image.url}
+                  alt=""
+                  className="w-full h-full object-contain select-none"
+                  draggable={false}
+                  style={{
+                    scale: scaleValue,
+                    x: offsetX,
+                    y: offsetY,
+                  }}
+                  drag={scaleValue.get() > 1}  // Only allow drag on zoom
+                  dragElastic={0.2}
+                  dragMomentum={false}
+                  transition={{
+                    type: "spring",
+                    stiffness: 250,
+                    damping: 20,
+                  }}
+                  onPan={(event, info) => {
+                    const scale = scaleValue.get();
+                    const maxX = (window.innerWidth / 2) * (scale - 1);
+                    const maxY = (window.innerHeight / 2) * (scale - 1);
+
+                    const newX = clampPan(offsetX.get() + info.delta.x, maxX);
+                    const newY = clampPan(offsetY.get() + info.delta.y, maxY);
+
+                    offsetX.set(newX);
+                    offsetY.set(newY);
+                  }}
+                  onWheel={(event) => {
+                    if (isActive) {
+                      const deltaScale = event.deltaY * -0.001;
+                      scaleValue.set(Math.min(Math.max(scaleValue.get() + deltaScale, 1), 3));
+                    }
+                  }}
+                />
+              </div>
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+    </div>
+  </motion.div>
+</motion.div>
+Changes and Fixes Breakdown:
+Disable Outer Gallery Drag at Zoom
+The outer motion.div only allows dragging when the image is not zoomed (scaleValue === 1). This locks the gallery and prevents accidental swipes during zoom.
+Dynamic Panning with Boundary Awareness
+Panning constraints (maxX, maxY) are dynamically calculated based on the image scale, ensuring the image stays within bounds at all times.
+Edge Bounce with Clamping
+The clampPan function restricts panning at the edges of the image, mimicking the subtle bounce-back behavior seen in iOS Photos.
+Additional Improvements:
+Momentum-Based Inertia
+If you want to reintroduce smooth inertia, use:
+tsx
+Copy code
+dragMomentum={true}
+However, add boundary checks in handlePan to avoid overshooting.
+
+Smooth Reset on Double-Tap
+tsx
+Copy code
+const resetZoom = () => {
+  scaleValue.set(1);
+  offsetX.set(0);
+  offsetY.set(0);
+};
+Zoom and Pan Independent of Gallery
+Zoom and pan are fully isolated to the motion.img component, preventing any accidental gallery movement.
