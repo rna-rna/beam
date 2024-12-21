@@ -264,13 +264,14 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   // Memoized Values
   const breakpointCols = useMemo(
     () => ({
-      default: Math.max(1, Math.floor(4 * (100 / scale))),
-      2560: Math.max(1, Math.floor(4 * (100 / scale))),
-      1920: Math.max(1, Math.floor(3 * (100 / scale))),
-      1536: Math.max(1, Math.floor(3 * (100 / scale))),
-      1024: Math.max(1, Math.floor(2 * (100 / scale))),
-      768: Math.max(1, Math.floor(2 * (100 / scale))),
-      640: 1,
+      default: Math.max(1, Math.floor(6 * (100 / scale))),
+      2560: Math.max(1, Math.floor(6 * (100 / scale))),
+      1920: Math.max(1, Math.floor(5 * (100 / scale))),
+      1536: Math.max(1, Math.floor(4 * (100 / scale))),
+      1024: Math.max(1, Math.floor(3 * (100 / scale))),
+      768: Math.max(2, Math.floor(3 * (100 / scale))),
+      640: Math.max(2, Math.floor(2 * (100 / scale))),
+      480: Math.max(2, Math.floor(2 * (100 / scale))),
     }),
     [scale]
   );
@@ -536,9 +537,9 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
         <Slider
           value={[scale]}
           onValueChange={([value]) => setScale(value)}
-          min={50}
+          min={25}
           max={150}
-          step={10}
+          step={5}
           className="w-[150px] touch-none select-none"
           aria-label="Adjust gallery scale"
         />
