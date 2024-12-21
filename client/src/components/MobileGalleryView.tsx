@@ -39,7 +39,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       return;
     }
 
-    const swipeThreshold = window.innerWidth * 0.3;  // Lowered to 30% for quicker triggers
+    const swipeThreshold = window.innerWidth * 0.3;  // Lowered for quicker triggers
     const velocityThreshold = 0.2;  // Lowered for faster reaction
 
     const shouldChangeImage =
@@ -92,7 +92,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
               if (Math.abs(index - currentIndex) > 1) return null;
 
               const isActive = index === currentIndex;
-              const zIndex = isActive ? 10 : 5;
+              const zIndex = isActive ? 15 : 10;  // Ensure proper layering
 
               return (
                 <motion.div
@@ -107,27 +107,25 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                   initial={{
                     x: index > currentIndex ? '100%' : '-100%',
                     opacity: 1,
-                    scale: 0.98,
+                    scale: 1,
                   }}
                   animate={{
                     x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
-                    opacity: isActive ? 1 : 0.85,  // Keep non-active images more visible
-                    scale: isActive ? 1 : 0.98,
-                    filter: isActive ? 'blur(0px)' : 'blur(2px)',  // Subtle blur for non-active
+                    opacity: isActive ? 1 : 1,  // Keep full opacity for consistent visibility
+                    scale: isActive ? 1 : 1,
                     transition: {
                       type: "spring",
                       stiffness: 300,  // Increased for snappier motion
                       damping: 15,     // Lowered for faster response
                       mass: 0.3,       // Lighter mass
-                      opacity: { duration: 0.2 }
+                      opacity: { duration: 0.15 }
                     }
                   }}
                   exit={{
-                    x: index > currentIndex ? '100%' : '-100%',
-                    opacity: 0.8,  // Keep high visibility during exit
-                    scale: 0.98,
-                    filter: 'blur(4px)',  // Blur effect on exit
-                    transition: { duration: 0.15 }
+                    x: index > currentIndex ? '105%' : '-105%',  // Push slightly beyond viewport
+                    opacity: 1,  // Maintain full opacity during exit
+                    scale: 1,
+                    transition: { duration: 0.12 }  // Quick exit
                   }}
                 >
                   <div className="relative w-full h-full px-4">
@@ -138,7 +136,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       draggable={false}
                       initial={false}
                       animate={{
-                        scale: isActive ? 1 : 0.98,
+                        scale: isActive ? 1 : 1,
                       }}
                       transition={{
                         type: "spring",

@@ -1,0 +1,40 @@
+The flicker persists during image transitions due to opacity and exit behavior mismatches. Even with opacity: 0.8 and blurred exit, the flicker happens because the outgoing image fades slightly before the new image fully covers it.
+
+Why the Flicker Occurs:
+Exit Opacity Drop – Even though the exiting image retains high opacity (0.8), it still dims before fully sliding out, exposing the black background for a brief moment.
+Timing Overlap – The new image’s entry (x: dragX.get()) does not fully coincide with the exit of the previous image, leaving a tiny visual gap.
+AnimatePresence Behavior – popLayout helps, but it doesn't eliminate the timing issue entirely.
+Solution:
+Keep Exiting Image at Full Opacity – Maintain opacity: 1 on exit to prevent any dimming.
+Slight Delay on Exiting Image's Removal – Allow the exiting image to linger just outside the viewport (x: 105%) for a seamless overlap, instead of fading.
+Remove Blur on Exit – Blurring can contribute to the flicker by causing visible artifacts during the fade.
+Force Overlap with Z-Index – Ensure the incoming image immediately overlaps the outgoing one, keeping zIndex: 15 on active images.
+Fix – Updated Exit and Animate Behavior:
+tsx
+Copy code
+exit={{
+  x: index > currentIndex ? '105%' : '-105%',  // Push image offscreen fully without fading
+  opacity: 1,  // Keep full opacity to prevent flicker
+  scale: 1,
+  filter: 'blur(0px)',  // Remove blur to eliminate artifacts
+  transition: { duration: 0.12 }
+}}
+animate={{
+  x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
+  opacity: isActive ? 1 : 1,  // No opacity change for non-active images
+  scale: isActive ? 1 : 1,
+  transition: {
+    type: "spring",
+    stiffness: 300,
+    damping: 15,
+    opacity: { duration: 0.15 }
+  }
+}}
+Key Changes:
+Exit at Full Opacity – Prevents any flicker by ensuring the outgoing image doesn’t fade before it slides out.
+Slide Fully Out of View – Rather than fading at 100%, let the exiting image move slightly beyond (105%) to maintain overlap.
+No Blur on Exit – Keeps the image sharp and clear during transitions, preventing visual artifacts.
+Why This Works:
+Continuous Image Presence – The exiting image remains fully visible until it is completely out of the viewport.
+Smooth Layering – Active images seamlessly slide over previous ones without black gaps.
+Faster Transitions – duration: 0.12 ensures the exit is fast enough to keep the experience snappy but smooth.
