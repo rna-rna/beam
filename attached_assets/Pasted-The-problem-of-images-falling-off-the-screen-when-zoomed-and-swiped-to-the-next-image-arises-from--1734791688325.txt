@@ -1,0 +1,81 @@
+The problem of images "falling off the screen" when zoomed and swiped to the next image arises from the combination of:
+
+Zoom Scale Persistence – The scaleValue carries over to the next image during transitions.
+Offset Carryover – The offsetX and offsetY values are not reset immediately or properly during the transition to the next image, causing erratic movement.
+Fixes:
+1. Reset Zoom and Offset Immediately During Swipe to Next Image
+The reset logic currently uses a setTimeout, which introduces a delay. This can lead to the zoom state persisting for a brief moment during the transition.
+
+Fix:
+
+Apply the reset immediately, before updating the current index.
+Update This Block (In handlePan):
+
+tsx
+Copy code
+if (overflowX > 150) {
+  const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
+  const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+
+  // Reset immediately before switching images
+  scaleValue.set(1);
+  offsetX.set(0);
+  offsetY.set(0);
+
+  setCurrentIndex(clampedIndex);
+}
+2. Ensure Smooth Reset with Spring Animation (Optional)
+If the snap feels too abrupt, apply a spring animation to the reset.
+
+tsx
+Copy code
+scaleValue.set(1, { type: "spring", stiffness: 300, damping: 25 });
+offsetX.set(0, { type: "spring", stiffness: 300, damping: 25 });
+offsetY.set(0, { type: "spring", stiffness: 300, damping: 25 });
+3. Prevent Zoom from Affecting Animation During Swipe
+Currently, the image scale (scaleValue) is directly applied to the motion.img component. This can cause unintended zoom persistence during transitions.
+
+Fix:
+
+Ensure that the scale applies only when interacting with the active image and not during swipe transitions.
+tsx
+Copy code
+style={{
+  scale: isActive ? scaleValue : 1,  // Reset zoom for inactive images
+  x: offsetX,
+  y: offsetY,
+}}
+Full Code Update (Key Section - handlePan Fix):
+tsx
+Copy code
+const handlePan = (event: any, info: PanInfo) => {
+  const scale = scaleValue.get();
+  const maxX = (window.innerWidth / 2) * (scale - 1);
+  const maxY = (window.innerHeight / 2) * (scale - 1);
+
+  const newX = offsetX.get() + info.delta.x;
+  const newY = offsetY.get() + info.delta.y;
+  const overflowX = Math.abs(newX) - maxX;
+
+  if (overflowX > 150) {  // Higher threshold for more intentional swipes
+    const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
+    const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+
+    // Reset zoom and pan immediately to prevent carryover
+    scaleValue.set(1);
+    offsetX.set(0);
+    offsetY.set(0);
+
+    setCurrentIndex(clampedIndex);
+  } else {
+    offsetX.set(clampPan(newX, maxX));
+    offsetY.set(clampPan(newY, maxY));
+  }
+};
+Testing Checklist:
+Zoom and Swipe:
+Zoom into an image and swipe to the next one. Verify the next image starts at the default zoom level (scaleValue: 1).
+Edge Swipe:
+Aggressively pan to test the overflow threshold (150px). Ensure that the swipe transition feels intentional.
+Zoom Reset on Next Image:
+After snapping to the next image, ensure the zoom reset happens immediately without delay.
