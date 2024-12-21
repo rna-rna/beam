@@ -1,0 +1,108 @@
+The overlapping image issue likely arises from how Framer Motion is handling the AnimatePresence and motion.div transitions. Specifically:
+
+Opacity Conflict: Non-active images (opacity: 0.3) still exist in the DOM, causing them to overlap with the active one.
+Z-Index Missing: Without zIndex adjustments, inactive images can stack incorrectly, creating visual overlaps.
+Exit Animation Delay: If an image isn't removed immediately (exit prop is slow or misconfigured), it lingers underneath the current image.
+How to Fix Image Overlapping:
+Add Conditional Rendering with key
+Ensure only the current, previous, and next images render. The rest should be hidden using conditional logic (null). This reduces DOM clutter.
+javascript
+Copy code
+if (Math.abs(index - currentIndex) > 1) return null;
+Force Image Removal on Exit (Key Fix)
+Add exitBeforeEnter to AnimatePresence to remove the exiting image before the next animates in:
+javascript
+Copy code
+<AnimatePresence initial={false} mode="popLayout" exitBeforeEnter>
+Adjust Z-Index Dynamically
+Apply zIndex based on the current index. The active image should always have the highest zIndex:
+javascript
+Copy code
+const zIndex = isActive ? 10 : 0;
+javascript
+Copy code
+style={{
+  zIndex,
+  opacity: isActive ? 1 : 0.3,
+}}
+Immediate Unmount on Exit
+Ensure exiting images unmount instantly using animate and exit with duration 0:
+javascript
+Copy code
+exit={{
+  x: index > currentIndex ? '100%' : '-100%',
+  opacity: 0,
+  transition: { duration: 0 }  // Instant removal
+}}
+Updated Code (Fix Overlapping):
+tsx
+Copy code
+<AnimatePresence initial={false} mode="popLayout" exitBeforeEnter>
+  {images.map((image, index) => {
+    if (Math.abs(index - currentIndex) > 1) return null;  // Only render nearby images
+
+    const isActive = index === currentIndex;
+    const zIndex = isActive ? 10 : 0;  // Active image on top
+
+    return (
+      <motion.div
+        key={image.id}
+        className="absolute inset-0 w-full h-full flex items-center justify-center"
+        style={{
+          zIndex,
+          scrollSnapAlign: 'start',
+          scrollSnapStop: 'always',
+          x: isActive ? dragX : undefined,
+          opacity: isActive ? 1 : 0.3,
+        }}
+        initial={{
+          x: index > currentIndex ? '100%' : '-100%',
+          opacity: 0,
+        }}
+        animate={{
+          x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
+          opacity: isActive ? 1 : 0.3,
+          transition: {
+            type: "spring",
+            stiffness: 300,
+            damping: 30,
+            opacity: { duration: 0.2 }
+          }
+        }}
+        exit={{
+          x: index > currentIndex ? '100%' : '-100%',
+          opacity: 0,
+          transition: { duration: 0 }
+        }}
+      >
+        <div className="relative w-full h-full px-4">
+          <motion.img
+            src={image.url}
+            alt=""
+            className="w-full h-full object-contain select-none"
+            draggable={false}
+            initial={false}
+            animate={{
+              scale: isActive ? 1 : 0.95,
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30
+            }}
+          />
+        </div>
+      </motion.div>
+    );
+  })}
+</AnimatePresence>
+Why This Works:
+exitBeforeEnter prevents multiple images from rendering at the same time during transitions.
+Dynamic zIndex ensures that only the active image appears on top.
+Unmounting on Exit ensures that inactive images do not linger underneath, eliminating opacity overlaps.
+Testing & Debugging:
+Log currentIndex and index during swipes to confirm which image should be visible:
+javascript
+Copy code
+console.log("Active Index:", currentIndex, "Rendering Index:", index);
+Simulate swipes on mobile (Chrome DevTools → Toggle Device) to ensure proper removal and transitions.
