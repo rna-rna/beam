@@ -1,0 +1,114 @@
+After reviewing the code, I can see the core issues that need addressing:
+
+Swipe Feels Too Stiff (Springy Issue):
+The swipe transitions use a spring animation with stiffness: 150 and damping: 30, which makes the swipe feel less responsive.
+The values are slightly too high, causing the animation to lag behind user input.
+Zoom Level Carrying Over Between Images:
+When swiping to the next image while zoomed in, the zoom level (scaleValue) persists.
+This happens because scaleValue does not reset when transitioning between images.
+Fix 1 – Improve Swipe Responsiveness (Adjust Spring):
+To make swiping feel more responsive and slick, lower the stiffness and adjust damping slightly:
+
+tsx
+Copy code
+transition: {
+  type: "spring",
+  stiffness: 220,  // Increased for snappier feel
+  damping: 25,     // Lower damping for quicker stop
+}
+Why this Works:
+
+A higher stiffness (220) makes the image react faster to the swipe.
+Lower damping (25) reduces the bounce-back effect, creating a slicker feel.
+Fix 2 – Reset Zoom Level When Swiping to Next Image:
+To prevent the next image from inheriting the zoom level of the previous one, reset scaleValue to 1 after swiping.
+
+Add Zoom Reset After Image Transition:
+
+tsx
+Copy code
+if (shouldChangeImage) {
+  const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
+  const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+  setCurrentIndex(clampedIndex);
+
+  // Reset zoom and pan after image transition
+  scaleValue.set(1);
+  offsetX.set(0);
+  offsetY.set(0);
+}
+Ensure Pan Resets After Image Change (Handle Drag End):
+Add pan reset logic to ensure the image centers when transitioning:
+
+tsx
+Copy code
+offsetX.set(0, {
+  type: "spring",
+  stiffness: 220,
+  damping: 25,
+});
+offsetY.set(0, {
+  type: "spring",
+  stiffness: 220,
+  damping: 25,
+});
+Code Fix (Full Update for Swipe and Zoom Reset):
+tsx
+Copy code
+const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const xOffset = info.offset.x;
+  const yOffset = info.offset.y;
+  const velocity = info.velocity.x;
+
+  if (Math.abs(yOffset) > 150 && Math.abs(xOffset) < 50) {
+    onClose();
+    return;
+  }
+
+  const swipeThreshold = window.innerWidth * 0.3;  // Slightly lowered threshold
+  const velocityThreshold = 0.25;
+
+  const shouldChangeImage =
+    Math.abs(velocity) > velocityThreshold || Math.abs(xOffset) > swipeThreshold;
+
+  if (shouldChangeImage) {
+    const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
+    const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+    setCurrentIndex(clampedIndex);
+
+    // Reset zoom and panning to default
+    scaleValue.set(1);
+    offsetX.set(0);
+    offsetY.set(0);
+  }
+
+  dragX.set(0, {
+    type: "spring",
+    stiffness: 220,
+    damping: 25,
+  });
+  dragY.set(0, {
+    type: "spring",
+    stiffness: 220,
+    damping: 25,
+  });
+  setIsDragging(false);
+};
+Testing the Fixes:
+Swipe Between Images:
+Swipe between images rapidly. Confirm the swipe feels more responsive and stops cleanly without bouncing excessively.
+Zoom and Swipe:
+Zoom into an image, then swipe. The next image should reset to its default size (scaleValue: 1).
+Edge Case (Partial Swipe):
+Perform a partial swipe to ensure the image snaps back without excessive bounce.
+Optional Enhancement – Add Inertia to Swipe:
+To make the swipe feel more natural, introduce momentum when swiping at high velocity.
+
+tsx
+Copy code
+dragMomentum={true}
+However, ensure to clamp pan values to prevent excessive drag:
+
+tsx
+Copy code
+offsetX.set(clampPan(offsetX.get(), maxX));

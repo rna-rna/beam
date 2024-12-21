@@ -24,7 +24,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   const swipeOpacity = useTransform(dragY, [-400, 0, 400], [1, 1, 0]);
   const dragScale = useTransform(dragY, [0, 400], [1, 0.7]);
   const revealOpacity = useTransform(dragY, [-600, 0, 400], [0.1, 1, 0]);
-  const imageOpacity = useTransform(scaleValue, [1, 3], [1, 1]);  // Keep full opacity during zoom
+  const imageOpacity = useTransform(scaleValue, [1, 3], [1, 1]);
 
   // Utility function to clamp pan values
   const clampPan = (value: number, maxDistance: number) => {
@@ -59,21 +59,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     };
 
     const resetZoom = () => {
-      scaleValue.set(1, {
-        type: "spring",
-        stiffness: 150,
-        damping: 30
-      });
-      offsetX.set(0, {
-        type: "spring",
-        stiffness: 150,
-        damping: 30
-      });
-      offsetY.set(0, {
-        type: "spring",
-        stiffness: 150,
-        damping: 30
-      });
+      scaleValue.set(1);
+      offsetX.set(0);
+      offsetY.set(0);
+      dragX.set(0);
+      dragY.set(0);
     };
 
     window.addEventListener('touchstart', handleTouchStart);
@@ -103,6 +93,9 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
         const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
         setCurrentIndex(clampedIndex);
+
+        // Reset zoom and position when transitioning
+        scaleValue.set(1);
         offsetX.set(0);
         offsetY.set(0);
       }, 100);
@@ -129,19 +122,19 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
 
       offsetX.set(clampPan(offsetX.get(), maxX), {
         type: "spring",
-        stiffness: 150,
-        damping: 30
+        stiffness: 220,
+        damping: 25
       });
       offsetY.set(clampPan(offsetY.get(), maxY), {
         type: "spring",
-        stiffness: 150,
-        damping: 30
+        stiffness: 220,
+        damping: 25
       });
       return;
     }
 
-    const swipeThreshold = window.innerWidth * 0.35;
-    const velocityThreshold = 0.3;
+    const swipeThreshold = window.innerWidth * 0.3;
+    const velocityThreshold = 0.25;
 
     const shouldChangeImage =
       Math.abs(velocity) > velocityThreshold || Math.abs(xOffset) > swipeThreshold;
@@ -150,17 +143,22 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
       const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
       setCurrentIndex(clampedIndex);
+
+      // Reset zoom and position when changing images
+      scaleValue.set(1);
+      offsetX.set(0);
+      offsetY.set(0);
     }
 
     dragX.set(0, {
       type: "spring",
-      stiffness: 150,
-      damping: 30
+      stiffness: 220,
+      damping: 25
     });
     dragY.set(0, {
       type: "spring",
-      stiffness: 150,
-      damping: 30
+      stiffness: 220,
+      damping: 25
     });
     setIsDragging(false);
   };
@@ -191,7 +189,6 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           <AnimatePresence initial={false} mode="popLayout">
             {images.map((image, index) => {
               if (Math.abs(index - currentIndex) > 1) return null;
-
               const isActive = index === currentIndex;
 
               return (
@@ -211,8 +208,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                     opacity: 1,
                     transition: {
                       type: "spring",
-                      stiffness: 150,
-                      damping: 30,
+                      stiffness: 220,
+                      damping: 25,
                     },
                   }}
                   exit={{
@@ -238,8 +235,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       dragMomentum={false}
                       transition={{
                         type: "spring",
-                        stiffness: 150,
-                        damping: 30,
+                        stiffness: 220,
+                        damping: 25,
                       }}
                       onPan={handlePan}
                       onWheel={(event) => {
