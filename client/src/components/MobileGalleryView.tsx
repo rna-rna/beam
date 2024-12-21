@@ -21,9 +21,9 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   const offsetY = useMotionValue(0);
 
   // Transform values for animations
-  const opacity = useTransform(dragY, [-200, 0, 200], [1, 1, 0]);
-  const scale = useTransform(dragY, [0, 300], [1, 0.7]);  // Shrink to 70% when dragged down
-  const revealOpacity = useTransform(dragY, [-400, 0, 300], [0.2, 1, 0]);  // Extended range for darker hold
+  const opacity = useTransform(dragY, [-400, 0, 400], [1, 1, 0]);
+  const dragScale = useTransform(dragY, [0, 400], [1, 0.7]);  // Shrink to 70% when dragged down
+  const revealOpacity = useTransform(dragY, [-600, 0, 400], [0.1, 1, 0]);  // Extended range for slower reveal
 
   // Utility function to clamp pan values
   const clampPan = (value: number, maxDistance: number) => {
@@ -31,7 +31,6 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   };
 
   useEffect(() => {
-    // Lock body scroll when gallery is open
     document.body.style.overflow = 'hidden';
     let startDistance = 0;
 
@@ -59,7 +58,6 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     };
 
     const resetZoom = () => {
-      // Animate scale and position back to initial state with spring animation
       scaleValue.set(1);
       offsetX.set(0);
       offsetY.set(0);
@@ -89,7 +87,6 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const overflowX = Math.abs(newX) - maxX;
 
     if (overflowX > 40) {
-      // Apply inertia for smoother snap
       offsetX.set(newX * 1.2);
       setTimeout(() => {
         const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
@@ -109,7 +106,6 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const yOffset = info.offset.y;
     const velocity = info.velocity.x;
 
-    // Close if vertical swipe exceeds threshold
     if (Math.abs(yOffset) > 150 && Math.abs(xOffset) < 50) {
       onClose();
       return;
@@ -120,7 +116,6 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       const maxX = (window.innerWidth / 2) * (scale - 1);
       const maxY = (window.innerHeight / 2) * (scale - 1);
 
-      // Smooth bounce-back animation with spring
       offsetX.set(clampPan(offsetX.get(), maxX));
       offsetY.set(clampPan(offsetY.get(), maxY));
       return;
@@ -153,10 +148,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     >
       <motion.div
         className="absolute inset-0 w-full h-full"
-        style={{ 
-          scale,
-          opacity 
-        }}
+        style={{ opacity }}
         drag={scaleValue.get() === 1}
         dragElastic={0.1}
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
@@ -209,7 +201,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       className="w-full h-full object-contain select-none"
                       draggable={false}
                       style={{
-                        scale: scaleValue,
+                        scale: isActive ? (scaleValue.get() > 1 ? scaleValue : dragScale) : 1,
                         x: offsetX,
                         y: offsetY,
                       }}
