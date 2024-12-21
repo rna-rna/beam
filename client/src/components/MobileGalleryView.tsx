@@ -87,7 +87,10 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const newY = offsetY.get() + info.delta.y;
     const overflowX = Math.abs(newX) - maxX;
 
-    if (overflowX > 150) {  // Higher threshold for intentional swipes
+    // Dynamic threshold scaling based on zoom level
+    const dynamicThreshold = scale > 1 ? 300 : 150;  // Require more drag at higher zoom
+
+    if (overflowX > dynamicThreshold) {
       const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
       const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
 
@@ -98,7 +101,6 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
 
       setCurrentIndex(clampedIndex);
     } else {
-      // Regular panning with edge bounce
       offsetX.set(clampPan(newX, maxX));
       offsetY.set(clampPan(newY, maxY));
     }
@@ -114,17 +116,18 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       return;
     }
 
-    const swipeThreshold = window.innerWidth * 0.4;  // Increased threshold
-    const velocityThreshold = 0.35;  // Slightly increased velocity requirement
+    const swipeThreshold = window.innerWidth * 0.4;
+    const velocityThreshold = 0.4;  // Higher velocity requirement for snap
 
     const shouldChangeImage =
-      Math.abs(velocity) > velocityThreshold || Math.abs(xOffset) > swipeThreshold;
+      (Math.abs(velocity) > velocityThreshold && Math.abs(xOffset) > 200) ||  // Require both
+      Math.abs(xOffset) > swipeThreshold;
 
     if (shouldChangeImage) {
       const nextIndex = currentIndex + (xOffset > 0 ? -1 : 1);
       const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
 
-      // Reset zoom and position immediately before changing images
+      // Ensure reset happens immediately
       scaleValue.set(1);
       offsetX.set(0);
       offsetY.set(0);
@@ -132,8 +135,17 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       setCurrentIndex(clampedIndex);
     }
 
-    dragX.set(0);
-    dragY.set(0);
+    // Smooth bounce-back for partial swipes
+    dragX.set(0, {
+      type: "spring",
+      stiffness: 300,
+      damping: 25,
+    });
+    dragY.set(0, {
+      type: "spring",
+      stiffness: 300,
+      damping: 25,
+    });
     setIsDragging(false);
   };
 
