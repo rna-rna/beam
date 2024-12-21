@@ -11,7 +11,7 @@ interface MobileGalleryViewProps {
 export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalleryViewProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isDragging, setIsDragging] = useState(false);
-  const [direction, setDirection] = useState(0);
+  const [direction, setDirection] = useState<number>(0);
 
   // Motion values for gestures
   const dragX = useMotionValue(0);
@@ -92,7 +92,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           dragY.set(info.offset.y);
         }}
       >
-        <AnimatePresence initial={false} mode="popLayout" custom={direction}>
+        <AnimatePresence initial={false} mode="popLayout">
           {images.map((image, index) => {
             // Only render current, previous, and next images
             if (Math.abs(index - currentIndex) > 1) return null;
@@ -103,12 +103,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
               <motion.div
                 key={image.id}
                 className="absolute inset-0 w-full h-full flex items-center justify-center"
-                custom={direction}
-                initial={(custom) => ({
-                  x: index === currentIndex ? 0 : custom > 0 ? '100%' : '-100%',
+                initial={{
+                  x: index === currentIndex ? 0 : index > currentIndex ? '100%' : '-100%',
                   opacity: 0,
                   zIndex: isActive ? 1 : 0
-                })}
+                }}
                 animate={{
                   x: isActive ? dragX.get() : index > currentIndex ? '100%' : '-100%',
                   opacity: isActive ? 1 : 0.3,
@@ -118,11 +117,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                     opacity: { duration: 0.2 }
                   }
                 }}
-                exit={(custom) => ({
-                  x: custom > 0 ? '-100%' : '100%',
+                exit={{
+                  x: index > currentIndex ? '100%' : '-100%',
                   opacity: 0,
                   transition: { duration: 0.2 }
-                })}
+                }}
                 style={{
                   x: isActive ? dragX : undefined
                 }}
