@@ -52,7 +52,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       });
       // Add haptic feedback for mobile
       if ('vibrate' in navigator) {
-        navigator.vibrate(50);
+        navigator.vibrate(30);  // Subtle haptic feedback
       }
     },
     onError: () => {
@@ -108,7 +108,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       onError: () => {
         // Revert on error
         updatedImages[currentIndex].starred = isCurrentlyStarred;
-        setCurrentIndex(currentIndex); // Force re-render
+        setCurrentIndex(currentIndex); // Force re-render with updated state
       }
     });
   };
@@ -192,11 +192,11 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const newX = offsetX.get() + info.delta.x;
     const newY = offsetY.get() + info.delta.y;
 
-    // If zoomed in, only allow panning within image bounds
+    // If zoomed in, disable snapping to next image
     if (scale > 1) {
       offsetX.set(clampPan(newX, maxX));
       offsetY.set(clampPan(newY, maxY));
-      return; // Prevent transitioning to next image while zoomed
+      return;
     }
 
     // Only allow swipe transitions when not zoomed
@@ -257,17 +257,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       setCurrentIndex(clampedIndex);
     }
 
-    // Smooth bounce-back
-    dragX.set(0, {
-      type: "spring",
-      stiffness: 250,
-      damping: 20,
-    });
-    dragY.set(0, {
-      type: "spring",
-      stiffness: 250,
-      damping: 20,
-    });
+    dragX.set(0);
+    dragY.set(0);
     setIsDragging(false);
   };
 
@@ -340,19 +331,13 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                       }}
                       drag={scaleValue.get() > 1}
                       dragElastic={0.1}
-                      dragMomentum={false}
+                      dragMomentum={true}
                       transition={{
                         type: "spring",
                         stiffness: 250,
                         damping: 20,
                       }}
                       onPan={handlePan}
-                      onWheel={(event) => {
-                        if (isActive) {
-                          const deltaScale = event.deltaY * -0.001;
-                          scaleValue.set(Math.min(Math.max(scaleValue.get() + deltaScale, 1), 3));
-                        }
-                      }}
                     />
                   </div>
                 </motion.div>
