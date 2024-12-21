@@ -91,7 +91,6 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   const queryClient = useQueryClient();
   const isInitialLoad = useRef(true);
 
-
   // State Management
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
@@ -408,7 +407,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
             </MenuGroup>
           </MenuContent>
         </Menu>
-      </motion.div>
+      </div>
     );
   }, [
     gallery,
@@ -451,7 +450,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     return (
       <div className="min-h-screen flex items-center justify-center">
         <h1 className="text-2xl font-bold text-foreground">Failed to load gallery</h1>
-      </motion.div>
+      </div>
     );
   }
 
@@ -459,7 +458,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     return (
       <div className="min-h-screen flex items-center justify-center">
         <h1 className="text-2xl font-bold text-foreground">Gallery not found</h1>
-      </motion.div>
+      </div>
     );
   }
 
@@ -524,13 +523,13 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                           <Star className="h-4 w-4" />
                         )}
                       </Button>
-                    </motion.div>
-                  </motion.div>
+                    </div>
+                  </div>
                 </motion.div>
               ))}
           </Masonry>
         </AnimatePresence>
-      </motion.div>
+      </div>
 
       {/* Scale Slider */}
       <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
@@ -543,7 +542,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
           className="w-[150px] touch-none select-none"
           aria-label="Adjust gallery scale"
         />
-      </motion.div>
+      </div>
 
       <Dialog
         open={selectedImageIndex >= 0}
@@ -560,13 +559,13 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
         >
           <div id="gallery-lightbox-description" className="sr-only">
             Image viewer with annotation and commenting capabilities
-          </motion.div>
+          </div>
 
           {/* Filename display */}
           {showFilename && selectedImage?.originalFilename && (
             <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
               {selectedImage.originalFilename}
-            </motion.div>
+            </div>
           )}
 
           {/* Navigation buttons */}
@@ -594,22 +593,24 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
           </Button>
 
           {/* Controls */}
-          <div className="absolute right-4 top-4 flex items-center gap-2 z-50 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2">
-            <Button
-              variant="secondary"
-              size="icon"
-              className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleStarMutation.mutate(selectedImage!.id);
-              }}
-            >
-              {selectedImage?.starred ? (
-                <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
-              ) : (
-                <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
-              )}
-            </Button>
+          <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
+            {selectedImage && (
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleStarMutation.mutate(selectedImage.id);
+                }}
+              >
+                {selectedImage.starred ? (
+                  <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                ) : (
+                  <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+                )}
+              </Button>
+            )}
             <div className="flex gap-2">
               <Button
                 variant="secondary"
@@ -651,8 +652,8 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                   }`}
                 />
               </Button>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
           {/* Settings toggles */}
           <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
@@ -664,7 +665,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                   className="data-[state=checked]:bg-primary h-5 w-9"
                 />
                 <span className="text-xs font-medium">Comments</span>
-              </motion.div>
+              </div>
               <div className="flex items-center gap-2">
                 <Switch
                   checked={showFilename}
@@ -672,9 +673,9 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                   className="data-[state=checked]:bg-primary h-5 w-9"
                 />
                 <span className="text-xs font-medium">Filename</span>
-              </motion.div>
-            </motion.div>
-          </motion.div>
+              </div>
+            </div>
+          </div>
 
           {selectedImage && (
             <motion.div
@@ -730,6 +731,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                     isDrawing={isAnnotationMode}
                     savedPaths={showAnnotations ? annotations : []}
                     onSavePath={async (pathData) => {
+                      if (!selectedImage) return;
                       try {
                         await fetch(`/api/images/${selectedImage.id}/annotations`, {
                           method: "POST",
@@ -754,7 +756,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                       }
                     }}
                   />
-                </motion.div>
+                </div>
 
                 {/* Comments */}
                 {showAnnotations &&
@@ -770,7 +772,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                   ))}
 
                 {/* New comment */}
-                {newCommentPos && (
+                {newCommentPos && selectedImage && (
                   <CommentBubble
                     x={newCommentPos.x}
                     y={newCommentPos.y}
@@ -779,6 +781,7 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                     onSubmit={(content, author) => {
                       const newAuthor = author.trim() || userName || "Anonymous";
                       setUserName(newAuthor);
+                      if (!selectedImage) return;
                       createCommentMutation.mutate({
                         imageId: selectedImage.id,
                         content,
@@ -789,12 +792,12 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                     }}
                   />
                 )}
-              </motion.div>
+              </div>
             </motion.div>
           )}
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </div>
   );
 }
 
