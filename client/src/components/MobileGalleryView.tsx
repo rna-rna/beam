@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { Image } from "@/types/gallery";
-import { Star, MessageCircle, Share2, Trash2 } from "lucide-react";
+import { Star, MessageCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 interface MobileGalleryViewProps {
   images: Image[];
@@ -16,6 +17,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
   const [toolbarExpanded, setToolbarExpanded] = useState(false);
   const startDistanceRef = useRef(0);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Motion values for gestures
   const dragX = useMotionValue(0);
@@ -44,6 +46,17 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+      toast({
+        title: images[currentIndex].starred ? "Removed from favorites" : "Added to favorites",
+        duration: 2000
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to update favorite status",
+        variant: "destructive",
+        duration: 2000
+      });
     }
   });
 
@@ -61,6 +74,17 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+      toast({
+        title: "Comment added",
+        duration: 2000
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to add comment",
+        variant: "destructive",
+        duration: 2000
+      });
     }
   });
 
@@ -79,14 +103,6 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     if (comment) {
       commentMutation.mutate(comment);
     }
-  };
-
-  const handleShareImage = () => {
-    console.log("Share image");
-  };
-
-  const handleDeleteImage = () => {
-    console.log("Delete image");
   };
 
   const handleToolbarDrag = (event: any, info: PanInfo) => {
@@ -333,10 +349,12 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           toolbarExpanded ? 'h-24' : 'h-12'
         }`}
         style={{
-          width: '60%', // More compact width
+          width: '40%', // More compact width
           opacity: toolbarOpacity,
           y: toolbarY,
           pointerEvents: scaleValue.get() > 1 ? 'none' : 'auto',
+          x: '-50%', // Ensure proper centering
+          margin: '0 auto', // Center horizontally
         }}
         drag="y"
         dragConstraints={{ top: -80, bottom: 0 }}
@@ -353,7 +371,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
         }}
       >
         {/* Primary toolbar actions */}
-        <div className="flex justify-around items-center h-12 px-3">
+        <div className="flex justify-center gap-8 items-center h-12">
           <button
             onClick={toggleStarImage}
             className={`transition-colors ${
@@ -370,24 +388,12 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
           >
             <MessageCircle className="w-5 h-5" />
           </button>
-          <button
-            onClick={handleShareImage}
-            className="text-white/90 hover:text-white transition-colors"
-          >
-            <Share2 className="w-5 h-5" />
-          </button>
-          <button
-            onClick={handleDeleteImage}
-            className="text-red-500/90 hover:text-red-500 transition-colors"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Expanded toolbar content */}
         {toolbarExpanded && (
           <motion.div
-            className="h-12 flex justify-around items-center px-3 border-t border-white/10"
+            className="h-12 flex justify-around items-center border-t border-white/10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
