@@ -80,11 +80,23 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const maxX = (window.innerWidth / 2) * (scale - 1);
     const maxY = (window.innerHeight / 2) * (scale - 1);
 
-    const newX = clampPan(offsetX.get() + info.delta.x, maxX);
-    const newY = clampPan(offsetY.get() + info.delta.y, maxY);
+    const newX = offsetX.get() + info.delta.x;
+    const newY = offsetY.get() + info.delta.y;
 
-    offsetX.set(newX);
-    offsetY.set(newY);
+    const overflowX = Math.abs(newX) - maxX;  // Detect over-drag beyond boundary
+
+    // If overflow exceeds threshold, trigger image change
+    if (overflowX > 40) {
+      const nextIndex = currentIndex + (newX < 0 ? 1 : -1);
+      const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+      setCurrentIndex(clampedIndex);
+      offsetX.set(0);  // Reset panning after image switch
+      offsetY.set(0);
+    } else {
+      // Regular panning if within bounds
+      offsetX.set(clampPan(newX, maxX));
+      offsetY.set(clampPan(newY, maxY));
+    }
   };
 
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
@@ -92,15 +104,23 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
     const yOffset = info.offset.y;
     const velocity = info.velocity.x;
 
-    // Only process horizontal swipes when not zoomed
     if (scaleValue.get() > 1) {
-      // Check if we need to bounce back from edges
+      // Allow snap-to-next behavior if over-panned
       const scale = scaleValue.get();
       const maxX = (window.innerWidth / 2) * (scale - 1);
-      const maxY = (window.innerHeight / 2) * (scale - 1);
+      const overflowX = Math.abs(offsetX.get()) - maxX;
 
-      offsetX.set(clampPan(offsetX.get(), maxX));
-      offsetY.set(clampPan(offsetY.get(), maxY));
+      if (overflowX > 40) {
+        const nextIndex = currentIndex + (offsetX.get() < 0 ? 1 : -1);
+        const clampedIndex = Math.max(0, Math.min(nextIndex, images.length - 1));
+        setCurrentIndex(clampedIndex);
+        offsetX.set(0);
+        offsetY.set(0);
+      } else {
+        // Snap back if swipe wasn't strong enough
+        offsetX.set(clampPan(offsetX.get(), maxX));
+        offsetY.set(clampPan(offsetY.get(), maxY));
+      }
       return;
     }
 
@@ -110,8 +130,8 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       return;
     }
 
-    const swipeThreshold = window.innerWidth * 0.3;  // Lower threshold for quicker triggers
-    const velocityThreshold = 0.2;  // Lower velocity threshold for faster reaction
+    const swipeThreshold = window.innerWidth * 0.3;
+    const velocityThreshold = 0.2;
 
     const shouldChangeImage =
       Math.abs(velocity) > velocityThreshold || Math.abs(xOffset) > swipeThreshold;
@@ -122,7 +142,6 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
       setCurrentIndex(clampedIndex);
     }
 
-    // Smooth return if swipe doesn't meet threshold
     dragX.set(0);
     dragY.set(0);
     setIsDragging(false);
@@ -158,7 +177,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
               if (Math.abs(index - currentIndex) > 1) return null;
 
               const isActive = index === currentIndex;
-              const zIndex = isActive ? 15 : 10;  // Ensure proper layering
+              const zIndex = isActive ? 15 : 10;
 
               return (
                 <motion.div
@@ -207,17 +226,7 @@ export function MobileGalleryView({ images, initialIndex, onClose }: MobileGalle
                         damping: 20,
                         mass: 0.4
                       }}
-                      onPan={(event, info) => {
-                        const scale = scaleValue.get();
-                        const maxX = (window.innerWidth / 2) * (scale - 1);
-                        const maxY = (window.innerHeight / 2) * (scale - 1);
-
-                        const newX = clampPan(offsetX.get() + info.delta.x, maxX);
-                        const newY = clampPan(offsetY.get() + info.delta.y, maxY);
-
-                        offsetX.set(newX);
-                        offsetY.set(newY);
-                      }}
+                      onPan={handlePan}
                       onWheel={(event) => {
                         if (isActive) {
                           const deltaScale = event.deltaY * -0.001;
