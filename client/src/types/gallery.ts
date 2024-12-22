@@ -20,3 +20,9 @@ export interface SwipeDirection {
   direction: 1 | -1;
   immediate: boolean;
 }
+
+// Selection related types
+export interface SelectionState {
+  selectedIds: number[];
+  isSelectMode: boolean;
+}

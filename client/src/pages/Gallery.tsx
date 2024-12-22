@@ -3,10 +3,11 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { MobileGalleryView } from "@/components/MobileGalleryView";
+import type { Image, Gallery as GalleryType } from "@/types/gallery";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -38,27 +39,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
+  Trash2,
+  CheckCircle
 } from "lucide-react";
 
 // Components
 import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 
-interface Image {
-  id: number;
-  url: string;
-  starred?: boolean;
-  commentCount?: number;
-  position?: number;
-  originalFilename?: string;
-}
-
-interface Gallery {
-  id: number;
-  slug: string;
-  title: string;
-  images: Image[];
-}
 
 interface GalleryProps {
   slug?: string;
@@ -84,7 +72,7 @@ interface ImageDimensions {
   height: number;
 }
 
-export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
+export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
@@ -109,6 +97,9 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileView, setShowMobileView] = useState(false);
   const [mobileViewIndex, setMobileViewIndex] = useState(-1);
+  const [selectedImages, setSelectedImages] = useState<number[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
+
 
   // Add mobile detection
   useEffect(() => {
@@ -122,9 +113,8 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-
   // Queries
-  const { data: gallery, isLoading, error } = useQuery<Gallery>({
+  const { data: gallery, isLoading, error } = useQuery<GalleryType>({
     queryKey: [`/api/galleries/${slug}`],
     enabled: !!slug
   });
@@ -266,6 +256,33 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     },
   });
 
+  const deleteImagesMutation = useMutation({
+    mutationFn: async (imageIds: number[]) => {
+      const response = await fetch(`/api/galleries/${slug}/images/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageIds })
+      });
+      if (!response.ok) throw new Error('Failed to delete images');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      setSelectedImages([]);
+      setSelectMode(false);
+      toast({
+        title: "Success",
+        description: "Selected images deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete images. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
 
   // Callbacks
   const onDrop = useCallback(
@@ -275,7 +292,6 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     },
     [uploadMutation, selectedImageIndex]
   );
-
 
   // Memoized Values
   const breakpointCols = useMemo(
@@ -362,6 +378,25 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     setShowStarredOnly(!showStarredOnly);
   };
 
+  const toggleSelectMode = () => {
+    if (selectMode) {
+      setSelectedImages([]);
+    }
+    setSelectMode(!selectMode);
+  };
+
+  const handleImageSelect = (imageId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!selectMode) return;
+
+    setSelectedImages(prev =>
+      prev.includes(imageId)
+        ? prev.filter(id => id !== imageId)
+        : [...prev, imageId]
+    );
+  };
+
+
   const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
 
@@ -424,6 +459,26 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
             </MenuGroup>
           </MenuContent>
         </Menu>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleSelectMode}
+          className={selectMode ? "bg-primary text-primary-foreground" : ""}
+        >
+          {selectMode ? "Cancel" : "Select"}
+        </Button>
+
+        {selectMode && selectedImages.length > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => deleteImagesMutation.mutate(selectedImages)}
+            className="flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete ({selectedImages.length})
+          </Button>
+        )}
       </div>
     );
   }, [
@@ -436,6 +491,10 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     handleDownloadAll,
     handleReorderToggle,
     handleStarredToggle,
+    selectMode,
+    selectedImages.length,
+    deleteImagesMutation,
+    toggleSelectMode
   ]);
 
   useEffect(() => {
@@ -499,8 +558,8 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
             columnClassName="pl-4 bg-background"
           >
             {gallery?.images
-              .filter((image) => !showStarredOnly || image.starred)
-              .map((image, index) => (
+              .filter((image: Image) => !showStarredOnly || image.starred)
+              .map((image: Image, index: number) => (
                 <motion.div
                   key={image.id}
                   className="mb-4"
@@ -513,42 +572,75 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                   }}
                 >
                   <div
-                    className="relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02]"
-                    onClick={() => handleImageClick(index)}
+                    className={`relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02] ${
+                      selectMode ? 'hover:scale-100' : ''
+                    }`}
+                    onClick={(e) => selectMode ? handleImageSelect(image.id, e) : handleImageClick(index)}
                   >
                     {preloadedImages.has(image.id) && (
                       <img
                         src={image.url}
                         alt=""
-                        className="w-full h-auto object-cover"
+                        className={`w-full h-auto object-cover ${
+                          selectMode && selectedImages.includes(image.id)
+                            ? 'opacity-75'
+                            : ''
+                        }`}
                         loading="lazy"
                       />
                     )}
-                    <div className="absolute top-2 right-2 flex gap-2">
-                      {image.commentCount! > 0 && (
-                        <Badge
-                          className="bg-primary text-primary-foreground flex items-center gap-1"
-                          variant="secondary"
-                        >
-                          <MessageCircle className="w-3 h-3" />
-                          {image.commentCount}
-                        </Badge>
-                      )}
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleStarMutation.mutate(image.id);
-                        }}
+
+                    {/* Selection checkbox */}
+                    {selectMode && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute top-2 right-2 z-10"
                       >
-                        {image.starred ? (
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        ) : (
-                          <Star className="h-4 w-4" />
-                        )}
-                      </Button>
+                        <div
+                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            selectedImages.includes(image.id)
+                              ? 'bg-primary border-primary'
+                              : 'bg-background/80 border-background/80'
+                          }`}
+                        >
+                          {selectedImages.includes(image.id) && (
+                            <CheckCircle className="w-4 h-4 text-primary-foreground" />
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Existing badges and buttons */}
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      {!selectMode && (
+                        <>
+                          {image.commentCount! > 0 && (
+                            <Badge
+                              className="bg-primary text-primary-foreground flex items-center gap-1"
+                              variant="secondary"
+                            >
+                              <MessageCircle className="w-3 h-3" />
+                              {image.commentCount}
+                            </Badge>
+                          )}
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleStarMutation.mutate(image.id);
+                            }}
+                          >
+                            {image.starred ? (
+                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            ) : (
+                              <Star className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -725,11 +817,11 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
                   isCommentPlacementMode ? "cursor-crosshair" : ""
                 }`}
                 {...(isMobile && {
-                  drag: "x",
+                  drag: "x" as const,
                   dragConstraints: { left: 0, right: 0 },
                   dragElastic: 1,
-                  onDragEnd: (e, { offset, velocity }) => {
-                    const swipe = Math.abs(offset.x) * velocity.x;
+                  onDragEnd: (e: any, info: PanInfo) => {
+                    const swipe = Math.abs(info.offset.x) * info.velocity.x;
                     if (swipe < -100 && selectedImageIndex < gallery!.images.length - 1) {
                       setSelectedImageIndex(selectedImageIndex + 1);
                     } else if (swipe > 100 && selectedImageIndex > 0) {
@@ -845,5 +937,3 @@ export function Gallery({ slug: propSlug, title, onHeaderActionsChange }: Galler
     </div>
   );
 }
-
-export default Gallery;
