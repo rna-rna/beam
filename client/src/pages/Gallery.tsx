@@ -590,11 +590,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   dragConstraints={{ top: 0, bottom: 0 }}
                   dragElastic={0.7}
                   dragSnapToOrigin={false}
-                  whileDrag={{ 
-                    scale: 1.05, 
+                  whileDrag={{
+                    scale: 1.05,
                     opacity: 0.75,
                     zIndex: 50,
-                    boxShadow: "0 8px 20px rgba(0, 0, 0, 0.15)" 
+                    boxShadow: "0 8px 20px rgba(0, 0, 0, 0.15)"
                   }}
                   onDragStart={() => {
                     if (!isReorderMode) return;
@@ -624,6 +624,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       reorderImageMutation.mutate(newOrder);
                     }
                   }}
+                  layout // Add layout prop for smooth transitions
                 >
                   <div
                     className={`relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 ${
@@ -971,7 +972,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       isNew
                       savedAuthor={userName}
                       onSubmit={(content, author) => {
-                        const newAuthor = author.trim()|| userName || "Anonymous";
+                        const newAuthor = author.trim() || userName || "Anonymous";
                         setUserName(newAuthor);
                         if (!selectedImage) return;
                         createCommentMutation.mutate({
