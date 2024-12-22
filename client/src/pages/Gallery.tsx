@@ -19,14 +19,14 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
-  Menu,
-  MenuContent,
-  MenuGroup,
-  MenuItem,
-  MenuLabel,
-  MenuSeparator,
-  MenuTrigger,
-} from "@/components/ui/menu";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Icons
 import {
@@ -537,12 +537,62 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     return (
       <div className="flex items-center gap-2">
+        {/* Gallery Actions Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <MenuIcon className="w-4 h-4" />
+              Actions
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={handleCopyLink}
+                className="flex items-center gap-2"
+              >
+                <Link className="w-4 h-4" />
+                Copy Link
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleDownloadAll}
+                className="flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download All
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={handleStarredToggle}
+                className="flex items-center gap-2"
+              >
+                <Star className={`w-4 h-4 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                {showStarredOnly ? 'Show All' : 'Show Starred'}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleReorderToggle}
+                className="flex items-center gap-2"
+              >
+                <ArrowUpDown className="w-4 h-4" />
+                {isReorderMode ? 'Done Reordering' : 'Reorder Images'}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {isUploading && (
           <div className="flex items-center gap-4">
             <Progress value={undefined} className="w-24" />
             <span className="text-sm text-muted-foreground">Uploading...</span>
           </div>
         )}
+
         {selectMode && (
           <>
             <Button
@@ -566,6 +616,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             )}
           </>
         )}
+
         <Button
           variant="outline"
           size="sm"
@@ -582,7 +633,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     selectMode,
     isReorderMode,
     selectedImages.length,
+    showStarredOnly,
     deleteImagesMutation,
+    handleCopyLink,
+    handleDownloadAll,
+    handleStarredToggle,
+    handleReorderToggle,
     toggleReorderMode,
     toggleSelectMode
   ]);
@@ -855,13 +911,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           {isMasonry ? (
             <Grid className="h-5 w-5" />
           ) : (
-            <LayoutGrid className="h-5 w-5" />
+            <LayoutGrid className="h5 w-5" />
           )}
         </Button>
       </div>
 
       {/* Scale Slider */}
-      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
+      <div className="fixed bottom-6 right-6 z-50 bgbackground/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
         <Slider
           value={[scale]}
           onValueChange={([value]) => setScale(value)}
@@ -913,7 +969,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               </div>
             )}
 
-                        {/* Navigation buttons */}            <Button
+            {/* Navigation buttons */}
+            <Button
               variant="ghost"
               size="icon"
               className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
