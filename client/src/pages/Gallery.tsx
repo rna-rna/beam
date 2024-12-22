@@ -8,7 +8,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { MobileGalleryView } from "@/components/MobileGalleryView";
 import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
-import { Upload } from "lucide-react";
+import { Upload, Grid, LayoutGrid } from "lucide-react";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -87,6 +87,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
+  const [isMasonry, setIsMasonry] = useState(true);
 
   // Add mobile detection
   useEffect(() => {
@@ -614,6 +615,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   };
 
+  // Add layout toggle handler
+  const toggleGridView = () => {
+    setIsMasonry(!isMasonry);
+  };
+
   return (
     <div className="min-h-screen relative" {...getRootProps()}>
       <input {...getInputProps()} />
@@ -628,103 +634,234 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       )}
 
       <div className="px-4 md:px-6 lg:px-8 py-8">
-        <AnimatePresence>
-          <Masonry
-            breakpointCols={breakpointCols}
-            className="flex -ml-4 w-[calc(100%+1rem)]"
-            columnClassName="pl-4 bg-background"
-          >
-            {renderUploadPlaceholders()}
-            {gallery?.images
-              .filter((image: Image) => !showStarredOnly || image.starred)
-              .map((image: Image, index: number) => (
-                <motion.div
-                  key={image.id}
-                  className="mb-4"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{
-                    duration: 0.4,
-                    delay: Math.min(index * 0.05, 0.5),
-                  }}
-                >
-                  <div
-                    className={`relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02] ${
-                      selectMode ? 'hover:scale-100' : ''
-                    }`}
-                    onClick={(e) => selectMode ? handleImageSelect(image.id, e) : handleImageClick(index)}
-                  >
-                    {preloadedImages.has(image.id) && (
-                      <img
-                        src={image.url}
-                        alt=""
-                        className={`w-full h-auto object-cover ${
-                          selectMode && selectedImages.includes(image.id)
-                            ? 'opacity-75'
-                            : ''
+        <AnimatePresence mode="wait">
+          {isMasonry ? (
+            <motion.div
+              key="masonry"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Masonry
+                breakpointCols={breakpointCols}
+                className="flex -ml-4 w-[calc(100%+1rem)]"
+                columnClassName="pl-4 bg-background"
+              >
+                {renderUploadPlaceholders()}
+                {gallery?.images
+                  .filter((image: Image) => !showStarredOnly || image.starred)
+                  .map((image: Image, index: number) => (
+                    <motion.div
+                      key={image.id}
+                      className="mb-4"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{
+                        duration: 0.4,
+                        delay: Math.min(index * 0.05, 0.5),
+                      }}
+                    >
+                      <div
+                        className={`relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02] ${
+                          selectMode ? 'hover:scale-100' : ''
                         }`}
-                        loading="lazy"
-                      />
-                    )}
-
-                    {/* Selection checkbox */}
-                    {selectMode && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute top-2 right-2 z-10"
+                        onClick={(e) => selectMode ? handleImageSelect(image.id, e) : handleImageClick(index)}
                       >
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                            selectedImages.includes(image.id)
-                              ? 'bg-primary border-primary'
-                              : 'bg-background/80 border-background/80'
-                          }`}
-                        >
-                          {selectedImages.includes(image.id) && (
-                            <CheckCircle className="w-4 h-4 text-primary-foreground" />
+                        {preloadedImages.has(image.id) && (
+                          <img
+                            src={image.url}
+                            alt=""
+                            className={`w-full h-auto object-cover ${
+                              selectMode && selectedImages.includes(image.id)
+                                ? 'opacity-75'
+                                : ''
+                            }`}
+                            loading="lazy"
+                          />
+                        )}
+
+                        {/* Selection checkbox */}
+                        {selectMode && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="absolute top-2 right-2 z-10"
+                          >
+                            <div
+                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                selectedImages.includes(image.id)
+                                  ? 'bg-primary border-primary'
+                                  : 'bg-background/80 border-background/80'
+                              }`}
+                            >
+                              {selectedImages.includes(image.id) && (
+                                <CheckCircle className="w-4 h-4 text-primary-foreground" />
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* Image badges and buttons */}
+                        <div className="absolute top-2 right-2 flex gap-2">
+                          {!selectMode && (
+                            <>
+                              {image.commentCount! > 0 && (
+                                <Badge
+                                  className="bg-primary text-primary-foreground flex items-center gap-1"
+                                  variant="secondary"
+                                >
+                                  <MessageCircle className="w-3 h-3" />
+                                  {image.commentCount}
+                                </Badge>
+                              )}
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleStarMutation.mutate(image.id);
+                                }}
+                              >
+                                {image.starred ? (
+                                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                ) : (
+                                  <Star className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </>
                           )}
                         </div>
-                      </motion.div>
-                    )}
-
-                    {/* Image badges and buttons */}
-                    <div className="absolute top-2 right-2 flex gap-2">
-                      {!selectMode && (
-                        <>
-                          {image.commentCount! > 0 && (
-                            <Badge
-                              className="bg-primary text-primary-foreground flex items-center gap-1"
-                              variant="secondary"
-                            >
-                              <MessageCircle className="w-3 h-3" />
-                              {image.commentCount}
-                            </Badge>
-                          )}
-                          <Button
-                            variant="secondary"
-                            size="icon"
-                            className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleStarMutation.mutate(image.id);
-                            }}
-                          >
-                            {image.starred ? (
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            ) : (
-                              <Star className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </>
+                      </div>
+                    </motion.div>
+                  ))}
+              </Masonry>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="grid"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="grid gap-4"
+              style={{
+                gridTemplateColumns: `repeat(${breakpointCols.default}, minmax(0, 1fr))`,
+              }}
+            >
+              {renderUploadPlaceholders()}
+              {gallery?.images
+                .filter((image: Image) => !showStarredOnly || image.starred)
+                .map((image: Image, index: number) => (
+                  <motion.div
+                    key={image.id}
+                    className="mb-4 aspect-[4/3]"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{
+                      duration: 0.4,
+                      delay: Math.min(index * 0.05, 0.5),
+                    }}
+                  >
+                    <div
+                      className={`relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02] ${
+                        selectMode ? 'hover:scale-100' : ''
+                      }`}
+                      onClick={(e) => selectMode ? handleImageSelect(image.id, e) : handleImageClick(index)}
+                    >
+                      {preloadedImages.has(image.id) && (
+                        <img
+                          src={image.url}
+                          alt=""
+                          className={`w-full h-auto object-cover ${
+                            selectMode && selectedImages.includes(image.id)
+                              ? 'opacity-75'
+                              : ''
+                          }`}
+                          loading="lazy"
+                        />
                       )}
+
+                      {/* Selection checkbox */}
+                      {selectMode && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute top-2 right-2 z-10"
+                        >
+                          <div
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                              selectedImages.includes(image.id)
+                                ? 'bg-primary border-primary'
+                                : 'bg-background/80 border-background/80'
+                            }`}
+                          >
+                            {selectedImages.includes(image.id) && (
+                              <CheckCircle className="w-4 h-4 text-primary-foreground" />
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* Image badges and buttons */}
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        {!selectMode && (
+                          <>
+                            {image.commentCount! > 0 && (
+                              <Badge
+                                className="bg-primary text-primary-foreground flex items-center gap-1"
+                                variant="secondary"
+                              >
+                                <MessageCircle className="w-3 h-3" />
+                                {image.commentCount}
+                              </Badge>
+                            )}
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleStarMutation.mutate(image.id);
+                              }}
+                            >
+                              {image.starred ? (
+                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                              ) : (
+                                <Star className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
-          </Masonry>
+                  </motion.div>
+                ))}
+            </motion.div>
+          )}
         </AnimatePresence>
+      </div>
+
+      {/* Grid View Toggle Button */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={toggleGridView}
+          className={`h-10 w-10 rounded-full bg-background/95 backdrop-blur-sm hover:bg-background shadow-lg ${
+            !isMasonry ? "bg-primary/20" : ""
+          }`}
+          title={`Switch to ${isMasonry ? "grid" : "masonry"} view`}
+        >
+          {isMasonry ? (
+            <Grid className="h-5 w-5" />
+          ) : (
+            <LayoutGrid className="h-5 w-5" />
+          )}
+        </Button>
       </div>
 
       {/* Scale Slider */}
