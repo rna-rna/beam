@@ -590,7 +590,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const renderImage = (image: Image, index: number) => (
     <motion.div
       key={image.id}
-      layout="position"
+      layout={draggedItemIndex === index ? false : "position"}
       className={`mb-4 image-container relative ${
         !isMasonry ? 'aspect-[4/3]' : ''
       } transform transition-all duration-200 ease-out ${
@@ -600,12 +600,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       animate={{ 
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
-        scale: isReorderMode ? (draggedItemIndex === index ? 1.05 : 0.95) : 1,
-        zIndex: draggedItemIndex === index ? 50 : 1,
-        transition: { 
-          duration: 0.2,
-          ease: [0.4, 0, 0.2, 1]
+        scale: draggedItemIndex === index ? 1.1 : 1,
+        zIndex: draggedItemIndex === index ? 100 : 1,
+        transition: {
+          duration: draggedItemIndex === index ? 0 : 0.25,  // Smooth return without stutter
         }
+      }}
+      style={{
+        position: draggedItemIndex === index ? "absolute" : "relative",
+        top: draggedItemIndex === index ? dragPosition?.y : "auto",
+        left: draggedItemIndex === index ? dragPosition?.x : "auto",
       }}
       drag={isReorderMode}
       dragMomentum={false}
@@ -615,7 +619,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         setDragPosition({ x: info.point.x, y: info.point.y });
       }}
       onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
-      layoutId={`image-${image.id}`}
     >
       <div
         className={`relative bg-card rounded-lg overflow-hidden transform transition-all ${
@@ -631,23 +634,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
         }}
       >
-        {isReorderMode && (
-          <div className="absolute top-2 left-2 z-10 bg-background/90 backdrop-blur-sm p-2 rounded-md shadow-sm">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="text-foreground/70"
-            >
-              <circle cx="8" cy="8" r="2" />
-              <circle cx="16" cy="8" r="2" />
-              <circle cx="8" cy="16" r="2" />
-              <circle cx="16" cy="16" r="2" />
-            </svg>
-          </div>
-        )}
-
         {preloadedImages.has(image.id) && (
           <img
             src={image.url}
@@ -659,7 +645,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             draggable={false}
           />
         )}
-
         {/* Image badges and buttons */}
         <div className="absolute top-2 right-2 flex gap-2">
           {!selectMode && (
@@ -928,7 +913,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               </div>
             )}
 
-            {/* Navigation buttons */}
+                        {/* Navigation buttons */}
             <Button
               variant="ghost"
               size="icon"

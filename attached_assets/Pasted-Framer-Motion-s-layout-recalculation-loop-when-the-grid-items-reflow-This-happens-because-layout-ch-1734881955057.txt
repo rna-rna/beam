@@ -1,0 +1,114 @@
+Framer Motion’s layout recalculation loop when the grid items reflow. This happens because layout changes trigger new animations for each affected item, creating a cascade effect.
+
+Root Cause:
+The dragged item (motion.div) re-enters the layout, triggering an infinite loop of layout shifts.
+This happens because layout="position" is applied to all items, including the one that was just dragged.
+When the item drops, its scale transition conflicts with the reflow, causing the grid to repeatedly adjust.
+Solution:
+Temporarily Remove the Dragged Item from Layout Flow:
+
+While dragging, remove the dragged item from the grid layout by applying position: absolute.
+Only reintegrate the item after the drop completes.
+Prevent Continuous Layout Shifts:
+
+Apply layout to all items except the one currently being dragged.
+Manually control the positioning of the dragged item using Framer Motion’s transform during drag.
+Implementation Fix:
+1. Update Drag Logic to Prevent Reflow:
+tsx
+Copy code
+const renderImage = (image: Image, index: number) => (
+  <motion.div
+    key={image.id}
+    layout={draggedItemIndex === index ? false : "position"}
+    className={`mb-4 image-container relative ${
+      isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
+    }`}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{
+      opacity: preloadedImages.has(image.id) ? 1 : 0,
+      y: 0,
+      scale: draggedItemIndex === index ? 1.1 : 1,
+      zIndex: draggedItemIndex === index ? 100 : 1,
+      transition: {
+        duration: draggedItemIndex === index ? 0 : 0.25,  // Smooth return without stutter
+      }
+    }}
+    style={{
+      position: draggedItemIndex === index ? "absolute" : "relative",
+      top: draggedItemIndex === index ? dragPosition?.y : "auto",
+      left: draggedItemIndex === index ? dragPosition?.x : "auto",
+    }}
+    drag={isReorderMode}
+    dragMomentum={false}
+    dragElastic={0.1}
+    onDragStart={() => setDraggedItemIndex(index)}
+    onDrag={(_, info) => {
+      setDragPosition({ x: info.point.x, y: info.point.y });
+    }}
+    onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
+  >
+    <img
+      src={image.url}
+      alt=""
+      className="w-full h-auto object-cover rounded-lg"
+      draggable={false}
+    />
+  </motion.div>
+);
+2. Adjust Drag End Behavior (Reintegrate the Item Without Flicker):
+tsx
+Copy code
+const handleDragEnd = useCallback((
+  event: PointerEvent | MouseEvent | TouchEvent,
+  draggedIndex: number,
+  info: PanInfo
+) => {
+  setDraggedItemIndex(null);
+  setDragPosition(null);
+
+  if (!gallery || !isReorderMode) return;
+
+  const galleryItems = Array.from(document.querySelectorAll(".image-container"));
+  if (galleryItems.length === 0 || draggedIndex >= galleryItems.length) return;
+
+  let targetIndex = draggedIndex;
+  let closestDistance = Infinity;
+
+  const cursorPos = {
+    x: event instanceof MouseEvent ? event.clientX : info.point.x,
+    y: event instanceof MouseEvent ? event.clientY : info.point.y,
+  };
+
+  galleryItems.forEach((item, index) => {
+    if (index === draggedIndex) return;
+
+    const rect = item.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const distance = Math.hypot(centerX - cursorPos.x, centerY - cursorPos.y);
+
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      targetIndex = index;
+    }
+  });
+
+  if (targetIndex !== draggedIndex) {
+    const updatedImages = [...gallery.images];
+    const [movedImage] = updatedImages.splice(draggedIndex, 1);
+    updatedImages.splice(targetIndex, 0, movedImage);
+
+    queryClient.setQueryData([`/api/galleries/${slug}`], {
+      ...gallery,
+      images: updatedImages,
+    });
+
+    reorderImageMutation.mutate(updatedImages.map(img => img.id));
+  }
+}, [gallery, isReorderMode, queryClient, reorderImageMutation, slug]);
+Why This Fix Works:
+position: absolute removes the dragged item from the layout during drag.
+Other grid items shift without competing with the dragged item for space.
+After the drag completes, the item is reintroduced without triggering cascading layout shifts.
