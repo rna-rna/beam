@@ -1,0 +1,136 @@
+Enhance the Gallery Page by providing visual feedback during image uploads and ensuring a smooth transition between uploading placeholders and the final masonry grid layout. This will improve user experience by:
+
+Making uploads more intuitive with progress indicators.
+Preventing abrupt layout shifts by displaying skeleton placeholders that match the final image size.
+Ensuring uploaded images fade and scale into place smoothly.
+Current Issue on the Gallery Page:
+No Visual Feedback for Uploads:
+
+When images are dragged into the gallery (drop zone), there are no UI indicators to show that the images are uploading.
+Users may feel the system is unresponsive during uploads.
+Sudden Image Appearance:
+
+Uploaded images appear in the grid without any transition, causing a jarring layout shift.
+This can lead to visual disruption and poor user experience, especially when multiple images are uploaded.
+Solution Overview (Gallery Page Specific):
+Show Skeleton Placeholders:
+
+As soon as images are dropped into the gallery, grey placeholder boxes appear in the masonry grid.
+These placeholders should mirror the size and position of the final images to minimize layout shifts.
+Progress Indicators:
+
+Each placeholder displays a progress bar indicating the upload percentage for that image.
+Progress updates in real-time until the image is fully uploaded.
+Smooth Fade-In of Final Images:
+
+When an image finishes uploading, it should fade in and replace the placeholder seamlessly.
+Scaling and opacity transitions ensure that the uploaded image integrates naturally into the existing grid.
+Implementation Instructions (Gallery Page):
+1. Track Upload Progress for Each Image on the Gallery Page
+Modify the Gallery.tsx upload handler to track individual image upload progress.
+Use React’s useState to store the progress for each uploading image.
+tsx
+Copy code
+const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+
+const uploadMutation = useMutation({
+  mutationFn: async (files: File[]) => {
+    setIsUploading(true);
+    const formData = new FormData();
+
+    const progressMap: { [key: string]: number } = {};
+    files.forEach((file) => {
+      formData.append("images", file);
+      progressMap[file.name] = 0;
+    });
+    setUploadProgress(progressMap);
+
+    try {
+      const res = await fetch(`/api/galleries/${slug}/images`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Failed to upload images");
+
+      return res.json();
+    } finally {
+      setIsUploading(false);
+      setUploadProgress({});
+    }
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+    toast({
+      title: "Success",
+      description: "Images uploaded successfully",
+    });
+  },
+  onError: () => {
+    toast({
+      title: "Error",
+      description: "Failed to upload images. Please try again.",
+      variant: "destructive",
+    });
+  },
+});
+2. Render Upload Placeholders Within the Masonry Grid (Gallery Page):
+As images upload, placeholders should appear in the grid to reserve their future space.
+These placeholders should scale to the correct size using the aspect ratio of the final images.
+tsx
+Copy code
+<AnimatePresence>
+  {Object.entries(uploadProgress).map(([filename, progress]) => (
+    <motion.div
+      key={filename}
+      initial={{ opacity: 0.5 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="mb-4 bg-gray-200 rounded-lg overflow-hidden relative"
+    >
+      <div className="w-full aspect-[4/3] flex items-center justify-center">
+        <span className="text-gray-500">{filename}</span>
+      </div>
+      <div className="absolute inset-0 flex flex-col justify-end">
+        <Progress value={progress} className="h-1" />
+      </div>
+    </motion.div>
+  ))}
+</AnimatePresence>
+3. Fade Uploaded Images Into Place (Replacing the Placeholder):
+Once the images finish uploading, they should replace the placeholders and transition into the grid.
+Use Framer Motion's layout to ensure smooth grid adjustments.
+tsx
+Copy code
+<Masonry
+  breakpointCols={breakpointCols}
+  className="flex -ml-4 w-[calc(100%+1rem)]"
+  columnClassName="pl-4 bg-background"
+>
+  {gallery?.images.map((image: Image, index: number) => (
+    <motion.div
+      key={image.id}
+      className="mb-4"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.5) }}
+    >
+      <img
+        src={image.url}
+        alt=""
+        className="w-full h-auto object-cover rounded-lg"
+      />
+    </motion.div>
+  ))}
+</Masonry>
+User Experience (Gallery Page Specific Flow):
+Dropzone Activated:
+When users drag images into the gallery, placeholders instantly appear in the grid.
+Each placeholder displays the filename and a progress bar.
+Progress Feedback:
+As uploads proceed, the progress bar fills dynamically for each image.
+Smooth Image Transition:
+After upload, the image seamlessly fades in, scales, and replaces the placeholder.
+Masonry grid dynamically adjusts to prevent layout shifts.
