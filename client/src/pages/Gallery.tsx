@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
@@ -607,7 +607,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         }
       }}
       drag={isReorderMode}
-      dragConstraints={false}
+      dragMomentum={false}
       dragElastic={0.1}
       onDragStart={() => setDraggedItemIndex(index)}
       onDrag={(_, info) => {
@@ -825,7 +825,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         </AnimatePresence>
       </div>
 
-      {/* Ghost/Clone Preview */}
+
+      {/* Ghost/Clone Preview - Removed duplicate */}
       {dragPosition && draggedItemIndex !== null && gallery?.images && (
         <motion.div
           className="fixed pointer-events-none z-50 ghost-image"
@@ -837,7 +838,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             transform: 'translate(-50%, -50%)'
           }}
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 0.9, scale: 1.05 }}
+          animate={{ 
+            opacity: 0.9, 
+            scale: 1.05,
+            transition: {
+              type: "spring",
+              stiffness: 300,
+              damping: 25
+            }
+          }}
           exit={{ opacity: 0, scale: 0.8 }}
         >
           <img
@@ -910,7 +919,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             aria-describedby="gallery-lightbox-description"
           >
             <div id="gallery-lightbox-description" className="sr-only">
-              Image viewerwith annotation and commenting capabilities
+              Image viewer with annotation and commenting capabilities
             </div>
 
             {/* Filename display */}

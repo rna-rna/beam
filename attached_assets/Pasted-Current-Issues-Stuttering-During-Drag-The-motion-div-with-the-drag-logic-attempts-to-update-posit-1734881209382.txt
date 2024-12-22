@@ -1,0 +1,159 @@
+Current Issues:
+Stuttering During Drag:
+
+The motion.div with the drag logic attempts to update position and scale during drag (onDrag), but the gallery grid doesn’t smoothly adjust as the item moves.
+Framer Motion’s layout and scale updates can conflict, causing visual jitter.
+Ghost Image Not Appearing:
+
+Although the ghost image logic exists at the bottom, it relies on dragPosition, which isn’t being consistently updated, leading to ghost image flickering or not rendering at all.
+Placeholder Animation Missing:
+
+The code to shift other images out of the way during drag seems incomplete. The y: draggedItemIndex !== null && index > draggedItemIndex ? 25 : 0 logic may not apply consistently due to reflow conflicts.
+Fix Approach (Smooth Drag + Ghost Preview + Dynamic Placeholder):
+1. Fix Stuttering by Adjusting Drag Constraints and Animations:
+Problem: The dragConstraints={false} and layout="position" are fighting for control, causing jitter.
+Fix: Use layout without transform, and apply only y or x during drag.
+Remove dragElastic to avoid overextension during dragging.
+tsx
+Copy code
+<motion.div
+  key={image.id}
+  layout
+  className={`mb-4 image-container relative ${
+    isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
+  }`}
+  animate={{
+    scale: draggedItemIndex === index ? 1.05 : 1,
+    y: draggedItemIndex !== null && index > draggedItemIndex ? 20 : 0,
+  }}
+  drag={isReorderMode}
+  dragConstraints={{ top: 0, bottom: 0 }}  // Restrict unnecessary dragging
+  dragMomentum={false}  // Prevent overshooting
+  onDragStart={() => handleDragStart(index, image.url)}
+  onDrag={(event, info) => {
+    setDragPosition({ x: info.point.x, y: info.point.y });
+  }}
+  onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
+  whileDrag={{
+    scale: 1.05,
+    zIndex: 50,
+    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+  }}
+>
+2. Ensure Ghost Image Consistently Follows Cursor:
+Problem: The ghost image preview (draggedImage) doesn’t consistently appear because dragPosition may not update rapidly enough.
+
+Fix: Directly link onDrag to the ghost image and continuously update its position during drag.
+
+tsx
+Copy code
+{draggedImage && dragPosition && (
+  <motion.div
+    className="fixed pointer-events-none z-50"
+    style={{
+      top: dragPosition.y,
+      left: dragPosition.x,
+      transform: "translate(-50%, -50%)",
+      width: '150px',
+      height: '150px'
+    }}
+    animate={{ scale: 1.05, opacity: 1 }}
+    transition={{ duration: 0.1 }}
+  >
+    <img
+      src={draggedImage}
+      alt="Ghost Preview"
+      className="w-full h-full object-cover rounded-lg shadow-lg"
+    />
+  </motion.div>
+)}
+3. Placeholder Animation (Grid Shift During Drag):
+As the user drags, the rest of the grid should shift downward or to the side dynamically to indicate the drop area.
+This helps guide the user and improves the intuitive feel.
+tsx
+Copy code
+{gallery?.images.map((image: Image, index: number) => (
+  <motion.div
+    key={image.id}
+    layout
+    animate={{
+      scale: draggedItemIndex === index ? 1.1 : 1,
+      y: draggedItemIndex !== null && index > draggedItemIndex ? 25 : 0,
+    }}
+    className="relative image-container"
+  >
+    <img
+      src={image.url}
+      alt=""
+      className="w-full h-auto object-cover rounded-lg"
+    />
+  </motion.div>
+))}
+4. Dynamic Placeholder Creation (Temporary Gap Effect):
+To create a space that pushes grid items down as the dragged item hovers, inject a placeholder that mimics the dimensions of the dragged image.
+
+tsx
+Copy code
+{draggedItemIndex !== null && (
+  <motion.div
+    layout
+    className="image-container relative bg-gray-100 rounded-lg"
+    style={{
+      height: '150px',
+      width: '100%',
+      marginBottom: '16px',
+    }}
+    animate={{
+      opacity: 0.5,
+      scale: 0.95,
+    }}
+  />
+)}
+5. Optimize Drag End Calculation (Fix Item Landing in Wrong Spot):
+If images land unpredictably, ensure the target index is accurately calculated using distance between centers.
+
+tsx
+Copy code
+const handleDragEnd = useCallback((
+  event: PointerEvent | MouseEvent | TouchEvent,
+  draggedIndex: number,
+  info: PanInfo
+) => {
+  setDraggedItemIndex(null);
+  setDragPosition(null);
+
+  if (!gallery || !isReorderMode) return;
+
+  const galleryItems = Array.from(document.querySelectorAll(".image-container"));
+  let targetIndex = draggedIndex;
+  let closestDistance = Infinity;
+
+  const cursorPos = {
+    x: event instanceof MouseEvent ? event.clientX : (event as TouchEvent).touches[0].clientX,
+    y: event instanceof MouseEvent ? event.clientY : (event as TouchEvent).touches[0].clientY,
+  };
+
+  galleryItems.forEach((item, index) => {
+    if (index === draggedIndex) return;
+    const rect = item.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const distance = Math.hypot(centerX - cursorPos.x, centerY - cursorPos.y);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      targetIndex = index;
+    }
+  });
+
+  if (targetIndex !== draggedIndex) {
+    const updatedImages = [...gallery.images];
+    const [movedImage] = updatedImages.splice(draggedIndex, 1);
+    updatedImages.splice(targetIndex, 0, movedImage);
+    queryClient.setQueryData([`/api/galleries/${slug}`], {
+      ...gallery,
+      images: updatedImages,
+    });
+    reorderImageMutation.mutate(updatedImages.map(img => img.id));
+  }
+}, [gallery, isReorderMode, queryClient, reorderImageMutation, slug]);
