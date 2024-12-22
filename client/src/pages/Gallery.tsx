@@ -624,19 +624,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   return (
-    <div className="min-h-screen relative">
-      {/* Move dropzone props to a separate overlay div */}
-      <div {...getRootProps()} className="fixed inset-0 pointer-events-none">
-        <input {...getInputProps()} />
-        {isDragActive && !selectMode && (
-          <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-auto">
-            <div className="text-center">
-              <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
-              <h3 className="text-xl font-semibold">Drop images here</h3>
-            </div>
+    <div className="min-h-screen relative" {...getRootProps()}>
+      <input {...getInputProps()} />
+      {isDragActive && !selectMode && (
+        <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="text-center">
+            <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+            <h3 className="text-xl font-semibold">Drop images here</h3>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="px-4 md:px-6 lg:px-8 py-8">
         <AnimatePresence mode="wait">
