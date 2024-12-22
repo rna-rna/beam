@@ -1,0 +1,155 @@
+Objective for Replit:
+Enhance the drag-and-drop reordering experience by adding:
+
+Dynamic Placeholder Animation – Shift other images during drag to indicate where the item will land.
+Ghost/Clone Preview – A visual copy of the dragged image follows the cursor for feedback.
+Smooth Grid Reflow – The gallery grid dynamically adjusts as the item is dragged across.
+Implementation Plan:
+1. Track Drag State (For Visual Feedback)
+Add state to track the dragged item and its visual preview.
+
+Add to State (Gallery.tsx):
+
+tsx
+Copy code
+const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
+const [draggedImage, setDraggedImage] = useState<string | null>(null);  // Ghost image preview
+const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+2. Update Drag Handlers (Track Drag Start/End):
+Set the dragged image and track its movement.
+
+tsx
+Copy code
+const handleDragStart = (index: number, imageSrc: string) => {
+  setDraggedItemIndex(index);
+  setDraggedImage(imageSrc);
+};
+
+const handleDragEnd = (
+  event: PointerEvent | MouseEvent | TouchEvent,
+  draggedIndex: number,
+  info: PanInfo
+) => {
+  setDraggedItemIndex(null);
+  setDraggedImage(null);
+  setDragPosition(null);
+  
+  if (!gallery || !isReorderMode) return;
+
+  const updatedImages = [...gallery.images];
+  const [movedImage] = updatedImages.splice(draggedIndex, 1);
+  updatedImages.splice(draggedIndex, 0, movedImage);
+
+  queryClient.setQueryData([`/api/galleries/${slug}`], {
+    ...gallery,
+    images: updatedImages,
+  });
+
+  reorderImageMutation.mutate(updatedImages.map((img) => img.id));
+};
+3. Ghost/Clone Preview (Follows Cursor During Drag):
+Render a floating preview of the dragged image for real-time feedback.
+
+Add Ghost Image Below Return Statement:
+
+tsx
+Copy code
+{draggedImage && dragPosition && (
+  <motion.div
+    className="fixed pointer-events-none z-50 ghost-image"
+    style={{
+      top: dragPosition.y,
+      left: dragPosition.x,
+      transform: "translate(-50%, -50%)",
+      width: '150px',
+      height: '150px'
+    }}
+    animate={{ scale: 1.05, opacity: 1 }}
+    exit={{ scale: 0.95, opacity: 0 }}
+    transition={{ duration: 0.2 }}
+  >
+    <img
+      src={draggedImage}
+      alt="Ghost Preview"
+      className="w-full h-full object-cover rounded-lg shadow-lg"
+    />
+  </motion.div>
+)}
+CSS for Ghost Image:
+
+css
+Copy code
+.ghost-image {
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 9999;
+}
+4. Dynamic Placeholder Animation (Shift Grid Items):
+Shift grid items out of the way during drag to simulate a placeholder effect.
+
+Modify renderImage to Shift Items Dynamically:
+
+tsx
+Copy code
+const renderImage = (image: Image, index: number) => (
+  <motion.div
+    key={image.id}
+    layout
+    className={`mb-4 image-container relative ${
+      isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
+    }`}
+    animate={{
+      scale: draggedItemIndex === index ? 1.1 : 1,
+      y: draggedItemIndex !== null && index > draggedItemIndex ? 25 : 0,
+    }}
+    drag={isReorderMode}
+    dragElastic={0.1}
+    dragConstraints={false}
+    onDragStart={() => handleDragStart(index, image.url)}
+    onDrag={(event, info) => setDragPosition({ x: info.point.x, y: info.point.y })}
+    onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
+    whileDrag={{
+      scale: 1.05,
+      zIndex: 50,
+      boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+    }}
+  >
+    <img
+      src={image.url}
+      alt=""
+      className="w-full h-auto object-cover rounded-lg"
+      draggable={false}
+    />
+  </motion.div>
+);
+5. Smooth Transitions for Grid Reordering:
+Ensure the grid smoothly adjusts by enabling Framer Motion's layout properties.
+
+tsx
+Copy code
+<Masonry
+  breakpointCols={breakpointCols}
+  className="flex -ml-4 w-[calc(100%+1rem)] masonry-grid"
+  columnClassName="pl-4 bg-background"
+>
+  {gallery?.images.map((image: Image, index: number) =>
+    renderImage(image, index)
+  )}
+</Masonry>
+Testing Instructions for Replit:
+Ghost Preview Test:
+
+Drag an image and confirm a floating preview follows the cursor.
+Verify the preview disappears smoothly upon releasing the drag.
+Placeholder Test:
+
+Drag items over others and observe the grid items shift away to create a drop zone.
+Ensure the item lands in the closest available slot.
+Grid Adjustment:
+
+Test grid reflow to ensure no unexpected gaps or flickers occur.
+Mobile Responsiveness:
+
+Long-press drag should activate the reorder mode on mobile devices.
+Optional Additions:
+Snapping Behavior: Snap dragged items into place for precise alignment.
