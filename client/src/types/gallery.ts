@@ -6,6 +6,9 @@ export interface Image {
   commentCount?: number;
   position?: number;
   originalFilename?: string;
+  width?: number;
+  height?: number;
+  createdAt?: string;
 }
 
 export interface Gallery {
@@ -15,14 +18,34 @@ export interface Gallery {
   images: Image[];
 }
 
-// Custom type for framer-motion variants
-export interface SwipeDirection {
-  direction: 1 | -1;
-  immediate: boolean;
+export interface Comment {
+  id: number;
+  content: string;
+  xPosition: number;
+  yPosition: number;
+  author?: string;
+  createdAt?: string;
+}
+
+export interface Annotation {
+  id: number;
+  pathData: string;
+  createdAt?: string;
+}
+
+// Upload related types
+export interface UploadProgress {
+  [key: string]: number;
 }
 
 // Selection related types
 export interface SelectionState {
   selectedIds: number[];
   isSelectMode: boolean;
+}
+
+// Custom type for framer-motion variants
+export interface SwipeDirection {
+  direction: 1 | -1;
+  immediate: boolean;
 }

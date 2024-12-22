@@ -14,18 +14,18 @@ export const images = pgTable('images', {
   galleryId: integer('gallery_id').references(() => galleries.id).notNull(),
   url: text('url').notNull(),
   publicId: text('public_id').notNull(),
-  originalFilename: text('original_filename').notNull(),
+  originalFilename: text('original_filename'),
   width: integer('width').notNull(),
   height: integer('height').notNull(),
   starred: boolean('starred').default(false).notNull(),
-  position: integer('position'),
+  position: integer('position').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
 export const annotations = pgTable('annotations', {
   id: serial('id').primaryKey(),
   imageId: integer('image_id').references(() => images.id).notNull(),
-  pathData: text('path_data').notNull(), // SVG path data for the drawing
+  pathData: text('path_data').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
@@ -34,8 +34,8 @@ export const comments = pgTable('comments', {
   imageId: integer('image_id').references(() => images.id).notNull(),
   annotationId: integer('annotation_id').references(() => annotations.id),
   content: text('content').notNull(),
-  xPosition: real('x_position').notNull(), // Percentage of image width (0-100)
-  yPosition: real('y_position').notNull(), // Percentage of image height (0-100)
+  xPosition: real('x_position').notNull(),
+  yPosition: real('y_position').notNull(),
   author: text('author').default('Anonymous'),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });

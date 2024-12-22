@@ -7,8 +7,8 @@ import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { MobileGalleryView } from "@/components/MobileGalleryView";
-import type { Image, Gallery as GalleryType } from "@/types/gallery";
-import { Upload } from "lucide-react"; // Added import for Upload icon
+import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
+import { Upload } from "lucide-react";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -49,24 +49,10 @@ import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 
-
 interface GalleryProps {
   slug?: string;
   title: string;
   onHeaderActionsChange?: (actions: React.ReactNode) => void;
-}
-
-interface Comment {
-  id: number;
-  content: string;
-  xPosition: number;
-  yPosition: number;
-  author?: string;
-}
-
-interface Annotation {
-  id: number;
-  pathData: string;
 }
 
 interface ImageDimensions {
@@ -80,7 +66,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const slug = propSlug || params?.slug;
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const isInitialLoad = useRef(true);
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
@@ -101,17 +86,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [mobileViewIndex, setMobileViewIndex] = useState(-1);
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
-
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
 
   // Add mobile detection
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768); // Consider tablets and phones as mobile
+      setIsMobile(window.innerWidth <= 768);
     };
-
     checkMobile();
     window.addEventListener('resize', checkMobile);
-
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -133,39 +116,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     enabled: !!selectedImage?.id,
   });
 
-  // Mutations
-  const uploadMutation = useMutation({
-    mutationFn: async (files: File[]) => {
-      setIsUploading(true);
-      try {
-        const formData = new FormData();
-        files.forEach((file) => formData.append("images", file));
-        const res = await fetch(`/api/galleries/${slug}/images`, {
-          method: "POST",
-          body: formData,
-        });
-        if (!res.ok) throw new Error("Failed to upload images");
-        return res.json();
-      } finally {
-        setIsUploading(false);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      toast({
-        title: "Success",
-        description: "Images uploaded successfully",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to upload images. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
+  // Define all mutations first
   const toggleStarMutation = useMutation({
     mutationFn: async (imageId: number) => {
       const res = await fetch(`/api/images/${imageId}/star`, {
@@ -209,6 +160,116 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       toast({
         title: "Error",
         description: "Failed to update image order. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteImagesMutation = useMutation({
+    mutationFn: async (imageIds: number[]) => {
+      const response = await fetch(`/api/galleries/${slug}/images/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageIds })
+      });
+      if (!response.ok) throw new Error('Failed to delete images');
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: GalleryType | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          images: oldData.images.filter(
+            (image: Image) => !variables.includes(image.id)
+          ),
+        };
+      });
+
+      setSelectedImages([]);
+      setSelectMode(false);
+
+      toast({
+        title: "Success",
+        description: "Selected images deleted successfully",
+      });
+
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete images. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: async (files: File[]) => {
+      setIsUploading(true);
+      const formData = new FormData();
+
+      const progressMap: UploadProgress = {};
+      files.forEach((file) => {
+        formData.append("images", file);
+        progressMap[file.name] = 0;
+      });
+      setUploadProgress(progressMap);
+
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = (event.loaded / event.total) * 100;
+            setUploadProgress(prev => {
+              const newProgress = { ...prev };
+              Object.keys(newProgress).forEach(key => {
+                newProgress[key] = progress;
+              });
+              return newProgress;
+            });
+          }
+        };
+
+        xhr.open('POST', `/api/galleries/${slug}/images`);
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.response);
+              resolve(response);
+            } catch (error) {
+              reject(new Error('Invalid server response'));
+            }
+          } else {
+            reject(new Error('Upload failed'));
+          }
+        };
+
+        xhr.onerror = () => {
+          reject(new Error('Network error during upload'));
+        };
+
+        xhr.send(formData);
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      setIsUploading(false);
+      setUploadProgress({});
+      toast({
+        title: "Success",
+        description: "Images uploaded successfully",
+      });
+    },
+    onError: (error: Error) => {
+      setIsUploading(false);
+      setUploadProgress({});
+      toast({
+        title: "Error",
+        description: `Failed to upload images: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -258,49 +319,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     },
   });
 
-  const deleteImagesMutation = useMutation({
-    mutationFn: async (imageIds: number[]) => {
-      const response = await fetch(`/api/galleries/${slug}/images/delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageIds })
-      });
-      if (!response.ok) throw new Error('Failed to delete images');
-      return response.json();
-    },
-    onSuccess: (_, variables) => {
-      // Immediately update the client-side state
-      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: GalleryType | undefined) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          images: oldData.images.filter(
-            (image: Image) => !variables.includes(image.id)
-          ),
-        };
-      });
-
-      // Reset selection state
-      setSelectedImages([]);
-      setSelectMode(false);
-
-      // Show success toast
-      toast({
-        title: "Success",
-        description: "Selected images deleted successfully",
-      });
-
-      // Invalidate the query to ensure consistency with server
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to delete images. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
 
   // Callbacks
   const onDrop = useCallback(
@@ -318,6 +336,29 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     },
     disabled: isUploading || selectMode
   });
+
+  // Add upload progress placeholders to the masonry grid
+  const renderUploadPlaceholders = () => {
+    if (!Object.keys(uploadProgress).length) return null;
+
+    return Object.entries(uploadProgress).map(([filename, progress]) => (
+      <motion.div
+        key={filename}
+        initial={{ opacity: 0.5, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.3 }}
+        className="mb-4 bg-gray-200 rounded-lg overflow-hidden relative"
+      >
+        <div className="w-full aspect-[4/3] flex items-center justify-center">
+          <span className="text-gray-500">{filename}</span>
+        </div>
+        <div className="absolute inset-0 flex flex-col justify-end">
+          <Progress value={progress} className="h-1" />
+        </div>
+      </motion.div>
+    ));
+  };
 
   // Memoized Values
   const breakpointCols = useMemo(
@@ -593,6 +634,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             className="flex -ml-4 w-[calc(100%+1rem)]"
             columnClassName="pl-4 bg-background"
           >
+            {renderUploadPlaceholders()}
             {gallery?.images
               .filter((image: Image) => !showStarredOnly || image.starred)
               .map((image: Image, index: number) => (
@@ -600,7 +642,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   key={image.id}
                   className="mb-4"
                   initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0 }}
+                  animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{
                     duration: 0.4,
@@ -640,16 +682,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                               : 'bg-background/80 border-background/80'
                           }`}
                         >
-                          {selectedImage
-
-                            && selectedImages.includes(image.id) && (
+                          {selectedImages.includes(image.id) && (
                             <CheckCircle className="w-4 h-4 text-primary-foreground" />
                           )}
                         </div>
                       </motion.div>
                     )}
 
-                    {/* Existing badges and buttons */}
+                    {/* Image badges and buttons */}
                     <div className="absolute top-2 right-2 flex gap-2">
                       {!selectMode && (
                         <>
@@ -860,9 +900,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   dragElastic: 1,
                   onDragEnd: (e: any, info: PanInfo) => {
                     const swipe = Math.abs(info.offset.x) * info.velocity.x;
-                    if (swipe < -100 && selectedImageIndex < gallery!.images.length - 1) {
-                      setSelectedImageIndex(selectedImageIndex + 1);
-                    } else if (swipe > 100 && selectedImageIndex > 0) {
+                    if (swipe < -100 && selectedImageIndex < gallery!.images.length - 1) {                      setSelectedImageIndex(selectedImageIndex + 1);
+                    } else if(swipe > 100 && selectedImageIndex > 0) {
                       setSelectedImageIndex(selectedImageIndex - 1);
                     }
                   }
