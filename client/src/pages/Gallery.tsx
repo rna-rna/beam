@@ -472,33 +472,47 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   const handleDragEnd = useCallback((
-    _: MouseEvent | TouchEvent | PointerEvent,
+    event: MouseEvent | TouchEvent | PointerEvent,
     draggedIndex: number,
     info: PanInfo
   ) => {
     if (!gallery || !isReorderMode) return;
 
-    const dragDistance = info.offset.y;
-    const imageHeight = document.querySelector('.image-container')?.clientHeight || 100;
-
-    // Calculate new index based on drag distance relative to image height
-    const newIndex = Math.min(
-      Math.max(0, draggedIndex + Math.round(dragDistance / imageHeight)),
-      gallery.images.length - 1
+    const galleryItems = Array.from(
+      document.querySelectorAll(".image-container")
     );
 
-    if (newIndex !== draggedIndex) {
+    let targetIndex = draggedIndex;
+    const draggedRect = galleryItems[draggedIndex].getBoundingClientRect();
+    const dragCenterX = draggedRect.left + draggedRect.width / 2;
+    const dragCenterY = draggedRect.top + draggedRect.height / 2 + info.offset.y;
+
+    // Find the closest drop target based on center point of dragged item
+    galleryItems.forEach((item, index) => {
+      const rect = item.getBoundingClientRect();
+      if (
+        dragCenterY >= rect.top &&
+        dragCenterY <= rect.bottom &&
+        dragCenterX >= rect.left &&
+        dragCenterX <= rect.right &&
+        index !== draggedIndex
+      ) {
+        targetIndex = index;
+      }
+    });
+
+    if (targetIndex !== draggedIndex) {
       const updatedImages = [...gallery.images];
       const [movedImage] = updatedImages.splice(draggedIndex, 1);
-      updatedImages.splice(newIndex, 0, movedImage);
+      updatedImages.splice(targetIndex, 0, movedImage);
 
-      // Update state immediately to reflect changes
+      // Update immediately for smooth visual feedback
       queryClient.setQueryData([`/api/galleries/${slug}`], {
         ...gallery,
         images: updatedImages,
       });
 
-      // Send reordering request to the server
+      // Persist to backend
       reorderImageMutation.mutate(updatedImages.map(img => img.id));
     }
   }, [gallery, isReorderMode, queryClient, reorderImageMutation, slug]);
@@ -566,16 +580,23 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.5) }}
-      drag={isReorderMode ? "y" : false}
-      dragConstraints={false}  // Remove constraints for free movement
-      dragSnapToOrigin={false}
-      dragElastic={0.1}
+      drag={isReorderMode}  // Allow both x and y drag
+      dragConstraints={false}
+      dragElastic={0.2}
       onDragEnd={(_, info) => handleDragEnd(_, index, info)}
-      whileDrag={{ scale: 1.05, zIndex: 50, cursor: "grabbing" }}
-      className={`${isReorderMode ? "cursor-grab" : ""}`}
+      whileDrag={{ 
+        scale: 1.05, 
+        zIndex: 50,
+        cursor: "grabbing",
+        boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
+      }}
+      layout // Enable automatic layout animations
+      className={`transform transition-transform duration-150 ${
+        isReorderMode ? "cursor-grab" : ""
+      }`}
     >
       <div
-        className={`relative bg-card rounded-md overflow-hidden transform transition-transform duration-150 ${
+        className={`relative bg-card rounded-md overflow-hidden transform transition-all ${
           !isReorderMode ? 'hover:scale-[1.02] cursor-pointer' : ''
         } ${selectMode ? 'hover:scale-100' : ''}`}
         onClick={(e) => {
@@ -587,12 +608,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         }}
       >
         {isReorderMode && (
-          <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm p-1.5 rounded">
-            <svg width="20" height="20" viewBox="0 0 18 18" fill="currentColor" className="text-foreground/70">
-              <circle cx="6" cy="6" r="1.5" />
-              <circle cx="12" cy="6" r="1.5" />
-              <circle cx="6" cy="12" r="1.5" />
-              <circle cx="12" cy="12" r="1.5" />
+          <div className="absolute top-2 left-2 z-10 bg-background/90 backdrop-blur-sm p-2 rounded-md shadow-sm">
+            <svg 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="currentColor"
+              className="text-foreground/70"
+            >
+              <circle cx="8" cy="8" r="2" />
+              <circle cx="16" cy="8" r="2" />
+              <circle cx="8" cy="16" r="2" />
+              <circle cx="16" cy="16" r="2" />
             </svg>
           </div>
         )}
@@ -607,27 +634,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             loading="lazy"
             draggable={false}
           />
-        )}
-
-        {/* Selection checkbox */}
-        {selectMode && !isReorderMode && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute top-2 right-2 z-10"
-          >
-            <div
-              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                selectedImages.includes(image.id)
-                  ? 'bg-primary border-primary'
-                  : 'bg-background/80 border-background/80'
-              }`}
-            >
-              {selectedImages.includes(image.id) && (
-                <CheckCircle className="w-4 h-4 text-primary-foreground" />
-              )}
-            </div>
-          </motion.div>
         )}
 
         {/* Image badges and buttons */}
@@ -661,6 +667,26 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </>
           )}
         </div>
+        {/* Selection checkbox */}
+        {selectMode && !isReorderMode && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-2 right-2 z-10"
+          >
+            <div
+              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                selectedImages.includes(image.id)
+                  ? 'bg-primary border-primary'
+                  : 'bg-background/80 border-background/80'
+              }`}
+            >
+              {selectedImages.includes(image.id) && (
+                <CheckCircle className="w-4 h-4 text-primary-foreground" />
+              )}
+            </div>
+          </motion.div>
+        )}
       </div>
     </motion.div>
   );
