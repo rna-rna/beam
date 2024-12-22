@@ -5,36 +5,31 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments, annotations } from '@db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 
 // Migrate flagged to starred if needed
 async function migrateSchema() {
   try {
     console.log('Starting schema migration check...');
-    
     // First check if the 'starred' column already exists
     const starredExists = await db.execute(sql`
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'images' AND column_name = 'starred'
     `);
-    
     // If starred already exists, no need to migrate
     if (starredExists.rows && starredExists.rows.length > 0) {
       console.log('Starred column already exists, no migration needed');
       return;
     }
-    
     // Check if flagged column exists
     const flaggedExists = await db.execute(sql`
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'images' AND column_name = 'flagged'
     `);
-    
     if (flaggedExists.rows && flaggedExists.rows.length > 0) {
       console.log('Found flagged column, starting migration...');
-      
       // Rename flagged to starred
       await db.execute(sql`
         ALTER TABLE images 
@@ -96,7 +91,7 @@ export function registerRoutes(app: Express): Server {
       process.exit(1); // Exit if migration fails
     }
   })();
-  
+
   // Ensure uploads directory exists
   const uploadsDir = path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadsDir)) {
@@ -521,6 +516,59 @@ export function registerRoutes(app: Express): Server {
   });
 
 
+  // Delete multiple images from a gallery
+  app.post('/api/galleries/:slug/images/delete', async (req, res) => {
+    try {
+      console.log('Attempting to delete images:', req.body.imageIds);
+
+      const { imageIds } = req.body;
+      if (!Array.isArray(imageIds)) {
+        return res.status(400).json({ message: 'Invalid request: imageIds must be an array' });
+      }
+
+      // Find the gallery first
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, req.params.slug),
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      // Ensure all images belong to this gallery before deletion
+      const galleryImages = await db.query.images.findMany({
+        where: eq(images.galleryId, gallery.id),
+      });
+
+      const validImageIds = new Set(galleryImages.map(img => img.id));
+      const invalidIds = imageIds.filter(id => !validImageIds.has(id));
+
+      if (invalidIds.length > 0) {
+        return res.status(400).json({ 
+          message: 'Some images do not belong to this gallery',
+          invalidIds 
+        });
+      }
+
+      // Delete the images
+      await db.delete(images)
+        .where(
+          and(
+            inArray(images.id, imageIds),
+            eq(images.galleryId, gallery.id)
+          )
+        );
+
+      console.log(`Successfully deleted images: ${imageIds.join(', ')}`);
+      res.json({ success: true, deletedIds: imageIds });
+    } catch (error) {
+      console.error('Error deleting images:', error);
+      res.status(500).json({ 
+        message: 'Failed to delete images',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
