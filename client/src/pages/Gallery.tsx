@@ -902,7 +902,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
             {/* Controls */}
             <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
-              {selectedImage && (
+              {selectedImage&& (
                 <Button
                   variant="secondary"
                   size="icon"

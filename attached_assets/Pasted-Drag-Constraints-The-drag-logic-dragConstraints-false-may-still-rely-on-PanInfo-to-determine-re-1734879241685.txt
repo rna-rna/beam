@@ -1,0 +1,133 @@
+Drag Constraints:
+The drag logic (dragConstraints={false}) may still rely on PanInfo to determine reordering, which restricts the drag's effectiveness.
+This means the images visually drag but the reordering logic is not effectively updating the grid based on the drag location.
+
+Target Calculation (handleDragEnd):
+
+The handleDragEnd logic calculates the drop position based on distance to other images.
+This calculation may not properly account for horizontal movement across columns, causing unpredictable results or no movement at all.
+Spacing Issue:
+
+Since the layout uses Framer Motion's layout prop with dynamic scaling (scale: 1.05 during drag), items may overlap temporarily.
+The spacing problem may stem from this dynamic resizing not resetting properly after drag ends.
+Fixing the Drag and Reorder:
+1. Address the Drag-and-Drop Constraints
+Remove the dragConstraints={false} approach and rely solely on Framer Motion’s layout animations for fluid movement.
+Ensure the drag logic recalculates based on both X and Y coordinates.
+
+tsx
+Copy code
+<motion.div
+  key={image.id}
+  layout
+  drag={isReorderMode ? true : false}
+  dragElastic={0.2}
+  whileDrag={{
+    scale: 1.05,
+    zIndex: 50,
+    cursor: "grabbing",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+  }}
+  onDragEnd={(event, info) => handleDragEnd(event, index, info)}
+  className="image-container relative cursor-grab"
+>
+2. Rebuild Drop Target Calculation (Allow Horizontal and Vertical Movement):
+The existing logic finds the closest element but seems to calculate distance primarily based on vertical (y) movement.
+Rebuild this to dynamically detect the nearest grid item in both directions during the drag.
+
+tsx
+Copy code
+const handleDragEnd = useCallback((
+  event: MouseEvent | TouchEvent | PointerEvent,
+  draggedIndex: number,
+  info: PanInfo
+) => {
+  if (!gallery || !isReorderMode) return;
+
+  const galleryItems = Array.from(document.querySelectorAll(".image-container"));
+
+  let targetIndex = draggedIndex;
+  let closestDistance = Infinity;
+  const { clientX, clientY } = event instanceof MouseEvent
+    ? event
+    : event.touches[0];
+
+  galleryItems.forEach((item, index) => {
+    const rect = item.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const distance = Math.hypot(centerX - clientX, centerY - clientY);  // Hypotenuse for 2D movement
+
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      targetIndex = index;
+    }
+  });
+
+  if (targetIndex !== draggedIndex) {
+    const updatedImages = [...gallery.images];
+    const [movedImage] = updatedImages.splice(draggedIndex, 1);
+    updatedImages.splice(targetIndex, 0, movedImage);
+
+    queryClient.setQueryData([`/api/galleries/${slug}`], {
+      ...gallery,
+      images: updatedImages,
+    });
+
+    reorderImageMutation.mutate(updatedImages.map((img) => img.id));
+  }
+}, [gallery, isReorderMode, queryClient, reorderImageMutation, slug]);
+3. Maintain Grid Spacing – Avoid Overlapping Images During Drag:
+Ensure images retain their positions by using Framer Motion’s layout animations properly.
+Adjust grid margins with CSS to avoid compressed or stretched gaps.
+
+tsx
+Copy code
+<Masonry
+  breakpointCols={breakpointCols}
+  className="flex -ml-4 w-[calc(100%+1rem)] masonry-grid"
+  columnClassName="pl-4 bg-background"
+>
+  {gallery?.images.map((image: Image, index: number) => (
+    <motion.div
+      key={image.id}
+      layout
+      animate={{ scale: isReorderMode ? 0.95 : 1 }}  // Reduce size slightly during reorder
+      whileDrag={{ scale: 1.05 }}
+      className="relative cursor-pointer image-container"
+    >
+      <img
+        src={image.url}
+        alt=""
+        className="w-full h-auto object-cover rounded-lg"
+      />
+    </motion.div>
+  ))}
+</Masonry>
+4. Persistent Reorder Mode (Prevent Premature Exit):
+Ensure Reorder Mode stays active until the user clicks “Done” by preventing mode deactivation on drag release.
+
+tsx
+Copy code
+const toggleReorderMode = () => {
+  setIsReorderMode(!isReorderMode);
+};
+Testing Instructions for Replit:
+Free Drag Test:
+
+Verify images drag fluidly across both columns and rows.
+Ensure images land at the nearest available position upon release.
+Drop Accuracy:
+
+Test dropping images over adjacent columns and confirm the layout adjusts dynamically.
+Spacing:
+
+Verify that grid spacing remains consistent after drag-and-drop actions.
+Ensure no gaps or overlaps persist between grid items.
+Persistence:
+
+Confirm Reorder Mode remains active after dragging until manually exited by the user.
+Next Steps (Optional):
+Drag Preview: Add subtle dragging previews or shadows when an item is lifted for additional visual feedback.
+Dynamic Placeholder Animation: Use animated placeholders that shift as drag items pass over them.
+Cancel Drag: Implement an ESC key or double-tap to cancel a drag in progress.
