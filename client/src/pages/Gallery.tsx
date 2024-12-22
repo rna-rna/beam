@@ -590,6 +590,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const renderImage = (image: Image, index: number) => (
     <motion.div
       key={image.id}
+      layout="position"
       className={`mb-4 image-container relative ${
         !isMasonry ? 'aspect-[4/3]' : ''
       } transform transition-all duration-200 ease-out ${
@@ -614,7 +615,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         setDragPosition({ x: info.point.x, y: info.point.y });
       }}
       onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
-      layout="position"
       layoutId={`image-${image.id}`}
     >
       <div
@@ -826,16 +826,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       </div>
 
 
-      {/* Ghost/Clone Preview - Removed duplicate */}
       {dragPosition && draggedItemIndex !== null && gallery?.images && (
         <motion.div
           className="fixed pointer-events-none z-50 ghost-image"
           style={{
             top: dragPosition.y,
             left: dragPosition.x,
+            transform: "translate(-50%, -50%)",
             width: '150px',
-            height: '150px',
-            transform: 'translate(-50%, -50%)'
+            height: '150px'
           }}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ 
