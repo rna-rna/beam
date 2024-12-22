@@ -818,10 +818,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             top: dragPosition.y,
             left: dragPosition.x,
             transform: "translate(-50%, -50%)",
-            width: '100px',
-            height: '100px',
-            maxWidth: '10vw',
-            maxHeight: '10vw'
+            width: '80px',
+            height: '80px',
+            maxWidth: 'unset',
+            maxHeight: 'unset'
           }}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ 
