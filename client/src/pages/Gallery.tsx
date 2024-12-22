@@ -485,14 +485,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (galleryItems.length === 0 || draggedIndex >= galleryItems.length) return;
 
     let targetIndex = draggedIndex;
-    const dragCenterY = info.point.y;
+    const { clientX, clientY } = 'touches' in event 
+      ? event.touches[0] 
+      : (event as MouseEvent);
 
     // Find the closest item to the drag position
     let closestDistance = Infinity;
     galleryItems.forEach((item, index) => {
       const rect = item.getBoundingClientRect();
+      const itemCenterX = rect.left + rect.width / 2;
       const itemCenterY = rect.top + rect.height / 2;
-      const distance = Math.abs(dragCenterY - itemCenterY);
+      const distance = Math.hypot(itemCenterX - clientX, itemCenterY - clientY);
 
       if (distance < closestDistance && index !== draggedIndex) {
         closestDistance = distance;
@@ -578,7 +581,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.5) }}
+      transition={{ duration: 0.4 }}
       drag={isReorderMode}  // Allow both x and y drag
       dragConstraints={false}
       dragElastic={0.2}
@@ -590,8 +593,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
       }}
       layout // Enable automatic layout animations
-      className={`transform transition-transform duration-150 ${
-        isReorderMode ? "cursor-grab" : ""
+      layoutDependency={index} // Ensure proper layout updates
+      className={`transform transition-all duration-150 ${
+        isReorderMode ? "cursor-grab active:cursor-grabbing" : ""
       }`}
     >
       <div
