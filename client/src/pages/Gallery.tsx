@@ -599,9 +599,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       animate={{ 
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
-        scale: isReorderMode ? (draggedItemIndex === index ? 1.05 : 0.98) : 1,
+        scale: isReorderMode ? (draggedItemIndex === index ? 1.05 : 0.95) : 1,
         zIndex: draggedItemIndex === index ? 50 : 1,
-        transition: { duration: 0.2 }
+        transition: { 
+          duration: 0.2,
+          ease: [0.4, 0, 0.2, 1]
+        }
       }}
       drag={isReorderMode}
       dragConstraints={false}
@@ -617,7 +620,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       <div
         className={`relative bg-card rounded-lg overflow-hidden transform transition-all ${
           !isReorderMode ? 'hover:scale-[1.02] cursor-pointer' : ''
-        } ${selectMode ? 'hover:scale-100' : ''}`}
+        } ${selectMode ? 'hover:scale-100' : ''} ${
+          isReorderMode ? 'border-2 border-dashed border-gray-200 border-opacity-50' : ''
+        }`}
         onClick={(e) => {
           if (isReorderMode) {
             e.stopPropagation();
@@ -649,7 +654,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             alt=""
             className={`w-full h-auto object-cover rounded-lg ${
               selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
-            } ${draggedItemIndex === index ? 'pointer-events-none' : ''}`}
+            } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
             loading="lazy"
             draggable={false}
           />
@@ -820,6 +825,29 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         </AnimatePresence>
       </div>
 
+      {/* Ghost/Clone Preview */}
+      {dragPosition && draggedItemIndex !== null && gallery?.images && (
+        <motion.div
+          className="fixed pointer-events-none z-50 ghost-image"
+          style={{
+            top: dragPosition.y,
+            left: dragPosition.x,
+            width: '150px',
+            height: '150px',
+            transform: 'translate(-50%, -50%)'
+          }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.9, scale: 1.05 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+        >
+          <img
+            src={gallery.images[draggedItemIndex].url}
+            alt="Dragged Preview"
+            className="w-full h-full object-cover rounded-lg shadow-lg"
+          />
+        </motion.div>
+      )}
+
       {/* Grid View Toggle Button */}
       <div className="fixed bottom-6 left-6 z-50">
         <Button
@@ -882,7 +910,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             aria-describedby="gallery-lightbox-description"
           >
             <div id="gallery-lightbox-description" className="sr-only">
-              Image viewer with annotation and commenting capabilities
+              Image viewerwith annotation and commenting capabilities
             </div>
 
             {/* Filename display */}
