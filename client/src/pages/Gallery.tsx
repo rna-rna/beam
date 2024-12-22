@@ -473,17 +473,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   const handleDragEnd = useCallback((
-    event: PointerEvent | any, //modified to handle both pointerevent and PanInfo._dragEnd
+    _: MouseEvent | TouchEvent | PointerEvent,
     draggedIndex: number,
     info: PanInfo
   ) => {
     if (!gallery || !isReorderMode) return;
 
-    const dragDistance = info.point.y;
-    const imageHeight = (event.target as HTMLElement).closest('.image-container')?.clientHeight || 0;
-    const newIndex = Math.floor(dragDistance / imageHeight);
+    const dragDistance = info.offset.y;
+    const viewportHeight = window.innerHeight;
+    const imageHeight = viewportHeight / breakpointCols.default; // Approximate image height
+    const newIndex = Math.min(
+      Math.max(0, draggedIndex + Math.round(dragDistance / imageHeight)),
+      gallery.images.length - 1
+    );
 
-    if (newIndex !== draggedIndex && newIndex >= 0 && newIndex < gallery.images.length) {
+    if (newIndex !== draggedIndex) {
       const updatedImages = [...gallery.images];
       const [movedImage] = updatedImages.splice(draggedIndex, 1);
       updatedImages.splice(newIndex, 0, movedImage);
@@ -497,7 +501,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       // Send the update to the server
       reorderImageMutation.mutate(updatedImages.map(img => img.id));
     }
-  }, [gallery, isReorderMode, queryClient, reorderImageMutation, slug]);
+  }, [gallery, isReorderMode, queryClient, reorderImageMutation, slug, breakpointCols]);
 
   const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
@@ -564,8 +568,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.5) }}
       drag={isReorderMode ? "y" : false}
       dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={1}
-      onDragEnd={(_, info) => handleDragEnd(info._dragEnd, index, info)}
+      dragElastic={0.1}
+      onDragEnd={(_, info) => handleDragEnd(_, index, info)}
       whileDrag={{ scale: 1.05, zIndex: 1 }}
     >
       <div
@@ -887,8 +891,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     e.stopPropagation();
                     setIsAnnotationMode(!isAnnotationMode);
                     setIsCommentPlacementMode(false);
-                    setNewCommentPos(null);
-                  }}
+                    setNewCommentPos(null);                  }}
                   title="Toggle Drawing Mode"
                 >
                   <Paintbrush
