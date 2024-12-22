@@ -818,14 +818,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             top: dragPosition.y,
             left: dragPosition.x,
             transform: "translate(-50%, -50%)",
-            width: '80px',
-            height: '80px',
-            maxWidth: 'unset',
-            maxHeight: 'unset'
+            width: '40px',
+            height: '40px'
           }}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ 
-            opacity: 0.9, 
+            opacity: 0.8, 
             scale: 1,
             transition: {
               type: "spring",
@@ -915,8 +913,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               </div>
             )}
 
-                        {/* Navigation buttons */}
-            <Button
+                        {/* Navigation buttons */}            <Button
               variant="ghost"
               size="icon"
               className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
