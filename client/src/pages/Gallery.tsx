@@ -478,25 +478,24 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   ) => {
     if (!gallery || !isReorderMode) return;
 
-    const galleryItems = Array.from(
-      document.querySelectorAll(".image-container")
-    );
+    // Safely get all image containers
+    const galleryContainer = document.querySelector('.masonry-grid');
+    const galleryItems = Array.from(document.querySelectorAll(".image-container"));
+
+    if (galleryItems.length === 0 || draggedIndex >= galleryItems.length) return;
 
     let targetIndex = draggedIndex;
-    const draggedRect = galleryItems[draggedIndex].getBoundingClientRect();
-    const dragCenterX = draggedRect.left + draggedRect.width / 2;
-    const dragCenterY = draggedRect.top + draggedRect.height / 2 + info.offset.y;
+    const dragCenterY = info.point.y;
 
-    // Find the closest drop target based on center point of dragged item
+    // Find the closest item to the drag position
+    let closestDistance = Infinity;
     galleryItems.forEach((item, index) => {
       const rect = item.getBoundingClientRect();
-      if (
-        dragCenterY >= rect.top &&
-        dragCenterY <= rect.bottom &&
-        dragCenterX >= rect.left &&
-        dragCenterX <= rect.right &&
-        index !== draggedIndex
-      ) {
+      const itemCenterY = rect.top + rect.height / 2;
+      const distance = Math.abs(dragCenterY - itemCenterY);
+
+      if (distance < closestDistance && index !== draggedIndex) {
+        closestDistance = distance;
         targetIndex = index;
       }
     });
@@ -667,6 +666,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </>
           )}
         </div>
+
         {/* Selection checkbox */}
         {selectMode && !isReorderMode && (
           <motion.div
@@ -770,7 +770,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             >
               <Masonry
                 breakpointCols={breakpointCols}
-                className="flex -ml-4 w-[calc(100%+1rem)]"
+                className="flex -ml-4 w-[calc(100%+1rem)] masonry-grid"
                 columnClassName="pl-4 bg-background"
               >
                 {renderUploadPlaceholders()}
