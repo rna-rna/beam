@@ -452,6 +452,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const toggleSelectMode = () => {
     if (selectMode) {
       setSelectedImages([]);
+      setIsReorderMode(false); // added to reset reorder mode when exiting select mode
     }
     setSelectMode(!selectMode);
   };
@@ -467,6 +468,36 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   };
 
+  const toggleReorderMode = () => {
+    setIsReorderMode(!isReorderMode);
+  };
+
+  const handleDragEnd = useCallback((
+    event: PointerEvent | any, //modified to handle both pointerevent and PanInfo._dragEnd
+    draggedIndex: number,
+    info: PanInfo
+  ) => {
+    if (!gallery || !isReorderMode) return;
+
+    const dragDistance = info.point.y;
+    const imageHeight = (event.target as HTMLElement).closest('.image-container')?.clientHeight || 0;
+    const newIndex = Math.floor(dragDistance / imageHeight);
+
+    if (newIndex !== draggedIndex && newIndex >= 0 && newIndex < gallery.images.length) {
+      const updatedImages = [...gallery.images];
+      const [movedImage] = updatedImages.splice(draggedIndex, 1);
+      updatedImages.splice(newIndex, 0, movedImage);
+
+      // Update optimistically
+      queryClient.setQueryData([`/api/galleries/${slug}`], {
+        ...gallery,
+        images: updatedImages,
+      });
+
+      // Send the update to the server
+      reorderImageMutation.mutate(updatedImages.map(img => img.id));
+    }
+  }, [gallery, isReorderMode, queryClient, reorderImageMutation, slug]);
 
   const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
@@ -479,94 +510,147 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <span className="text-sm text-muted-foreground">Uploading...</span>
           </div>
         )}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleReorderToggle}
-          disabled={reorderImageMutation.isPending}
-          className={isReorderMode ? "bg-primary/10" : ""}
-        >
-          {isReorderMode && reorderImageMutation.isPending ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          ) : (
-            <ArrowUpDown className={`h-4 w-4 ${isReorderMode ? "text-primary" : ""}`} />
-          )}
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleStarredToggle}
-          className={showStarredOnly ? "bg-primary/10" : ""}
-        >
-          <Star className={`h-4 w-4 ${showStarredOnly ? "fill-primary text-primary" : ""}`} />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleCopyLink}
-          title="Copy gallery link"
-        >
-          <Link className="h-4 w-4" />
-        </Button>
-        <Menu>
-          <MenuTrigger asChild>
-            <Button variant="outline" size="icon">
-              <MenuIcon className="h-4 w-4" />
+        {selectMode && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleReorderMode}
+              className={isReorderMode ? "bg-primary text-primary-foreground" : ""}
+            >
+              {isReorderMode ? "Done Reordering" : "Reorder"}
             </Button>
-          </MenuTrigger>
-          <MenuContent align="end" className="w-56">
-            <MenuLabel>Gallery Options</MenuLabel>
-            <MenuSeparator />
-            <MenuGroup>
-              <MenuItem onClick={handleDownloadAll}>
-                <Download className="mr-2 h-4 w-4" />
-                <span>Download All as .ZIP</span>
-              </MenuItem>
-              <MenuSeparator />
-              <MenuItem disabled className="text-muted-foreground">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>More Settings...</span>
-              </MenuItem>
-            </MenuGroup>
-          </MenuContent>
-        </Menu>
+            {selectedImages.length > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => deleteImagesMutation.mutate(selectedImages)}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete ({selectedImages.length})
+              </Button>
+            )}
+          </>
+        )}
         <Button
           variant="outline"
           size="sm"
           onClick={toggleSelectMode}
           className={selectMode ? "bg-primary text-primary-foreground" : ""}
         >
-          {selectMode ? "Cancel" : "Select"}
+          {selectMode ? "Done" : "Select"}
         </Button>
-
-        {selectMode && selectedImages.length > 0 && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => deleteImagesMutation.mutate(selectedImages)}
-            className="flex items-center gap-2"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete ({selectedImages.length})
-          </Button>
-        )}
       </div>
     );
   }, [
     gallery,
     isUploading,
-    isReorderMode,
-    reorderImageMutation.isPending,
-    showStarredOnly,
-    handleCopyLink,
-    handleDownloadAll,
-    handleReorderToggle,
-    handleStarredToggle,
     selectMode,
+    isReorderMode,
     selectedImages.length,
     deleteImagesMutation,
+    toggleReorderMode,
     toggleSelectMode
   ]);
+
+  const renderImage = (image: Image, index: number) => (
+    <motion.div
+      key={image.id}
+      className={`mb-4 ${!isMasonry ? 'aspect-[4/3]' : ''} image-container`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.5) }}
+      drag={isReorderMode ? "y" : false}
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={1}
+      onDragEnd={(_, info) => handleDragEnd(info._dragEnd, index, info)}
+      whileDrag={{ scale: 1.05, zIndex: 1 }}
+    >
+      <div
+        className={`relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 ${
+          !isReorderMode ? 'hover:scale-[1.02]' : ''
+        } ${selectMode ? 'hover:scale-100' : ''}`}
+        onClick={(e) => selectMode ? handleImageSelect(image.id, e) : handleImageClick(index)}
+      >
+        {isReorderMode && (
+          <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm p-1 rounded cursor-grab active:cursor-grabbing">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+              <circle cx="6" cy="6" r="1.5" />
+              <circle cx="12" cy="6" r="1.5" />
+              <circle cx="6" cy="12" r="1.5" />
+              <circle cx="12" cy="12" r="1.5" />
+            </svg>
+          </div>
+        )}
+
+        {preloadedImages.has(image.id) && (
+          <img
+            src={image.url}
+            alt=""
+            className={`w-full h-auto object-cover ${
+              selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
+            }`}
+            loading="lazy"
+          />
+        )}
+
+        {/* Selection checkbox */}
+        {selectMode && !isReorderMode && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-2 right-2 z-10"
+          >
+            <div
+              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                selectedImages.includes(image.id)
+                  ? 'bg-primary border-primary'
+                  : 'bg-background/80 border-background/80'
+              }`}
+            >
+              {selectedImages.includes(image.id) && (
+                <CheckCircle className="w-4 h-4 text-primary-foreground" />
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Image badges and buttons */}
+        <div className="absolute top-2 right-2 flex gap-2">
+          {!selectMode && (
+            <>
+              {image.commentCount! > 0 && (
+                <Badge
+                  className="bg-primary text-primary-foreground flex items-center gap-1"
+                  variant="secondary"
+                >
+                  <MessageCircle className="w-3 h-3" />
+                  {image.commentCount}
+                </Badge>
+              )}
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleStarMutation.mutate(image.id);
+                }}
+              >
+                {image.starred ? (
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                ) : (
+                  <Star className="h-4 w-4" />
+                )}
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
 
   useEffect(() => {
     if (selectedImageIndex >= 0) {
@@ -653,92 +737,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 {renderUploadPlaceholders()}
                 {gallery?.images
                   .filter((image: Image) => !showStarredOnly || image.starred)
-                  .map((image: Image, index: number) => (
-                    <motion.div
-                      key={image.id}
-                      className="mb-4"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{
-                        duration: 0.4,
-                        delay: Math.min(index * 0.05, 0.5),
-                      }}
-                    >
-                      <div
-                        className={`relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02] ${
-                          selectMode ? 'hover:scale-100' : ''
-                        }`}
-                        onClick={(e) => selectMode ? handleImageSelect(image.id, e) : handleImageClick(index)}
-                      >
-                        {preloadedImages.has(image.id) && (
-                          <img
-                            src={image.url}
-                            alt=""
-                            className={`w-full h-auto object-cover ${
-                              selectMode && selectedImages.includes(image.id)
-                                ? 'opacity-75'
-                                : ''
-                            }`}
-                            loading="lazy"
-                          />
-                        )}
-
-                        {/* Selection checkbox */}
-                        {selectMode && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="absolute top-2 right-2 z-10"
-                          >
-                            <div
-                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                selectedImages.includes(image.id)
-                                  ? 'bg-primary border-primary'
-                                  : 'bg-background/80 border-background/80'
-                              }`}
-                            >
-                              {selectedImages.includes(image.id) && (
-                                <CheckCircle className="w-4 h-4 text-primary-foreground" />
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {/* Image badges and buttons */}
-                        <div className="absolute top-2 right-2 flex gap-2">
-                          {!selectMode && (
-                            <>
-                              {image.commentCount! > 0 && (
-                                <Badge
-                                  className="bg-primary text-primary-foreground flex items-center gap-1"
-                                  variant="secondary"
-                                >
-                                  <MessageCircle className="w-3 h-3" />
-                                  {image.commentCount}
-                                </Badge>
-                              )}
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleStarMutation.mutate(image.id);
-                                }}
-                              >
-                                {image.starred ? (
-                                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                ) : (
-                                  <Star className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                  .map((image: Image, index: number) => renderImage(image, index))}
               </Masonry>
             </motion.div>
           ) : (
@@ -756,92 +755,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               {renderUploadPlaceholders()}
               {gallery?.images
                 .filter((image: Image) => !showStarredOnly || image.starred)
-                .map((image: Image, index: number) => (
-                  <motion.div
-                    key={image.id}
-                    className="mb-4 aspect-[4/3]"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{
-                      duration: 0.4,
-                      delay: Math.min(index * 0.05, 0.5),
-                    }}
-                  >
-                    <div
-                      className={`relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02] ${
-                        selectMode ? 'hover:scale-100' : ''
-                      }`}
-                      onClick={(e) => selectMode ? handleImageSelect(image.id, e) : handleImageClick(index)}
-                    >
-                      {preloadedImages.has(image.id) && (
-                        <img
-                          src={image.url}
-                          alt=""
-                          className={`w-full h-auto object-cover ${
-                            selectMode && selectedImages.includes(image.id)
-                              ? 'opacity-75'
-                              : ''
-                          }`}
-                          loading="lazy"
-                        />
-                      )}
-
-                      {/* Selection checkbox */}
-                      {selectMode && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute top-2 right-2 z-10"
-                        >
-                          <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                              selectedImages.includes(image.id)
-                                ? 'bg-primary border-primary'
-                                : 'bg-background/80 border-background/80'
-                            }`}
-                          >
-                            {selectedImages.includes(image.id) && (
-                              <CheckCircle className="w-4 h-4 text-primary-foreground" />
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {/* Image badges and buttons */}
-                      <div className="absolute top-2 right-2 flex gap-2">
-                        {!selectMode && (
-                          <>
-                            {image.commentCount! > 0 && (
-                              <Badge
-                                className="bg-primary text-primary-foreground flex items-center gap-1"
-                                variant="secondary"
-                              >
-                                <MessageCircle className="w-3 h-3" />
-                                {image.commentCount}
-                              </Badge>
-                            )}
-                            <Button
-                              variant="secondary"
-                              size="icon"
-                              className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleStarMutation.mutate(image.id);
-                              }}
-                            >
-                              {image.starred ? (
-                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              ) : (
-                                <Star className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                .map((image: Image, index: number) => renderImage(image, index))}
             </motion.div>
           )}
         </AnimatePresence>
