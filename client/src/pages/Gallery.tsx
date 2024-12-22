@@ -472,32 +472,37 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   const handleDragEnd = useCallback((
-    event: MouseEvent | TouchEvent | PointerEvent,
+    event: PointerEvent | MouseEvent | TouchEvent,
     draggedIndex: number,
     info: PanInfo
   ) => {
     if (!gallery || !isReorderMode) return;
 
-    // Safely get all image containers
-    const galleryContainer = document.querySelector('.masonry-grid');
     const galleryItems = Array.from(document.querySelectorAll(".image-container"));
-
     if (galleryItems.length === 0 || draggedIndex >= galleryItems.length) return;
 
     let targetIndex = draggedIndex;
-    const { clientX, clientY } = 'touches' in event 
-      ? event.touches[0] 
-      : (event as MouseEvent);
-
-    // Find the closest item to the drag position
     let closestDistance = Infinity;
-    galleryItems.forEach((item, index) => {
-      const rect = item.getBoundingClientRect();
-      const itemCenterX = rect.left + rect.width / 2;
-      const itemCenterY = rect.top + rect.height / 2;
-      const distance = Math.hypot(itemCenterX - clientX, itemCenterY - clientY);
 
-      if (distance < closestDistance && index !== draggedIndex) {
+    // Get cursor position
+    const cursorPos = {
+      x: event instanceof MouseEvent ? event.clientX :
+         'touches' in event && event.touches[0] ? event.touches[0].clientX :
+         info.point.x,
+      y: event instanceof MouseEvent ? event.clientY :
+         'touches' in event && event.touches[0] ? event.touches[0].clientY :
+         info.point.y
+    };
+
+    // Find closest item to drop position
+    galleryItems.forEach((item, index) => {
+      if (index === draggedIndex) return;
+      const rect = item.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.hypot(centerX - cursorPos.x, centerY - cursorPos.y);
+
+      if (distance < closestDistance) {
         closestDistance = distance;
         targetIndex = index;
       }
@@ -508,13 +513,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const [movedImage] = updatedImages.splice(draggedIndex, 1);
       updatedImages.splice(targetIndex, 0, movedImage);
 
-      // Update immediately for smooth visual feedback
+      // Optimistic update
       queryClient.setQueryData([`/api/galleries/${slug}`], {
         ...gallery,
         images: updatedImages,
       });
 
-      // Persist to backend
+      // Server update
       reorderImageMutation.mutate(updatedImages.map(img => img.id));
     }
   }, [gallery, isReorderMode, queryClient, reorderImageMutation, slug]);
@@ -577,26 +582,22 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const renderImage = (image: Image, index: number) => (
     <motion.div
       key={image.id}
-      className={`mb-4 ${!isMasonry ? 'aspect-[4/3]' : ''} image-container`}
+      className={`mb-4 image-container relative ${!isMasonry ? 'aspect-[4/3]' : ''}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
-      drag={isReorderMode}  // Allow both x and y drag
+      drag={isReorderMode}
       dragConstraints={false}
       dragElastic={0.2}
-      onDragEnd={(_, info) => handleDragEnd(_, index, info)}
-      whileDrag={{ 
-        scale: 1.05, 
+      onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
+      whileDrag={{
+        scale: 1.05,
         zIndex: 50,
         cursor: "grabbing",
         boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
       }}
-      layout // Enable automatic layout animations
-      layoutDependency={index} // Ensure proper layout updates
-      className={`transform transition-all duration-150 ${
-        isReorderMode ? "cursor-grab active:cursor-grabbing" : ""
-      }`}
+      layout
     >
       <div
         className={`relative bg-card rounded-md overflow-hidden transform transition-all ${
@@ -612,10 +613,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       >
         {isReorderMode && (
           <div className="absolute top-2 left-2 z-10 bg-background/90 backdrop-blur-sm p-2 rounded-md shadow-sm">
-            <svg 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24" 
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
               fill="currentColor"
               className="text-foreground/70"
             >
@@ -902,7 +903,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
             {/* Controls */}
             <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
-              {selectedImage&& (
+              {selectedImage && (
                 <Button
                   variant="secondary"
                   size="icon"
@@ -919,6 +920,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   )}
                 </Button>
               )}
+
               <div className="flex gap-2">
                 <Button
                   variant="secondary"
