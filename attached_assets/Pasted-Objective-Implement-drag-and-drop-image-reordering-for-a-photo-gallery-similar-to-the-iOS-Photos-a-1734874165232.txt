@@ -1,0 +1,80 @@
+Objective:
+Implement drag-and-drop image reordering for a photo gallery, similar to the iOS Photos app or Trello boards. This feature should work intuitively on both desktop (mouse-driven) and mobile (touch-driven) environments.
+
+Feature Breakdown:
+Select Mode for Reordering (Similar to iOS Photos):
+Users can enter Select Mode by tapping a "Select" or "Reorder" button.
+In Select Mode, users can drag images vertically or horizontally to reorder them within the masonry grid.
+Dragged images dynamically shift around the grid during the reorder process.
+On mobile, smooth touch gestures should make the experience feel natural and responsive.
+Users exit Select Mode by tapping "Done" or "Cancel."
+Desktop Drag-and-Drop:
+Mouse-Driven Interaction: Users click and drag images to rearrange them.
+Reordering on Drop: When the mouse is released, the images snap into place.
+The layout dynamically adjusts as images are reordered in real-time.
+Mobile Touch Gestures:
+Touch-Driven Dragging: Users can tap and hold to engage drag-and-drop.
+Long-Press to Drag: Holding down an image for 400ms should activate drag mode.
+Live Feedback: Adjacent images shift dynamically as the user drags an image around.
+Natural Physics: The grid should respond with subtle bounce/elastic effects to mimic native iOS movement.
+One-Finger Drag: The user can drag with one finger, and the image should follow the finger.
+Visual Feedback:
+Opacity Drop: While dragging, the selected image should slightly lower in opacity (opacity-75).
+Scaling Effect: The image scales slightly (scale-105) to emphasize it's in motion.
+Drop Shadow: A light drop shadow can appear on drag for added depth.
+Reordering API Call:
+When the drag ends, the new order is sent to the backend to update the gallery:
+json
+Copy code
+{
+  "order": [5, 2, 4, 1, 3]
+}
+This ensures the new layout is saved and persists after refresh.
+Technical Requirements:
+Frontend:
+
+Framer Motion for drag-and-drop animations (motion.div).
+Tailwind CSS for styling and responsive grid adjustments.
+React State Management (useState) for tracking reorder state.
+Backend:
+
+POST /reorder API to save the new image order.
+Expect an array of image IDs in their new order.
+Responsiveness:
+
+Ensure the gallery scales dynamically on both desktop and mobile screens using responsive grid layouts (grid-cols).
+The drag-and-drop feature must work seamlessly across devices without breaking the layout.
+Instructions for Replit Implementation:
+1. Desktop Drag-and-Drop (Mouse Driven):
+Use Framer Motion to wrap each image in a motion.div with drag="y".
+When the drag ends, calculate the new position and update the state.
+On onDragEnd(), send the updated image order to the server.
+Implement smooth layout shifts by using layout on the motion div.
+Use grid or flexbox to ensure that images reflow naturally.
+2. Mobile Drag-and-Drop (Touch Driven):
+Implement long-press detection (400ms) using useState to trigger drag mode.
+On long-press, enable drag using drag="y" or drag="x".
+Images shift dynamically as the user drags the image around.
+Use Framer Motion’s dragConstraints to keep images within the grid container.
+Ensure the reordering logic is the same as desktop – update state and send API call on drag end.
+3. UI/UX Enhancements:
+On drag start, apply a scale-105 effect with a slight opacity drop.
+Add spring animations for smooth bounce-back effects when the image is dropped.
+Ensure drag-and-drop does not trigger accidental swipes or page scrolls.
+Implement a "Done" button to exit Select Mode.
+Example Code for Reference:
+tsx
+Copy code
+<motion.div
+  drag={selectMode ? "y" : false}
+  dragConstraints={{ top: 0, bottom: 0 }}
+  onDragEnd={(event, info) => handleDragEnd(event, index, info)}
+  whileDrag={{ scale: 1.05, opacity: 0.85 }}
+  layout
+>
+  <img
+    src={image.url}
+    alt=""
+    className="rounded-md w-full object-cover"
+  />
+</motion.div>
