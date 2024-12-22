@@ -1,0 +1,135 @@
+Approach Overview:
+Selection Mode: Users can toggle selection by entering "Select Mode."
+Checkboxes: When in Select Mode, checkboxes appear over each image.
+Delete Action: A delete button allows the removal of selected images.
+Implementation (React + Tailwind + Framer Motion)
+1. State Management:
+Track selected images using useState().
+Toggle Select Mode and manage selections dynamically.
+Gallery Component Code:
+tsx
+Copy code
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Trash2 } from 'lucide-react';
+
+interface Image {
+  id: number;
+  url: string;
+}
+
+const images: Image[] = [
+  { id: 1, url: '/images/photo1.jpg' },
+  { id: 2, url: '/images/photo2.jpg' },
+  { id: 3, url: '/images/photo3.jpg' },
+];
+
+export default function ImageGallery() {
+  const [selectedImages, setSelectedImages] = useState<number[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
+
+  // Toggle select mode
+  const toggleSelectMode = () => {
+    if (selectMode) {
+      setSelectedImages([]);
+    }
+    setSelectMode(!selectMode);
+  };
+
+  // Handle image selection
+  const handleSelect = (id: number) => {
+    setSelectedImages((prev) =>
+      prev.includes(id)
+        ? prev.filter((imgId) => imgId !== id)
+        : [...prev, id]
+    );
+  };
+
+  // Delete selected images
+  const handleDelete = () => {
+    // Here you can filter out the selected images and update your state accordingly
+    const remainingImages = images.filter(
+      (img) => !selectedImages.includes(img.id)
+    );
+    console.log('Remaining Images:', remainingImages);
+    setSelectedImages([]);
+    setSelectMode(false);
+  };
+
+  return (
+    <div className="relative w-full max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Gallery</h1>
+        <button
+          onClick={toggleSelectMode}
+          className="px-4 py-2 bg-blue-500 text-white rounded-md"
+        >
+          {selectMode ? 'Cancel' : 'Select'}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        {images.map((image) => (
+          <div
+            key={image.id}
+            className="relative group"
+          >
+            <img
+              src={image.url}
+              alt=""
+              className={`rounded-lg transition ${
+                selectedImages.includes(image.id) && selectMode
+                  ? 'opacity-50'
+                  : 'opacity-100'
+              }`}
+            />
+            {selectMode && (
+              <div
+                className="absolute top-2 right-2"
+                onClick={() => handleSelect(image.id)}
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  whileTap={{ scale: 0.8 }}
+                  className={`w-6 h-6 rounded-full border-2 ${
+                    selectedImages.includes(image.id)
+                      ? 'bg-blue-500 border-blue-500'
+                      : 'bg-white border-gray-300'
+                  }`}
+                />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {selectMode && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 flex gap-4">
+          <button
+            onClick={handleDelete}
+            className="px-6 py-3 bg-red-500 text-white flex items-center rounded-lg"
+            disabled={selectedImages.length === 0}
+          >
+            <Trash2 className="w-5 h-5 mr-2" />
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+How It Works:
+Select Mode Toggle:
+A "Select" button appears at the top. Clicking it enables or disables selection mode.
+When active, checkboxes appear on images.
+Image Selection:
+Clicking the checkbox toggles selection.
+Selected images are slightly dimmed (opacity-50).
+Delete Functionality:
+When images are selected, the delete button becomes clickable.
+Selected images are filtered out and deleted when confirmed.
+Animations and UX:
+Checkboxes Scale Up: Checkboxes animate (scale: 0 to 1) when Select Mode is enabled.
+Tap Animation: A subtle scale-down effect (scale: 0.8) on checkbox tap.
+Feedback: Selected images dim slightly for visual feedback.
