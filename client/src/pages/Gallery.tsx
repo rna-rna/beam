@@ -151,7 +151,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      setIsReorderMode(false);
       toast({
         title: "Success",
         description: "Image order updated successfully",
@@ -480,8 +479,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (!gallery || !isReorderMode) return;
 
     const dragDistance = info.offset.y;
-    const viewportHeight = window.innerHeight;
-    const imageHeight = viewportHeight / breakpointCols.default; // Approximate image height
+    const imageHeight = document.querySelector('.image-container')?.clientHeight || 100;
+
+    // Calculate new index based on drag distance relative to image height
     const newIndex = Math.min(
       Math.max(0, draggedIndex + Math.round(dragDistance / imageHeight)),
       gallery.images.length - 1
@@ -492,16 +492,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const [movedImage] = updatedImages.splice(draggedIndex, 1);
       updatedImages.splice(newIndex, 0, movedImage);
 
-      // Update optimistically
+      // Update state immediately to reflect changes
       queryClient.setQueryData([`/api/galleries/${slug}`], {
         ...gallery,
         images: updatedImages,
       });
 
-      // Send the update to the server
+      // Send reordering request to the server
       reorderImageMutation.mutate(updatedImages.map(img => img.id));
     }
-  }, [gallery, isReorderMode, queryClient, reorderImageMutation, slug, breakpointCols]);
+  }, [gallery, isReorderMode, queryClient, reorderImageMutation, slug]);
 
   const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
@@ -567,20 +567,28 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.5) }}
       drag={isReorderMode ? "y" : false}
-      dragConstraints={{ top: 0, bottom: 0 }}
+      dragConstraints={false}  // Remove constraints for free movement
+      dragSnapToOrigin={false}
       dragElastic={0.1}
       onDragEnd={(_, info) => handleDragEnd(_, index, info)}
-      whileDrag={{ scale: 1.05, zIndex: 1 }}
+      whileDrag={{ scale: 1.05, zIndex: 50, cursor: "grabbing" }}
+      className={`${isReorderMode ? "cursor-grab" : ""}`}
     >
       <div
-        className={`relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 ${
-          !isReorderMode ? 'hover:scale-[1.02]' : ''
+        className={`relative bg-card rounded-md overflow-hidden transform transition-transform duration-150 ${
+          !isReorderMode ? 'hover:scale-[1.02] cursor-pointer' : ''
         } ${selectMode ? 'hover:scale-100' : ''}`}
-        onClick={(e) => selectMode ? handleImageSelect(image.id, e) : handleImageClick(index)}
+        onClick={(e) => {
+          if (isReorderMode) {
+            e.stopPropagation();
+            return;
+          }
+          selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
+        }}
       >
         {isReorderMode && (
-          <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm p-1 rounded cursor-grab active:cursor-grabbing">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+          <div className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm p-1.5 rounded">
+            <svg width="20" height="20" viewBox="0 0 18 18" fill="currentColor" className="text-foreground/70">
               <circle cx="6" cy="6" r="1.5" />
               <circle cx="12" cy="6" r="1.5" />
               <circle cx="6" cy="12" r="1.5" />
@@ -597,6 +605,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
             }`}
             loading="lazy"
+            draggable={false}
           />
         )}
 
@@ -891,7 +900,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     e.stopPropagation();
                     setIsAnnotationMode(!isAnnotationMode);
                     setIsCommentPlacementMode(false);
-                    setNewCommentPos(null);                  }}
+                    setNewCommentPos(null);
+                  }}
                   title="Toggle Drawing Mode"
                 >
                   <Paintbrush
