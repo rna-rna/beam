@@ -266,14 +266,30 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       if (!response.ok) throw new Error('Failed to delete images');
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+    onSuccess: (_, variables) => {
+      // Immediately update the client-side state
+      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: GalleryType | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          images: oldData.images.filter(
+            (image: Image) => !variables.includes(image.id)
+          ),
+        };
+      });
+
+      // Reset selection state
       setSelectedImages([]);
       setSelectMode(false);
+
+      // Show success toast
       toast({
         title: "Success",
         description: "Selected images deleted successfully",
       });
+
+      // Invalidate the query to ensure consistency with server
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
     },
     onError: () => {
       toast({
@@ -915,7 +931,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       isNew
                       savedAuthor={userName}
                       onSubmit={(content, author) => {
-                        const newAuthor = author.trim() || userName || "Anonymous";
+                        const newAuthor = author.trim()|| userName || "Anonymous";
                         setUserName(newAuthor);
                         if (!selectedImage) return;
                         createCommentMutation.mutate({
