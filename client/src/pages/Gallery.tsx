@@ -586,50 +586,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     duration: 0.4,
                     delay: Math.min(index * 0.05, 0.5),
                   }}
-                  drag={isReorderMode ? "y" : false}
-                  dragConstraints={{ top: 0, bottom: 0 }}
-                  dragElastic={0.7}
-                  dragSnapToOrigin={false}
-                  whileDrag={{
-                    scale: 1.05,
-                    opacity: 0.75,
-                    zIndex: 50,
-                    boxShadow: "0 8px 20px rgba(0, 0, 0, 0.15)"
-                  }}
-                  onDragStart={() => {
-                    if (!isReorderMode) return;
-                  }}
-                  onDragEnd={(event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-                    if (!isReorderMode || !gallery) return;
-
-                    // Get the new position based on drag direction and velocity
-                    const currentIndex = gallery.images.findIndex(img => img.id === image.id);
-                    let newOrder = [...gallery.images.map(img => img.id)];
-
-                    // Calculate new position based on drag distance
-                    const dragDistance = info.offset.y;
-                    const element = event.target as HTMLElement;
-                    const imageHeight = element?.getBoundingClientRect().height || 0;
-                    const positionDelta = Math.round(dragDistance / (imageHeight + 16)); // 16 is mb-4
-
-                    // Calculate new index with bounds checking
-                    const newIndex = Math.max(0, Math.min(currentIndex + positionDelta, gallery.images.length - 1));
-
-                    if (newIndex !== currentIndex) {
-                      // Remove from old position and insert at new position
-                      newOrder.splice(currentIndex, 1);
-                      newOrder.splice(newIndex, 0, image.id);
-
-                      // Call mutation to update order
-                      reorderImageMutation.mutate(newOrder);
-                    }
-                  }}
-                  layout // Add layout prop for smooth transitions
                 >
                   <div
-                    className={`relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 ${
-                      !isReorderMode ? 'hover:scale-[1.02]' : ''
-                    } ${
+                    className={`relative bg-card rounded-md overflow-hidden cursor-pointer transform transition-transform duration-150 hover:scale-[1.02] ${
                       selectMode ? 'hover:scale-100' : ''
                     }`}
                     onClick={(e) => selectMode ? handleImageSelect(image.id, e) : handleImageClick(index)}
@@ -670,7 +629,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
                     {/* Existing badges and buttons */}
                     <div className="absolute top-2 right-2 flex gap-2">
-                      {!selectMode && !isReorderMode && (
+                      {!selectMode && (
                         <>
                           {image.commentCount! > 0 && (
                             <Badge
@@ -972,7 +931,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       isNew
                       savedAuthor={userName}
                       onSubmit={(content, author) => {
-                        const newAuthor = author.trim() || userName || "Anonymous";
+                        const newAuthor = author.trim()|| userName || "Anonymous";
                         setUserName(newAuthor);
                         if (!selectedImage) return;
                         createCommentMutation.mutate({
