@@ -1,0 +1,80 @@
+Issue:
+
+The ghost image (motion.div) shown during drag appears too large, likely due to the dimensions set within the style prop or inherited CSS properties.
+Solution:
+Adjust Ghost Image Size Dynamically:
+Set a smaller width/height ratio for the ghost image.
+Ensure the image scales down proportionally while maintaining visibility.
+Instructions for Replit:
+Locate the ghost image rendering logic in Gallery.tsx (lines around 1050):
+tsx
+Copy code
+{dragPosition && draggedItemIndex !== null && gallery?.images && (
+  <motion.div
+    className="fixed pointer-events-none z-50 ghost-image"
+    style={{
+      top: dragPosition.y,
+      left: dragPosition.x,
+      transform: "translate(-50%, -50%)",
+      width: '150px',  // Current size - adjust this
+      height: '150px'  // Current size - adjust this
+    }}
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ 
+      opacity: 0.9, 
+      scale: 1.05,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 25
+      }
+    }}
+    exit={{ opacity: 0, scale: 0.8 }}
+  >
+    <img
+      src={gallery.images[draggedItemIndex].url}
+      alt="Dragged Preview"
+      className="w-full h-full object-cover rounded-lg shadow-lg"
+    />
+  </motion.div>
+)}
+Adjustments to Make:
+Reduce the width and height of the ghost container by modifying the style object.
+Add responsive scaling based on screen size for mobile drag interactions.
+New Code (Smaller Ghost Image):
+tsx
+Copy code
+{dragPosition && draggedItemIndex !== null && gallery?.images && (
+  <motion.div
+    className="fixed pointer-events-none z-50 ghost-image"
+    style={{
+      top: dragPosition.y,
+      left: dragPosition.x,
+      transform: "translate(-50%, -50%)",
+      width: '100px',  // Reduced size
+      height: '100px',  // Reduced size
+      maxWidth: '10vw',  // Scale dynamically with viewport width
+      maxHeight: '10vw',  // Maintain aspect ratio
+    }}
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ 
+      opacity: 0.9, 
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 25
+      }
+    }}
+    exit={{ opacity: 0, scale: 0.8 }}
+  >
+    <img
+      src={gallery.images[draggedItemIndex].url}
+      alt="Dragged Preview"
+      className="w-full h-full object-cover rounded-lg shadow-lg"
+    />
+  </motion.div>
+)}
+Why This Fix Works:
+By reducing the size to 100px and limiting the max dimensions to a percentage of viewport width (vw), the ghost image scales appropriately.
+This keeps the preview unobtrusive but visible enough for accurate drag-and-drop placement.
