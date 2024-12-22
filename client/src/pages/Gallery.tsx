@@ -8,6 +8,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { MobileGalleryView } from "@/components/MobileGalleryView";
 import type { Image, Gallery as GalleryType } from "@/types/gallery";
+import { Upload } from "lucide-react"; // Added import for Upload icon
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -46,6 +47,7 @@ import {
 // Components
 import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
+import { useDropzone } from 'react-dropzone';
 
 
 interface GalleryProps {
@@ -303,11 +305,19 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // Callbacks
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      if (selectedImageIndex >= 0) return;
+      if (selectedImageIndex >= 0 || selectMode) return;
       uploadMutation.mutate(acceptedFiles);
     },
-    [uploadMutation, selectedImageIndex]
+    [uploadMutation, selectedImageIndex, selectMode]
   );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+    },
+    disabled: isUploading || selectMode
+  });
 
   // Memoized Values
   const breakpointCols = useMemo(
@@ -564,7 +574,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative" {...getRootProps()}>
+      <input {...getInputProps()} />
+
+      {isDragActive && !selectMode && (
+        <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="text-center">
+            <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+            <h3 className="text-xl font-semibold">Drop images here</h3>
+          </div>
+        </div>
+      )}
 
       <div className="px-4 md:px-6 lg:px-8 py-8">
         <AnimatePresence>
@@ -620,7 +640,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                               : 'bg-background/80 border-background/80'
                           }`}
                         >
-                          {selectedImages.includes(image.id) && (
+                          {selectedImage
+
+                            && selectedImages.includes(image.id) && (
                             <CheckCircle className="w-4 h-4 text-primary-foreground" />
                           )}
                         </div>
@@ -931,7 +953,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       isNew
                       savedAuthor={userName}
                       onSubmit={(content, author) => {
-                        const newAuthor = author.trim()|| userName || "Anonymous";
+                        const newAuthor = author.trim() || userName || "Anonymous";
                         setUserName(newAuthor);
                         if (!selectedImage) return;
                         createCommentMutation.mutate({
