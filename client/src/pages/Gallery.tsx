@@ -484,7 +484,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     let targetIndex = draggedIndex;
     let closestDistance = Infinity;
 
-    // Get cursor position
+    // Get cursor position at drag end
     const cursorPos = {
       x: event instanceof MouseEvent ? event.clientX :
          'touches' in event && event.touches[0] ? event.touches[0].clientX :
@@ -494,12 +494,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
          info.point.y
     };
 
-    // Find closest item to drop position
+    // Find closest drop target by comparing centers
     galleryItems.forEach((item, index) => {
       if (index === draggedIndex) return;
+
       const rect = item.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
+
+      // Calculate Euclidean distance to find closest drop target
       const distance = Math.hypot(centerX - cursorPos.x, centerY - cursorPos.y);
 
       if (distance < closestDistance) {
@@ -513,7 +516,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const [movedImage] = updatedImages.splice(draggedIndex, 1);
       updatedImages.splice(targetIndex, 0, movedImage);
 
-      // Optimistic update
+      // Optimistic update for immediate visual feedback
       queryClient.setQueryData([`/api/galleries/${slug}`], {
         ...gallery,
         images: updatedImages,
@@ -582,14 +585,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const renderImage = (image: Image, index: number) => (
     <motion.div
       key={image.id}
-      className={`mb-4 image-container relative ${!isMasonry ? 'aspect-[4/3]' : ''}`}
+      className={`mb-4 image-container relative ${
+        !isMasonry ? 'aspect-[4/3]' : ''
+      } transform transition-all duration-200 ease-out ${
+        isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
+      }`}
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
+      animate={{ 
+        opacity: preloadedImages.has(image.id) ? 1 : 0,
+        y: 0,
+        scale: isReorderMode ? 0.98 : 1,
+        transition: { duration: 0.2 }
+      }}
       drag={isReorderMode}
       dragConstraints={false}
-      dragElastic={0.2}
+      dragElastic={0.1}
       onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
       whileDrag={{
         scale: 1.05,
@@ -600,7 +610,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       layout
     >
       <div
-        className={`relative bg-card rounded-md overflow-hidden transform transition-all ${
+        className={`relative bg-card rounded-lg overflow-hidden transform transition-all ${
           !isReorderMode ? 'hover:scale-[1.02] cursor-pointer' : ''
         } ${selectMode ? 'hover:scale-100' : ''}`}
         onClick={(e) => {
