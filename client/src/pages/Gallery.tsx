@@ -88,6 +88,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [selectMode, setSelectMode] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
   const [isMasonry, setIsMasonry] = useState(true);
+  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Add mobile detection
   useEffect(() => {
@@ -476,6 +478,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     draggedIndex: number,
     info: PanInfo
   ) => {
+    setDraggedItemIndex(null);
+    setDragPosition(null);
+
     if (!gallery || !isReorderMode) return;
 
     const galleryItems = Array.from(document.querySelectorAll(".image-container"));
@@ -594,20 +599,20 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       animate={{ 
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
-        scale: isReorderMode ? 0.98 : 1,
+        scale: isReorderMode ? (draggedItemIndex === index ? 1.05 : 0.98) : 1,
+        zIndex: draggedItemIndex === index ? 50 : 1,
         transition: { duration: 0.2 }
       }}
       drag={isReorderMode}
       dragConstraints={false}
       dragElastic={0.1}
-      onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
-      whileDrag={{
-        scale: 1.05,
-        zIndex: 50,
-        cursor: "grabbing",
-        boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
+      onDragStart={() => setDraggedItemIndex(index)}
+      onDrag={(_, info) => {
+        setDragPosition({ x: info.point.x, y: info.point.y });
       }}
-      layout
+      onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
+      layout="position"
+      layoutId={`image-${image.id}`}
     >
       <div
         className={`relative bg-card rounded-lg overflow-hidden transform transition-all ${
@@ -642,9 +647,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           <img
             src={image.url}
             alt=""
-            className={`w-full h-auto object-cover ${
+            className={`w-full h-auto object-cover rounded-lg ${
               selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
-            }`}
+            } ${draggedItemIndex === index ? 'pointer-events-none' : ''}`}
             loading="lazy"
             draggable={false}
           />

@@ -1,0 +1,159 @@
+Objective:
+Enhance the drag-and-drop reordering experience on the Gallery Page by introducing:
+
+Dynamic Placeholder Animation – Other images should shift out of the way during dragging to indicate the drop zone.
+Ghost/Clone Preview – A clone of the dragged image follows the cursor, providing immediate feedback.
+Smooth Grid Reflow – The gallery grid adjusts in real time as the image is dragged, creating a fluid experience similar to Trello.
+Implementation Breakdown:
+1. Track Drag State to Animate Grid Dynamically
+Add state to track which item is actively being dragged. This will control the grid's dynamic shifting and placeholder behavior.
+
+Add to State:
+
+tsx
+Copy code
+const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
+const [draggedImage, setDraggedImage] = useState<string | null>(null);  // Track image for ghost preview
+2. Update Drag Start/End Handlers to Track Active Image
+Modify the drag start and end logic to set the dragged image and reset on release.
+
+tsx
+Copy code
+const handleDragStart = (index: number, imageSrc: string) => {
+  setDraggedItemIndex(index);
+  setDraggedImage(imageSrc);
+};
+
+const handleDragEnd = (
+  event: PointerEvent | MouseEvent | TouchEvent,
+  draggedIndex: number,
+  info: PanInfo
+) => {
+  setDraggedItemIndex(null);
+  setDraggedImage(null);
+  
+  if (!gallery || !isReorderMode) return;
+
+  const galleryItems = Array.from(document.querySelectorAll(".image-container"));
+
+  if (galleryItems.length === 0 || draggedIndex >= galleryItems.length) return;
+
+  let targetIndex = draggedIndex;
+  let closestDistance = Infinity;
+
+  const cursorPos = {
+    x: event instanceof MouseEvent ? event.clientX : (event as TouchEvent).touches[0].clientX,
+    y: event instanceof MouseEvent ? event.clientY : (event as TouchEvent).touches[0].clientY,
+  };
+
+  galleryItems.forEach((item, index) => {
+    if (index === draggedIndex) return;
+
+    const rect = item.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const distance = Math.hypot(centerX - cursorPos.x, centerY - cursorPos.y);
+
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      targetIndex = index;
+    }
+  });
+
+  if (targetIndex !== draggedIndex) {
+    const updatedImages = [...gallery.images];
+    const [movedImage] = updatedImages.splice(draggedIndex, 1);
+    updatedImages.splice(targetIndex, 0, movedImage);
+
+    queryClient.setQueryData([`/api/galleries/${slug}`], {
+      ...gallery,
+      images: updatedImages,
+    });
+
+    reorderImageMutation.mutate(updatedImages.map((img) => img.id));
+  }
+};
+3. Animate Grid Shifts During Drag (Dynamic Placeholder)
+Images will dynamically shift out of the way when a drag is in progress to simulate the placeholder effect.
+
+tsx
+Copy code
+{gallery?.images.map((image: Image, index: number) => (
+  <motion.div
+    key={image.id}
+    layout
+    className={`relative cursor-pointer image-container ${
+      draggedItemIndex !== null && index === draggedItemIndex ? "opacity-50" : ""
+    }`}
+    animate={{
+      scale: draggedItemIndex === index ? 1.1 : 1,
+      y: draggedItemIndex !== null && index > draggedItemIndex ? 20 : 0,
+    }}
+    drag={isReorderMode}
+    dragConstraints={false}
+    dragElastic={0.1}
+    onDragStart={() => handleDragStart(index, image.url)}
+    onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
+    whileDrag={{
+      scale: 1.05,
+      zIndex: 50,
+      cursor: "grabbing",
+      boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+    }}
+  >
+    <img
+      src={image.url}
+      alt=""
+      className="w-full h-auto object-cover rounded-lg"
+      draggable={false}
+    />
+  </motion.div>
+))}
+4. Add Ghost/Clone Image Preview That Follows the Cursor
+Create a floating ghost preview of the dragged image that follows the cursor to give the user constant visual feedback.
+
+Ghost Image Container:
+
+tsx
+Copy code
+{draggedImage && (
+  <motion.div
+    className="fixed pointer-events-none z-50"
+    animate={{
+      x: window.innerWidth / 2 - 75,
+      y: window.innerHeight / 2 - 75,
+      scale: 1.05,
+    }}
+    style={{
+      width: "150px",
+      height: "150px",
+    }}
+  >
+    <img
+      src={draggedImage}
+      alt="Preview"
+      className="w-full h-full object-cover rounded-md shadow-lg"
+    />
+  </motion.div>
+)}
+CSS for Ghost Image:
+
+css
+Copy code
+.ghost-image {
+  pointer-events: none;
+  position: fixed;
+  opacity: 0.9;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+}
+5. Smooth Exit Transition After Drop
+Ensure the dragged image smoothly scales back down to size when the drag ends.
+
+tsx
+Copy code
+animate={{
+  scale: draggedItemIndex === index ? 1.1 : 1,
+  y: draggedItemIndex !== null && index > draggedItemIndex ? 20 : 0,
+}}
