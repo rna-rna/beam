@@ -49,8 +49,6 @@ import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 
-
-
 interface GalleryProps {
   slug?: string;
   title: string;
@@ -70,42 +68,32 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const queryClient = useQueryClient();
 
   // State Management
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
+  const [showWithComments, setShowWithComments] = useState(false);
+  const [showApproved, setShowApproved] = useState(false);
+  const [showUnreviewed, setShowUnreviewed] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
   const [scale, setScale] = useState(100);
   const [isReorderMode, setIsReorderMode] = useState(false);
-  const [showStarredOnly, setShowStarredOnly] = useState(false);
-  const [userName, setUserName] = useState<string>("");
-  const [isAnnotationMode, setIsAnnotationMode] = useState(false);
-  const [showAnnotations, setShowAnnotations] = useState(true);
-  const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
-  const [showFilename, setShowFilename] = useState(true);
-  const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
-  const [isMobile, setIsMobile] = useState(false);
-  const [showMobileView, setShowMobileView] = useState(false);
-  const [mobileViewIndex, setMobileViewIndex] = useState(-1);
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
   const [isMasonry, setIsMasonry] = useState(true);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [showWithComments, setShowWithComments] = useState(false);
-  const [showApproved, setShowApproved] = useState(false);
-  const [showUnreviewed, setShowUnreviewed] = useState(false);
-
-  // Add mobile detection
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
+  const [showFilename, setShowFilename] = useState(true);
+  const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileView, setShowMobileView] = useState(false);
+  const [mobileViewIndex, setMobileViewIndex] = useState(-1);
+  const [userName, setUserName] = useState<string>("");
+  const [isAnnotationMode, setIsAnnotationMode] = useState(false);
+  const [showAnnotations, setShowAnnotations] = useState(true);
+  const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<GalleryType>({
@@ -124,6 +112,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     queryKey: [`/api/images/${selectedImage?.id}/comments`],
     enabled: !!selectedImage?.id,
   });
+
 
   // Define all mutations first
   const toggleStarMutation = useMutation({
@@ -831,8 +820,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
+  // Add mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Filter-related Functions
-  const renderFilterDropdownContent = () => (
+  const renderFilterDropdownContent = useCallback(() => (
     <DropdownMenuContent align="end" className="w-56">
       <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
       <DropdownMenuGroup>
@@ -895,8 +894,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         <span className="ml-auto text-xs">Shift+R</span>
       </DropdownMenuItem>
     </DropdownMenuContent>
-  );
+  ), [showStarredOnly, showWithComments, showApproved, showUnreviewed]);
 
+  // Filter keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle if not in input/textarea
