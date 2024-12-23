@@ -766,37 +766,50 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             draggable={false}
           />
         )}
-        {/* Image badges and buttons */}
-        <div className="absolute top-2 right-2 flex gap-2">
-          {!selectMode && (
-            <>
-              {image.commentCount! > 0 && (
-                <Badge
-                  className="bg-primary text-primary-foreground flex items-center gap-1"
-                  variant="secondary"
-                >
-                  <MessageCircle className="w-3 h-3" />
-                  {image.commentCount}
-                </Badge>
-              )}
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleStarMutation.mutate(image.id);
+
+        {/* Move star button to bottom-left corner */}
+        {!selectMode && (
+          <motion.div
+            className="absolute bottom-2 left-2 z-10"
+            animate={{ scale: 1 }}
+            whileTap={{ scale: 0.8 }}
+          >
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm backdrop-blur-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleStarMutation.mutate(image.id);
+              }}
+            >
+              <motion.div
+                animate={{
+                  scale: image.starred ? 1.2 : 1,
+                  opacity: image.starred ? 1 : 0.6
                 }}
+                transition={{ duration: 0.2 }}
               >
                 {image.starred ? (
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                 ) : (
                   <Star className="h-4 w-4" />
                 )}
-              </Button>
-            </>
-          )}
-        </div>
+              </motion.div>
+            </Button>
+          </motion.div>
+        )}
+
+        {/* Comment count badge */}
+        {!selectMode && image.commentCount! > 0 && (
+          <Badge
+            className="absolute top-2 right-2 bg-primary text-primary-foreground flex items-center gap-1"
+            variant="secondary"
+          >
+            <MessageCircle className="w-3 h-3" />
+            {image.commentCount}
+          </Badge>
+        )}
 
         {/* Selection checkbox */}
         {selectMode && !isReorderMode && (
