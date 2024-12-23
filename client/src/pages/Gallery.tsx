@@ -742,7 +742,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
     >
       <div
-        className={`relative bg-card rounded-lg overflow-hidden transform transition-all ${
+        className={`relative bg-card rounded-lg overflow-hidden transform transition-all group ${
           !isReorderMode ? 'hover:scale-[1.02] cursor-pointer' : ''
         } ${selectMode ? 'hover:scale-100' : ''} ${
           isReorderMode ? 'border-2 border-dashed border-gray-200 border-opacity-50' : ''
@@ -770,7 +770,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         {/* Move star button to bottom-left corner */}
         {!selectMode && (
           <motion.div
-            className="absolute bottom-2 left-2 z-10 star-button opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 md:opacity-0 max-md:opacity-100"
+            className="absolute bottom-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 max-md:opacity-100"
             animate={{ scale: 1 }}
             whileTap={{ scale: 0.8 }}  // Click animation
           >
@@ -897,7 +897,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="text-center">
             <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
-            <h3 className="text-xl font-semibold">Drop images here</h3>
+            <h3 className="text-xlfont-semibold">Drop images here</h3>
           </div>
         </div>
       )}
