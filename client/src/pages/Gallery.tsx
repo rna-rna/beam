@@ -961,8 +961,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             top: dragPosition.y,
             left: dragPosition.x,
             transform: "translate(-50%, -50%)",
-            width: '40px',
-            height: '40px'
+            width: '80px',  // Reduced size
+            height: '80px'  // Reduced size
           }}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{
