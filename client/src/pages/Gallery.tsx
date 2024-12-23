@@ -1,3 +1,4 @@
+import { useDropzone } from 'react-dropzone';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "wouter";
@@ -673,7 +674,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const toggleSelectMode = () => {
     if (selectMode) {
       setSelectedImages([]);
-      setIsReorderMode(false); 
+      setIsReorderMode(false);
     }
     setSelectMode(!selectMode);
   };
@@ -766,19 +767,19 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!gallery?.images?.length) return;
+
+      if (e.key === "ArrowLeft") {
+        setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+      } else if (e.key === "ArrowRight") {
+        setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+      } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
+        toggleStarMutation.mutate(selectedImage.id);
+      }
+    };
+
     if (selectedImageIndex >= 0) {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (!gallery?.images?.length) return;
-
-        if (e.key === "ArrowLeft") {
-          setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-        } else if (e.key === "ArrowRight") {
-          setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-        } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
-          toggleStarMutation.mutate(selectedImage.id);
-        }
-      };
-
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
@@ -817,7 +818,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         scale: draggedItemIndex === index ? 1.1 : 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
         transition: {
-          duration: draggedItemIndex === index ? 0 : 0.25,  
+          duration: draggedItemIndex === index ? 0 : 0.25,
         }
       }}
       style={{
@@ -865,7 +866,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           <motion.div
             className="absolute bottom-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 max-md:opacity-100"
             animate={{ scale: 1 }}
-            whileTap={{ scale: 0.8 }}  
+            whileTap={{ scale: 0.8 }}
           >
             <Button
               variant="secondary"
