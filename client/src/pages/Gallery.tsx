@@ -770,9 +770,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         {/* Move star button to bottom-left corner */}
         {!selectMode && (
           <motion.div
-            className="absolute bottom-2 left-2 z-10"
+            className="absolute bottom-2 left-2 z-10 star-button opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 md:opacity-0 max-md:opacity-100"
             animate={{ scale: 1 }}
-            whileTap={{ scale: 0.8 }}
+            whileTap={{ scale: 0.8 }}  // Click animation
           >
             <Button
               variant="secondary"
@@ -953,7 +953,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           )}
         </AnimatePresence>
       </div>
-
 
       {dragPosition && draggedItemIndex !== null && gallery?.images && (
         <motion.div
