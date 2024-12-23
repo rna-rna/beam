@@ -712,7 +712,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     <motion.div
       key={image.id}
       layout={draggedItemIndex === index ? false : "position"}
-      className={`mb-4 image-container relative ${
+      className={`mb-4 image-container relative group ${
         !isMasonry ? 'aspect-[4/3]' : ''
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
@@ -897,7 +897,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="text-center">
             <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
-            <h3 className="text-xl font-semibold">Drop images here</h3>
+            <h3 className="text-xlfont-semibold">Drop images here</h3>
           </div>
         </div>
       )}
@@ -961,8 +961,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             top: dragPosition.y,
             left: dragPosition.x,
             transform: "translate(-50%, -50%)",
-            width: '40px',
-            height: '40px'
+            width: '30px',  // Reduced size
+            height: '30px'  // Reduced size
           }}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{
@@ -980,6 +980,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             src={gallery.images[draggedItemIndex].url}
             alt="Dragged Preview"
             className="w-full h-full object-cover rounded-lg shadow-lg"
+            draggable={false}
           />
         </motion.div>
       )}
