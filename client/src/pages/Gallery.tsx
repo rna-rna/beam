@@ -8,7 +8,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { MobileGalleryView } from "@/components/MobileGalleryView";
 import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
-import { Upload, Grid, LayoutGrid } from "lucide-react";
+import { Upload, Grid, LayoutGrid, Filter } from "lucide-react";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -90,6 +90,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [isMasonry, setIsMasonry] = useState(true);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [showWithComments, setShowWithComments] = useState(false);
+  const [showApproved, setShowApproved] = useState(false);
 
   // Add mobile detection
   useEffect(() => {
@@ -586,6 +589,66 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Filter Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              Filter {(showStarredOnly || showWithComments || showApproved) && '•'}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={() => setShowStarredOnly(!showStarredOnly)}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <div className="flex items-center flex-1">
+                  <Star className={`w-4 h-4 mr-2 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                  Show Starred
+                </div>
+                {showStarredOnly && <CheckCircle className="w-4 h-4 text-primary" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowWithComments(!showWithComments)}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <div className="flex items-center flex-1">
+                  <MessageCircle className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
+                  Has Comments
+                </div>
+                {showWithComments && <CheckCircle className="w-4 h-4 text-primary" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowApproved(!showApproved)}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <div className="flex items-center flex-1">
+                  <CheckCircle className={`w-4 h-4 mr-2 ${showApproved ? 'text-primary' : ''}`} />
+                  Approved
+                </div>
+                {showApproved && <CheckCircle className="w-4 h-4 text-primary" />}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                setShowStarredOnly(false);
+                setShowWithComments(false);
+                setShowApproved(false);
+              }}
+              className="text-sm text-muted-foreground"
+            >
+              Reset Filters
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {isUploading && (
           <div className="flex items-center gap-4">
             <Progress value={undefined} className="w-24" />
@@ -634,6 +697,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     isReorderMode,
     selectedImages.length,
     showStarredOnly,
+    showWithComments,
+    showApproved,
     deleteImagesMutation,
     handleCopyLink,
     handleDownloadAll,
@@ -653,7 +718,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
       initial={{ opacity: 0, y: 20 }}
-      animate={{ 
+      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
@@ -841,7 +906,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               >
                 {renderUploadPlaceholders()}
                 {gallery?.images
-                  .filter((image: Image) => !showStarredOnly || image.starred)
+                  .filter((image: Image) => {
+                    if (showStarredOnly && !image.starred) return false;
+                    if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                    if (showApproved && !image.approved) return false;
+                    return true;
+                  })
                   .map((image: Image, index: number) => renderImage(image, index))}
               </Masonry>
             </motion.div>
@@ -859,7 +929,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             >
               {renderUploadPlaceholders()}
               {gallery?.images
-                .filter((image: Image) => !showStarredOnly || image.starred)
+                .filter((image: Image) => {
+                  if (showStarredOnly && !image.starred) return false;
+                  if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                  if (showApproved && !image.approved) return false;
+                  return true;
+                })
                 .map((image: Image, index: number) => renderImage(image, index))}
             </motion.div>
           )}
@@ -878,8 +953,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             height: '40px'
           }}
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ 
-            opacity: 0.8, 
+          animate={{
+            opacity: 0.8,
             scale: 1,
             transition: {
               type: "spring",
