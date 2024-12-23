@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, real, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean, real } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from 'drizzle-orm';
 
@@ -18,6 +18,8 @@ export const images = pgTable('images', {
   width: integer('width').notNull(),
   height: integer('height').notNull(),
   starred: boolean('starred').default(false).notNull(),
+  approved: boolean('approved').default(false).notNull(),
+  commentCount: integer('comment_count').default(0).notNull(),
   position: integer('position').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
