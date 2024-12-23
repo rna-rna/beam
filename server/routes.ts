@@ -1,86 +1,45 @@
 import express, { type Express } from "express";
 import { createServer, type Server } from "http";
+import { setupAuth } from './auth';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments, annotations } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
-
-// Migrate flagged to starred if needed
-async function migrateSchema() {
-  try {
-    console.log('Starting schema migration check...');
-    // First check if the 'starred' column already exists
-    const starredExists = await db.execute(sql`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'images' AND column_name = 'starred'
-    `);
-    // If starred already exists, no need to migrate
-    if (starredExists.rows && starredExists.rows.length > 0) {
-      console.log('Starred column already exists, no migration needed');
-      return;
-    }
-    // Check if flagged column exists
-    const flaggedExists = await db.execute(sql`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'images' AND column_name = 'flagged'
-    `);
-    if (flaggedExists.rows && flaggedExists.rows.length > 0) {
-      console.log('Found flagged column, starting migration...');
-      // Rename flagged to starred
-      await db.execute(sql`
-        ALTER TABLE images 
-        RENAME COLUMN flagged TO starred
-      `);
-      console.log('Successfully renamed flagged column to starred');
-    } else {
-      console.log('Creating new starred column...');
-      // Neither column exists, create the starred column
-      await db.execute(sql`
-        ALTER TABLE images 
-        ADD COLUMN starred BOOLEAN NOT NULL DEFAULT false
-      `);
-      console.log('Successfully created starred column');
-    }
-  } catch (error) {
-    console.error('Migration error:', error);
-    throw error; // Re-throw to handle in the caller
-  }
-}
 import { generateSlug } from './utils';
 
-// Configure multer for local storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+// Middleware to check if user is authenticated
+function isAuthenticated(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (req.isAuthenticated()) {
+    return next();
   }
-});
-
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    if (extname && mimetype) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'));
-    }
-  }
-});
+  res.status(401).json({ message: 'Not authenticated' });
+}
 
 export function registerRoutes(app: Express): Server {
+  // Setup authentication routes (/api/register, /api/login, /api/logout, /api/user)
+  setupAuth(app);
+
+  // Protect gallery creation and modification routes with authentication
+  app.post('/api/galleries/create', isAuthenticated, async (req, res) => {
+    try {
+      const { title = "Untitled Project", slug } = req.body;
+
+      // Create gallery with provided or generated slug and associate with user
+      const [gallery] = await db.insert(galleries).values({
+        slug: slug || generateSlug(),
+        title,
+        userId: req.user!.id // Associate gallery with authenticated user
+      }).returning();
+
+      res.json(gallery);
+    } catch (error) {
+      console.error('Failed to create gallery:', error);
+      res.status(500).json({ message: 'Failed to create gallery' });
+    }
+  });
+
   // Run schema migration
   (async () => {
     try {
@@ -98,45 +57,26 @@ export function registerRoutes(app: Express): Server {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
   app.use('/uploads', express.static(uploadsDir));
-  console.log('Uploads directory configured:', uploadsDir);
 
-  // Create empty gallery with predefined ID
-  app.post('/api/galleries/create', async (req, res) => {
-    try {
-      const { title = "Untitled Project", slug } = req.body;
-
-      // Create gallery with provided or generated slug
-      const [gallery] = await db.insert(galleries).values({
-        slug: slug || generateSlug(),
-        title
-      }).returning();
-      
-      console.log('Created empty gallery:', gallery);
-      res.json(gallery);
-    } catch (error) {
-      console.error('Failed to create gallery:', error);
-      res.status(500).json({ message: 'Failed to create gallery' });
-    }
-  });
-
-  // Create new gallery with images
-  app.post('/api/galleries', upload.array('images', 50), async (req, res) => {
+  // Create new gallery with images (requires auth)
+  app.post('/api/galleries', isAuthenticated, upload.array('images', 50), async (req, res) => {
     try {
       console.log('Received upload request');
-      
+
       if (!req.files || !Array.isArray(req.files)) {
         console.log('No files in request:', req.files);
         return res.status(400).json({ message: 'No images uploaded' });
       }
-      
+
       console.log(`Processing ${req.files.length} files`);
-      
+
       const [gallery] = await db.insert(galleries).values({
-        slug: generateSlug()
+        slug: generateSlug(),
+        userId: req.user!.id // Associate gallery with authenticated user
       }).returning();
-      
+
       console.log('Created gallery with ID:', gallery.id);
-      
+
       try {
         const imageInserts = [];
         for (const file of req.files) {
@@ -151,7 +91,7 @@ export function registerRoutes(app: Express): Server {
           imageInserts.push(image);
           console.log('Successfully processed file:', file.filename);
         }
-        
+
         console.log(`Successfully processed all ${imageInserts.length} images`);
         res.json({ galleryId: gallery.slug });
       } catch (err) {
@@ -162,30 +102,30 @@ export function registerRoutes(app: Express): Server {
       }
     } catch (error) {
       console.error('Upload error details:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: 'Failed to upload images',
-        details: error instanceof Error ? error.message : 'Unknown error' 
+        details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 
-  // Add images to existing gallery
-  app.post('/api/galleries/:slug/images', upload.array('images', 50), async (req, res) => {
+  // Add images to existing gallery (requires auth)
+  app.post('/api/galleries/:slug/images', isAuthenticated, upload.array('images', 50), async (req, res) => {
     try {
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
-      
+
       if (!gallery) {
         return res.status(404).json({ message: 'Gallery not found' });
       }
-      
+
       if (!req.files || !Array.isArray(req.files)) {
         return res.status(400).json({ message: 'No images uploaded' });
       }
-      
+
       console.log(`Adding ${req.files.length} images to gallery ${gallery.id}`);
-      
+
       const imageInserts = [];
       for (const file of req.files) {
         console.log('Processing file:', file.filename);
@@ -200,20 +140,20 @@ export function registerRoutes(app: Express): Server {
         imageInserts.push(image);
         console.log('Successfully processed file:', file.filename);
       }
-      
+
       console.log(`Successfully added ${imageInserts.length} images`);
       res.json({ success: true });
     } catch (error) {
       console.error('Upload error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: 'Failed to upload images',
-        details: error instanceof Error ? error.message : 'Unknown error' 
+        details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 
-  // Update gallery title
-  app.patch('/api/galleries/:slug/title', async (req, res) => {
+  // Update gallery title (requires auth)
+  app.patch('/api/galleries/:slug/title', isAuthenticated, async (req, res) => {
     try {
       const { title } = req.body;
       console.log('Updating gallery title:', { slug: req.params.slug, title });
@@ -257,17 +197,17 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get gallery details
+  // Get gallery details (public route)
   app.get('/api/galleries/:slug', async (req, res) => {
     try {
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
-      
+
       if (!gallery) {
         return res.status(404).json({ message: 'Gallery not found' });
       }
-      
+
       const galleryImages = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
         orderBy: (images, { asc }) => [
@@ -275,8 +215,7 @@ export function registerRoutes(app: Express): Server {
           asc(images.createdAt)
         ]
       });
-      
-      // Get comment counts for each image
+
       // Get comment counts for each image
       const commentCounts = await Promise.all(
         galleryImages.map(async (img) => {
@@ -291,7 +230,7 @@ export function registerRoutes(app: Express): Server {
           }
         })
       );
-      
+
       const processedImages = galleryImages.map(img => ({
         id: img.id,
         url: img.url,
@@ -302,7 +241,7 @@ export function registerRoutes(app: Express): Server {
         originalFilename: img.originalFilename,
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
-      
+
       res.json({
         id: gallery.id,
         slug: gallery.slug,
@@ -315,6 +254,22 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get user's galleries (requires auth)
+  app.get('/api/user/galleries', isAuthenticated, async (req, res) => {
+    try {
+      const userGalleries = await db.query.galleries.findMany({
+        where: eq(galleries.userId, req.user!.id),
+        orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
+      });
+
+      res.json(userGalleries);
+    } catch (error) {
+      console.error('Error fetching user galleries:', error);
+      res.status(500).json({ message: 'Failed to fetch galleries' });
+    }
+  });
+
+
   // Get comments for an image
   app.get('/api/images/:imageId/comments', async (req, res) => {
     try {
@@ -322,7 +277,7 @@ export function registerRoutes(app: Express): Server {
         where: eq(comments.imageId, parseInt(req.params.imageId)),
         orderBy: (comments, { asc }) => [asc(comments.createdAt)]
       });
-      
+
       res.json(imageComments);
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -330,41 +285,41 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Reorder images in a gallery
-  app.post('/api/galleries/:slug/reorder', async (req, res) => {
+  // Reorder images in a gallery (requires auth)
+  app.post('/api/galleries/:slug/reorder', isAuthenticated, async (req, res) => {
     try {
       console.log('Received reorder request for gallery:', req.params.slug);
       const { order } = req.body;
-      
+
       if (!Array.isArray(order)) {
         console.error('Invalid order format:', order);
         return res.status(400).json({ message: 'Invalid order format' });
       }
-      
+
       console.log('New image order:', order);
-      
+
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
-      
+
       if (!gallery) {
         console.error('Gallery not found:', req.params.slug);
         return res.status(404).json({ message: 'Gallery not found' });
       }
-      
+
       console.log('Found gallery:', gallery.id);
-      
+
       // Validate all images belong to this gallery
       const galleryImages = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
       });
-      
+
       const validImageIds = new Set(galleryImages.map(img => img.id));
       if (!order.every(id => validImageIds.has(id))) {
         console.error('Invalid image IDs in order');
         return res.status(400).json({ message: 'Invalid image IDs in order' });
       }
-      
+
       // Update order for each image in a transaction
       await db.transaction(async (tx) => {
         for (let i = 0; i < order.length; i++) {
@@ -378,40 +333,39 @@ export function registerRoutes(app: Express): Server {
             ));
         }
       });
-      
+
       console.log('Successfully updated image positions');
       res.json({ success: true });
     } catch (error) {
       console.error('Reorder error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: 'Failed to reorder images',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 
-  // Create a new comment
-  // Toggle star status for an image
-  app.post('/api/images/:imageId/star', async (req, res) => {
+  // Toggle star status for an image (requires auth)
+  app.post('/api/images/:imageId/star', isAuthenticated, async (req, res) => {
     try {
       const imageId = parseInt(req.params.imageId);
-      
+
       // Get current image
       const image = await db.query.images.findFirst({
         where: eq(images.id, imageId)
       });
-      
+
       if (!image) {
         return res.status(404).json({ message: 'Image not found' });
       }
-      
+
       // Toggle star status
       const [updatedImage] = await db
         .update(images)
         .set({ starred: !image.starred })
         .where(eq(images.id, imageId))
         .returning();
-      
+
       res.json(updatedImage);
     } catch (error) {
       console.error('Error starring image:', error);
@@ -419,11 +373,12 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post('/api/images/:imageId/comments', async (req, res) => {
+  // Create a new comment (requires auth)
+  app.post('/api/images/:imageId/comments', isAuthenticated, async (req, res) => {
     try {
       const { content, xPosition, yPosition, author } = req.body;
       const imageId = parseInt(req.params.imageId);
-      
+
       console.log('Creating comment with data:', {
         imageId,
         content,
@@ -431,16 +386,16 @@ export function registerRoutes(app: Express): Server {
         yPosition,
         author
       });
-      
+
       // Verify image exists
       const image = await db.query.images.findFirst({
         where: eq(images.id, imageId)
       });
-      
+
       if (!image) {
         return res.status(404).json({ message: 'Image not found' });
       }
-      
+
       const [comment] = await db.insert(comments)
         .values({
           imageId,
@@ -450,7 +405,7 @@ export function registerRoutes(app: Express): Server {
           author: author || 'Anonymous'
         })
         .returning();
-      
+
       console.log('Created comment:', comment);
       res.json(comment);
     } catch (error) {
@@ -459,19 +414,19 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Save annotation
-  app.post('/api/images/:imageId/annotations', async (req, res) => {
+  // Save annotation (requires auth)
+  app.post('/api/images/:imageId/annotations', isAuthenticated, async (req, res) => {
     try {
       const imageId = parseInt(req.params.imageId);
       const { pathData } = req.body;
-      
+
       const [annotation] = await db.insert(annotations)
         .values({
           imageId,
           pathData
         })
         .returning();
-      
+
       res.json(annotation);
     } catch (error) {
       console.error('Error creating annotation:', error);
@@ -486,7 +441,7 @@ export function registerRoutes(app: Express): Server {
         where: eq(annotations.imageId, parseInt(req.params.imageId)),
         orderBy: (annotations, { asc }) => [asc(annotations.createdAt)]
       });
-      
+
       res.json(results);
     } catch (error) {
       console.error('Error fetching annotations:', error);
@@ -501,12 +456,12 @@ export function registerRoutes(app: Express): Server {
       const gallery = await db.query.galleries.findFirst({
         orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
       });
-      
+
       if (!gallery) {
         console.log('No galleries found');
         return res.status(404).json({ message: 'No galleries found' });
       }
-      
+
       console.log('Found current gallery:', gallery);
       res.json(gallery);
     } catch (error) {
@@ -516,8 +471,8 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-  // Delete multiple images from a gallery
-  app.post('/api/galleries/:slug/images/delete', async (req, res) => {
+  // Delete multiple images from a gallery (requires auth)
+  app.post('/api/galleries/:slug/images/delete', isAuthenticated, async (req, res) => {
     try {
       console.log('Attempting to delete images:', req.body.imageIds);
 
@@ -544,9 +499,9 @@ export function registerRoutes(app: Express): Server {
       const invalidIds = imageIds.filter(id => !validImageIds.has(id));
 
       if (invalidIds.length > 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: 'Some images do not belong to this gallery',
-          invalidIds 
+          invalidIds
         });
       }
 
@@ -563,7 +518,7 @@ export function registerRoutes(app: Express): Server {
       res.json({ success: true, deletedIds: imageIds });
     } catch (error) {
       console.error('Error deleting images:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: 'Failed to delete images',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -573,3 +528,74 @@ export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
   return httpServer;
 }
+
+async function migrateSchema() {
+  try {
+    console.log('Starting schema migration check...');
+    // First check if the 'starred' column already exists
+    const starredExists = await db.execute(sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'images' AND column_name = 'starred'
+    `);
+    // If starred already exists, no need to migrate
+    if (starredExists.rows && starredExists.rows.length > 0) {
+      console.log('Starred column already exists, no migration needed');
+      return;
+    }
+    // Check if flagged column exists
+    const flaggedExists = await db.execute(sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'images' AND column_name = 'flagged'
+    `);
+    if (flaggedExists.rows && flaggedExists.rows.length > 0) {
+      console.log('Found flagged column, starting migration...');
+      // Rename flagged to starred
+      await db.execute(sql`
+        ALTER TABLE images 
+        RENAME COLUMN flagged TO starred
+      `);
+      console.log('Successfully renamed flagged column to starred');
+    } else {
+      console.log('Creating new starred column...');
+      // Neither column exists, create the starred column
+      await db.execute(sql`
+        ALTER TABLE images 
+        ADD COLUMN starred BOOLEAN NOT NULL DEFAULT false
+      `);
+      console.log('Successfully created starred column');
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+    throw error; // Re-throw to handle in the caller
+  }
+}
+
+// Configure multer for local storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
+  }
+});
