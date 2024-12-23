@@ -4,8 +4,6 @@ export interface Image {
   url: string;
   starred?: boolean;
   commentCount?: number;
-  annotationCount?: number;
-  approved?: boolean;
   position?: number;
   originalFilename?: string;
   width?: number;
