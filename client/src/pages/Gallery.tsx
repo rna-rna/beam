@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
-import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { MobileGalleryView } from "@/components/MobileGalleryView";
@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
 
 // Icons
 import {
@@ -49,18 +50,18 @@ import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 
+interface ImageDimensions {
+  width: number;
+  height: number;
+}
+
 interface GalleryProps {
   slug?: string;
   title: string;
   onHeaderActionsChange?: (actions: React.ReactNode) => void;
 }
 
-interface ImageDimensions {
-  width: number;
-  height: number;
-}
-
-export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
+function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
@@ -589,7 +590,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Filter Menu */}
+        {/* Filter Menu - UPDATED SECTION */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -598,55 +599,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               className="flex items-center gap-2"
             >
               <Filter className="w-4 h-4" />
-              Filter {(showStarredOnly || showWithComments || showApproved) && '•'}
+              Filter {(showStarredOnly || showWithComments || showApproved || showAnnotations) && '•'}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={() => setShowStarredOnly(!showStarredOnly)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <Star className={`w-4 h-4 mr-2 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-                  Show Starred
-                </div>
-                {showStarredOnly && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowWithComments(!showWithComments)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <MessageCircle className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
-                  Has Comments
-                </div>
-                {showWithComments && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowApproved(!showApproved)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <CheckCircle className={`w-4 h-4 mr-2 ${showApproved ? 'text-primary' : ''}`} />
-                  Approved
-                </div>
-                {showApproved && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => {
-                setShowStarredOnly(false);
-                setShowWithComments(false);
-                setShowApproved(false);
-              }}
-              className="text-sm text-muted-foreground"
-            >
-              Reset Filters
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+          {renderFilterMenu()}
         </DropdownMenu>
 
         {isUploading && (
@@ -699,13 +655,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     showStarredOnly,
     showWithComments,
     showApproved,
+    showAnnotations,
     deleteImagesMutation,
     handleCopyLink,
     handleDownloadAll,
     handleStarredToggle,
     handleReorderToggle,
     toggleReorderMode,
-    toggleSelectMode
+    toggleSelectMode,
+    renderFilterMenu
   ]);
 
   const renderImage = (image: Image, index: number) => (
@@ -897,7 +855,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="text-center">
             <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
-            <h3 className="text-xlfont-semibold">Drop images here</h3>
+            <h3 className="text-xl font-semibold">Drop images here</h3>
           </div>
         </div>
       )}
@@ -923,6 +881,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     if (showStarredOnly && !image.starred) return false;
                     if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
                     if (showApproved && !image.approved) return false;
+                    if (!showAnnotations && image.annotationCount > 0) return false;
                     return true;
                   })
                   .map((image: Image, index: number) => renderImage(image, index))}
@@ -946,6 +905,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   if (showStarredOnly && !image.starred) return false;
                   if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
                   if (showApproved && !image.approved) return false;
+                  if (!showAnnotations && image.annotationCount > 0) return false;
                   return true;
                 })
                 .map((image: Image, index: number) => renderImage(image, index))}
@@ -954,341 +914,267 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         </AnimatePresence>
       </div>
 
-      {dragPosition && draggedItemIndex !== null && gallery?.images && (
-        <motion.div
-          className="fixed pointer-events-none z-50 ghost-image"
-          style={{
-            top: dragPosition.y,
-            left: dragPosition.x,
-            transform: "translate(-50%, -50%)",
-            width: '40px',
-            height: '40px'
-          }}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{
-            opacity: 0.8,
-            scale: 1,
-            transition: {
-              type: "spring",
-              stiffness: 300,
-              damping: 25
-            }
-          }}
-          exit={{ opacity: 0, scale: 0.8 }}
-        >
-          <img
-            src={gallery.images[draggedItemIndex].url}
-            alt="Dragged Preview"
-            className="w-full h-full object-cover rounded-lg shadow-lg"
-          />
-        </motion.div>
-      )}
-
-      {/* Grid View Toggle Button */}
-      <div className="fixed bottom-6 left-6 z-50">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={toggleGridView}
-          className={`h-10 w-10 rounded-full bg-background/95 backdrop-blur-sm hover:bg-background shadow-lg ${
-            !isMasonry ? "bg-primary/20" : ""
-          }`}
-          title={`Switch to ${isMasonry ? "grid" : "masonry"} view`}
-        >
-          {isMasonry ? (
-            <Grid className="h-5 w-5" />
-          ) : (
-            <LayoutGrid className="h5 w-5" />
+      {/* Image Viewer */}
+      <Dialog
+        open={selectedImageIndex >= 0}
+        onOpenChange={(open) => !open && setSelectedImageIndex(-1)}
+      >
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0">
+          {/* Filename display */}
+          {showFilename && selectedImage?.originalFilename && (
+            <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
+              {selectedImage.originalFilename}
+            </div>
           )}
-        </Button>
-      </div>
 
-      {/* Scale Slider */}
-      <div className="fixed bottom-6 right-6 z-50 bgbackground/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
-        <Slider
-          value={[scale]}
-          onValueChange={([value]) => setScale(value)}
-          min={25}
-          max={150}
-          step={5}
-          className="w-[150px] touch-none select-none"
-          aria-label="Adjust gallery scale"
-        />
-      </div>
-
-      {/* Render mobile view when on mobile devices */}
-      <AnimatePresence>
-        {isMobile && showMobileView && gallery?.images && (
-          <MobileGalleryView
-            images={gallery.images}
-            initialIndex={mobileViewIndex}
-            onClose={() => {
-              setShowMobileView(false);
-              setMobileViewIndex(-1);
+          {/* Navigation buttons */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
+            onClick={() => {
+              if (!gallery?.images?.length) return;
+              setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
             }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Only render the desktop lightbox when not on mobile */}
-      {!isMobile && (
-        <Dialog
-          open={selectedImageIndex >= 0}
-          onOpenChange={(open) => {
-            if (!open) {
-              setSelectedImageIndex(-1);
-              setNewCommentPos(null);
-            }
-          }}
-        >
-          <DialogContent
-            className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
-            aria-describedby="gallery-lightbox-description"
           >
-            <div id="gallery-lightbox-description" className="sr-only">
-              Image viewer with annotation and commenting capabilities
-            </div>
+            <ChevronLeft className="h-8 w-8 text-white" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
+            onClick={() => {
+              if (!gallery?.images?.length) return;
+              setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+            }}
+          >
+            <ChevronRight className="h-8 w-8 text-white" />
+          </Button>
 
-            {/* Filename display */}
-            {showFilename && selectedImage?.originalFilename && (
-              <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
-                {selectedImage.originalFilename}
-              </div>
-            )}
-
-            {/* Navigation buttons */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
-              onClick={() => {
-                if (!gallery?.images?.length) return;
-                setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-              }}
-            >
-              <ChevronLeft className="h-8 w-8 text-white" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
-              onClick={() => {
-                if (!gallery?.images?.length) return;
-                setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-              }}
-            >
-              <ChevronRight className="h-8 w-8 text-white" />
-            </Button>
-
-            {/* Controls */}
-            <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
-              {selectedImage && (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleStarMutation.mutate(selectedImage.id);
-                  }}
-                >
-                  {selectedImage.starred ? (
-                    <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
-                  ) : (
-                    <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
-                  )}
-                </Button>
-              )}
-
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
-                    isAnnotationMode ? "bg-primary/20" : ""
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsAnnotationMode(!isAnnotationMode);
-                    setIsCommentPlacementMode(false);
-                    setNewCommentPos(null);
-                  }}
-                  title="Toggle Drawing Mode"
-                >
-                  <Paintbrush
-                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                      isAnnotationMode ? "text-primary" : ""
-                    }`}
-                  />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
-                    isCommentPlacementMode ? "bg-primary/20" : ""
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsCommentPlacementMode(!isCommentPlacementMode);
-                    setIsAnnotationMode(false);
-                    setNewCommentPos(null);
-                  }}
-                  title="Add Comment"
-                >
-                  <MessageCircle
-                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                      isCommentPlacementMode ? "text-primary" : ""
-                    }`}
-                  />
-                </Button>
-              </div>
-            </div>
-
-            {/* Settings toggles */}
-            <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
-              <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={showAnnotations}
-                    onCheckedChange={setShowAnnotations}
-                    className="data-[state=checked]:bg-primary h-5 w-9"
-                  />
-                  <span className="text-xs font-medium">Comments</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={showFilename}
-                    onCheckedChange={setShowFilename}
-                    className="data-[state=checked]:bg-primary h-5 w-9"
-                  />
-                  <span className="text-xs font-medium">Filename</span>
-                </div>
-              </div>
-            </div>
-
+          {/* Controls */}
+          <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
             {selectedImage && (
-              <motion.div
-                className={`relative w-full h-full flex items-center justify-center ${
-                  isCommentPlacementMode ? "cursor-crosshair" : ""
-                }`}
-                {...(isMobile && {
-                  drag: "x" as const,
-                  dragConstraints: { left: 0, right: 0 },
-                  dragElastic: 1,
-                  onDragEnd: (e: any, info: PanInfo) => {
-                    const swipe = Math.abs(info.offset.x) * info.velocity.x;
-                    if (swipe < -100 && selectedImageIndex < gallery!.images.length - 1) {
-                      setSelectedImageIndex(selectedImageIndex + 1);
-                    } else if (swipe > 100 && selectedImageIndex > 0) {
-                      setSelectedImageIndex(selectedImageIndex - 1);
-                    }
-                  }
-                })}
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
                 onClick={(e) => {
-                  if (!isCommentPlacementMode) return;
-                  const target = e.currentTarget;
-                  const rect = target.getBoundingClientRect();
-                  const x = ((e.clientX - rect.left) / rect.width) * 100;
-                  const y = ((e.clientY - rect.top) / rect.height) * 100;
-                  setNewCommentPos({ x, y });
-                  setIsCommentPlacementMode(false);
+                  e.stopPropagation();
+                  toggleStarMutation.mutate(selectedImage.id);
                 }}
               >
-                <div className="relative">
-                  {/* Image with onLoad handler */}
-                  <motion.img
-                    src={selectedImage.url}
-                    alt=""
-                    className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    onLoad={(e) => {
-                      const img = e.currentTarget;
-                      setImageDimensions({
-                        width: img.clientWidth,
-                        height: img.clientHeight,
+                {selectedImage.starred ? (
+                  <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                ) : (
+                  <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+                )}
+              </Button>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="icon"
+                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                  isAnnotationMode ? "bg-primary/20" : ""
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsAnnotationMode(!isAnnotationMode);
+                  setIsCommentPlacementMode(false);
+                  setNewCommentPos(null);
+                }}
+                title="Toggle Drawing Mode"
+              >
+                <Paintbrush
+                  className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                    isAnnotationMode ? "text-primary" : ""
+                  }`}
+                />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                  isCommentPlacementMode ? "bg-primary/20" : ""
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCommentPlacementMode(!isCommentPlacementMode);
+                  setIsAnnotationMode(false);
+                  setNewCommentPos(null);
+                }}
+                title="Add Comment"
+              >
+                <MessageCircle
+                  className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                    isCommentPlacementMode ? "text-primary" : ""
+                  }`}
+                />
+              </Button>
+            </div>
+          </div>
+
+          {/* Settings toggles */}
+          <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
+            <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={showAnnotations}
+                  onCheckedChange={setShowAnnotations}
+                  className="data-[state=checked]:bg-primary h-5 w-9"
+                />
+                <span className="text-xs font-medium">Annotations</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={showFilename}
+                  onCheckedChange={setShowFilename}
+                  className="data-[state=checked]:bg-primary h-5 w-9"
+                />
+                <span className="text-xs font-medium">Filename</span>
+              </div>
+            </div>
+          </div>
+
+          {selectedImage && (
+            <motion.div
+              className={`relative w-full h-full flex items-center justify-center ${
+                isCommentPlacementMode ? "cursor-crosshair" : ""
+              }`}
+              {...(isMobile && {
+                drag: "x" as const,
+                dragConstraints: { left: 0, right: 0 },
+                dragElastic: 1,
+                onDragEnd: (e: any, info: PanInfo) => {
+                  const swipe = Math.abs(info.offset.x) * info.velocity.x;
+                  if (swipe < -100 && selectedImageIndex < gallery!.images.length - 1) {
+                    setSelectedImageIndex(selectedImageIndex + 1);
+                  } else if (swipe > 100 && selectedImageIndex > 0) {
+                    setSelectedImageIndex(selectedImageIndex - 1);
+                  }
+                }
+              })}
+              onClick={(e) => {
+                if (!isCommentPlacementMode) return;
+                const target = e.currentTarget;
+                const rect = target.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                setNewCommentPos({ x, y });
+                setIsCommentPlacementMode(false);
+              }}
+            >
+              <div className="relative">
+                {/* Image with onLoad handler */}
+                <motion.img
+                  src={selectedImage.url}
+                  alt=""
+                  className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    setImageDimensions({
+                      width: img.clientWidth,
+                      height: img.clientHeight,
+                    });
+                  }}
+                />
+
+                {/* Drawing Canvas */}
+                <div className="absolute inset-0">
+                  <DrawingCanvas
+                    width={imageDimensions?.width || 800}
+                    height={imageDimensions?.height || 600}
+                    imageWidth={imageDimensions?.width}
+                    imageHeight={imageDimensions?.height}
+                    isDrawing={isAnnotationMode}
+                    savedPaths={showAnnotations ? annotations : []}
+                    onSavePath={async (pathData) => {
+                      if (!selectedImage) return;
+                      try {
+                        await fetch(`/api/images/${selectedImage.id}/annotations`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ pathData }),
+                        });
+
+                        queryClient.invalidateQueries({
+                          queryKey: [`/api/images/${selectedImage.id}/annotations`],
+                        });
+
+                        toast({
+                          title: "Annotation saved",
+                          description: "Your drawing has been saved successfully.",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to save annotation. Please try again.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Comments */}
+                {showAnnotations &&
+                  comments.map((comment) => (
+                    <CommentBubble
+                      key={comment.id}
+                      x={comment.xPosition}
+                      y={comment.yPosition}
+                      content={comment.content}
+                      author={comment.author}
+                      savedAuthor={userName}
+                    />
+                  ))}
+
+                {/* New comment */}
+                {newCommentPos && selectedImage && (
+                  <CommentBubble
+                    x={newCommentPos.x}
+                    y={newCommentPos.y}
+                    isNew
+                    savedAuthor={userName}
+                    onSubmit={(content, author) => {
+                      const newAuthor = author.trim() || userName || "Anonymous";
+                      setUserName(newAuthor);
+                      if (!selectedImage) return;
+                      createCommentMutation.mutate({
+                        imageId: selectedImage.id,
+                        content,
+                        author: newAuthor,
+                        x: newCommentPos.x,
+                        y: newCommentPos.y,
                       });
                     }}
                   />
+                )}
+              </div>
+            </motion.div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-                  {/* Drawing Canvas */}
-                  <div className="absolute inset-0">
-                    <DrawingCanvas
-                      width={imageDimensions?.width || 800}
-                      height={imageDimensions?.height || 600}
-                      imageWidth={imageDimensions?.width}
-                      imageHeight={imageDimensions?.height}
-                      isDrawing={isAnnotationMode}
-                      savedPaths={showAnnotations ? annotations : []}
-                      onSavePath={async (pathData) => {
-                        if (!selectedImage) return;
-                        try {
-                          await fetch(`/api/images/${selectedImage.id}/annotations`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ pathData }),
-                          });
+      {/* Settings Panel */}
+      {renderSettingsPanel()}
 
-                          queryClient.invalidateQueries({
-                            queryKey: [`/api/images/${selectedImage.id}/annotations`],
-                          });
-
-                          toast({
-                            title: "Annotation saved",
-                            description: "Your drawing has been saved successfully.",
-                          });
-                        } catch (error) {
-                          toast({
-                            title: "Error",
-                            description: "Failed to save annotation. Please try again.",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {/* Comments */}
-                  {showAnnotations &&
-                    comments.map((comment) => (
-                      <CommentBubble
-                        key={comment.id}
-                        x={comment.xPosition}
-                        y={comment.yPosition}
-                        content={comment.content}
-                        author={comment.author}
-                        savedAuthor={userName}
-                      />
-                    ))}
-
-                  {/* New comment */}
-                  {newCommentPos && selectedImage && (
-                    <CommentBubble
-                      x={newCommentPos.x}
-                      y={newCommentPos.y}
-                      isNew
-                      savedAuthor={userName}
-                      onSubmit={(content, author) => {
-                        const newAuthor = author.trim() || userName || "Anonymous";
-                        setUserName(newAuthor);
-                        if (!selectedImage) return;
-                        createCommentMutation.mutate({
-                          imageId: selectedImage.id,
-                          content,
-                          author: newAuthor,
-                          x: newCommentPos.x,
-                          y: newCommentPos.y,
-                        });
-                      }}
-                    />
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Mobile gallery view */}
+      <AnimatePresence>
+        {showMobileView && (
+          <MobileGalleryView
+            images={gallery?.images || []}
+            initialIndex={mobileViewIndex}
+            onClose={() => setShowMobileView(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+export default Gallery;
