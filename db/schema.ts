@@ -2,18 +2,10 @@ import { pgTable, text, serial, timestamp, integer, real, boolean } from "drizzl
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from 'drizzle-orm';
 
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  username: text('username').unique().notNull(),
-  password: text('password').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull()
-});
-
 export const galleries = pgTable('galleries', {
   id: serial('id').primaryKey(),
   slug: text('slug').unique().notNull(),
   title: text('title').default('Untitled Project').notNull(),
-  userId: integer('user_id').references(() => users.id),  // Add user relation
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
@@ -49,16 +41,8 @@ export const comments = pgTable('comments', {
 });
 
 // Define relationships
-export const usersRelations = relations(users, ({ many }) => ({
-  galleries: many(galleries)
-}));
-
-export const galleriesRelations = relations(galleries, ({ many, one }) => ({
-  images: many(images),
-  user: one(users, {
-    fields: [galleries.userId],
-    references: [users.id]
-  })
+export const galleriesRelations = relations(galleries, ({ many }) => ({
+  images: many(images)
 }));
 
 export const imagesRelations = relations(images, ({ one, many }) => ({
@@ -90,8 +74,6 @@ export const commentsRelations = relations(comments, ({ one }) => ({
 }));
 
 // Create schemas for validation
-export const insertUserSchema = createInsertSchema(users);
-export const selectUserSchema = createSelectSchema(users);
 export const insertGallerySchema = createInsertSchema(galleries);
 export const selectGallerySchema = createSelectSchema(galleries);
 export const insertImageSchema = createInsertSchema(images);
@@ -110,5 +92,3 @@ export type Annotation = typeof annotations.$inferSelect;
 export type NewAnnotation = typeof annotations.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
