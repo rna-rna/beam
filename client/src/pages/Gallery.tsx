@@ -8,7 +8,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { MobileGalleryView } from "@/components/MobileGalleryView";
 import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
-import { Upload, Grid, LayoutGrid, Filter } from "lucide-react";
+import { Upload, Grid, LayoutGrid, Filter, Eye } from "lucide-react";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -48,6 +48,8 @@ import {
 import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
+
+
 
 interface GalleryProps {
   slug?: string;
@@ -93,6 +95,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [filterOpen, setFilterOpen] = useState(false);
   const [showWithComments, setShowWithComments] = useState(false);
   const [showApproved, setShowApproved] = useState(false);
+  const [showUnreviewed, setShowUnreviewed] = useState(false);
 
   // Add mobile detection
   useEffect(() => {
@@ -369,6 +372,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   // Memoized Values
+  const filteredImages = useMemo(() => {
+    if (!gallery?.images) return [];
+
+    return gallery.images.filter((image: Image) => {
+      if (showStarredOnly && !image.starred) return false;
+      if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+      if (showApproved && !image.approved) return false;
+      if (showUnreviewed && image.reviewed) return false;
+      return true;
+    });
+  }, [gallery?.images, showStarredOnly, showWithComments, showApproved, showUnreviewed]);
+
   const breakpointCols = useMemo(
     () => ({
       default: Math.max(1, Math.floor(6 * (100 / scale))),
@@ -495,11 +510,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     // Get cursor position at drag end
     const cursorPos = {
       x: event instanceof MouseEvent ? event.clientX :
-         'touches' in event && event.touches[0] ? event.touches[0].clientX :
-         info.point.x,
+        'touches' in event && event.touches[0] ? event.touches[0].clientX :
+        info.point.x,
       y: event instanceof MouseEvent ? event.clientY :
-         'touches' in event && event.touches[0] ? event.touches[0].clientY :
-         info.point.y
+        'touches' in event && event.touches[0] ? event.touches[0].clientY :
+        info.point.y
     };
 
     // Find closest drop target by comparing centers
@@ -598,55 +613,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               className="flex items-center gap-2"
             >
               <Filter className="w-4 h-4" />
-              Filter {(showStarredOnly || showWithComments || showApproved) && '•'}
+              Filter {(showStarredOnly || showWithComments || showApproved || showUnreviewed) && '•'}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={() => setShowStarredOnly(!showStarredOnly)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <Star className={`w-4 h-4 mr-2 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-                  Show Starred
-                </div>
-                {showStarredOnly && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowWithComments(!showWithComments)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <MessageCircle className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
-                  Has Comments
-                </div>
-                {showWithComments && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowApproved(!showApproved)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <CheckCircle className={`w-4 h-4 mr-2 ${showApproved ? 'text-primary' : ''}`} />
-                  Approved
-                </div>
-                {showApproved && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => {
-                setShowStarredOnly(false);
-                setShowWithComments(false);
-                setShowApproved(false);
-              }}
-              className="text-sm text-muted-foreground"
-            >
-              Reset Filters
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+          {renderFilterDropdownContent()}
         </DropdownMenu>
 
         {isUploading && (
@@ -699,13 +669,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     showStarredOnly,
     showWithComments,
     showApproved,
+    showUnreviewed,
     deleteImagesMutation,
     handleCopyLink,
     handleDownloadAll,
     handleStarredToggle,
     handleReorderToggle,
     toggleReorderMode,
-    toggleSelectMode
+    toggleSelectMode,
+    renderFilterDropdownContent
   ]);
 
   const renderImage = (image: Image, index: number) => (
@@ -859,6 +831,147 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
+  // Filter-related Functions
+  const renderFilterDropdownContent = () => (
+    <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+      <DropdownMenuGroup>
+        <DropdownMenuItem
+          onClick={() => setShowStarredOnly(!showStarredOnly)}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <div className="flex items-center flex-1">
+            <Star className={`w-4 h-4 mr-2 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+            Show Starred
+            <span className="ml-auto text-xs text-muted-foreground">Shift+F</span>
+          </div>
+          {showStarredOnly && <CheckCircle className="w-4 h-4 text-primary" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setShowWithComments(!showWithComments)}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <div className="flex items-center flex-1">
+            <MessageCircle className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
+            Has Comments
+            <span className="ml-auto text-xs text-muted-foreground">Shift+C</span>
+          </div>
+          {showWithComments && <CheckCircle className="w-4 h-4 text-primary" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setShowApproved(!showApproved)}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <div className="flex items-center flex-1">
+            <CheckCircle className={`w-4 h-4 mr-2 ${showApproved ? 'text-primary' : ''}`} />
+            Approved
+            <span className="ml-auto text-xs text-muted-foreground">Shift+A</span>
+          </div>
+          {showApproved && <CheckCircle className="w-4 h-4 text-primary" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setShowUnreviewed(!showUnreviewed)}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <div className="flex items-center flex-1">
+            <Eye className={`w-4 h-4 mr-2 ${showUnreviewed ? 'text-primary' : ''}`} />
+            Unreviewed
+            <span className="ml-auto text-xs text-muted-foreground">Shift+U</span>
+          </div>
+          {showUnreviewed && <CheckCircle className="w-4 h-4 text-primary" />}
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        onClick={() => {
+          setShowStarredOnly(false);
+          setShowWithComments(false);
+          setShowApproved(false);
+          setShowUnreviewed(false);
+        }}
+        className="text-sm text-muted-foreground"
+      >
+        Reset Filters
+        <span className="ml-auto text-xs">Shift+R</span>
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if not in input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.shiftKey) {
+        switch (e.key.toUpperCase()) {
+          case 'F':
+            e.preventDefault();
+            setShowStarredOnly(prev => !prev);
+            toast({
+              title: showStarredOnly ? "Showing All Images" : "Showing Starred Images",
+              description: `Pressed Shift + F to ${showStarredOnly ? 'show all' : 'show starred'} images`,
+            });
+            break;
+          case 'C':
+            e.preventDefault();
+            setShowWithComments(prev => !prev);
+            toast({
+              title: showWithComments ? "Showing All Images" : "Showing Images with Comments",
+              description: `Pressed Shift + C to ${showWithComments ? 'show all' : 'show commented'} images`,
+            });
+            break;
+          case 'A':
+            e.preventDefault();
+            setShowApproved(prev => !prev);
+            toast({
+              title: showApproved ? "Showing All Images" : "Showing Approved Images",
+              description: `Pressed Shift + A to ${showApproved ? 'show all' : 'show approved'} images`,
+            });
+            break;
+          case 'U':
+            e.preventDefault();
+            setShowUnreviewed(prev => !prev);
+            toast({
+              title: showUnreviewed ? "Showing All Images" : "Showing Unreviewed Images",
+              description: `Pressed Shift + U to ${showUnreviewed ? 'show all' : 'show unreviewed'} images`,
+            });
+            break;
+          case 'R':
+            e.preventDefault();
+            // Reset all filters
+            setShowStarredOnly(false);
+            setShowWithComments(false);
+            setShowApproved(false);
+            setShowUnreviewed(false);
+            toast({
+              title: "Filters Reset",
+              description: "Pressed Shift + R to reset all filters",
+            });
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showStarredOnly, showWithComments, showApproved, showUnreviewed, toast]);
+
+  const handleImageClick = (index: number) => {
+    if (isMobile) {
+      setMobileViewIndex(index);
+      setShowMobileView(true);
+    } else {
+      setSelectedImageIndex(index);
+    }
+  };
+
+  // Add layout toggle handler
+  const toggleGridView = () => {
+    setIsMasonry(!isMasonry);
+  };
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -874,21 +987,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       </div>
     );
   }
-
-  // Modify the image click handler in the gallery grid
-  const handleImageClick = (index: number) => {
-    if (isMobile) {
-      setMobileViewIndex(index);
-      setShowMobileView(true);
-    } else {
-      setSelectedImageIndex(index);
-    }
-  };
-
-  // Add layout toggle handler
-  const toggleGridView = () => {
-    setIsMasonry(!isMasonry);
-  };
 
   return (
     <div className="min-h-screen relative" {...getRootProps()}>
@@ -918,14 +1016,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 columnClassName="pl-4 bg-background"
               >
                 {renderUploadPlaceholders()}
-                {gallery?.images
-                  .filter((image: Image) => {
-                    if (showStarredOnly && !image.starred) return false;
-                    if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
-                    if (showApproved && !image.approved) return false;
-                    return true;
-                  })
-                  .map((image: Image, index: number) => renderImage(image, index))}
+                {filteredImages.map((image: Image, index: number) => renderImage(image, index))}
               </Masonry>
             </motion.div>
           ) : (
@@ -941,14 +1032,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               }}
             >
               {renderUploadPlaceholders()}
-              {gallery?.images
-                .filter((image: Image) => {
-                  if (showStarredOnly && !image.starred) return false;
-                  if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
-                  if (showApproved && !image.approved) return false;
-                  return true;
-                })
-                .map((image: Image, index: number) => renderImage(image, index))}
+              {filteredImages.map((image: Image, index: number) => renderImage(image, index))}
             </motion.div>
           )}
         </AnimatePresence>
@@ -1004,7 +1088,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       </div>
 
       {/* Scale Slider */}
-      <div className="fixed bottom-6 right-6 z-50 bgbackground/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
+      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
         <Slider
           value={[scale]}
           onValueChange={([value]) => setScale(value)}

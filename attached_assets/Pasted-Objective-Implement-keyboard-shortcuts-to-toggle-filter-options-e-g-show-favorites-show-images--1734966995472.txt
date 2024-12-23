@@ -1,0 +1,113 @@
+Objective:
+Implement keyboard shortcuts to toggle filter options (e.g., show favorites, show images with comments, show approved). This will allow users to apply filters quickly without navigating through the filter menu.
+
+Keyboard Shortcuts to Implement:
+Filter Option	Shortcut
+Show Favorites	Shift + F
+Show Images with Comments	Shift + C
+Show Approved	Shift + A
+Show Unreviewed	Shift + U
+Reset All Filters	Shift + R
+Implementation Steps:
+1. Add Keyboard Event Listeners in Gallery.tsx:
+Attach keydown event listeners to detect filter shortcut inputs and apply the corresponding filter.
+Add to Gallery.tsx:
+
+tsx
+Copy code
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.shiftKey && e.key === 'F') {
+      toggleShowFavorites();
+    } else if (e.shiftKey && e.key === 'C') {
+      toggleShowWithComments();
+    } else if (e.shiftKey && e.key === 'A') {
+      toggleShowApproved();
+    } else if (e.shiftKey && e.key === 'U') {
+      toggleShowUnreviewed();
+    } else if (e.shiftKey && e.key === 'R') {
+      resetFilters();
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+
+  return () => {
+    window.removeEventListener('keydown', handleKeyDown);
+  };
+}, []);
+2. Define Filter Toggle Functions:
+Implement logic to toggle each filter option when a shortcut is pressed.
+tsx
+Copy code
+const [showFavorites, setShowFavorites] = useState(false);
+const [showWithComments, setShowWithComments] = useState(false);
+const [showApproved, setShowApproved] = useState(false);
+const [showUnreviewed, setShowUnreviewed] = useState(false);
+
+const toggleShowFavorites = () => {
+  setShowFavorites((prev) => !prev);
+  showToast(showFavorites ? 'Favorites Hidden' : 'Favorites Shown');
+};
+
+const toggleShowWithComments = () => {
+  setShowWithComments((prev) => !prev);
+  showToast(showWithComments ? 'Comments Hidden' : 'Images with Comments Shown');
+};
+
+const toggleShowApproved = () => {
+  setShowApproved((prev) => !prev);
+  showToast(showApproved ? 'Approved Hidden' : 'Approved Images Shown');
+};
+
+const toggleShowUnreviewed = () => {
+  setShowUnreviewed((prev) => !prev);
+  showToast(showUnreviewed ? 'Unreviewed Hidden' : 'Unreviewed Images Shown');
+};
+
+const resetFilters = () => {
+  setShowFavorites(false);
+  setShowWithComments(false);
+  setShowApproved(false);
+  setShowUnreviewed(false);
+  showToast('Filters Reset');
+};
+3. Update Filter Logic in Gallery Rendering:
+Apply the filters dynamically when displaying images.
+tsx
+Copy code
+const filteredImages = gallery?.images.filter(image => {
+  if (showFavorites && !image.starred) return false;
+  if (showWithComments && image.comments.length === 0) return false;
+  if (showApproved && !image.approved) return false;
+  if (showUnreviewed && image.reviewed) return false;
+  return true;
+});
+4. Add Visual Feedback (Optional Toast Notifications):
+Show a brief notification when a filter is toggled using keyboard shortcuts.
+tsx
+Copy code
+const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+const showToast = (message: string) => {
+  setToastMessage(message);
+  setTimeout(() => setToastMessage(null), 2000);
+};
+
+{toastMessage && (
+  <div className="fixed bottom-8 right-8 bg-black text-white px-4 py-2 rounded-md shadow-lg">
+    {toastMessage}
+  </div>
+)}
+5. Handle Active Filter State in UI (Optional):
+Highlight the filter button or add a badge showing active filters.
+tsx
+Copy code
+const activeFilters = [showFavorites, showWithComments, showApproved, showUnreviewed].filter(Boolean).length;
+tsx
+Copy code
+<button
+  className={`text-gray-700 hover:text-black ${activeFilters > 0 ? 'font-bold' : ''}`} 
+  onClick={() => setFilterOpen(!filterOpen)}>
+  Filter {activeFilters > 0 ? `(${activeFilters})` : ''}
+</button>
