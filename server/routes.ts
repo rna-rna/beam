@@ -6,7 +6,7 @@ import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments, annotations } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { clerkClient, ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 import { generateSlug } from './utils';
 
 // Configure multer for local storage
@@ -38,17 +38,6 @@ const upload = multer({
 });
 
 export function registerRoutes(app: Express): Server {
-  // Run schema migration
-  (async () => {
-    try {
-      await migrateSchema();
-      console.log('Schema migration completed successfully');
-    } catch (error) {
-      console.error('Failed to migrate schema:', error);
-      process.exit(1); // Exit if migration fails
-    }
-  })();
-
   // Ensure uploads directory exists
   const uploadsDir = path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadsDir)) {
@@ -58,7 +47,20 @@ export function registerRoutes(app: Express): Server {
 
   // Protected routes
   const protectedRouter = express.Router();
-  protectedRouter.use(ClerkExpressRequireAuth());
+
+  // Add Clerk authentication middleware
+  protectedRouter.use((req, res, next) => {
+    ClerkExpressRequireAuth()(req, res, (err) => {
+      if (err) {
+        console.error('Authentication error:', err);
+        return res.status(401).json({ 
+          message: "Authentication required",
+          details: "Please sign in to continue"
+        });
+      }
+      next();
+    });
+  });
 
   // Create empty gallery
   protectedRouter.post('/galleries/create', async (req: any, res) => {
