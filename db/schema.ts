@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, boolean, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean, real, index } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from 'drizzle-orm';
 
@@ -6,8 +6,11 @@ export const galleries = pgTable('galleries', {
   id: serial('id').primaryKey(),
   slug: text('slug').unique().notNull(),
   title: text('title').default('Untitled Project').notNull(),
+  userId: text('user_id').notNull(), // Clerk user ID
   createdAt: timestamp('created_at').defaultNow().notNull()
-});
+}, (table) => ({
+  userIdIdx: index('galleries_user_id_idx').on(table.userId)
+}));
 
 export const images = pgTable('images', {
   id: serial('id').primaryKey(),
@@ -56,14 +59,6 @@ export const imagesRelations = relations(images, ({ one, many }) => ({
   annotations: many(annotations)
 }));
 
-export const annotationsRelations = relations(annotations, ({ one, many }) => ({
-  image: one(images, {
-    fields: [annotations.imageId],
-    references: [images.id]
-  }),
-  comments: many(comments)
-}));
-
 export const commentsRelations = relations(comments, ({ one }) => ({
   image: one(images, {
     fields: [comments.imageId],
@@ -90,7 +85,7 @@ export type Gallery = typeof galleries.$inferSelect;
 export type NewGallery = typeof galleries.$inferInsert;
 export type Image = typeof images.$inferSelect;
 export type NewImage = typeof images.$inferInsert;
-export type Annotation = typeof annotations.$inferSelect;
-export type NewAnnotation = typeof annotations.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
+export type Annotation = typeof annotations.$inferSelect;
+export type NewAnnotation = typeof annotations.$inferInsert;
