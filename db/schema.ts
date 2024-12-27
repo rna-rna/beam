@@ -41,9 +41,15 @@ export const comments = pgTable('comments', {
   content: text('content').notNull(),
   xPosition: real('x_position').notNull(),
   yPosition: real('y_position').notNull(),
-  author: text('author').default('Anonymous'),
-  createdAt: timestamp('created_at').defaultNow().notNull()
-});
+  // Replace author with Clerk user fields
+  userId: text('user_id').notNull(), // Clerk user ID
+  userName: text('user_name').notNull(),
+  userImageUrl: text('user_image_url'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('comments_user_id_idx').on(table.userId)
+}));
 
 // Define relationships
 export const galleriesRelations = relations(galleries, ({ many }) => ({
