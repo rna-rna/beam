@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import multer from 'multer';
 import path from 'path';
@@ -6,7 +6,7 @@ import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments, annotations } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
-import { clerkClient, ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
 import { generateSlug } from './utils';
 
 // Configure multer for local storage
@@ -37,6 +37,9 @@ const upload = multer({
   }
 });
 
+// Custom auth middleware
+const requireAuth = ClerkExpressWithAuth();
+
 export function registerRoutes(app: Express): Server {
   // Ensure uploads directory exists
   const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -47,20 +50,7 @@ export function registerRoutes(app: Express): Server {
 
   // Protected routes
   const protectedRouter = express.Router();
-
-  // Add Clerk authentication middleware
-  protectedRouter.use((req, res, next) => {
-    ClerkExpressRequireAuth()(req, res, (err) => {
-      if (err) {
-        console.error('Authentication error:', err);
-        return res.status(401).json({ 
-          message: "Authentication required",
-          details: "Please sign in to continue"
-        });
-      }
-      next();
-    });
-  });
+  protectedRouter.use(requireAuth);
 
   // Create empty gallery
   protectedRouter.post('/galleries/create', async (req: any, res) => {
@@ -376,10 +366,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Mount protected routes
-  app.use('/api', protectedRouter);
-
-  // Public routes
   // Get gallery details (public view)
   app.get('/api/galleries/:slug', async (req, res) => {
     try {
@@ -580,7 +566,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
   // Delete multiple images from a gallery
   app.post('/api/galleries/:slug/images/delete', async (req: any, res) => {
     try {
@@ -677,6 +662,9 @@ export function registerRoutes(app: Express): Server {
       throw error; // Re-throw to handle in the caller
     }
   }
+
+  // Mount protected routes at the end after all routes are defined
+  app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);
   return httpServer;
