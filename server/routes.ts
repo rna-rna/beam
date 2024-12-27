@@ -46,8 +46,18 @@ export function registerRoutes(app: Express): Server {
     console.log('Debug - Protected route accessed:', {
       path: req.path,
       method: req.method,
-      hasAuth: !!req.auth
+      hasAuth: !!req.auth,
+      headers: req.headers['authorization'] ? 'present' : 'missing'
     });
+
+    if (!req.auth) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        details: 'Please sign in to access this resource'
+      });
+    }
+
     protectRoute(req, res, next);
   });
 
@@ -453,6 +463,11 @@ export function registerRoutes(app: Express): Server {
       try {
         // Extract user information using helper
         const { userId, userName, userImageUrl } = extractUserInfo(req);
+        console.log('Debug - Comment creation:', {
+          userId,
+          imageId,
+          hasContent: !!content
+        });
 
         // Create the comment
         const [comment] = await db.insert(comments)
@@ -477,6 +492,12 @@ export function registerRoutes(app: Express): Server {
           })
           .where(eq(images.id, imageId));
 
+        console.log('Debug - Comment created successfully:', {
+          commentId: comment.id,
+          userId,
+          imageId
+        });
+
         res.status(201).json({
           success: true,
           data: comment
@@ -485,7 +506,8 @@ export function registerRoutes(app: Express): Server {
         console.error('Error processing user data:', error);
         return res.status(401).json({
           success: false,
-          message: error.message || 'Failed to process user data'
+          message: 'Authentication failed',
+          details: error.message || 'Failed to process user data'
         });
       }
     } catch (error) {
