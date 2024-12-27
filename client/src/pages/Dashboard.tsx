@@ -33,7 +33,10 @@ export default function Dashboard() {
           'Authorization': `Bearer ${token}`
         }
       });
-      if (!res.ok) throw new Error('Failed to fetch galleries');
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || 'Failed to fetch galleries');
+      }
       return res.json();
     },
     enabled: !!user,
@@ -46,10 +49,15 @@ export default function Dashboard() {
       const res = await fetch('/api/galleries/create', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
-      if (!res.ok) throw new Error('Failed to create gallery');
+      if (!res.ok) {
+        const error = await res.text();
+        console.error('Gallery creation error:', error);
+        throw new Error(error || 'Failed to create gallery');
+      }
       return res.json();
     },
     onSuccess: (data) => {
@@ -60,10 +68,11 @@ export default function Dashboard() {
         description: "New gallery created successfully",
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Gallery creation error:', error);
       toast({
         title: "Error",
-        description: "Failed to create gallery. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to create gallery. Please try again.",
         variant: "destructive",
       });
     },

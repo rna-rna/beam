@@ -65,18 +65,29 @@ export function registerRoutes(app: Express): Server {
       const { title = "Untitled Project" } = req.body;
       const userId = req.auth.userId;
 
+      if (!userId) {
+        console.error('Gallery creation failed: No user ID in auth token');
+        return res.status(401).json({ message: 'Unauthorized: No user ID found' });
+      }
+
+      console.log('Creating gallery for user:', userId, 'with title:', title);
+
       // Create gallery with user association
       const [gallery] = await db.insert(galleries).values({
         slug: generateSlug(),
         title,
-        userId
+        userId,
+        createdAt: new Date()
       }).returning();
 
       console.log('Created gallery:', gallery);
       res.json(gallery);
     } catch (error) {
       console.error('Failed to create gallery:', error);
-      res.status(500).json({ message: 'Failed to create gallery' });
+      res.status(500).json({ 
+        message: 'Failed to create gallery',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
