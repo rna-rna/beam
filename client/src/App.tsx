@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { SignedIn, SignedOut, useUser } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useUser, useClerk } from "@clerk/clerk-react";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
@@ -33,14 +33,16 @@ function App() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { isSignedIn, user } = useUser();
+  const { getToken } = useClerk();
 
   // Query for current gallery
   const { data: gallery } = useQuery({
     queryKey: ['/api/galleries/current'],
     queryFn: async () => {
+      const token = await getToken();
       const res = await fetch('/api/galleries/current', {
         headers: {
-          'Authorization': `Bearer ${await user?.getToken()}`
+          'Authorization': `Bearer ${token}`
         }
       });
       if (!res.ok) throw new Error('Failed to fetch current gallery');
@@ -53,12 +55,12 @@ function App() {
   const titleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
       if (!gallery?.slug) throw new Error("No gallery found");
-
+      const token = await getToken();
       const res = await fetch(`/api/galleries/${gallery.slug}/title`, {
         method: "PATCH",
         headers: { 
           "Content-Type": "application/json",
-          'Authorization': `Bearer ${await user?.getToken()}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ title: newTitle }),
       });

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Plus, Grid, Image as ImageIcon } from "lucide-react";
@@ -18,6 +18,7 @@ import type { Gallery } from "@db/schema";
 
 export default function Dashboard() {
   const { user } = useUser();
+  const { getToken } = useClerk();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -26,9 +27,10 @@ export default function Dashboard() {
   const { data: galleries = [], isLoading } = useQuery<Gallery[]>({
     queryKey: ['/api/galleries'],
     queryFn: async () => {
+      const token = await getToken();
       const res = await fetch('/api/galleries', {
         headers: {
-          'Authorization': `Bearer ${await user?.getToken()}`
+          'Authorization': `Bearer ${token}`
         }
       });
       if (!res.ok) throw new Error('Failed to fetch galleries');
@@ -40,10 +42,11 @@ export default function Dashboard() {
   // Create gallery mutation
   const createGalleryMutation = useMutation({
     mutationFn: async () => {
+      const token = await getToken();
       const res = await fetch('/api/galleries/create', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${await user?.getToken()}`
+          'Authorization': `Bearer ${token}`
         }
       });
       if (!res.ok) throw new Error('Failed to create gallery');
