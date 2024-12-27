@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { InlineEdit } from "@/components/InlineEdit";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserNav } from "@/components/UserNav";
 
 interface LayoutProps {
   children: ReactNode;
@@ -24,9 +25,10 @@ export function Layout({ children, title, onTitleChange, actions }: LayoutProps)
             <h1 className="text-xl font-semibold">{title}</h1>
           )}
 
-          <div className="ml-auto flex items-center gap-2">
-            <ThemeToggle />
+          <div className="ml-auto flex items-center gap-4">
             {actions}
+            <ThemeToggle />
+            <UserNav />
           </div>
         </div>
       </div>
