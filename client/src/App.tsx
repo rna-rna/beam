@@ -31,17 +31,21 @@ function App() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const { isSignedIn } = useUser();
+  const { isSignedIn, user } = useUser();
 
   // Query for current gallery
   const { data: gallery } = useQuery({
     queryKey: ['/api/galleries/current'],
     queryFn: async () => {
-      const res = await fetch('/api/galleries/current');
+      const res = await fetch('/api/galleries/current', {
+        headers: {
+          'Authorization': `Bearer ${await user?.getToken()}`
+        }
+      });
       if (!res.ok) throw new Error('Failed to fetch current gallery');
       return res.json();
     },
-    enabled: isSignedIn,
+    enabled: isSignedIn && !!user,
   });
 
   // Mutation for updating title
@@ -51,7 +55,10 @@ function App() {
 
       const res = await fetch(`/api/galleries/${gallery.slug}/title`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${await user?.getToken()}`
+        },
         body: JSON.stringify({ title: newTitle }),
       });
 
