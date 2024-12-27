@@ -6,7 +6,8 @@ import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { setupClerkAuth, extractUserInfo } from './auth';
+import { generateSlug } from './utils';
 
 // Configure multer for local storage
 const storage = multer.diskStorage({
@@ -34,9 +35,12 @@ export function registerRoutes(app: Express): Server {
   }
   app.use('/uploads', express.static(uploadsDir));
 
+  // Get Clerk auth middleware
+  const protectRoute = setupClerkAuth(app);
+
   // Protected routes with full user data
   const protectedRouter = express.Router();
-  protectedRouter.use(ClerkExpressRequireAuth());
+  protectedRouter.use(protectRoute);
 
   // Get galleries for current user (main endpoint)
   protectedRouter.get('/galleries', async (req: any, res) => {
@@ -429,60 +433,52 @@ export function registerRoutes(app: Express): Server {
       const { content, xPosition, yPosition } = req.body;
       const imageId = parseInt(req.params.imageId);
 
-      // Get user data from Clerk
-      const userId = req.auth.userId;
-      const user = req.auth.user;
-
-      // Validate user data
-      if (!userId || !user) {
-        return res.status(401).json({
+      // Validate required fields
+      if (!content || typeof xPosition !== 'number' || typeof yPosition !== 'number') {
+        return res.status(400).json({
           success: false,
-          message: 'User not authenticated'
+          message: 'Invalid request: content, xPosition, and yPosition are required'
         });
       }
 
-      // Get user display name
-      const firstName = user.firstName || '';
-      const lastName = user.lastName || '';
-      const email = user.emailAddresses?.[0]?.emailAddress;
-      const username = user.username;
+      try {
+        // Extract user information using helper
+        const { userId, userName, userImageUrl } = extractUserInfo(req);
 
-      // Determine the best display name to use
-      const userName = firstName && lastName ? 
-        `${firstName} ${lastName}` : 
-        username || 
-        email || 
-        'Unknown User';
+        // Create the comment
+        const [comment] = await db.insert(comments)
+          .values({
+            imageId,
+            content,
+            xPosition,
+            yPosition,
+            userId,
+            userName,
+            userImageUrl,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })
+          .returning();
 
-      // Get user's profile image
-      const userImageUrl = user.imageUrl || user.profileImageUrl;
+        // Update comment count
+        await db
+          .update(images)
+          .set({ 
+            commentCount: sql`${images.commentCount} + 1` 
+          })
+          .where(eq(images.id, imageId));
 
-      // Create the comment
-      const [comment] = await db.insert(comments)
-        .values({
-          imageId,
-          content,
-          xPosition,
-          yPosition,
-          userId,
-          userName,
-          userImageUrl,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
-
-      // Update comment count
-      await db.update(images)
-        .set({ 
-          commentCount: sql`${images.commentCount} + 1` 
-        })
-        .where(eq(images.id, imageId));
-
-      res.status(201).json({
-        success: true,
-        data: comment
-      });
+        res.status(201).json({
+          success: true,
+          data: comment
+        });
+      } catch (error: any) {
+        console.error('Error processing user data:', error);
+        return res.status(401).json({
+          success: false,
+          message: error.message || 'Failed to process user data'
+        });
+      }
     } catch (error) {
       console.error('Error creating comment:', error);
       res.status(500).json({
