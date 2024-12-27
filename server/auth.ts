@@ -73,10 +73,10 @@ export function extractUserInfo(req: any) {
   const email = user.emailAddresses?.[0]?.emailAddress;
 
   // Determine best display name to use
-  const userName = firstName && lastName ? 
-    `${firstName} ${lastName}` : 
-    username || 
-    email || 
+  const userName = firstName && lastName ?
+    `${firstName} ${lastName}` :
+    username ||
+    email ||
     'Unknown User';
 
   // Get user's profile image if available
