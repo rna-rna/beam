@@ -8,9 +8,12 @@ import { ClerkProvider } from "@clerk/clerk-react";
 import App from './App';
 import "./index.css";
 
+// Validate environment variable
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
-  throw new Error("Missing Clerk Publishable Key");
+  throw new Error("VITE_CLERK_PUBLISHABLE_KEY is required. Please add it to your environment variables.");
 }
+
+console.log("Initializing Clerk with publishable key...");
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -6,7 +6,7 @@ export const galleries = pgTable('galleries', {
   id: serial('id').primaryKey(),
   slug: text('slug').unique().notNull(),
   title: text('title').default('Untitled Project').notNull(),
-  userId: text('user_id').notNull(), // Clerk user ID
+  userId: text('user_id').notNull(), // Clerk user ID as text
   createdAt: timestamp('created_at').defaultNow().notNull()
 }, (table) => ({
   userIdIdx: index('galleries_user_id_idx').on(table.userId)
