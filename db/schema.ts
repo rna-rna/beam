@@ -6,7 +6,7 @@ export const galleries = pgTable('galleries', {
   id: serial('id').primaryKey(),
   slug: text('slug').unique().notNull(),
   title: text('title').default('Untitled Project').notNull(),
-  userId: text('user_id').notNull(), // Clerk user ID as text
+  userId: text('user_id').notNull(), // Clerk user ID
   createdAt: timestamp('created_at').defaultNow().notNull()
 }, (table) => ({
   userIdIdx: index('galleries_user_id_idx').on(table.userId)
@@ -27,27 +27,19 @@ export const images = pgTable('images', {
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
-export const annotations = pgTable('annotations', {
-  id: serial('id').primaryKey(),
-  imageId: integer('image_id').references(() => images.id).notNull(),
-  pathData: text('path_data').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull()
-});
-
 export const comments = pgTable('comments', {
   id: serial('id').primaryKey(),
   imageId: integer('image_id').references(() => images.id).notNull(),
-  annotationId: integer('annotation_id').references(() => annotations.id),
   content: text('content').notNull(),
   xPosition: real('x_position').notNull(),
   yPosition: real('y_position').notNull(),
-  // Replace author with Clerk user fields
   userId: text('user_id').notNull(), // Clerk user ID
-  userName: text('user_name').notNull(),
+  userName: text('user_name').default('Anonymous User').notNull(),
   userImageUrl: text('user_image_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 }, (table) => ({
+  imageIdIdx: index('comments_image_id_idx').on(table.imageId),
   userIdIdx: index('comments_user_id_idx').on(table.userId)
 }));
 
@@ -61,18 +53,13 @@ export const imagesRelations = relations(images, ({ one, many }) => ({
     fields: [images.galleryId],
     references: [galleries.id]
   }),
-  comments: many(comments),
-  annotations: many(annotations)
+  comments: many(comments)
 }));
 
 export const commentsRelations = relations(comments, ({ one }) => ({
   image: one(images, {
     fields: [comments.imageId],
     references: [images.id]
-  }),
-  annotation: one(annotations, {
-    fields: [comments.annotationId],
-    references: [annotations.id]
   })
 }));
 
@@ -83,8 +70,6 @@ export const insertImageSchema = createInsertSchema(images);
 export const selectImageSchema = createSelectSchema(images);
 export const insertCommentSchema = createInsertSchema(comments);
 export const selectCommentSchema = createSelectSchema(comments);
-export const insertAnnotationSchema = createInsertSchema(annotations);
-export const selectAnnotationSchema = createSelectSchema(annotations);
 
 // Export types
 export type Gallery = typeof galleries.$inferSelect;
@@ -93,5 +78,3 @@ export type Image = typeof images.$inferSelect;
 export type NewImage = typeof images.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
-export type Annotation = typeof annotations.$inferSelect;
-export type NewAnnotation = typeof annotations.$inferInsert;

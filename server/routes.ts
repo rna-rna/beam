@@ -4,7 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images, comments, annotations } from '@db/schema';
+import { galleries, images, comments } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
 import { generateSlug } from './utils';
@@ -424,21 +424,6 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-  // Get comments for an image
-  app.get('/api/images/:imageId/comments', async (req, res) => {
-    try {
-      const imageComments = await db.query.comments.findMany({
-        where: eq(comments.imageId, parseInt(req.params.imageId)),
-        orderBy: (comments, { asc }) => [asc(comments.createdAt)]
-      });
-
-      res.json(imageComments);
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-      res.status(500).json({ message: 'Failed to fetch comments' });
-    }
-  });
-
   // Create a new comment (protected route)
   protectedRouter.post('/images/:imageId/comments', async (req: any, res) => {
     try {
@@ -448,6 +433,7 @@ export function registerRoutes(app: Express): Server {
       // Validate required fields
       if (!content || typeof xPosition !== 'number' || typeof yPosition !== 'number') {
         return res.status(400).json({
+          success: false,
           message: 'Invalid request: content, xPosition, and yPosition are required'
         });
       }
@@ -455,7 +441,10 @@ export function registerRoutes(app: Express): Server {
       // Get user data from Clerk auth
       const user = req.auth;
       if (!user?.userId) {
-        return res.status(401).json({ message: 'Unauthorized: User not authenticated' });
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized: User not authenticated'
+        });
       }
 
       // Verify image exists
@@ -464,7 +453,10 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!image) {
-        return res.status(404).json({ message: 'Image not found' });
+        return res.status(404).json({
+          success: false,
+          message: 'Image not found'
+        });
       }
 
       // Create the comment
@@ -484,6 +476,13 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
+      // Update comment count
+      await db.update(images)
+        .set({ 
+          commentCount: sql`${images.commentCount} + 1` 
+        })
+        .where(eq(images.id, imageId));
+
       // Return the created comment
       res.status(201).json({
         success: true,
@@ -499,67 +498,22 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Toggle star status for an image
-  app.post('/api/images/:imageId/star', async (req, res) => {
+  // Get comments for an image
+  app.get('/api/images/:imageId/comments', async (req, res) => {
     try {
-      const imageId = parseInt(req.params.imageId);
-
-      // Get current image
-      const image = await db.query.images.findFirst({
-        where: eq(images.id, imageId)
+      const imageComments = await db.query.comments.findMany({
+        where: eq(comments.imageId, parseInt(req.params.imageId)),
+        orderBy: (comments, { asc }) => [asc(comments.createdAt)]
       });
 
-      if (!image) {
-        return res.status(404).json({ message: 'Image not found' });
-      }
-
-      // Toggle star status
-      const [updatedImage] = await db
-        .update(images)
-        .set({ starred: !image.starred })
-        .where(eq(images.id, imageId))
-        .returning();
-
-      res.json(updatedImage);
+      res.json(imageComments);
     } catch (error) {
-      console.error('Error starring image:', error);
-      res.status(500).json({ message: 'Failed to star image' });
-    }
-  });
-
-
-  // Save annotation
-  app.post('/api/images/:imageId/annotations', async (req, res) => {
-    try {
-      const imageId = parseInt(req.params.imageId);
-      const { pathData } = req.body;
-
-      const [annotation] = await db.insert(annotations)
-        .values({
-          imageId,
-          pathData
-        })
-        .returning();
-
-      res.json(annotation);
-    } catch (error) {
-      console.error('Error creating annotation:', error);
-      res.status(500).json({ message: 'Failed to create annotation' });
-    }
-  });
-
-  // Get annotations for an image
-  app.get('/api/images/:imageId/annotations', async (req, res) => {
-    try {
-      const results = await db.query.annotations.findMany({
-        where: eq(annotations.imageId, parseInt(req.params.imageId)),
-        orderBy: (annotations, { asc }) => [asc(annotations.createdAt)]
+      console.error('Error fetching comments:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch comments',
+        details: error instanceof Error ? error.message : 'Unknown error'
       });
-
-      res.json(results);
-    } catch (error) {
-      console.error('Error fetching annotations:', error);
-      res.status(500).json({ message: 'Failed to fetch annotations' });
     }
   });
 
@@ -646,48 +600,44 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  async function migrateSchema() {
+
+  // Toggle star status for an image
+  app.post('/api/images/:imageId/star', async (req, res) => {
     try {
-      console.log('Starting schema migration check...');
-      // First check if the 'starred' column already exists
-      const starredExists = await db.execute(sql`
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_name = 'images' AND column_name = 'starred'
-      `);
-      // If starred already exists, no need to migrate
-      if (starredExists.rows && starredExists.rows.length > 0) {
-        console.log('Starred column already exists, no migration needed');
-        return;
+      const imageId = parseInt(req.params.imageId);
+
+      // Get current image
+      const image = await db.query.images.findFirst({
+        where: eq(images.id, imageId)
+      });
+
+      if (!image) {
+        return res.status(404).json({
+          success: false,
+          message: 'Image not found'
+        });
       }
-      // Check if flagged column exists
-      const flaggedExists = await db.execute(sql`
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_name = 'images' AND column_name = 'flagged'
-      `);
-      if (flaggedExists.rows && flaggedExists.rows.length > 0) {
-        console.log('Found flagged column, starting migration...');
-        // Rename flagged to starred
-        await db.execute(sql`
-          ALTER TABLE images 
-          RENAME COLUMN flagged TO starred
-        `);
-        console.log('Successfully renamed flagged column to starred');
-      } else {
-        console.log('Creating new starred column...');
-        // Neither column exists, create the starred column
-        await db.execute(sql`
-          ALTER TABLE images 
-          ADD COLUMN starred BOOLEAN NOT NULL DEFAULT false
-        `);
-        console.log('Successfully created starred column');
-      }
+
+      // Toggle star status
+      const [updatedImage] = await db
+        .update(images)
+        .set({ starred: !image.starred })
+        .where(eq(images.id, imageId))
+        .returning();
+
+      res.json({
+        success: true,
+        data: updatedImage
+      });
     } catch (error) {
-      console.error('Migration error:', error);
-      throw error; // Re-throw to handle in the caller
+      console.error('Error starring image:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to star image',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
-  }
+  });
 
   // Mount protected routes
   app.use('/api', protectedRouter);
