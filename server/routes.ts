@@ -480,7 +480,7 @@ export function registerRoutes(app: Express): Server {
 
       // Extract user information from Clerk
       const auth = req.auth;
-      let userName = 'Anonymous User';
+      let userName = null;
       let userImageUrl = null;
 
       // Try to get display name from Clerk user data
@@ -492,6 +492,14 @@ export function registerRoutes(app: Express): Server {
         userName = auth.sessionClaims.name;
       } else if (auth?.sessionClaims?.email) {
         userName = auth.sessionClaims.email;
+      }
+
+      // If we still don't have a username, return an error
+      if (!userName) {
+        return res.status(400).json({
+          success: false,
+          message: 'Unable to retrieve user information'
+        });
       }
 
       // Get user avatar if available
