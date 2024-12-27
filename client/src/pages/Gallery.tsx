@@ -14,7 +14,7 @@ import { Upload, Grid, LayoutGrid, Filter } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -41,13 +41,17 @@ import {
   ChevronRight,
   ArrowUpDown,
   Trash2,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from "lucide-react";
 
 // Components
 import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+
 
 interface GalleryProps {
   slug?: string;
@@ -74,7 +78,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [scale, setScale] = useState(100);
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [showStarredOnly, setShowStarredOnly] = useState(false);
-  const [userName, setUserName] = useState<string>("");
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
@@ -284,13 +287,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     mutationFn: async ({
       imageId,
       content,
-      author,
       x,
       y,
     }: {
       imageId: number;
       content: string;
-      author: string;
       x: number;
       y: number;
     }) => {
@@ -299,12 +300,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content,
-          author: author.trim() || "Anonymous",
           xPosition: x,
-          yPosition: y,
+          yPosition: y
         }),
+        credentials: 'include'
       });
-      if (!res.ok) throw new Error("Failed to create comment");
+
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
+
       return res.json();
     },
     onSuccess: () => {
@@ -315,10 +321,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         description: "Your comment has been added successfully.",
       });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to add comment. Please try again.",
+        description: `Failed to add comment: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -890,6 +896,62 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     setIsMasonry(!isMasonry);
   };
 
+  const renderCommentDialog = () => {
+    if (!selectedImage || !newCommentPos) return null;
+
+    return (
+      <Dialog open={!!newCommentPos} onOpenChange={() => setNewCommentPos(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Comment</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.target as HTMLFormElement;
+              const content = (form.elements.namedItem('content') as HTMLTextAreaElement).value;
+
+              createCommentMutation.mutate({
+                imageId: selectedImage.id,
+                content,
+                x: newCommentPos.x,
+                y: newCommentPos.y
+              });
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="content">Comment</Label>
+                <Textarea
+                  id="content"
+                  name="content"
+                  placeholder="Enter your comment..."
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="submit"
+                disabled={createCommentMutation.isPending}
+              >
+                {createCommentMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding Comment...
+                  </>
+                ) : (
+                  'Add Comment'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   return (
     <div className="min-h-screen relative" {...getRootProps()}>
       <input {...getInputProps()} />
@@ -1258,7 +1320,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                         y={comment.yPosition}
                         content={comment.content}
                         author={comment.author}
-                        savedAuthor={userName}
                       />
                     ))}
 
@@ -1268,15 +1329,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       x={newCommentPos.x}
                       y={newCommentPos.y}
                       isNew
-                      savedAuthor={userName}
-                      onSubmit={(content, author) => {
-                        const newAuthor = author.trim() || userName || "Anonymous";
-                        setUserName(newAuthor);
+                      onSubmit={(content) => {
                         if (!selectedImage) return;
                         createCommentMutation.mutate({
                           imageId: selectedImage.id,
                           content,
-                          author: newAuthor,
                           x: newCommentPos.x,
                           y: newCommentPos.y,
                         });
@@ -1289,6 +1346,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           </DialogContent>
         </Dialog>
       )}
+      {renderCommentDialog()}
     </div>
   );
 }
