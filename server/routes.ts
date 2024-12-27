@@ -151,12 +151,16 @@ export function registerRoutes(app: Express): Server {
         orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)]
       });
 
+      // Get comment counts without requiring author field
       const commentCounts = await Promise.all(
         galleryImages.map(async (img) => {
-          const count = await db.query.comments.findMany({
-            where: eq(comments.imageId, img.id),
-          });
-          return { imageId: img.id, count: count.length };
+          const result = await db.execute(
+            sql`SELECT COUNT(*) as count FROM comments WHERE image_id = ${img.id}`
+          );
+          return { 
+            imageId: img.id, 
+            count: parseInt(result.rows[0]?.count || '0', 10)
+          };
         })
       );
 
@@ -172,7 +176,10 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       console.error('Gallery fetch error:', error);
-      res.status(500).json({ message: 'Failed to fetch gallery' });
+      res.status(500).json({ 
+        message: 'Failed to fetch gallery',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
@@ -386,10 +393,10 @@ export function registerRoutes(app: Express): Server {
 
       const commentCounts = await Promise.all(
         galleryImages.map(async (img) => {
-          const count = await db.query.comments.findMany({
-            where: eq(comments.imageId, img.id),
-          });
-          return { imageId: img.id, count: count.length };
+          const result = await db.execute(
+            sql`SELECT COUNT(*) as count FROM comments WHERE image_id = ${img.id}`
+          );
+          return { imageId: img.id, count: parseInt(result.rows[0]?.count || '0', 10) };
         })
       );
 
