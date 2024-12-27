@@ -6,7 +6,7 @@ import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
-import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
+import { ClerkExpressWithAuth, ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 import { generateSlug } from './utils';
 
 // Configure multer for local storage
@@ -37,7 +37,7 @@ export function registerRoutes(app: Express): Server {
 
   // Protected routes
   const protectedRouter = express.Router();
-  protectedRouter.use(ClerkExpressWithAuth());
+  protectedRouter.use(ClerkExpressRequireAuth()); // Change to require auth
 
   // Get galleries for current user (main endpoint)
   protectedRouter.get('/galleries', async (req: any, res) => {
@@ -430,6 +430,10 @@ export function registerRoutes(app: Express): Server {
       const { content, xPosition, yPosition } = req.body;
       const imageId = parseInt(req.params.imageId);
 
+      // Debug: Log the entire request auth object
+      console.log('Debug - Full auth object:', JSON.stringify(req.auth, null, 2));
+      console.log('Debug - User object:', JSON.stringify(req.auth.user, null, 2));
+
       // Validate required fields
       if (!content || typeof xPosition !== 'number' || typeof yPosition !== 'number') {
         return res.status(400).json({
@@ -441,6 +445,7 @@ export function registerRoutes(app: Express): Server {
       // Get user data from Clerk auth
       const clerkUser = req.auth;
       if (!clerkUser?.userId) {
+        console.log('Debug - Authentication failed: No userId found');
         return res.status(401).json({
           success: false,
           message: 'Unauthorized: User not authenticated'
@@ -459,19 +464,33 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Determine user name and image from Clerk data
-      let userName;
+      // Extract user information with detailed logging
+      let userName = 'Anonymous User';
+      let userImageUrl;
+
+      console.log('Debug - User fields:', {
+        firstName: clerkUser.user?.firstName,
+        lastName: clerkUser.user?.lastName,
+        username: clerkUser.user?.username,
+        emailAddresses: clerkUser.user?.emailAddresses,
+        imageUrl: clerkUser.user?.imageUrl
+      });
+
       if (clerkUser.user?.firstName && clerkUser.user?.lastName) {
         userName = `${clerkUser.user.firstName} ${clerkUser.user.lastName}`;
       } else if (clerkUser.user?.username) {
         userName = clerkUser.user.username;
-      } else if (clerkUser.user?.emailAddresses && clerkUser.user.emailAddresses.length > 0) {
+      } else if (clerkUser.user?.emailAddresses?.[0]?.emailAddress) {
         userName = clerkUser.user.emailAddresses[0].emailAddress;
-      } else {
-        userName = 'Anonymous User';
       }
 
-      const userImageUrl = clerkUser.user?.imageUrl;
+      userImageUrl = clerkUser.user?.imageUrl;
+
+      console.log('Debug - Final user details:', {
+        userName,
+        userImageUrl,
+        userId: clerkUser.userId
+      });
 
       // Create the comment
       const [comment] = await db.insert(comments)
@@ -495,7 +514,9 @@ export function registerRoutes(app: Express): Server {
         })
         .where(eq(images.id, imageId));
 
-      // Return the created comment
+      // Log the created comment
+      console.log('Debug - Created comment:', comment);
+
       res.status(201).json({
         success: true,
         data: comment
