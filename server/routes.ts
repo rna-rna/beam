@@ -440,14 +440,23 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Create a new comment (protected route)
-  protectedRouter.post('/api/images/:imageId/comments', async (req: any, res) => {
+  protectedRouter.post('/images/:imageId/comments', async (req: any, res) => {
     try {
       const { content, xPosition, yPosition } = req.body;
       const imageId = parseInt(req.params.imageId);
-      const userId = req.auth.userId;
+
+      // Validate required fields
+      if (!content || typeof xPosition !== 'number' || typeof yPosition !== 'number') {
+        return res.status(400).json({
+          message: 'Invalid request: content, xPosition, and yPosition are required'
+        });
+      }
 
       // Get user data from Clerk auth
       const user = req.auth;
+      if (!user?.userId) {
+        return res.status(401).json({ message: 'Unauthorized: User not authenticated' });
+      }
 
       // Verify image exists
       const image = await db.query.images.findFirst({
@@ -458,6 +467,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Image not found' });
       }
 
+      // Create the comment
       const [comment] = await db.insert(comments)
         .values({
           imageId,
@@ -474,10 +484,18 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
-      res.json(comment);
+      // Return the created comment
+      res.status(201).json({
+        success: true,
+        data: comment
+      });
     } catch (error) {
       console.error('Error creating comment:', error);
-      res.status(500).json({ message: 'Failed to create comment' });
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create comment',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
