@@ -6,8 +6,7 @@ import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
-import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
-import { generateSlug } from './utils';
+import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 
 // Configure multer for local storage
 const storage = multer.diskStorage({
@@ -37,27 +36,7 @@ export function registerRoutes(app: Express): Server {
 
   // Protected routes with full user data
   const protectedRouter = express.Router();
-  protectedRouter.use(ClerkExpressWithAuth({
-    onError: (err, _req, res) => {
-      console.error('Clerk Auth Error:', err);
-      res.status(401).json({
-        success: false,
-        message: 'Authentication failed'
-      });
-    },
-    // Load full user object
-    loadUser: true,
-    // Request specific user data
-    publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
-    secretKey: process.env.CLERK_SECRET_KEY,
-    // Fetch additional user metadata
-    signInUrl: '/sign-in',
-    userSettings: {
-      enableEmailLogin: true,
-      enableUsernameLogin: true,
-      attributes: ['email', 'username', 'firstName', 'lastName', 'imageUrl']
-    }
-  }));
+  protectedRouter.use(ClerkExpressRequireAuth());
 
   // Get galleries for current user (main endpoint)
   protectedRouter.get('/galleries', async (req: any, res) => {
@@ -450,25 +429,32 @@ export function registerRoutes(app: Express): Server {
       const { content, xPosition, yPosition } = req.body;
       const imageId = parseInt(req.params.imageId);
 
-      // Debug: Log the entire request auth object
-      console.log('Debug - Full auth object:', JSON.stringify(req.auth, null, 2));
-
-      // Get the actual user from the request
+      // Get user data from Clerk
+      const userId = req.auth.userId;
       const user = req.auth.user;
 
-      if (!user) {
-        console.error('No user found in request:', req.auth);
+      // Validate user data
+      if (!userId || !user) {
         return res.status(401).json({
           success: false,
           message: 'User not authenticated'
         });
       }
 
-      // Extract user information
-      const userName = user.firstName && user.lastName 
-        ? `${user.firstName} ${user.lastName}`
-        : user.username || user.emailAddresses?.[0]?.emailAddress || 'Unknown User';
+      // Get user display name
+      const firstName = user.firstName || '';
+      const lastName = user.lastName || '';
+      const email = user.emailAddresses?.[0]?.emailAddress;
+      const username = user.username;
 
+      // Determine the best display name to use
+      const userName = firstName && lastName ? 
+        `${firstName} ${lastName}` : 
+        username || 
+        email || 
+        'Unknown User';
+
+      // Get user's profile image
       const userImageUrl = user.imageUrl || user.profileImageUrl;
 
       // Create the comment
@@ -478,7 +464,7 @@ export function registerRoutes(app: Express): Server {
           content,
           xPosition,
           yPosition,
-          userId: req.auth.userId,
+          userId,
           userName,
           userImageUrl,
           createdAt: new Date(),
