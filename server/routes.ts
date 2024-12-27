@@ -60,20 +60,20 @@ export function registerRoutes(app: Express): Server {
   const protectedRouter = express.Router();
   protectedRouter.use(ClerkExpressRequireAuth());
 
-  // Create empty gallery with predefined ID
-  protectedRouter.post('/galleries/create', async (req, res) => {
+  // Create empty gallery
+  protectedRouter.post('/galleries/create', async (req: any, res) => {
     try {
-      const { title = "Untitled Project", slug } = req.body;
+      const { title = "Untitled Project" } = req.body;
       const userId = req.auth.userId;
 
-      // Create gallery with provided or generated slug
+      // Create gallery with user association
       const [gallery] = await db.insert(galleries).values({
-        slug: slug || generateSlug(),
+        slug: generateSlug(),
         title,
         userId
       }).returning();
 
-      console.log('Created empty gallery:', gallery);
+      console.log('Created gallery:', gallery);
       res.json(gallery);
     } catch (error) {
       console.error('Failed to create gallery:', error);
@@ -82,7 +82,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Create new gallery with images
-  protectedRouter.post('/galleries', upload.array('images', 50), async (req, res) => {
+  protectedRouter.post('/galleries', upload.array('images', 50), async (req: any, res) => {
     try {
       const userId = req.auth.userId;
 
@@ -120,7 +120,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get galleries for current user
-  protectedRouter.get('/galleries/list', async (req, res) => {
+  protectedRouter.get('/galleries/list', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
 
@@ -140,7 +140,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get gallery details (with ownership check)
-  protectedRouter.get('/galleries/:slug', async (req, res) => {
+  protectedRouter.get('/galleries/:slug', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
 
@@ -186,7 +186,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Add images to existing gallery (protected)
-  protectedRouter.post('/galleries/:slug/images', upload.array('images', 50), async (req, res) => {
+  protectedRouter.post('/galleries/:slug/images', upload.array('images', 50), async (req: any, res) => {
     try {
       const userId = req.auth.userId;
 
@@ -230,7 +230,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Update gallery title (protected)
-  protectedRouter.patch('/galleries/:slug/title', async (req, res) => {
+  protectedRouter.patch('/galleries/:slug/title', async (req: any, res) => {
     try {
       const { title } = req.body;
       const userId = req.auth.userId;
@@ -265,7 +265,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Reorder images (protected)
-  protectedRouter.post('/galleries/:slug/reorder', async (req, res) => {
+  protectedRouter.post('/galleries/:slug/reorder', async (req: any, res) => {
     try {
       const { order } = req.body;
       const userId = req.auth.userId;
@@ -319,7 +319,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Delete images (protected)
-  protectedRouter.post('/galleries/:slug/images/delete', async (req, res) => {
+  protectedRouter.post('/galleries/:slug/images/delete', async (req: any, res) => {
     try {
       const { imageIds } = req.body;
       const userId = req.auth.userId;
@@ -549,20 +549,20 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get current gallery (most recently created/accessed)
-  app.get('/api/galleries/current', async (req, res) => {
+    // Get current gallery (most recently created/accessed)
+  app.get('/api/galleries/current', async (req: any, res) => {
     try {
-      console.log('Fetching current gallery');
+      const userId = req.auth.userId;
+
       const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.userId, userId),
         orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
       });
 
       if (!gallery) {
-        console.log('No galleries found');
         return res.status(404).json({ message: 'No galleries found' });
       }
 
-      console.log('Found current gallery:', gallery);
       res.json(gallery);
     } catch (error) {
       console.error('Error fetching current gallery:', error);
@@ -572,7 +572,7 @@ export function registerRoutes(app: Express): Server {
 
 
   // Delete multiple images from a gallery
-  app.post('/api/galleries/:slug/images/delete', async (req, res) => {
+  app.post('/api/galleries/:slug/images/delete', async (req: any, res) => {
     try {
       console.log('Attempting to delete images:', req.body.imageIds);
 

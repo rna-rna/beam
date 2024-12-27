@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { clerkClient, ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 if (!process.env.CLERK_SECRET_KEY) {
   throw new Error('CLERK_SECRET_KEY is required. Please add it to your environment variables.');
@@ -25,9 +25,13 @@ app.use((req, res, next) => {
     const body = req.body;
 
     try {
-      clerkClient.webhooks.verify(body, {
-        signature: sig as string,
-        timestamp: timestamp as string,
+      clerkClient.webhooks.verify({
+        payload: JSON.stringify(body),
+        headers: {
+          'svix-id': req.headers['svix-id'] as string,
+          'svix-timestamp': timestamp as string,
+          'svix-signature': sig as string
+        },
       });
     } catch (err) {
       console.error('Invalid webhook signature:', err);
@@ -87,17 +91,12 @@ app.use((req, res, next) => {
     res.status(status).json({ message, details: err.details });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client
   const PORT = 5000;
   server.listen(PORT, "0.0.0.0", () => {
     log(`serving on port ${PORT}`);
