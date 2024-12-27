@@ -1,11 +1,43 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { clerkClient, ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
+
+if (!process.env.CLERK_SECRET_KEY) {
+  throw new Error('CLERK_SECRET_KEY is required. Please add it to your environment variables.');
+}
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Add Clerk webhook signing middleware
+app.use((req, res, next) => {
+  // Skip webhook verification in development
+  if (process.env.NODE_ENV === 'development') {
+    return next();
+  }
+
+  // Verify webhook signatures in production
+  if (req.path.startsWith('/api/webhooks')) {
+    const sig = req.headers['svix-signature'];
+    const timestamp = req.headers['svix-timestamp'];
+    const body = req.body;
+
+    try {
+      clerkClient.webhooks.verify(body, {
+        signature: sig as string,
+        timestamp: timestamp as string,
+      });
+    } catch (err) {
+      console.error('Invalid webhook signature:', err);
+      return res.status(401).json({ error: 'Invalid webhook signature' });
+    }
+  }
+  next();
+});
+
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -39,12 +71,20 @@ app.use((req, res, next) => {
 (async () => {
   const server = registerRoutes(app);
 
+  // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    console.error('Global error handler caught:', err);
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    if (status === 401) {
+      return res.status(401).json({ 
+        message: "Authentication required",
+        details: "Please sign in to continue"
+      });
+    }
+
+    res.status(status).json({ message, details: err.details });
   });
 
   // importantly only setup vite in development and after
