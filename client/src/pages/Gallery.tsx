@@ -53,6 +53,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 
+
 interface GalleryProps {
   slug?: string;
   title: string;
@@ -311,7 +312,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         throw new Error(error);
       }
 
-      return res.json();
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to create comment');
+      }
+
+      return data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/images/${selectedImage?.id}/comments`] });
@@ -331,7 +337,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   });
 
 
-  // Callbacks
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (selectedImageIndex >= 0 || selectMode) return;
@@ -906,7 +911,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <DialogTitle>Add Comment</DialogTitle>
           </DialogHeader>
           <form
-            onSubmit={(e) => {
+            onSubmit={(e) =>{
               e.preventDefault();
               const form = e.target as HTMLFormElement;
               const content = (form.elements.namedItem('content') as HTMLTextAreaElement).value;
