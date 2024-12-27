@@ -3,6 +3,7 @@ import { SignedIn, SignedOut, useUser } from "@clerk/clerk-react";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
+import Dashboard from "@/pages/Dashboard";
 import { Layout } from "@/components/Layout";
 import { useState, ReactNode, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -103,7 +104,7 @@ function App() {
   // Handle redirect on auth state change
   useEffect(() => {
     if (isSignedIn) {
-      setLocation("/gallery");
+      setLocation("/dashboard");
     }
   }, [isSignedIn, setLocation]);
 
@@ -111,15 +112,8 @@ function App() {
     <Switch>
       <Route path="/">
         <SignedIn>
-          <Layout 
-            title={gallery?.title || "Untitled Project"}
-            onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
-            actions={headerActions}
-          >
-            <Home 
-              title={gallery?.title || "Untitled Project"}
-              onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
-            />
+          <Layout>
+            <Dashboard />
           </Layout>
         </SignedIn>
         <SignedOut>
@@ -127,33 +121,29 @@ function App() {
         </SignedOut>
       </Route>
 
-      <Route path="/gallery">
+      <Route path="/dashboard">
         <ProtectedRoute>
           <Layout 
-            title={gallery?.title || "Untitled Project"}
-            onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
+            title="My Galleries"
             actions={headerActions}
           >
-            <Home 
-              title={gallery?.title || "Untitled Project"}
-              onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
-            />
+            <Dashboard />
           </Layout>
         </ProtectedRoute>
       </Route>
 
-      <Route path="/gallery/:slug">
+      <Route path="/g/:slug">
         {(params) => (
           <ProtectedRoute>
             <Layout 
-              title={gallery?.title || "Untitled Project"}
+              title={gallery?.title || "Untitled Gallery"}
               onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
               actions={headerActions}
             >
               <Gallery 
                 slug={params.slug}
                 onHeaderActionsChange={setHeaderActions}
-                title={gallery?.title || "Untitled Project"}
+                title={gallery?.title || "Untitled Gallery"}
               />
             </Layout>
           </ProtectedRoute>
