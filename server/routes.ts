@@ -6,7 +6,7 @@ import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
-import { ClerkExpressWithAuth, ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
 import { generateSlug } from './utils';
 
 // Configure multer for local storage
@@ -35,9 +35,19 @@ export function registerRoutes(app: Express): Server {
   }
   app.use('/uploads', express.static(uploadsDir));
 
-  // Protected routes
+  // Protected routes with full user data
   const protectedRouter = express.Router();
-  protectedRouter.use(ClerkExpressRequireAuth()); // Change to require auth
+  protectedRouter.use(ClerkExpressWithAuth({
+    onError: (err, _req, res) => {
+      console.error('Clerk Auth Error:', err);
+      res.status(401).json({
+        success: false,
+        message: 'Authentication failed'
+      });
+    },
+    // Load full user object
+    loadUser: true,
+  }));
 
   // Get galleries for current user (main endpoint)
   protectedRouter.get('/galleries', async (req: any, res) => {
@@ -424,7 +434,7 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-  // Create a new comment (protected route)
+  // Post comment route handler
   protectedRouter.post('/images/:imageId/comments', async (req: any, res) => {
     try {
       const { content, xPosition, yPosition } = req.body;
@@ -432,7 +442,6 @@ export function registerRoutes(app: Express): Server {
 
       // Debug: Log the entire request auth object
       console.log('Debug - Full auth object:', JSON.stringify(req.auth, null, 2));
-      console.log('Debug - User object:', JSON.stringify(req.auth.user, null, 2));
 
       // Validate required fields
       if (!content || typeof xPosition !== 'number' || typeof yPosition !== 'number') {
@@ -443,8 +452,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Get user data from Clerk auth
-      const clerkUser = req.auth;
-      if (!clerkUser?.userId) {
+      if (!req.auth?.userId) {
         console.log('Debug - Authentication failed: No userId found');
         return res.status(401).json({
           success: false,
@@ -464,32 +472,28 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Extract user information with detailed logging
+      // Get user name from Clerk session
+      const auth = req.auth;
       let userName = 'Anonymous User';
-      let userImageUrl;
+      let userImageUrl = null;
 
-      console.log('Debug - User fields:', {
-        firstName: clerkUser.user?.firstName,
-        lastName: clerkUser.user?.lastName,
-        username: clerkUser.user?.username,
-        emailAddresses: clerkUser.user?.emailAddresses,
-        imageUrl: clerkUser.user?.imageUrl
-      });
-
-      if (clerkUser.user?.firstName && clerkUser.user?.lastName) {
-        userName = `${clerkUser.user.firstName} ${clerkUser.user.lastName}`;
-      } else if (clerkUser.user?.username) {
-        userName = clerkUser.user.username;
-      } else if (clerkUser.user?.emailAddresses?.[0]?.emailAddress) {
-        userName = clerkUser.user.emailAddresses[0].emailAddress;
+      // Try to get the user information from the session claims
+      if (auth.sessionClaims?.firstName && auth.sessionClaims?.lastName) {
+        userName = `${auth.sessionClaims.firstName} ${auth.sessionClaims.lastName}`;
+      } else if (auth.sessionClaims?.username) {
+        userName = auth.sessionClaims.username;
+      } else if (auth.sessionClaims?.email) {
+        userName = auth.sessionClaims.email;
       }
 
-      userImageUrl = clerkUser.user?.imageUrl;
+      if (auth.sessionClaims?.imageUrl) {
+        userImageUrl = auth.sessionClaims.imageUrl;
+      }
 
-      console.log('Debug - Final user details:', {
+      console.log('Debug - Using session claims for user:', {
         userName,
         userImageUrl,
-        userId: clerkUser.userId
+        sessionClaims: auth.sessionClaims
       });
 
       // Create the comment
@@ -499,7 +503,7 @@ export function registerRoutes(app: Express): Server {
           content,
           xPosition,
           yPosition,
-          userId: clerkUser.userId,
+          userId: req.auth.userId,
           userName,
           userImageUrl,
           createdAt: new Date(),
