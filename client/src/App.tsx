@@ -109,7 +109,10 @@ function App() {
             onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
             actions={headerActions}
           >
-            <Home />
+            <Home 
+              title={gallery?.title || "Untitled Project"}
+              onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
+            />
           </Layout>
         </SignedIn>
         <SignedOut>
@@ -124,7 +127,10 @@ function App() {
             onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
             actions={headerActions}
           >
-            <Home />
+            <Home 
+              title={gallery?.title || "Untitled Project"}
+              onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
+            />
           </Layout>
         </ProtectedRoute>
       </Route>
@@ -140,6 +146,7 @@ function App() {
               <Gallery 
                 slug={params.slug}
                 onHeaderActionsChange={setHeaderActions}
+                title={gallery?.title || "Untitled Project"}
               />
             </Layout>
           </ProtectedRoute>

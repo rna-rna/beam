@@ -549,24 +549,32 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-    // Get current gallery (most recently created/accessed)
-  app.get('/api/galleries/current', async (req: any, res) => {
+  // Get current gallery (most recently created/accessed)
+  protectedRouter.get('/galleries/current', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
 
+      // Find the most recent gallery for this user
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.userId, userId),
         orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
       });
 
       if (!gallery) {
-        return res.status(404).json({ message: 'No galleries found' });
+        // Create a new gallery for the user if none exists
+        const [newGallery] = await db.insert(galleries).values({
+          slug: generateSlug(),
+          title: "Untitled Project",
+          userId
+        }).returning();
+
+        return res.json(newGallery);
       }
 
       res.json(gallery);
     } catch (error) {
-      console.error('Error fetching current gallery:', error);
-      res.status(500).json({ message: 'Failed to fetch current gallery' });
+      console.error('Error fetching/creating current gallery:', error);
+      res.status(500).json({ message: 'Failed to initialize gallery' });
     }
   });
 
