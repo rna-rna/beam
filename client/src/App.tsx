@@ -4,7 +4,7 @@ import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
 import { Layout } from "@/components/Layout";
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,16 +13,17 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isSignedIn, isLoaded } = useUser();
   const [, setLocation] = useLocation();
 
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      setLocation("/");
+    }
+  }, [isLoaded, isSignedIn, setLocation]);
+
   // Show nothing while loading
   if (!isLoaded) return null;
 
-  // Redirect to landing if not signed in
-  if (!isSignedIn) {
-    setLocation("/");
-    return null;
-  }
-
-  return <>{children}</>;
+  // Show children only when signed in
+  return isSignedIn ? <>{children}</> : null;
 }
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { isSignedIn } = useUser();
 
   // Query for current gallery
   const { data: gallery } = useQuery({
@@ -39,7 +41,7 @@ function App() {
       if (!res.ok) throw new Error('Failed to fetch current gallery');
       return res.json();
     },
-    enabled: true,
+    enabled: isSignedIn,
   });
 
   // Mutation for updating title
@@ -91,14 +93,24 @@ function App() {
     }
   });
 
+  // Handle redirect on auth state change
+  useEffect(() => {
+    if (isSignedIn) {
+      setLocation("/gallery");
+    }
+  }, [isSignedIn, setLocation]);
+
   return (
     <Switch>
       <Route path="/">
         <SignedIn>
-          {() => {
-            setLocation("/gallery");
-            return null;
-          }}
+          <Layout 
+            title={gallery?.title || "Untitled Project"}
+            onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
+            actions={headerActions}
+          >
+            <Home />
+          </Layout>
         </SignedIn>
         <SignedOut>
           <Landing />
@@ -108,7 +120,7 @@ function App() {
       <Route path="/gallery">
         <SignedIn>
           <Layout 
-            title={gallery?.title || "Untitled Project"} 
+            title={gallery?.title || "Untitled Project"}
             onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
             actions={headerActions}
           >
@@ -119,10 +131,7 @@ function App() {
           </Layout>
         </SignedIn>
         <SignedOut>
-          {() => {
-            setLocation("/");
-            return null;
-          }}
+          <Landing />
         </SignedOut>
       </Route>
 
@@ -136,9 +145,7 @@ function App() {
             >
               <Gallery 
                 slug={params.slug}
-                title={gallery?.title || "Untitled Project"}
                 onHeaderActionsChange={setHeaderActions}
-                onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
               />
             </Layout>
           </ProtectedRoute>
