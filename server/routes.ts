@@ -47,12 +47,16 @@ export function registerRoutes(app: Express): Server {
     },
     // Load full user object
     loadUser: true,
-    // Specify the claims to receive
-    claims: ['email', 'name', 'username', 'image_url'],
-    // Fetch additional user data
-    fetchUser: true,
-    // Debug mode to help us see what's happening
-    debug: true
+    // Request specific user data
+    publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+    secretKey: process.env.CLERK_SECRET_KEY,
+    // Fetch additional user metadata
+    signInUrl: '/sign-in',
+    userSettings: {
+      enableEmailLogin: true,
+      enableUsernameLogin: true,
+      attributes: ['email', 'username', 'firstName', 'lastName', 'imageUrl']
+    }
   }));
 
   // Get galleries for current user (main endpoint)
@@ -449,72 +453,23 @@ export function registerRoutes(app: Express): Server {
       // Debug: Log the entire request auth object
       console.log('Debug - Full auth object:', JSON.stringify(req.auth, null, 2));
 
-      // Validate required fields
-      if (!content || typeof xPosition !== 'number' || typeof yPosition !== 'number') {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid request: content, xPosition, and yPosition are required'
-        });
-      }
+      // Get the actual user from the request
+      const user = req.auth.user;
 
-      // Get user data from Clerk auth
-      if (!req.auth?.userId) {
-        console.log('Debug - Authentication failed: No userId found');
+      if (!user) {
+        console.error('No user found in request:', req.auth);
         return res.status(401).json({
           success: false,
-          message: 'Unauthorized: User not authenticated'
+          message: 'User not authenticated'
         });
       }
 
-      // Verify image exists
-      const image = await db.query.images.findFirst({
-        where: eq(images.id, imageId)
-      });
+      // Extract user information
+      const userName = user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}`
+        : user.username || user.emailAddresses?.[0]?.emailAddress || 'Unknown User';
 
-      if (!image) {
-        return res.status(404).json({
-          success: false,
-          message: 'Image not found'
-        });
-      }
-
-      // Extract user information from Clerk
-      const auth = req.auth;
-      let userName = null;
-      let userImageUrl = null;
-
-      // Try to get display name from Clerk user data
-      if (auth?.actor?.name) {
-        userName = auth.actor.name;
-      } else if (auth?.actor?.username) {
-        userName = auth.actor.username;
-      } else if (auth?.sessionClaims?.name) {
-        userName = auth.sessionClaims.name;
-      } else if (auth?.sessionClaims?.email) {
-        userName = auth.sessionClaims.email;
-      }
-
-      // If we still don't have a username, return an error
-      if (!userName) {
-        return res.status(400).json({
-          success: false,
-          message: 'Unable to retrieve user information'
-        });
-      }
-
-      // Get user avatar if available
-      if (auth?.actor?.imageUrl) {
-        userImageUrl = auth.actor.imageUrl;
-      } else if (auth?.sessionClaims?.image_url) {
-        userImageUrl = auth.sessionClaims.image_url;
-      }
-
-      console.log('Debug - Using user info:', {
-        userName,
-        userImageUrl,
-        actor: auth.actor,
-        sessionClaims: auth.sessionClaims
-      });
+      const userImageUrl = user.imageUrl || user.profileImageUrl;
 
       // Create the comment
       const [comment] = await db.insert(comments)
@@ -537,9 +492,6 @@ export function registerRoutes(app: Express): Server {
           commentCount: sql`${images.commentCount} + 1` 
         })
         .where(eq(images.id, imageId));
-
-      // Log the created comment
-      console.log('Debug - Created comment:', comment);
 
       res.status(201).json({
         success: true,
