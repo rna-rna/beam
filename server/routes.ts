@@ -6,7 +6,7 @@ import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
-import { setupClerkAuth, extractUserInfo, type AuthenticatedRequest } from './auth';
+import { setupClerkAuth, extractUserInfo } from './auth';
 import { generateSlug } from './utils';
 
 // Configure multer for local storage
@@ -42,10 +42,17 @@ export function registerRoutes(app: Express): Server {
   const protectedRouter = express.Router();
 
   // Apply auth middleware to all protected routes
-  protectedRouter.use(protectRoute);
+  protectedRouter.use((req, res, next) => {
+    console.log('Debug - Protected route accessed:', {
+      path: req.path,
+      method: req.method,
+      hasAuth: !!req.auth
+    });
+    protectRoute(req, res, next);
+  });
 
   // Get galleries for current user (main endpoint)
-  protectedRouter.get('/galleries', async (req: AuthenticatedRequest, res) => {
+  protectedRouter.get('/galleries', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
 
@@ -65,7 +72,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Create empty gallery
-  protectedRouter.post('/galleries/create', async (req: AuthenticatedRequest, res) => {
+  protectedRouter.post('/galleries/create', async (req: any, res) => {
     try {
       const { title = "Untitled Project" } = req.body;
       const userId = req.auth.userId;
@@ -97,7 +104,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Create new gallery with images
-  protectedRouter.post('/galleries', upload.array('images', 50), async (req: AuthenticatedRequest, res) => {
+  protectedRouter.post('/galleries', upload.array('images', 50), async (req: any, res) => {
     try {
       const userId = req.auth.userId;
 
@@ -135,9 +142,8 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-
   // Get gallery details (with ownership check)
-  protectedRouter.get('/galleries/:slug', async (req: AuthenticatedRequest, res) => {
+  protectedRouter.get('/galleries/:slug', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
 
@@ -190,7 +196,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Add images to existing gallery (protected)
-  protectedRouter.post('/galleries/:slug/images', upload.array('images', 50), async (req: AuthenticatedRequest, res) => {
+  protectedRouter.post('/galleries/:slug/images', upload.array('images', 50), async (req: any, res) => {
     try {
       const userId = req.auth.userId;
 
@@ -234,7 +240,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Update gallery title (protected)
-  protectedRouter.patch('/galleries/:slug/title', async (req: AuthenticatedRequest, res) => {
+  protectedRouter.patch('/galleries/:slug/title', async (req: any, res) => {
     try {
       const { title } = req.body;
       const userId = req.auth.userId;
@@ -269,7 +275,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Reorder images (protected)
-  protectedRouter.post('/galleries/:slug/reorder', async (req: AuthenticatedRequest, res) => {
+  protectedRouter.post('/galleries/:slug/reorder', async (req: any, res) => {
     try {
       const { order } = req.body;
       const userId = req.auth.userId;
@@ -323,7 +329,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Delete images (protected)
-  protectedRouter.post('/galleries/:slug/images/delete', async (req: AuthenticatedRequest, res) => {
+  protectedRouter.post('/galleries/:slug/images/delete', async (req: any, res) => {
     try {
       const { imageIds } = req.body;
       const userId = req.auth.userId;
@@ -431,7 +437,7 @@ export function registerRoutes(app: Express): Server {
 
 
   // Post comment route handler
-  protectedRouter.post('/images/:imageId/comments', async (req: AuthenticatedRequest, res) => {
+  protectedRouter.post('/images/:imageId/comments', async (req: any, res) => {
     try {
       const { content, xPosition, yPosition } = req.body;
       const imageId = parseInt(req.params.imageId);
@@ -444,36 +450,44 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Extract user information
-      const userInfo = await extractUserInfo(req);
+      try {
+        // Extract user information using helper
+        const { userId, userName, userImageUrl } = extractUserInfo(req);
 
-      // Create the comment
-      const [comment] = await db.insert(comments)
-        .values({
-          imageId,
-          content,
-          xPosition,
-          yPosition,
-          userId: userInfo.userId,
-          userName: userInfo.userName,
-          userImageUrl: userInfo.userImageUrl,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
+        // Create the comment
+        const [comment] = await db.insert(comments)
+          .values({
+            imageId,
+            content,
+            xPosition,
+            yPosition,
+            userId,
+            userName,
+            userImageUrl,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })
+          .returning();
 
-      // Update comment count
-      await db
-        .update(images)
-        .set({ 
-          commentCount: sql`${images.commentCount} + 1` 
-        })
-        .where(eq(images.id, imageId));
+        // Update comment count
+        await db
+          .update(images)
+          .set({ 
+            commentCount: sql`${images.commentCount} + 1` 
+          })
+          .where(eq(images.id, imageId));
 
-      res.status(201).json({
-        success: true,
-        data: comment
-      });
+        res.status(201).json({
+          success: true,
+          data: comment
+        });
+      } catch (error: any) {
+        console.error('Error processing user data:', error);
+        return res.status(401).json({
+          success: false,
+          message: error.message || 'Failed to process user data'
+        });
+      }
     } catch (error) {
       console.error('Error creating comment:', error);
       res.status(500).json({
@@ -504,7 +518,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get current gallery (most recently created/accessed)
-  protectedRouter.get('/galleries/current', async (req: AuthenticatedRequest, res) => {
+  protectedRouter.get('/galleries/current', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
 
