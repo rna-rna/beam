@@ -47,6 +47,12 @@ export function registerRoutes(app: Express): Server {
     },
     // Load full user object
     loadUser: true,
+    // Specify the claims we want to receive
+    claims: ['email', 'name', 'username', 'image_url'],
+    // Fetch additional user data
+    fetchUser: true,
+    // Debug mode to help us see what's happening
+    debug: true
   }));
 
   // Get galleries for current user (main endpoint)
@@ -472,27 +478,33 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Get user name from Clerk session
+      // Extract user information from Clerk
       const auth = req.auth;
       let userName = 'Anonymous User';
       let userImageUrl = null;
 
-      // Try to get the user information from the session claims
-      if (auth.sessionClaims?.firstName && auth.sessionClaims?.lastName) {
-        userName = `${auth.sessionClaims.firstName} ${auth.sessionClaims.lastName}`;
-      } else if (auth.sessionClaims?.username) {
-        userName = auth.sessionClaims.username;
-      } else if (auth.sessionClaims?.email) {
+      // Try to get display name from Clerk user data
+      if (auth?.actor?.name) {
+        userName = auth.actor.name;
+      } else if (auth?.actor?.username) {
+        userName = auth.actor.username;
+      } else if (auth?.sessionClaims?.name) {
+        userName = auth.sessionClaims.name;
+      } else if (auth?.sessionClaims?.email) {
         userName = auth.sessionClaims.email;
       }
 
-      if (auth.sessionClaims?.imageUrl) {
-        userImageUrl = auth.sessionClaims.imageUrl;
+      // Get user avatar if available
+      if (auth?.actor?.imageUrl) {
+        userImageUrl = auth.actor.imageUrl;
+      } else if (auth?.sessionClaims?.image_url) {
+        userImageUrl = auth.sessionClaims.image_url;
       }
 
-      console.log('Debug - Using session claims for user:', {
+      console.log('Debug - Using user info:', {
         userName,
         userImageUrl,
+        actor: auth.actor,
         sessionClaims: auth.sessionClaims
       });
 
