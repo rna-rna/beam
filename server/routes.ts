@@ -84,7 +84,7 @@ export function registerRoutes(app: Express): Server {
       res.json(gallery);
     } catch (error) {
       console.error('Failed to create gallery:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: 'Failed to create gallery',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -157,8 +157,8 @@ export function registerRoutes(app: Express): Server {
           const result = await db.execute(
             sql`SELECT COUNT(*) as count FROM comments WHERE image_id = ${img.id}`
           );
-          return { 
-            imageId: img.id, 
+          return {
+            imageId: img.id,
             count: parseInt(result.rows[0]?.count || '0', 10)
           };
         })
@@ -176,7 +176,7 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       console.error('Gallery fetch error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: 'Failed to fetch gallery',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -439,6 +439,48 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Create a new comment (protected route)
+  protectedRouter.post('/api/images/:imageId/comments', async (req: any, res) => {
+    try {
+      const { content, xPosition, yPosition } = req.body;
+      const imageId = parseInt(req.params.imageId);
+      const userId = req.auth.userId;
+
+      // Get user data from Clerk auth
+      const user = req.auth;
+
+      // Verify image exists
+      const image = await db.query.images.findFirst({
+        where: eq(images.id, imageId)
+      });
+
+      if (!image) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
+
+      const [comment] = await db.insert(comments)
+        .values({
+          imageId,
+          content,
+          xPosition,
+          yPosition,
+          userId: user.userId,
+          userName: user.user?.firstName && user.user?.lastName ?
+            `${user.user.firstName} ${user.user.lastName}` :
+            user.user?.username || 'Anonymous User',
+          userImageUrl: user.user?.imageUrl,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      res.json(comment);
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      res.status(500).json({ message: 'Failed to create comment' });
+    }
+  });
+
   // Toggle star status for an image
   app.post('/api/images/:imageId/star', async (req, res) => {
     try {
@@ -467,46 +509,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Create a new comment
-  app.post('/api/images/:imageId/comments', async (req, res) => {
-    try {
-      const { content, xPosition, yPosition, author } = req.body;
-      const imageId = parseInt(req.params.imageId);
-
-      console.log('Creating comment with data:', {
-        imageId,
-        content,
-        xPosition,
-        yPosition,
-        author
-      });
-
-      // Verify image exists
-      const image = await db.query.images.findFirst({
-        where: eq(images.id, imageId)
-      });
-
-      if (!image) {
-        return res.status(404).json({ message: 'Image not found' });
-      }
-
-      const [comment] = await db.insert(comments)
-        .values({
-          imageId,
-          content,
-          xPosition,
-          yPosition,
-          author: author || 'Anonymous'
-        })
-        .returning();
-
-      console.log('Created comment:', comment);
-      res.json(comment);
-    } catch (error) {
-      console.error('Error creating comment:', error);
-      res.status(500).json({ message: 'Failed to create comment' });
-    }
-  });
 
   // Save annotation
   app.post('/api/images/:imageId/annotations', async (req, res) => {
