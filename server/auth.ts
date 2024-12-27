@@ -6,7 +6,7 @@ if (!process.env.CLERK_SECRET_KEY) {
 }
 
 export function setupClerkAuth(app: Express) {
-  // Configure protected routes middleware with proper error handling
+  // Configure protected routes middleware with proper error handling and debug logging
   const protectedMiddleware = ClerkExpressRequireAuth({
     onError: (err, _req, res: Response) => {
       console.error('Clerk Auth Error:', err);
@@ -16,6 +16,18 @@ export function setupClerkAuth(app: Express) {
         details: err.message
       });
     },
+    secretKey: process.env.CLERK_SECRET_KEY,
+    debug: true,
+    apiKey: process.env.CLERK_SECRET_KEY,
+  });
+
+  app.use((req: any, _res, next) => {
+    console.log('Debug - Auth Middleware:', {
+      hasAuth: !!req.auth,
+      hasUser: !!req.auth?.user,
+      userId: req.auth?.userId
+    });
+    next();
   });
 
   return protectedMiddleware;
@@ -23,9 +35,19 @@ export function setupClerkAuth(app: Express) {
 
 // Helper to extract user information from Clerk session
 export function extractUserInfo(req: any) {
+  console.log('Debug - Extracting user info:', {
+    hasAuth: !!req.auth,
+    hasUser: !!req.auth?.user,
+    userId: req.auth?.userId
+  });
+
   const user = req.auth?.user;
 
   if (!user) {
+    console.error('Debug - User extraction failed:', {
+      auth: req.auth,
+      headers: req.headers
+    });
     throw new Error('User not found in session');
   }
 
@@ -44,6 +66,12 @@ export function extractUserInfo(req: any) {
 
   // Get user's profile image if available
   const userImageUrl = user.imageUrl || user.profileImageUrl;
+
+  console.log('Debug - Extracted user info:', {
+    userId: req.auth.userId,
+    userName,
+    hasImage: !!userImageUrl
+  });
 
   return {
     userId: req.auth.userId,
