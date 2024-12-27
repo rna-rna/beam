@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Plus, Grid, Image as ImageIcon } from "lucide-react";
@@ -18,7 +18,7 @@ import type { Gallery } from "@db/schema";
 
 export default function Dashboard() {
   const { user } = useUser();
-  const { getToken } = useClerk();
+  const { getToken } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
