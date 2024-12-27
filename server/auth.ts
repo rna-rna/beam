@@ -1,4 +1,4 @@
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { ClerkExpressRequireAuth, ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
 import { type Express, Response } from "express";
 
 if (!process.env.CLERK_SECRET_KEY) {
@@ -6,6 +6,12 @@ if (!process.env.CLERK_SECRET_KEY) {
 }
 
 export function setupClerkAuth(app: Express) {
+  // Initialize Clerk middleware for all routes to attach session data
+  app.use(ClerkExpressWithAuth({
+    secretKey: process.env.CLERK_SECRET_KEY,
+    apiKey: process.env.CLERK_SECRET_KEY,
+  }));
+
   // Configure protected routes middleware with proper error handling and debug logging
   const protectedMiddleware = ClerkExpressRequireAuth({
     onError: (err, _req, res: Response) => {
