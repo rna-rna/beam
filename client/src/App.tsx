@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { SignedIn, SignedOut, useUser, useClerk } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useUser, useAuth } from "@clerk/clerk-react";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
@@ -33,7 +33,7 @@ function App() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { isSignedIn, user } = useUser();
-  const { getToken } = useClerk();
+  const { getToken } = useAuth();
 
   // Query for current gallery
   const { data: gallery } = useQuery({
