@@ -1,10 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { ClerkExpressWithAuth } from "@clerk/clerk-sdk-node";
+import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
 
+// Validate environment variables
 if (!process.env.CLERK_SECRET_KEY) {
   throw new Error('CLERK_SECRET_KEY is required. Please add it to your environment variables.');
+}
+
+if (!process.env.CLERK_PUBLISHABLE_KEY) {
+  throw new Error('CLERK_PUBLISHABLE_KEY is required. Please add it to your environment variables.');
 }
 
 const app = express();
@@ -61,7 +66,13 @@ app.use((req, res, next) => {
     res.status(status).json({ message, details: err.details });
   });
 
+  // Setup Vite or serve static files
   if (app.get("env") === "development") {
+    // Pass environment variables to the frontend
+    process.env.VITE_CLERK_PUBLISHABLE_KEY = process.env.CLERK_PUBLISHABLE_KEY;
+
+    // Log the environment variable to verify it's set
+    console.log('Setting VITE_CLERK_PUBLISHABLE_KEY for frontend...');
     await setupVite(app, server);
   } else {
     serveStatic(app);
