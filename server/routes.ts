@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request } from "express";
 import { createServer, type Server } from "http";
 import multer from 'multer';
 import path from 'path';
@@ -7,7 +7,26 @@ import { db } from '@db';
 import { galleries, images, comments } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
-import { generateSlug } from './utils';
+
+// Add Clerk types to Express Request
+declare global {
+  namespace Express {
+    interface Request {
+      auth: {
+        userId: string;
+        user?: {
+          id: string;
+          firstName?: string;
+          lastName?: string;
+          username?: string;
+          emailAddresses?: Array<{ emailAddress: string; verified: boolean }>;
+          imageUrl?: string;
+          profileImageUrl?: string;
+        };
+      };
+    }
+  }
+}
 
 // Configure multer for local storage
 const storage = multer.diskStorage({
@@ -487,8 +506,8 @@ export function registerRoutes(app: Express): Server {
         // Update comment count
         await db
           .update(images)
-          .set({ 
-            commentCount: sql`${images.commentCount} + 1` 
+          .set({
+            commentCount: sql`${images.commentCount} + 1`
           })
           .where(eq(images.id, imageId));
 

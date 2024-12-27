@@ -7,10 +7,7 @@ if (!process.env.CLERK_SECRET_KEY) {
 
 export function setupClerkAuth(app: Express) {
   // Initialize Clerk middleware for all routes to attach session data
-  app.use(ClerkExpressWithAuth({
-    secretKey: process.env.CLERK_SECRET_KEY,
-    apiKey: process.env.CLERK_SECRET_KEY,
-  }));
+  app.use(ClerkExpressWithAuth());
 
   // Configure protected routes middleware with proper error handling and debug logging
   const protectedMiddleware = ClerkExpressRequireAuth({
@@ -21,10 +18,7 @@ export function setupClerkAuth(app: Express) {
         message: 'Authentication failed',
         details: err.message
       });
-    },
-    secretKey: process.env.CLERK_SECRET_KEY,
-    debug: true,
-    apiKey: process.env.CLERK_SECRET_KEY,
+    }
   });
 
   app.use((req: any, _res, next) => {
@@ -47,7 +41,7 @@ export function extractUserInfo(req: any) {
     hasUser: !!req.auth?.user,
     userId: req.auth?.userId,
     session: !!req.session,
-    headers: req.headers['authorization']
+    headers: req.headers['authorization'] ? 'present' : 'missing'
   });
 
   if (!req.auth) {
@@ -58,6 +52,12 @@ export function extractUserInfo(req: any) {
   }
 
   const user = req.auth.user;
+  console.log('Debug - User object:', {
+    userId: req.auth.userId,
+    hasUser: !!user,
+    userFields: user ? Object.keys(user) : []
+  });
+
   if (!user) {
     console.error('Debug - User extraction failed:', {
       auth: req.auth,
@@ -73,10 +73,10 @@ export function extractUserInfo(req: any) {
   const email = user.emailAddresses?.[0]?.emailAddress;
 
   // Determine best display name to use
-  const userName = firstName && lastName ?
-    `${firstName} ${lastName}` :
-    username ||
-    email ||
+  const userName = firstName && lastName ? 
+    `${firstName} ${lastName}` : 
+    username || 
+    email || 
     'Unknown User';
 
   // Get user's profile image if available
@@ -85,8 +85,7 @@ export function extractUserInfo(req: any) {
   console.log('Debug - Extracted user info:', {
     userId: req.auth.userId,
     userName,
-    hasImage: !!userImageUrl,
-    emailVerified: user.emailAddresses?.[0]?.verified
+    hasImage: !!userImageUrl
   });
 
   return {

@@ -4,7 +4,7 @@ import { Image } from "@/types/gallery";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Toolbar } from "./Toolbar";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 
 interface MobileGalleryViewProps {
   images: Image[];
@@ -20,6 +20,7 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user } = useUser();
+  const { getToken } = useAuth();
 
   // Motion values for gestures
   const dragX = useMotionValue(0);
@@ -111,11 +112,16 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
         throw new Error('Please sign in to add comments');
       }
 
+      const token = await getToken();
+      if (!token) {
+        throw new Error('Authentication token not available');
+      }
+
       const response = await fetch(`/api/images/${images[currentIndex].id}/comments`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await user.getToken()}` 
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ 
           content: comment,
