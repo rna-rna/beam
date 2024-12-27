@@ -6,7 +6,7 @@ if (!process.env.CLERK_SECRET_KEY) {
 }
 
 export function setupClerkAuth(app: Express) {
-  // Configure protected routes middleware
+  // Configure protected routes middleware with proper error handling
   const protectedMiddleware = ClerkExpressRequireAuth({
     onError: (err, _req, res: Response) => {
       console.error('Clerk Auth Error:', err);
@@ -23,17 +23,17 @@ export function setupClerkAuth(app: Express) {
 
 // Helper to extract user information from Clerk session
 export function extractUserInfo(req: any) {
-  const user = req.auth.user;
-  
+  const user = req.auth?.user;
+
   if (!user) {
-    throw new Error('No user found in session');
+    throw new Error('User not found in session');
   }
 
   // Get user display name using available fields
   const firstName = user.firstName || '';
   const lastName = user.lastName || '';
-  const email = user.emailAddresses?.[0]?.emailAddress;
   const username = user.username;
+  const email = user.emailAddresses?.[0]?.emailAddress;
 
   // Determine best display name to use
   const userName = firstName && lastName ? 
@@ -42,7 +42,7 @@ export function extractUserInfo(req: any) {
     email || 
     'Unknown User';
 
-  // Get user's profile image
+  // Get user's profile image if available
   const userImageUrl = user.imageUrl || user.profileImageUrl;
 
   return {
