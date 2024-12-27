@@ -439,8 +439,8 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Get user data from Clerk auth
-      const user = req.auth;
-      if (!user?.userId) {
+      const clerkUser = req.auth;
+      if (!clerkUser?.userId) {
         return res.status(401).json({
           success: false,
           message: 'Unauthorized: User not authenticated'
@@ -459,16 +459,19 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Get user details from Clerk
-      let userName = 'Anonymous User';
-      let userImageUrl = undefined;
-
-      if (user.user) {
-        userName = user.user.firstName && user.user.lastName
-          ? `${user.user.firstName} ${user.user.lastName}`
-          : user.user.username || user.user.emailAddresses?.[0]?.emailAddress || 'Anonymous User';
-        userImageUrl = user.user.imageUrl;
+      // Determine user name and image from Clerk data
+      let userName;
+      if (clerkUser.user?.firstName && clerkUser.user?.lastName) {
+        userName = `${clerkUser.user.firstName} ${clerkUser.user.lastName}`;
+      } else if (clerkUser.user?.username) {
+        userName = clerkUser.user.username;
+      } else if (clerkUser.user?.emailAddresses && clerkUser.user.emailAddresses.length > 0) {
+        userName = clerkUser.user.emailAddresses[0].emailAddress;
+      } else {
+        userName = 'Anonymous User';
       }
+
+      const userImageUrl = clerkUser.user?.imageUrl;
 
       // Create the comment
       const [comment] = await db.insert(comments)
@@ -477,7 +480,7 @@ export function registerRoutes(app: Express): Server {
           content,
           xPosition,
           yPosition,
-          userId: user.userId,
+          userId: clerkUser.userId,
           userName,
           userImageUrl,
           createdAt: new Date(),
