@@ -459,6 +459,17 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
+      // Get user details from Clerk
+      let userName = 'Anonymous User';
+      let userImageUrl = undefined;
+
+      if (user.user) {
+        userName = user.user.firstName && user.user.lastName
+          ? `${user.user.firstName} ${user.user.lastName}`
+          : user.user.username || user.user.emailAddresses?.[0]?.emailAddress || 'Anonymous User';
+        userImageUrl = user.user.imageUrl;
+      }
+
       // Create the comment
       const [comment] = await db.insert(comments)
         .values({
@@ -467,10 +478,8 @@ export function registerRoutes(app: Express): Server {
           xPosition,
           yPosition,
           userId: user.userId,
-          userName: user.user?.firstName && user.user?.lastName ?
-            `${user.user.firstName} ${user.user.lastName}` :
-            user.user?.username || 'Anonymous User',
-          userImageUrl: user.user?.imageUrl,
+          userName,
+          userImageUrl,
           createdAt: new Date(),
           updatedAt: new Date()
         })
