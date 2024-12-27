@@ -23,7 +23,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   if (!isLoaded) return null;
 
   // Show children only when signed in
-  return isSignedIn ? <>{children}</> : null;
+  return isSignedIn ? children : null;
 }
 
 function App() {
@@ -118,21 +118,15 @@ function App() {
       </Route>
 
       <Route path="/gallery">
-        <SignedIn>
+        <ProtectedRoute>
           <Layout 
             title={gallery?.title || "Untitled Project"}
             onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
             actions={headerActions}
           >
-            <Home 
-              title={gallery?.title || "Untitled Project"}
-              onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
-            />
+            <Home />
           </Layout>
-        </SignedIn>
-        <SignedOut>
-          <Landing />
-        </SignedOut>
+        </ProtectedRoute>
       </Route>
 
       <Route path="/gallery/:slug">
