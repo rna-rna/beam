@@ -4,6 +4,7 @@ import { Image } from "@/types/gallery";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Toolbar } from "./Toolbar";
+import { useUser } from "@clerk/clerk-react";
 
 interface MobileGalleryViewProps {
   images: Image[];
@@ -18,6 +19,7 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
   const startDistanceRef = useRef(0);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useUser();
 
   // Motion values for gestures
   const dragX = useMotionValue(0);
@@ -87,6 +89,15 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
   };
 
   const handleComment = () => {
+    if (!user) {
+      toast({
+        title: "Please sign in to comment",
+        variant: "destructive",
+        duration: 2000
+      });
+      return;
+    }
+
     const comment = prompt('Add a comment:');
     if (comment) {
       commentMutation.mutate(comment);
@@ -96,13 +107,29 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
   // Comment mutation
   const commentMutation = useMutation({
     mutationFn: async (comment: string) => {
+      if (!user) {
+        throw new Error('Please sign in to add comments');
+      }
+
       const response = await fetch(`/api/images/${images[currentIndex].id}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: comment }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await user.getToken()}` 
+        },
+        body: JSON.stringify({ 
+          content: comment,
+          xPosition: 50, 
+          yPosition: 50
+        }),
         credentials: 'include'
       });
-      if (!response.ok) throw new Error('Failed to add comment');
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add comment');
+      }
+
       return response.json();
     },
     onSuccess: () => {
@@ -112,9 +139,9 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
         duration: 2000
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
-        title: "Failed to add comment",
+        title: error.message || "Failed to add comment",
         variant: "destructive",
         duration: 2000
       });

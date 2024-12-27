@@ -14,7 +14,7 @@ export function setupClerkAuth(app: Express) {
 
   // Configure protected routes middleware with proper error handling and debug logging
   const protectedMiddleware = ClerkExpressRequireAuth({
-    onError: (err, _req, res: Response) => {
+    onError: (err: any, _req: any, res: Response) => {
       console.error('Clerk Auth Error:', err);
       res.status(401).json({
         success: false,
@@ -31,7 +31,8 @@ export function setupClerkAuth(app: Express) {
     console.log('Debug - Auth Middleware:', {
       hasAuth: !!req.auth,
       hasUser: !!req.auth?.user,
-      userId: req.auth?.userId
+      userId: req.auth?.userId,
+      path: req.path
     });
     next();
   });
@@ -44,11 +45,19 @@ export function extractUserInfo(req: any) {
   console.log('Debug - Extracting user info:', {
     hasAuth: !!req.auth,
     hasUser: !!req.auth?.user,
-    userId: req.auth?.userId
+    userId: req.auth?.userId,
+    session: !!req.session,
+    headers: req.headers['authorization']
   });
 
-  const user = req.auth?.user;
+  if (!req.auth) {
+    console.error('Debug - No auth object found:', {
+      headers: req.headers
+    });
+    throw new Error('Authentication required');
+  }
 
+  const user = req.auth.user;
   if (!user) {
     console.error('Debug - User extraction failed:', {
       auth: req.auth,
@@ -76,7 +85,8 @@ export function extractUserInfo(req: any) {
   console.log('Debug - Extracted user info:', {
     userId: req.auth.userId,
     userName,
-    hasImage: !!userImageUrl
+    hasImage: !!userImageUrl,
+    emailVerified: user.emailAddresses?.[0]?.verified
   });
 
   return {
