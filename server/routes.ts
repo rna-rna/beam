@@ -40,7 +40,16 @@ export function registerRoutes(app: Express): Server {
 
   // Protected routes with full user data
   const protectedRouter = express.Router();
-  protectedRouter.use(protectRoute);
+
+  // Apply auth middleware to all protected routes
+  protectedRouter.use((req, res, next) => {
+    console.log('Debug - Protected route accessed:', {
+      path: req.path,
+      method: req.method,
+      hasAuth: !!req.auth
+    });
+    protectRoute(req, res, next);
+  });
 
   // Get galleries for current user (main endpoint)
   protectedRouter.get('/galleries', async (req: any, res) => {
