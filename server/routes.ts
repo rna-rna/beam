@@ -39,6 +39,26 @@ export function registerRoutes(app: Express): Server {
   const protectedRouter = express.Router();
   protectedRouter.use(ClerkExpressWithAuth());
 
+  // Get galleries for current user (main endpoint)
+  protectedRouter.get('/galleries', async (req: any, res) => {
+    try {
+      const userId = req.auth.userId;
+
+      const userGalleries = await db.query.galleries.findMany({
+        where: eq(galleries.userId, userId),
+        orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
+        with: {
+          images: true
+        }
+      });
+
+      res.json(userGalleries);
+    } catch (error) {
+      console.error('Failed to fetch galleries:', error);
+      res.status(500).json({ message: 'Failed to fetch galleries' });
+    }
+  });
+
   // Create empty gallery
   protectedRouter.post('/galleries/create', async (req: any, res) => {
     try {
@@ -98,25 +118,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get galleries for current user
-  protectedRouter.get('/galleries/list', async (req: any, res) => {
-    try {
-      const userId = req.auth.userId;
-
-      const userGalleries = await db.query.galleries.findMany({
-        where: eq(galleries.userId, userId),
-        orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
-        with: {
-          images: true
-        }
-      });
-
-      res.json(userGalleries);
-    } catch (error) {
-      console.error('Failed to fetch galleries:', error);
-      res.status(500).json({ message: 'Failed to fetch galleries' });
-    }
-  });
 
   // Get gallery details (with ownership check)
   protectedRouter.get('/galleries/:slug', async (req: any, res) => {
@@ -650,7 +651,7 @@ export function registerRoutes(app: Express): Server {
     }
   }
 
-  // Mount protected routes at the end
+  // Mount protected routes
   app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);
