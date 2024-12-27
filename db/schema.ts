@@ -34,7 +34,7 @@ export const comments = pgTable('comments', {
   xPosition: real('x_position').notNull(),
   yPosition: real('y_position').notNull(),
   userId: text('user_id').notNull(), // Clerk user ID
-  userName: text('user_name').default('Anonymous User').notNull(),
+  userName: text('user_name').notNull(), // Remove default value to ensure we always set it explicitly
   userImageUrl: text('user_image_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
