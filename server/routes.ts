@@ -47,7 +47,7 @@ export function registerRoutes(app: Express): Server {
     },
     // Load full user object
     loadUser: true,
-    // Specify the claims we want to receive
+    // Specify the claims to receive
     claims: ['email', 'name', 'username', 'image_url'],
     // Fetch additional user data
     fetchUser: true,
