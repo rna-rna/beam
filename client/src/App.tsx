@@ -1,15 +1,35 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
+import { SignedIn, SignedOut, useUser } from "@clerk/clerk-react";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
+import Landing from "@/pages/Landing";
 import { Layout } from "@/components/Layout";
 import { useState, ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
+// Protected route wrapper component
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { isSignedIn, isLoaded } = useUser();
+  const [, setLocation] = useLocation();
+
+  // Show nothing while loading
+  if (!isLoaded) return null;
+
+  // Redirect to landing if not signed in
+  if (!isSignedIn) {
+    setLocation("/");
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
 function App() {
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   // Query for current gallery
   const { data: gallery } = useQuery({
@@ -40,23 +60,15 @@ function App() {
       return (await res.json()).title;
     },
     onMutate: async (newTitle) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['/api/galleries/current'] });
-
-      // Snapshot the previous value
       const previousGallery = queryClient.getQueryData(['/api/galleries/current']);
-
-      // Optimistically update to the new value
       queryClient.setQueryData(['/api/galleries/current'], (old: any) => ({
         ...old,
         title: newTitle
       }));
-
-      // Return a context object with the snapshotted value
       return { previousGallery };
     },
     onError: (err, newTitle, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
       queryClient.setQueryData(['/api/galleries/current'], context?.previousGallery);
       toast({
         title: "Error",
@@ -75,37 +87,64 @@ function App() {
       });
     },
     onSettled: () => {
-      // Always refetch after error or success to ensure we're up to date
       queryClient.invalidateQueries({ queryKey: ['/api/galleries/current'] });
     }
   });
 
   return (
-    <Layout 
-      title={gallery?.title || "Untitled Project"} 
-      onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
-      actions={headerActions}
-    >
-      <Switch>
-        <Route 
-          path="/" 
-          component={() => (
+    <Switch>
+      <Route path="/">
+        <SignedIn>
+          {() => {
+            setLocation("/gallery");
+            return null;
+          }}
+        </SignedIn>
+        <SignedOut>
+          <Landing />
+        </SignedOut>
+      </Route>
+
+      <Route path="/gallery">
+        <SignedIn>
+          <Layout 
+            title={gallery?.title || "Untitled Project"} 
+            onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
+            actions={headerActions}
+          >
             <Home 
               title={gallery?.title || "Untitled Project"}
               onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
             />
-          )} 
-        />
-        <Route path="/gallery/:slug">
-          {(params) => (
-            <Gallery 
-              slug={params.slug}
-              onHeaderActionsChange={setHeaderActions}
-            />
-          )}
-        </Route>
-      </Switch>
-    </Layout>
+          </Layout>
+        </SignedIn>
+        <SignedOut>
+          {() => {
+            setLocation("/");
+            return null;
+          }}
+        </SignedOut>
+      </Route>
+
+      <Route path="/gallery/:slug">
+        {(params) => (
+          <ProtectedRoute>
+            <Layout 
+              title={gallery?.title || "Untitled Project"}
+              onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
+              actions={headerActions}
+            >
+              <Gallery 
+                slug={params.slug}
+                title={gallery?.title || "Untitled Project"}
+                onHeaderActionsChange={setHeaderActions}
+                onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
+              />
+            </Layout>
+          </ProtectedRoute>
+        )}
+      </Route>
+    </Switch>
   );
 }
 
