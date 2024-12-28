@@ -85,36 +85,38 @@ export default function Dashboard() {
 
   return (
     <AnimatedLayout title="My Galleries">
-      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {/* Create New Gallery Card */}
-          <Card className="group hover:shadow-lg transition-all duration-200 border border-dashed border-muted-foreground/25">
-            <Button 
-              variant="ghost" 
-              className="w-full h-full min-h-[280px] p-6 flex flex-col items-center justify-center gap-4 hover:bg-muted/50"
-              onClick={() => createGalleryMutation.mutate()}
-              disabled={createGalleryMutation.isPending}
-            >
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Plus className="h-8 w-8 text-primary" />
-              </div>
-              <div className="text-center">
-                <h3 className="font-semibold text-lg mb-1">Create New Gallery</h3>
-                <p className="text-sm text-muted-foreground">
-                  Start a new collection of images
-                </p>
-              </div>
-            </Button>
+          <Card className="group hover:shadow-lg transition-all duration-200">
+            <div className="aspect-[4/3] relative">
+              <Button 
+                variant="ghost" 
+                className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4 hover:bg-muted/50"
+                onClick={() => createGalleryMutation.mutate()}
+                disabled={createGalleryMutation.isPending}
+              >
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Plus className="h-8 w-8 text-primary" />
+                </div>
+                <div className="text-center">
+                  <h3 className="font-semibold text-lg">Create New Gallery</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Start a new collection of images
+                  </p>
+                </div>
+              </Button>
+            </div>
           </Card>
 
           {/* Gallery Cards */}
           {galleries.map((gallery) => (
             <Card 
               key={gallery.id}
-              className="group hover:shadow-lg transition-all duration-200 overflow-hidden"
+              className="group hover:shadow-lg transition-all duration-200"
               onClick={() => setLocation(`/g/${gallery.slug}`)}
             >
-              <div className="relative aspect-[4/3] overflow-hidden">
+              <div className="aspect-[4/3] relative overflow-hidden">
                 {gallery.thumbnailUrl ? (
                   <img
                     src={gallery.thumbnailUrl}
@@ -126,20 +128,19 @@ export default function Dashboard() {
                     <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h3 className="text-lg font-semibold text-white line-clamp-1 mb-1">
-                    {gallery.title}
-                  </h3>
-                  <div className="flex items-center gap-2 text-white/80 text-sm">
-                    <Grid className="w-4 h-4" />
-                    <span>{gallery.imageCount} images</span>
-                    <span className="mx-2">•</span>
-                    <Clock className="w-4 h-4" />
-                    <span>{new Date(gallery.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
               </div>
+              <CardContent className="pt-4">
+                <h3 className="text-lg font-semibold line-clamp-1 mb-1">
+                  {gallery.title}
+                </h3>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Grid className="w-4 h-4" />
+                  <span>{gallery.imageCount} images</span>
+                  <span className="mx-2">•</span>
+                  <Clock className="w-4 h-4" />
+                  <span>{new Date(gallery.createdAt).toLocaleDateString()}</span>
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>
