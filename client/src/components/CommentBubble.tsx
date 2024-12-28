@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MessageCircle } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,7 +12,7 @@ interface CommentBubbleProps {
   y: number;
   content?: string;
   author?: string;
-  onSubmit?: (content: string) => void;
+  onSubmit?: () => void;
   isNew?: boolean;
   imageId?: number;
 }
@@ -21,6 +21,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
   const [isEditing, setIsEditing] = useState(isNew);
   const [text, setText] = useState(content || "");
   const { user } = useUser();
+  const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -30,18 +31,19 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
         throw new Error('Please sign in to add comments');
       }
 
+      const token = await getToken();
       const response = await fetch(`/api/images/${imageId}/comments`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ 
           content,
           xPosition: x,
           yPosition: y,
           userId: user.id
-        }),
-        credentials: 'include'
+        })
       });
 
       if (!response.ok) {
@@ -53,12 +55,14 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+      setText(""); // Clear the input after successful submission
+      setIsEditing(false);
       toast({
         title: "Comment added",
         duration: 2000
       });
       if (onSubmit) {
-        onSubmit(text);
+        onSubmit();
       }
     },
     onError: (error: Error) => {
@@ -70,7 +74,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
       toast({
@@ -82,8 +86,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
     }
 
     if (text.trim()) {
-      commentMutation.mutate(text);
-      setIsEditing(false);
+      await commentMutation.mutateAsync(text);
     }
   };
 
