@@ -422,6 +422,44 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Delete gallery (protected)
+  protectedRouter.delete('/galleries/:slug', async (req: any, res) => {
+    try {
+      const userId = req.auth.userId;
+
+      // Find the gallery and verify ownership
+      const gallery = await db.query.galleries.findFirst({
+        where: and(
+          eq(galleries.slug, req.params.slug),
+          eq(galleries.userId, userId)
+        ),
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      // Delete the gallery and its associated images
+      await db.transaction(async (tx) => {
+        // Delete all images in the gallery first
+        await tx.delete(images)
+          .where(eq(images.galleryId, gallery.id));
+
+        // Then delete the gallery itself
+        await tx.delete(galleries)
+          .where(eq(galleries.id, gallery.id));
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting gallery:', error);
+      res.status(500).json({
+        message: 'Failed to delete gallery',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Get gallery details (public view)
   app.get('/api/galleries/:slug', async (req, res) => {
     try {

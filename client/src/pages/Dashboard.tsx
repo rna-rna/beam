@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Plus, Grid, Image as ImageIcon, Clock } from "lucide-react";
+import { Plus, Grid, Image as ImageIcon, Clock, Trash2 } from "lucide-react";
 import { AnimatedLayout } from "@/components/AnimatedLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,9 +13,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Gallery } from "@db/schema";
 import { formatRelativeDate } from "@/lib/format-date";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface GalleryWithThumbnail extends Gallery {
   thumbnailUrl: string | null;
@@ -28,6 +40,7 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [galleryToDelete, setGalleryToDelete] = useState<GalleryWithThumbnail | null>(null);
 
   // Query galleries
   const { data: galleries = [], isLoading } = useQuery<GalleryWithThumbnail[]>({
@@ -84,6 +97,41 @@ export default function Dashboard() {
     },
   });
 
+  // Delete gallery mutation
+  const deleteGalleryMutation = useMutation({
+    mutationFn: async (gallery: GalleryWithThumbnail) => {
+      const token = await getToken();
+      const res = await fetch(`/api/galleries/${gallery.slug}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || 'Failed to delete gallery');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+      toast({
+        title: "Success",
+        description: "Gallery deleted successfully",
+      });
+      setGalleryToDelete(null);
+    },
+    onError: (error) => {
+      console.error('Gallery deletion error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete gallery. Please try again.",
+        variant: "destructive",
+      });
+      setGalleryToDelete(null);
+    },
+  });
+
   return (
     <AnimatedLayout title="My Galleries">
       <div className="px-4 sm:px-6 lg:px-8 py-8">
@@ -114,34 +162,87 @@ export default function Dashboard() {
           {galleries.map((gallery) => (
             <Card 
               key={gallery.id}
-              className="group hover:shadow-lg transition-all duration-200"
-              onClick={() => setLocation(`/g/${gallery.slug}`)}
+              className="group hover:shadow-lg transition-all duration-200 relative"
             >
-              <div className="aspect-[4/3] relative overflow-hidden">
-                {gallery.thumbnailUrl ? (
-                  <img
-                    src={gallery.thumbnailUrl}
-                    alt={gallery.title}
-                    className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted flex items-center justify-center">
-                    <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
-                  </div>
-                )}
-              </div>
-              <CardContent className="pt-4">
-                <h3 className="text-lg font-semibold line-clamp-1 mb-1">
-                  {gallery.title}
-                </h3>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Grid className="w-4 h-4" />
-                  <span>{gallery.imageCount} images</span>
-                  <span className="mx-2">•</span>
-                  <Clock className="w-4 h-4" />
-                  <span>{formatRelativeDate(gallery.createdAt)}</span>
+              {/* Delete Button (visible on hover) */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileHover={{ opacity: 1 }}
+                className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setGalleryToDelete(gallery);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Gallery</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{gallery.title}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={(e) => {
+                        e.stopPropagation();
+                        setGalleryToDelete(null);
+                      }}>
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteGalleryMutation.mutate(gallery);
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </motion.div>
+
+              {/* Card Content (clickable area) */}
+              <div 
+                className="cursor-pointer"
+                onClick={() => setLocation(`/g/${gallery.slug}`)}
+              >
+                <div className="aspect-[4/3] relative overflow-hidden">
+                  {gallery.thumbnailUrl ? (
+                    <img
+                      src={gallery.thumbnailUrl}
+                      alt={gallery.title}
+                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+                    </div>
+                  )}
                 </div>
-              </CardContent>
+                <CardContent className="pt-4">
+                  <h3 className="text-lg font-semibold line-clamp-1 mb-1">
+                    {gallery.title}
+                  </h3>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Grid className="w-4 h-4" />
+                    <span>{gallery.imageCount} images</span>
+                    <span className="mx-2">•</span>
+                    <Clock className="w-4 h-4" />
+                    <span>{formatRelativeDate(gallery.createdAt)}</span>
+                  </div>
+                </CardContent>
+              </div>
             </Card>
           ))}
         </div>
