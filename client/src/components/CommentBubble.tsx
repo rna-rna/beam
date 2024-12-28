@@ -50,8 +50,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
         body: JSON.stringify({
           content,
           xPosition: x,
-          yPosition: y,
-          userId: user.id
+          yPosition: y
         })
       });
 
@@ -69,7 +68,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
       setText(""); // Clear the input after successful submission
       setIsEditing(false);
       toast({
@@ -105,8 +104,10 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
     }
   };
 
-  // Ensure we have proper author information
-  const displayName = author || (user ? `${user.firstName} ${user.lastName}`.trim() : null);
+  // Use authenticated user's name for new comments, or passed author for existing ones
+  const displayName = isNew ? 
+    (user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : null) : 
+    author;
 
   if (!displayName && !isNew) {
     return null; // Don't render invalid comments
