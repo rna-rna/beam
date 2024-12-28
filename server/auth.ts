@@ -7,26 +7,38 @@ if (!process.env.CLERK_SECRET_KEY) {
 }
 
 export function setupClerkAuth(app: Express) {
-  // Add debug logging
-  console.log('Setting up Clerk authentication...');
+  // Add enhanced debug logging
+  console.log('[Auth Setup] Initializing Clerk authentication...');
 
-  // Initialize Clerk middleware with debug logging
+  // Initialize Clerk middleware with enhanced debug logging
   app.use((req, res, next) => {
-    console.log(`[Auth Debug] Incoming request to ${req.path}`);
+    console.log(`[Auth Debug] Incoming request to ${req.path}`, {
+      hasAuth: !!req.headers.authorization,
+      method: req.method,
+      query: req.query
+    });
     next();
   });
 
   app.use(ClerkExpressWithAuth({
     onError: (err) => {
-      console.error('[Clerk Auth Error]', err);
+      console.error('[Clerk Auth Error]', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      });
       return null; // Allow request to continue for public routes
     }
   }));
 
-  // Configure protected routes middleware with proper error handling
+  // Configure protected routes middleware with enhanced error handling
   const protectedMiddleware = ClerkExpressRequireAuth({
     onError: (error: any) => {
-      console.error('[Protected Route Error]:', error);
+      console.error('[Protected Route Error]:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       return {
         success: false,
         message: 'Authentication required',
@@ -38,13 +50,14 @@ export function setupClerkAuth(app: Express) {
   return protectedMiddleware;
 }
 
-// Helper to extract user information from Clerk session
+// Enhanced helper to extract user information from Clerk session
 export async function extractUserInfo(req: any) {
   try {
     console.log('[Auth Debug] Extracting user info:', {
       hasAuth: !!req.auth,
       hasUserId: !!req.auth?.userId,
-      headers: !!req.headers.authorization
+      headers: !!req.headers.authorization,
+      path: req.path
     });
 
     if (!req.auth) {
@@ -55,8 +68,17 @@ export async function extractUserInfo(req: any) {
       throw new Error('User ID not found in session');
     }
 
-    // Fetch user details from Clerk
-    const user = await clerkClient.users.getUser(req.auth.userId);
+    // Fetch user details from Clerk with error handling
+    let user;
+    try {
+      user = await clerkClient.users.getUser(req.auth.userId);
+    } catch (error: any) {
+      console.error('[Clerk API Error]', {
+        message: error.message,
+        userId: req.auth.userId
+      });
+      throw new Error('Failed to fetch user details');
+    }
 
     if (!user) {
       throw new Error('User not found');
@@ -78,13 +100,24 @@ export async function extractUserInfo(req: any) {
     // Get user's profile image if available
     const userImageUrl = user.imageUrl || user.profileImageUrl;
 
-    return {
+    const userInfo = {
       userId: req.auth.userId,
       userName,
       userImageUrl
     };
-  } catch (error) {
-    console.error('[Auth Debug] Error extracting user info:', error);
+
+    console.log('[Auth Debug] Successfully extracted user info:', {
+      userId: userInfo.userId,
+      hasName: !!userInfo.userName,
+      hasImage: !!userInfo.userImageUrl
+    });
+
+    return userInfo;
+  } catch (error: any) {
+    console.error('[Auth Debug] Error extracting user info:', {
+      message: error.message,
+      stack: error.stack
+    });
     throw error;
   }
 }
