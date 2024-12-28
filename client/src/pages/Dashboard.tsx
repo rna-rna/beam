@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Plus, Grid, Image as ImageIcon } from "lucide-react";
+import { Plus, Grid, Image as ImageIcon, Clock } from "lucide-react";
 import { AnimatedLayout } from "@/components/AnimatedLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -85,60 +85,75 @@ export default function Dashboard() {
 
   return (
     <AnimatedLayout title="My Galleries">
-      <div className="container mx-auto py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {/* Create New Gallery Card */}
-          <Card className="group hover:shadow-lg transition-shadow duration-200">
-            <CardContent className="pt-6">
-              <Button 
-                variant="ghost" 
-                className="w-full h-full aspect-video flex flex-col items-center justify-center gap-4 border-2 border-dashed border-muted-foreground/25 rounded-lg hover:border-primary/50 transition-colors"
-                onClick={() => createGalleryMutation.mutate()}
-                disabled={createGalleryMutation.isPending}
-              >
-                <Plus className="h-8 w-8" />
-                <span className="text-sm font-medium">Create New Gallery</span>
-              </Button>
-            </CardContent>
+          <Card className="group hover:shadow-lg transition-all duration-200 border border-dashed border-muted-foreground/25">
+            <Button 
+              variant="ghost" 
+              className="w-full h-full min-h-[280px] p-6 flex flex-col items-center justify-center gap-4 hover:bg-muted/50"
+              onClick={() => createGalleryMutation.mutate()}
+              disabled={createGalleryMutation.isPending}
+            >
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Plus className="h-8 w-8 text-primary" />
+              </div>
+              <div className="text-center">
+                <h3 className="font-semibold text-lg mb-1">Create New Gallery</h3>
+                <p className="text-sm text-muted-foreground">
+                  Start a new collection of images
+                </p>
+              </div>
+            </Button>
           </Card>
 
           {/* Gallery Cards */}
           {galleries.map((gallery) => (
             <Card 
               key={gallery.id}
-              className="group hover:shadow-lg transition-shadow duration-200 cursor-pointer overflow-hidden"
+              className="group hover:shadow-lg transition-all duration-200 overflow-hidden"
               onClick={() => setLocation(`/g/${gallery.slug}`)}
             >
-              <CardHeader className="pb-4">
-                <CardTitle className="line-clamp-1">{gallery.title}</CardTitle>
-                <CardDescription>
-                  Created {new Date(gallery.createdAt).toLocaleDateString()}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                  {gallery.thumbnailUrl ? (
-                    <img
-                      src={gallery.thumbnailUrl}
-                      alt={gallery.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
-                    </div>
-                  )}
+              <div className="relative aspect-[4/3] overflow-hidden">
+                {gallery.thumbnailUrl ? (
+                  <img
+                    src={gallery.thumbnailUrl}
+                    alt={gallery.title}
+                    className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <h3 className="text-lg font-semibold text-white line-clamp-1 mb-1">
+                    {gallery.title}
+                  </h3>
+                  <div className="flex items-center gap-2 text-white/80 text-sm">
+                    <Grid className="w-4 h-4" />
+                    <span>{gallery.imageCount} images</span>
+                    <span className="mx-2">•</span>
+                    <Clock className="w-4 h-4" />
+                    <span>{new Date(gallery.createdAt).toLocaleDateString()}</span>
+                  </div>
                 </div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="ghost" className="w-full">
-                  <Grid className="mr-2 h-4 w-4" />
-                  View Gallery
-                </Button>
-              </CardFooter>
+              </div>
             </Card>
           ))}
         </div>
+
+        {/* Empty State */}
+        {galleries.length === 0 && !isLoading && (
+          <div className="text-center mt-12">
+            <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
+            <h3 className="mt-4 text-lg font-medium text-foreground">No galleries yet</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Create your first gallery to start organizing your images.
+            </p>
+          </div>
+        )}
       </div>
     </AnimatedLayout>
   );
