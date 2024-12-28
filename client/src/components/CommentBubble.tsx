@@ -26,20 +26,24 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
   const { toast } = useToast();
 
   const commentMutation = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async (commentText: string) => {
       if (!user) {
         throw new Error('Please sign in to add comments');
       }
 
+      console.log('Debug - Attempting to get token');
       const token = await getToken().catch(() => null);
+
       if (!token) {
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in again.",
-          variant: "destructive",
-        });
-        return;
+        console.log('Debug - Token retrieval failed');
+        throw new Error('Authentication failed: Unable to retrieve token');
       }
+
+      console.log('Debug - Submitting comment:', {
+        hasToken: !!token,
+        userId: user.id,
+        imageId
+      });
 
       const response = await fetch(`/api/images/${imageId}/comments`, {
         method: 'POST',
@@ -48,7 +52,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          content,
+          content: commentText,
           xPosition: x,
           yPosition: y,
           userId: user.id
@@ -59,14 +63,18 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
         let errorMessage = "Failed to add comment";
         try {
           const error = await response.json();
-          errorMessage = error.message;
-        } catch {
-          errorMessage = "Unexpected server error.";
+          errorMessage = error.message || error.details || errorMessage;
+          console.log('Debug - Comment submission error:', error);
+        } catch (e) {
+          console.log('Debug - Failed to parse error response:', e);
+          errorMessage = "Unexpected server error";
         }
         throw new Error(errorMessage);
       }
 
-      return response.json();
+      const result = await response.json();
+      console.log('Debug - Comment submission successful:', result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
@@ -81,10 +89,12 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
       }
     },
     onError: (error: Error) => {
+      console.error('Comment submission error:', error);
       toast({
-        title: error.message || "Failed to add comment",
+        title: "Error",
+        description: error.message || "Failed to add comment",
         variant: "destructive",
-        duration: 2000
+        duration: 3000
       });
     }
   });
@@ -137,7 +147,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
                 onChange={(e) => setText(e.target.value)}
                 className="min-w-[200px] h-8"
                 placeholder={user ? "Add comment..." : "Please sign in to comment"}
-                disabled={!user}
+                disabled={!user || commentMutation.isPending}
                 data-comment-input
                 autoFocus
               />
