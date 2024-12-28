@@ -4,7 +4,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -14,6 +13,7 @@ import {
   LayoutDashboard,
   Settings,
   LogOut,
+  ChevronDown,
   User as UserIcon
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -35,12 +35,12 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button 
           variant="ghost" 
-          className="relative h-8 w-8 rounded-full"
+          className="relative h-8 w-8 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="User menu"
         >
           <motion.div
             whileHover={{ scale: 1.05 }}
-            className="h-8 w-8"
+            className="h-8 w-8 flex items-center"
           >
             <Avatar className="h-8 w-8">
               <AvatarImage
@@ -51,11 +51,11 @@ export function UserNav() {
                 <UserIcon className="h-4 w-4" />
               </AvatarFallback>
             </Avatar>
+            <ChevronDown className="h-3 w-3 ml-1 text-muted-foreground" />
           </motion.div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
-        className="w-56" 
         align="end"
         forceMount
         asChild
@@ -65,39 +65,26 @@ export function UserNav() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -5 }}
           transition={{ duration: 0.2 }}
+          className="w-10"
         >
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">
-                {user.fullName || user.username}
-              </p>
-              <p className="text-xs leading-none text-muted-foreground">
-                {user.primaryEmailAddress?.emailAddress}
-              </p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
           <DropdownMenuItem 
             onClick={() => setLocation("/dashboard")}
-            className="cursor-pointer"
+            className="cursor-pointer p-2 flex items-center justify-center"
           >
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            Dashboard
+            <LayoutDashboard className="h-4 w-4" />
           </DropdownMenuItem>
           <DropdownMenuItem 
             onClick={() => setLocation("/settings")}
-            className="cursor-pointer"
+            className="cursor-pointer p-2 flex items-center justify-center"
           >
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
+            <Settings className="h-4 w-4" />
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem 
             onClick={handleSignOut}
-            className="cursor-pointer text-red-600 focus:text-red-600"
+            className="cursor-pointer p-2 flex items-center justify-center text-red-600 focus:text-red-600"
           >
-            <LogOut className="mr-2 h-4 w-4" />
-            Log out
+            <LogOut className="h-4 w-4" />
           </DropdownMenuItem>
         </motion.div>
       </DropdownMenuContent>
