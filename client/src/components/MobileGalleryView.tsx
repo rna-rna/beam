@@ -89,22 +89,6 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
     });
   };
 
-  const handleComment = () => {
-    if (!user) {
-      toast({
-        title: "Please sign in to comment",
-        variant: "destructive",
-        duration: 2000
-      });
-      return;
-    }
-
-    const comment = prompt('Add a comment:');
-    if (comment) {
-      commentMutation.mutate(comment);
-    }
-  };
-
   // Comment mutation
   const commentMutation = useMutation({
     mutationFn: async (comment: string) => {
@@ -153,6 +137,22 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
       });
     }
   });
+
+  const handleComment = () => {
+    if (!user) {
+      toast({
+        title: "Please sign in to comment",
+        variant: "destructive",
+        duration: 2000
+      });
+      return;
+    }
+
+    const comment = prompt('Add a comment:');
+    if (comment) {
+      commentMutation.mutate(comment);
+    }
+  };
 
   const clampPan = (value: number, maxDistance: number) => {
     return Math.max(Math.min(value, maxDistance), -maxDistance);
