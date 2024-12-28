@@ -70,6 +70,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const userId = req.auth.userId;
 
+      // Get galleries with first image and total image count
       const userGalleries = await db.query.galleries.findMany({
         where: eq(galleries.userId, userId),
         orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
@@ -81,11 +82,24 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      // Transform the response to include thumbnailUrl
+      // Get image counts for each gallery
+      const galleryCounts = await Promise.all(
+        userGalleries.map(async (gallery) => {
+          const result = await db.execute(
+            sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
+          );
+          return {
+            galleryId: gallery.id,
+            count: parseInt(result.rows[0].count.toString(), 10)
+          };
+        })
+      );
+
+      // Transform the response to include thumbnailUrl and correct image count
       const galleriesWithThumbnails = userGalleries.map(gallery => ({
         ...gallery,
         thumbnailUrl: gallery.images[0]?.url || null,
-        imageCount: gallery.images.length
+        imageCount: galleryCounts.find(count => count.galleryId === gallery.id)?.count || 0
       }));
 
       res.json(galleriesWithThumbnails);
