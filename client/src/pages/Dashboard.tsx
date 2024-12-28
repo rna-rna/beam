@@ -139,8 +139,8 @@ export default function Dashboard() {
           {/* Create New Gallery Card */}
           <Card className="group hover:shadow-lg transition-all duration-200">
             <div className="aspect-[4/3] relative">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4 hover:bg-muted/50"
                 onClick={() => createGalleryMutation.mutate()}
                 disabled={createGalleryMutation.isPending}
@@ -160,12 +160,12 @@ export default function Dashboard() {
 
           {/* Gallery Cards */}
           {galleries.map((gallery) => (
-            <Card 
+            <Card
               key={gallery.id}
               className="group hover:shadow-lg transition-all duration-200 relative"
             >
               {/* Card Content (clickable area) */}
-              <div 
+              <div
                 className="cursor-pointer"
                 onClick={() => setLocation(`/g/${gallery.slug}`)}
               >
