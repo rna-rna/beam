@@ -51,8 +51,7 @@ import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@clerk/clerk-react"; // Updated import
-import { useGalleryPermissions } from "@/hooks/use-gallery-permissions";
+
 
 
 interface GalleryProps {
@@ -70,7 +69,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
-  const { isSignedIn } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -115,8 +113,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     queryKey: [`/api/galleries/${slug}`],
     enabled: !!slug
   });
-
-  const permissions = useGalleryPermissions(gallery?.userId);
 
   const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
 
@@ -550,76 +546,59 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   }, [gallery, isReorderMode, queryClient, reorderImageMutation, slug]);
 
-  const handleInteractiveAction = (action: () => void, requiresAuth: boolean = true) => {
-    if (!requiresAuth) {
-      action();
-      return;
-    }
-
-    if (!isSignedIn) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to perform this action",
-        variant: "default"
-      });
-      return;
-    }
-
-    action();
-  };
-
-
   const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
 
     return (
       <div className="flex items-center gap-2">
-        {isSignedIn && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
+        {/* Gallery Actions Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <MenuIcon className="w-4 h-4" />
+              Actions
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={handleCopyLink}
                 className="flex items-center gap-2"
               >
-                <MenuIcon className="w-4 h-4" />
-                Actions
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  onClick={handleCopyLink}
-                  className="flex items-center gap-2"
-                >
-                  <Link className="w-4 h-4" />
-                  Copy Link
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleDownloadAll}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Download All
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              {permissions?.canEdit && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      onClick={() => handleInteractiveAction(handleReorderToggle)}
-                      className="flex items-center gap-2"
-                    >
-                      <ArrowUpDown className="w-4 h-4" />
-                      {isReorderMode ? 'Done Reordering' : 'Reorder Images'}
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+                <Link className="w-4 h-4" />
+                Copy Link
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleDownloadAll}
+                className="flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download All
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={handleStarredToggle}
+                className="flex items-center gap-2"
+              >
+                <Star className={`w-4 h-4 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                {showStarredOnly ? 'Show All' : 'Show Starred'}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleReorderToggle}
+                className="flex items-center gap-2"
+              >
+                <ArrowUpDown className="w-4 h-4" />
+                {isReorderMode ? 'Done Reordering' : 'Reorder Images'}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Filter Menu */}
         <DropdownMenu>
@@ -702,7 +681,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={() => handleInteractiveAction(() => deleteImagesMutation.mutate(selectedImages))}
+                onClick={() => deleteImagesMutation.mutate(selectedImages)}
                 className="flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
@@ -724,8 +703,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   }, [
     gallery,
-    isSignedIn,
-    permissions?.canEdit,
     isUploading,
     selectMode,
     isReorderMode,
@@ -739,8 +716,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     handleStarredToggle,
     handleReorderToggle,
     toggleReorderMode,
-    toggleSelectMode,
-    handleInteractiveAction
+    toggleSelectMode
   ]);
 
   const renderImage = (image: Image, index: number) => (
@@ -815,7 +791,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
                 e.stopPropagation();
-                handleInteractiveAction(() => toggleStarMutation.mutate(image.id));
+                toggleStarMutation.mutate(image.id);
               }}
             >
               <motion.div
@@ -880,14 +856,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         } else if (e.key === "ArrowRight") {
           setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
         } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
-          handleInteractiveAction(() => toggleStarMutation.mutate(selectedImage.id));
+          toggleStarMutation.mutate(selectedImage.id);
         }
       };
 
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, handleInteractiveAction]);
+  }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
 
   useEffect(() => {
     const controls = renderGalleryControls();
@@ -922,7 +898,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   // Add layout toggle handler
   const toggleGridView = () => {
-        setIsMasonry(!isMasonry);
+    setIsMasonry(!isMasonry);
   };
 
   const renderCommentDialog = () => {
@@ -1137,7 +1113,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleInteractiveAction(() => toggleStarMutation.mutate(selectedImage.id));
+                    toggleStarMutation.mutate(selectedImage.id);
                   }}
                 >
                   {selectedImage.starred ? (
