@@ -7,46 +7,26 @@ if (!process.env.CLERK_SECRET_KEY) {
 }
 
 export function setupClerkAuth(app: Express) {
-  // Add enhanced debug logging
-  console.log('[Auth Setup] Initializing Clerk authentication...', {
-    hasSecretKey: !!process.env.CLERK_SECRET_KEY,
-    environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString()
-  });
+  // Add debug logging
+  console.log('Setting up Clerk authentication...');
 
-  // Initialize Clerk middleware with enhanced debug logging
+  // Initialize Clerk middleware with debug logging
   app.use((req, res, next) => {
-    console.log(`[Auth Debug] Incoming request to ${req.path}`, {
-      hasAuth: !!req.headers.authorization,
-      method: req.method,
-      query: req.query,
-      referrer: req.headers.referer || 'none',
-      timestamp: new Date().toISOString()
-    });
+    console.log(`[Auth Debug] Incoming request to ${req.path}`);
     next();
   });
 
   app.use(ClerkExpressWithAuth({
     onError: (err) => {
-      console.error('[Clerk Auth Error]', {
-        message: err.message,
-        stack: err.stack,
-        name: err.name,
-        timestamp: new Date().toISOString()
-      });
+      console.error('[Clerk Auth Error]', err);
       return null; // Allow request to continue for public routes
     }
   }));
 
-  // Configure protected routes middleware with enhanced error handling
+  // Configure protected routes middleware with proper error handling
   const protectedMiddleware = ClerkExpressRequireAuth({
     onError: (error: any) => {
-      console.error('[Protected Route Error]:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        timestamp: new Date().toISOString()
-      });
+      console.error('[Protected Route Error]:', error);
       return {
         success: false,
         message: 'Authentication required',
@@ -58,16 +38,13 @@ export function setupClerkAuth(app: Express) {
   return protectedMiddleware;
 }
 
-// Enhanced helper to extract user information from Clerk session
+// Helper to extract user information from Clerk session
 export async function extractUserInfo(req: any) {
   try {
     console.log('[Auth Debug] Extracting user info:', {
       hasAuth: !!req.auth,
       hasUserId: !!req.auth?.userId,
-      headers: !!req.headers.authorization,
-      path: req.path,
-      timestamp: new Date().toISOString(),
-      originalUrl: req.originalUrl
+      headers: !!req.headers.authorization
     });
 
     if (!req.auth) {
@@ -78,18 +55,8 @@ export async function extractUserInfo(req: any) {
       throw new Error('User ID not found in session');
     }
 
-    // Fetch user details from Clerk with error handling
-    let user;
-    try {
-      user = await clerkClient.users.getUser(req.auth.userId);
-    } catch (error: any) {
-      console.error('[Clerk API Error]', {
-        message: error.message,
-        userId: req.auth.userId,
-        timestamp: new Date().toISOString()
-      });
-      throw new Error('Failed to fetch user details');
-    }
+    // Fetch user details from Clerk
+    const user = await clerkClient.users.getUser(req.auth.userId);
 
     if (!user) {
       throw new Error('User not found');
@@ -102,35 +69,22 @@ export async function extractUserInfo(req: any) {
     const email = user.emailAddresses?.[0]?.emailAddress;
 
     // Determine best display name to use
-    const userName = firstName && lastName ?
-      `${firstName} ${lastName}` :
-      username ||
-      email ||
+    const userName = firstName && lastName ? 
+      `${firstName} ${lastName}` : 
+      username || 
+      email || 
       'Unknown User';
 
     // Get user's profile image if available
-    const userImageUrl = user.imageUrl || null;
+    const userImageUrl = user.imageUrl || user.profileImageUrl;
 
-    const userInfo = {
+    return {
       userId: req.auth.userId,
       userName,
       userImageUrl
     };
-
-    console.log('[Auth Debug] Successfully extracted user info:', {
-      userId: userInfo.userId,
-      hasName: !!userInfo.userName,
-      hasImage: !!userInfo.userImageUrl,
-      timestamp: new Date().toISOString()
-    });
-
-    return userInfo;
-  } catch (error: any) {
-    console.error('[Auth Debug] Error extracting user info:', {
-      message: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString()
-    });
+  } catch (error) {
+    console.error('[Auth Debug] Error extracting user info:', error);
     throw error;
   }
 }
