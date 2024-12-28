@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Filter, Grid, MoreVertical, Check } from 'lucide-react'
+import { Search, Filter, Grid, MoreVertical, Sun, Moon, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -7,6 +7,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 
 interface GalleryHeaderProps {
@@ -17,6 +18,8 @@ interface GalleryHeaderProps {
   setSelectionMode: (mode: 'none' | 'multiple') => void
   onSort: (option: 'recent' | 'popular' | 'alphabetical') => void
   onSearch: (query: string) => void
+  isDark: boolean
+  toggleTheme: () => void
 }
 
 export function GalleryHeader({
@@ -27,6 +30,8 @@ export function GalleryHeader({
   setSelectionMode,
   onSort,
   onSearch,
+  isDark,
+  toggleTheme
 }: GalleryHeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -48,11 +53,11 @@ export function GalleryHeader({
           <h1 className="text-lg font-medium">
             {selectedCount > 0 
               ? `${selectedCount} selected`
-              : 'My Galleries'
+              : 'Gallery'
             }
           </h1>
         )}
-        
+
         <div className="flex items-center gap-2">
           {!searchOpen && (
             <Button
@@ -73,7 +78,7 @@ export function GalleryHeader({
           >
             <Grid className="h-5 w-5" />
           </Button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="hover:bg-accent">
@@ -92,6 +97,15 @@ export function GalleryHeader({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="hover:bg-accent"
+          >
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
 
           <Button
             variant="ghost"

@@ -5,7 +5,6 @@ import { useLocation } from "wouter";
 import { Plus, Image as ImageIcon, Clock, Trash2 } from "lucide-react";
 import { AnimatedLayout } from "@/components/AnimatedLayout";
 import { Button } from "@/components/ui/button";
-import { GalleryHeader } from "@/components/GalleryHeader";
 import {
   Card,
   CardContent,
@@ -37,9 +36,6 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [galleryToDelete, setGalleryToDelete] = useState<GalleryWithThumbnail | null>(null);
-  const [selectionMode, setSelectionMode] = useState<'none' | 'multiple'>('none');
-  const [viewMode, setViewMode] = useState<'grid' | 'masonry'>('grid');
-  const [selectedCount, setSelectedCount] = useState(0);
 
   // Query galleries
   const { data: galleries = [], isLoading } = useQuery<GalleryWithThumbnail[]>({
@@ -131,29 +127,11 @@ export default function Dashboard() {
     },
   });
 
-  const handleSearch = (query: string) => {
-    // TODO: Implement search functionality
-    console.log('Search query:', query);
-  };
-
-  const handleSort = (option: 'recent' | 'popular' | 'alphabetical') => {
-    // TODO: Implement sort functionality
-    console.log('Sort by:', option);
-  };
-
   return (
     <AnimatedLayout>
-      <GalleryHeader
-        selectedCount={selectedCount}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        selectionMode={selectionMode}
-        setSelectionMode={setSelectionMode}
-        onSort={handleSort}
-        onSearch={handleSearch}
-      />
-
       <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-2xl font-semibold mb-6">My Galleries</h1>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {/* Create New Gallery Card */}
           <Card className="group hover:shadow-lg transition-all duration-200">
