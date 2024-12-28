@@ -8,7 +8,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { MobileGalleryView } from "@/components/MobileGalleryView";
 import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
-import { Upload, Grid, LayoutGrid, Filter } from "lucide-react";
+import { Upload, Grid, LayoutGrid, Filter, CheckSquare } from "lucide-react";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -27,6 +27,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Icons
 import {
@@ -42,7 +48,8 @@ import {
   ArrowUpDown,
   Trash2,
   CheckCircle,
-  Loader2
+  Loader2,
+  MoreVertical
 } from "lucide-react";
 
 // Components
@@ -551,154 +558,126 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     return (
       <div className="flex items-center gap-2">
-        {/* Gallery Actions Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <MenuIcon className="w-4 h-4" />
-              Actions
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={handleCopyLink}
-                className="flex items-center gap-2"
-              >
-                <Link className="w-4 h-4" />
-                Copy Link
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleDownloadAll}
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download All
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={handleStarredToggle}
-                className="flex items-center gap-2"
-              >
-                <Star className={`w-4 h-4 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-                {showStarredOnly ? 'Show All' : 'Show Starred'}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleReorderToggle}
-                className="flex items-center gap-2"
-              >
-                <ArrowUpDown className="w-4 h-4" />
-                {isReorderMode ? 'Done Reordering' : 'Reorder Images'}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <TooltipProvider>
+          {/* Gallery Actions Menu */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="icon"
+                    className="h-9 w-9"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      onClick={handleCopyLink}
+                      className="flex items-center gap-2"
+                    >
+                      <Link className="w-4 h-4" />
+                      Copy Link
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleDownloadAll}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download All
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      onClick={handleStarredToggle}
+                      className="flex items-center gap-2"
+                    >
+                      <Star className={`w-4 h-4 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                      {showStarredOnly ? 'Show All' : 'Show Starred'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleReorderToggle}
+                      className="flex items-center gap-2"
+                    >
+                      <ArrowUpDown className="w-4 h-4" />
+                      {isReorderMode ? 'Done Reordering' : 'Reorder Images'}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent>Actions</TooltipContent>
+          </Tooltip>
 
-        {/* Filter Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Filter className="w-4 h-4" />
-              Filter {(showStarredOnly || showWithComments || showApproved) && '•'}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={() => setShowStarredOnly(!showStarredOnly)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <Star className={`w-4 h-4 mr-2 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-                  Show Starred
-                </div>
-                {showStarredOnly && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowWithComments(!showWithComments)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <MessageCircle className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
-                  Has Comments
-                </div>
-                {showWithComments && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowApproved(!showApproved)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <CheckCircle className={`w-4 h-4 mr-2 ${showApproved ? 'text-primary' : ''}`} />
-                  Approved
-                </div>
-                {showApproved && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => {
-                setShowStarredOnly(false);
-                setShowWithComments(false);
-                setShowApproved(false);
-              }}
-              className="text-sm text-muted-foreground"
-            >
-              Reset Filters
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {isUploading && (
-          <div className="flex items-center gap-4">
-            <Progress value={undefined} className="w-24" />
-            <span className="text-sm text-muted-foreground">Uploading...</span>
-          </div>
-        )}
-
-        {selectMode && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleReorderMode}
-              className={isReorderMode ? "bg-primary text-primary-foreground" : ""}
-            >
-              {isReorderMode ? "Done Reordering" : "Reorder"}
-            </Button>
-            {selectedImages.length > 0 && (
+          {/* Filter Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => deleteImagesMutation.mutate(selectedImages)}
-                className="flex items-center gap-2"
+                size="icon"
+                className={`h-9 w-9 ${(showStarredOnly || showWithComments || showApproved) ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`}
+                onClick={() => setFilterOpen(true)}
               >
-                <Trash2 className="w-4 h-4" />
-                Delete ({selectedImages.length})
+                <Filter className="h-4 w-4" />
               </Button>
-            )}
-          </>
-        )}
+            </TooltipTrigger>
+            <TooltipContent>Filter Images</TooltipContent>
+          </Tooltip>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleSelectMode}
-          className={selectMode ? "bg-primary text-primary-foreground" : ""}
-        >
-          {selectMode ? "Done" : "Select"}
-        </Button>
+          {isUploading && (
+            <div className="flex items-center gap-4">
+              <Progress value={undefined} className="w-24" />
+              <span className="text-sm text-muted-foreground">Uploading...</span>
+            </div>
+          )}
+
+          {selectMode && (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    className={`h-9 w-9 ${isReorderMode ? "bg-primary text-primary-foreground" : ""}`}
+                    onClick={toggleReorderMode}
+                  >
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Reorder Images</TooltipContent>
+              </Tooltip>
+
+              {selectedImages.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => deleteImagesMutation.mutate(selectedImages)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete Selected ({selectedImages.length})</TooltipContent>
+                </Tooltip>
+              )}
+            </>
+          )}
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                className={`h-9 w-9 ${selectMode ? "bg-primary text-primary-foreground" : ""}`}
+                onClick={toggleSelectMode}
+              >
+                <CheckSquare className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     );
   }, [
@@ -941,7 +920,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             >
               <Masonry
                 breakpointCols={breakpointCols}
-                className="flex -ml-4 w-[calc(100%+1rem)] masonry-grid"
+                className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
                 columnClassName="pl-4 bg-background"
               >
                 {renderUploadPlaceholders()}
