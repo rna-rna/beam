@@ -1,4 +1,4 @@
-import express, { type Express, type Request } from "express";
+import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import multer from 'multer';
 import path from 'path';
@@ -7,15 +7,14 @@ import { db } from '@db';
 import { galleries, images, comments } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
-import { clerkClient } from '@clerk/clerk-sdk-node';
 import { nanoid } from 'nanoid';
 
 // Configure multer for local storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req, _file, cb) => {
     cb(null, 'uploads/');
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
   }
@@ -40,10 +39,10 @@ export function registerRoutes(app: Express): Server {
   const protectRoute = setupClerkAuth(app);
 
   // Public Routes (No authentication required)
-
-  // Get gallery details (public view)
   app.get('/api/galleries/:slug', async (req, res) => {
     try {
+      console.log('[Route Debug] Fetching gallery:', req.params.slug);
+
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
@@ -59,10 +58,13 @@ export function registerRoutes(app: Express): Server {
 
       const commentCounts = await Promise.all(
         galleryImages.map(async (img) => {
-          const result = await db.execute(
-            sql`SELECT COUNT(*) as count FROM comments WHERE image_id = ${img.id}`
+          const result = await db.execute<{ count: string }>(
+            sql`SELECT COUNT(*)::text as count FROM ${comments} WHERE image_id = ${img.id}`
           );
-          return { imageId: img.id, count: parseInt(result.rows[0]?.count || '0', 10) };
+          return { 
+            imageId: img.id, 
+            count: parseInt(result.rows[0]?.count || '0', 10) 
+          };
         })
       );
 
@@ -85,8 +87,11 @@ export function registerRoutes(app: Express): Server {
         images: processedImages
       });
     } catch (error) {
-      console.error('Gallery fetch error:', error);
-      res.status(500).json({ message: 'Failed to fetch gallery' });
+      console.error('[Route Error] Gallery fetch error:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch gallery',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
@@ -252,8 +257,8 @@ export function registerRoutes(app: Express): Server {
       // Get comment counts without requiring author field
       const commentCounts = await Promise.all(
         galleryImages.map(async (img) => {
-          const result = await db.execute(
-            sql`SELECT COUNT(*) as count FROM comments WHERE image_id = ${img.id}`
+          const result = await db.execute<{ count: string }>(
+            sql`SELECT COUNT(*)::text as count FROM ${comments} WHERE image_id = ${img.id}`
           );
           return {
             imageId: img.id,
@@ -507,7 +512,6 @@ export function registerRoutes(app: Express): Server {
       });
     }
   });
-
 
   // Comment submission endpoint
   protectedRouter.post('/images/:imageId/comments', async (req: Request, res) => {
