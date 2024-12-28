@@ -53,7 +53,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Gallery not found' });
       }
 
-      // Fetch images
+      // Fetch images with proper ordering
       const galleryImages = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
         orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)]
@@ -82,6 +82,12 @@ export function registerRoutes(app: Express): Server {
         starred: img.starred,
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
+
+      console.log('[Route Debug] Successfully fetched gallery:', {
+        galleryId: gallery.id,
+        imageCount: processedImages.length,
+        hasOwner: !!gallery.userId
+      });
 
       res.json({
         id: gallery.id,

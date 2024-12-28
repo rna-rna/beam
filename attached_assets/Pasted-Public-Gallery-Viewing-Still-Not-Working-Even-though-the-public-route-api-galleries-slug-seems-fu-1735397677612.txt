@@ -1,0 +1,86 @@
+Public Gallery Viewing Still Not Working
+
+Even though the public route /api/galleries/:slug seems functional, the frontend might still be blocking unauthenticated users.
+This could be due to unnecessary redirects in the frontend permissions logic (use-gallery-permissions.ts) or early redirects in routing.
+Logged-In Owners Redirect to Dashboard Instead of Staying in the Gallery
+
+The redirect logic for owners might still be forcing a /dashboard route, likely due to Clerk’s default settings or missing redirect parameters during login.
+1. Fix Public Gallery Viewing (Frontend Route Handling)
+Problem:
+
+Even if /api/galleries/:slug returns data for public users, the frontend may automatically redirect unauthenticated users away.
+The issue likely stems from use-gallery-permissions.ts or route guards applied in the gallery component (Gallery.tsx).
+Solution – Adjust Frontend Guard Logic:
+
+Modify use-gallery-permissions.ts to avoid unnecessary blocking for public users:
+Before (Restrictive):
+
+tsx
+Copy code
+const { required, redirectPath } = requiresAuth('view');
+if (required) {
+  navigate('/login');
+}
+Fix (Allow Viewing, Block Interaction):
+
+tsx
+Copy code
+const { required, redirectPath } = requiresAuth('comment');
+if (required) {
+  openModal('Sign in to comment');
+}
+Why This Works:
+Users can always view the gallery but are only blocked from interactive features (like commenting or starring).
+This reduces unnecessary redirections.
+2. Fix Gallery Owner Redirect (Stay in Gallery Post-Login)
+Problem:
+
+Even if the modal (AuthModal.tsx) sets the correct redirectUrl, Clerk might still send owners to /dashboard post-login by default.
+Solution – Override Clerk’s Default Redirect Path:
+
+In AuthModal.tsx, ensure the redirectUrl is enforced for both sign-in and sign-up flows:
+tsx
+Copy code
+const handleSignIn = () => {
+  onClose();
+  openSignIn({
+    redirectUrl: redirectPath || window.location.pathname,
+    afterSignInUrl: redirectPath || window.location.pathname
+  });
+};
+This explicitly ensures users return to the gallery instead of /dashboard.
+Backend Route (Optional Double Check):
+
+If Clerk still forces /dashboard in certain cases, update the protected route for logged-in users in routes.ts to conditionally redirect them back to the gallery.
+ts
+Copy code
+protectedRouter.get('/galleries/:slug', async (req: any, res) => {
+  const userId = req.auth.userId;
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.slug, req.params.slug),
+  });
+
+  if (!gallery) {
+    return res.status(404).json({ message: 'Gallery not found' });
+  }
+
+  const isOwner = gallery.userId === userId;
+  if (isOwner) {
+    return res.redirect(`/galleries/${gallery.slug}`);
+  }
+
+  res.json(gallery); // Allow non-owners to fetch gallery details
+});
+Testing & Debugging:
+Test Logged-Out Users
+
+Visit /galleries/:slug while logged out.
+The gallery should load without redirecting to /login or /dashboard.
+Try commenting or starring—ensure the modal triggers instead of a full-page redirect.
+Test Gallery Owners (Logged-In):
+
+Visit your gallery directly by slug (e.g., /galleries/my-gallery).
+After logging in, ensure you stay on the gallery page instead of being redirected to /dashboard.
+Test Non-Owners (Logged-In):
+
+Signed-in users who don’t own the gallery should be able to view it but cannot edit/delete.
