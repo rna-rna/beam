@@ -24,12 +24,19 @@ export function AuthModal({
   const { signIn } = useAuth();
 
   const handleSignIn = () => {
-    console.log('[Auth Debug] Initiating sign in with redirect:', redirectPath || window.location.pathname);
+    const targetPath = redirectPath || window.location.pathname;
+    console.log('[Auth Debug] Sign in attempt:', {
+      currentPath: window.location.pathname,
+      redirectPath,
+      targetPath,
+      timestamp: new Date().toISOString()
+    });
+
     onClose();
     signIn.create({
-      redirectUrl: redirectPath || window.location.pathname,
+      redirectUrl: targetPath,
       initialValues: {
-        redirectUrl: redirectPath || window.location.pathname
+        redirectUrl: targetPath
       }
     });
   };
