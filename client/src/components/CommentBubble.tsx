@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { MessageCircle } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { useUser } from "@clerk/clerk-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 interface CommentBubbleProps {
   x: number;
@@ -12,21 +14,75 @@ interface CommentBubbleProps {
   author?: string;
   onSubmit?: (content: string) => void;
   isNew?: boolean;
+  imageId?: number;
 }
 
-export function CommentBubble({ x, y, content, author, onSubmit, isNew = false }: CommentBubbleProps) {
+export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, imageId }: CommentBubbleProps) {
   const [isEditing, setIsEditing] = useState(isNew);
   const [text, setText] = useState(content || "");
   const { user } = useUser();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const commentMutation = useMutation({
+    mutationFn: async (content: string) => {
+      if (!user) {
+        throw new Error('Please sign in to add comments');
+      }
+
+      const response = await fetch(`/api/images/${imageId}/comments`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          content,
+          xPosition: x,
+          yPosition: y,
+          userId: user.id
+        }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add comment');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+      toast({
+        title: "Comment added",
+        duration: 2000
+      });
+      if (onSubmit) {
+        onSubmit(text);
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: error.message || "Failed to add comment",
+        variant: "destructive",
+        duration: 2000
+      });
+    }
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      return; // Early return if not authenticated
+      toast({
+        title: "Please sign in to comment",
+        variant: "destructive",
+        duration: 2000
+      });
+      return;
     }
 
-    if (text.trim() && onSubmit) {
-      onSubmit(text);
+    if (text.trim()) {
+      commentMutation.mutate(text);
       setIsEditing(false);
     }
   };

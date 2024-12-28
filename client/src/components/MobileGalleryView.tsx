@@ -320,7 +320,8 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
           x={50}
           y={50}
           isNew={true}
-          onSubmit={(content) => {
+          imageId={images[currentIndex].id}
+          onSubmit={() => {
             setShowCommentBubble(false);
             queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
           }}
