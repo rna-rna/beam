@@ -73,11 +73,21 @@ export function registerRoutes(app: Express): Server {
         where: eq(galleries.userId, userId),
         orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
         with: {
-          images: true
+          images: {
+            orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)],
+            limit: 1 // Get only the first image for thumbnail
+          }
         }
       });
 
-      res.json(userGalleries);
+      // Transform the response to include thumbnailUrl
+      const galleriesWithThumbnails = userGalleries.map(gallery => ({
+        ...gallery,
+        thumbnailUrl: gallery.images[0]?.url || null,
+        imageCount: gallery.images.length
+      }));
+
+      res.json(galleriesWithThumbnails);
     } catch (error) {
       console.error('Failed to fetch galleries:', error);
       res.status(500).json({ message: 'Failed to fetch galleries' });
