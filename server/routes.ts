@@ -8,6 +8,7 @@ import { galleries, images, comments } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { clerkClient } from '@clerk/clerk-sdk-node';
+import { nanoid } from 'nanoid';
 
 // Add Clerk types to Express Request
 declare global {
@@ -687,7 +688,6 @@ export function registerRoutes(app: Express): Server {
 }
 
 function generateSlug(): string {
-  const { nanoid } = require('nanoid');
   // Generate a URL-friendly unique identifier
   // Using a shorter length (10) for more readable URLs while maintaining uniqueness
   return nanoid(10);
