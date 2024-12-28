@@ -1,14 +1,28 @@
+import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams } from "wouter";
-import { useToast } from "@/hooks/use-toast";
-import Masonry from "react-masonry-css";
-import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
-import { MobileGalleryView } from "@/components/MobileGalleryView";
-import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
-import { Upload, Grid, LayoutGrid, Filter, CheckSquare } from "lucide-react";
+import {
+  Upload,
+  Grid,
+  LayoutGrid,
+  Filter,
+  MessageSquare,
+  SquareDashedMousePointer,
+  Link,
+  Download,
+  MoreVertical,
+  Star,
+  Trash2,
+  CheckCircle,
+  Loader2,
+  Moon,
+  Sun,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  Paintbrush,
+  MessageCircle
+} from "lucide-react";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -16,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Switch } from "@/components/ui/switch";
+import { Switch as SwitchComponent } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
@@ -34,31 +48,19 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// Icons
-import {
-  MessageCircle,
-  Paintbrush,
-  Settings,
-  Link,
-  Star,
-  Download,
-  Menu as MenuIcon,
-  ChevronLeft,
-  ChevronRight,
-  ArrowUpDown,
-  Trash2,
-  CheckCircle,
-  Loader2,
-  MoreVertical
-} from "lucide-react";
-
 // Components
 import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-
+import { MobileGalleryView } from "@/components/MobileGalleryView";
+import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
+import { useToast } from "@/hooks/use-toast";
+import Masonry from "react-masonry-css";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 
 interface GalleryProps {
@@ -103,6 +105,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
   const [showApproved, setShowApproved] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false); // Added dark mode state
+
 
   // Add mobile detection
   useEffect(() => {
@@ -552,12 +556,32 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   }, [gallery, isReorderMode, queryClient, reorderImageMutation, slug]);
 
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    // Add your dark mode logic here, e.g., toggle a class on the body element
+  };
+
   const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
 
     return (
       <div className="flex items-center gap-2 bg-black/90 p-2 rounded-lg"> {/* Added dark background */}
         <TooltipProvider>
+          {/* Copy Link Button - Moved out of dropdown */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 text-white hover:bg-white/10"
+                onClick={handleCopyLink}
+              >
+                <Link className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Copy Link</TooltipContent>
+          </Tooltip>
+
           {/* Gallery Actions Menu */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -573,13 +597,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      onClick={handleCopyLink}
-                      className="flex items-center gap-2"
-                    >
-                      <Link className="w-4 h-4 text-white" />
-                      Copy Link
-                    </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={handleDownloadAll}
                       className="flex items-center gap-2"
@@ -603,8 +620,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     size="icon"
                     variant="ghost"
                     className={`h-9 w-9 text-white hover:bg-white/10 ${
-                      (showStarredOnly || showWithComments || showApproved) 
-                        ? 'text-white/90' 
+                      (showStarredOnly || showWithComments || showApproved)
+                        ? 'text-white/90'
                         : ''
                     }`}
                   >
@@ -629,7 +646,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       <div className="flex items-center flex-1">
-                        <MessageCircle className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
+                        <MessageSquare className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
                         Has Comments
                       </div>
                       {showWithComments && <CheckCircle className="w-4 h-4 text-primary" />}
@@ -715,10 +732,29 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 }`}
                 onClick={toggleSelectMode}
               >
-                <CheckSquare className="h-4 w-4" />
+                <SquareDashedMousePointer className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
+          </Tooltip>
+
+          {/* Dark Mode Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 text-white hover:bg-white/10"
+                onClick={toggleDarkMode}
+              >
+                {isDarkMode ? (
+                  <Moon className="h-4 w-4" />
+                ) : (
+                  <Sun className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Toggle Dark Mode</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
@@ -738,7 +774,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     handleStarredToggle,
     handleReorderToggle,
     toggleReorderMode,
-    toggleSelectMode
+    toggleSelectMode,
+    toggleDarkMode,
+    isDarkMode
   ]);
 
   const renderImage = (image: Image, index: number) => (
@@ -839,7 +877,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             className="absolute top-2 right-2 bg-primary text-primary-foreground flex items-center gap-1"
             variant="secondary"
           >
-            <MessageCircle className="w-3 h-3" />
+            <MessageSquare className="w-3 h-3" />
             {image.commentCount}
           </Badge>
         )}
@@ -1194,7 +1232,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
               <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
                 <div className="flex items-center gap-2">
-                  <Switch
+                  <SwitchComponent
                     checked={showAnnotations}
                     onCheckedChange={setShowAnnotations}
                     className="data-[state=checked]:bg-primary h-5 w-9"
@@ -1202,7 +1240,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   <span className="text-xs font-medium text-white">Comments</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch
+                  <SwitchComponent
                     checked={showFilename}
                     onCheckedChange={setShowFilename}
                     className="data-[state=checked]:bg-primary h-5 w-9"
