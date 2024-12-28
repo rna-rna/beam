@@ -162,9 +162,8 @@ export default function Dashboard() {
           {galleries.map((gallery) => (
             <Card
               key={gallery.id}
-              className="group hover:shadow-lg transition-all duration-200 relative"
+              className="group hover:shadow-lg transition-all duration-200"
             >
-              {/* Card Content (clickable area) */}
               <div
                 className="cursor-pointer"
                 onClick={() => setLocation(`/g/${gallery.slug}`)}
