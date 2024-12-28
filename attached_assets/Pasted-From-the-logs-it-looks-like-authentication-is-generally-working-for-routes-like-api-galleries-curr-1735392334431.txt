@@ -1,0 +1,75 @@
+From the logs, it looks like authentication is generally working for routes like /api/galleries/current and /api/galleries/create since the server successfully identifies the user and creates a gallery. However, there are key things to unpack regarding the "Authentication failed" error you're facing with comment submission.
+
+What's Happening in the Logs:
+hasAuth: true but headers: 'missing' – This shows that while the authentication middleware expects a token (hasAuth: true), the Authorization header isn't present (headers: 'missing').
+
+For successful routes (/api/galleries/create), headers: 'present' indicates that the token is being passed correctly.
+
+Root Cause:
+The issue is isolated to routes where the Authorization header is missing:
+
+Authorization token isn't attached properly during fetch calls for comments.
+This could be caused by:
+getToken() failure – The token retrieval might intermittently fail.
+Comment fetch call skips attaching the header – The code path that triggers comment submission may not correctly pass the token.
+Protected route middleware – The backend might enforce stricter checks on certain routes (/api/images/:id/comments) than others.
+Solution:
+1. Ensure Token Retrieval is Robust:
+In CommentBubble.tsx:
+
+tsx
+Copy code
+const token = await getToken().catch(() => null);
+console.log("Token:", token);
+
+if (!token) {
+  toast({
+    title: "Authentication Error",
+    description: "Please sign in again.",
+    variant: "destructive",
+  });
+  return;
+}
+Why: This will help confirm if getToken() is failing. If the log shows null, focus on Clerk setup.
+2. Force Attach the Token to All Requests:
+Modify the fetch call in CommentBubble.tsx to enforce the token:
+
+tsx
+Copy code
+const response = await fetch(`/api/images/${imageId}/comments`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : ''
+  },
+  body: JSON.stringify({
+    content,
+    xPosition: x,
+    yPosition: y,
+    userId: user?.id
+  })
+});
+Why: Even if token is empty, the request will still include an Authorization header (though invalid), making the error clearer if the backend expects it.
+3. Backend: Relax Auth Requirement for Debugging
+If the issue persists, temporarily modify the backend to bypass strict auth checks for comment submission (for debugging purposes):
+
+ts
+Copy code
+const token = req.headers.authorization?.split(" ")[1];
+if (!token) {
+  console.warn("Missing auth token – allowing for debug");
+  return next();  // Let the request pass temporarily
+}
+Why: This lets you determine if the issue is purely with the Authorization header.
+4. Add Fallback to userId in Payload:
+Even if the token fails, make sure the user ID is included in the request:
+
+tsx
+Copy code
+body: JSON.stringify({
+  content,
+  xPosition: x,
+  yPosition: y,
+  userId: user?.id || "anonymous"
+})
+Why: This ensures the server can associate the comment even if token validation fails momentarily.

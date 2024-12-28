@@ -1,4 +1,4 @@
-import { ClerkExpressRequireAuth, ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
+import { ClerkExpressRequireAuth, ClerkExpressWithAuth, clerkClient } from '@clerk/clerk-sdk-node';
 import { type Express, Response, NextFunction } from "express";
 
 // Ensure required environment variables are present
@@ -26,7 +26,7 @@ export function setupClerkAuth(app: Express) {
 }
 
 // Helper to extract user information from Clerk session
-export function extractUserInfo(req: any) {
+export async function extractUserInfo(req: any) {
   console.log('Debug - Extracting user info:', {
     hasAuth: !!req.auth,
     hasUser: !!req.auth?.user,
@@ -46,7 +46,21 @@ export function extractUserInfo(req: any) {
     throw new Error('User ID not found in session');
   }
 
-  const user = req.auth.user;
+  // Fetch user details from Clerk if not available in auth
+  let user = req.auth.user;
+  if (!user) {
+    try {
+      user = await clerkClient.users.getUser(req.auth.userId);
+      console.log('Debug - Retrieved user from Clerk:', {
+        userId: user.id,
+        hasUser: !!user
+      });
+    } catch (error) {
+      console.error('Debug - Failed to fetch user from Clerk:', error);
+      throw new Error('Failed to retrieve user information');
+    }
+  }
+
   console.log('Debug - User object:', {
     userId: req.auth.userId,
     hasUser: !!user,
