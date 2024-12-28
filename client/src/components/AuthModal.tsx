@@ -12,10 +12,24 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   action?: string;
+  redirectPath?: string;
 }
 
-export function AuthModal({ isOpen, onClose, action = "continue" }: AuthModalProps) {
+export function AuthModal({ 
+  isOpen, 
+  onClose, 
+  action = "continue",
+  redirectPath 
+}: AuthModalProps) {
   const { openSignIn } = useAuth();
+
+  const handleSignIn = () => {
+    onClose();
+    // Pass the current path as redirect URL
+    openSignIn({
+      redirectUrl: redirectPath || window.location.pathname
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -30,10 +44,7 @@ export function AuthModal({ isOpen, onClose, action = "continue" }: AuthModalPro
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={() => {
-            onClose();
-            openSignIn();
-          }}>
+          <Button onClick={handleSignIn}>
             Sign In
           </Button>
         </div>
