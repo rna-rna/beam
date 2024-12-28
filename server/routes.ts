@@ -504,7 +504,7 @@ export function registerRoutes(app: Express): Server {
         id: gallery.id,
         slug: gallery.slug,
         title: gallery.title,
-        userId: gallery.userId, // Add this line to include the owner's ID
+        userId: gallery.userId,
         images: processedImages
       });
     } catch (error) {
