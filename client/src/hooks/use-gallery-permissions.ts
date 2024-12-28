@@ -9,7 +9,7 @@ interface GalleryPermissions {
   isOwner: boolean;
 }
 
-export function useGalleryPermissions(galleryUserId?: string) {
+export function useGalleryPermissions(galleryUserId?: string): GalleryPermissions {
   const { isSignedIn } = useAuth();
   const { user } = useUser();
 
