@@ -499,10 +499,12 @@ export function registerRoutes(app: Express): Server {
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
 
+      // Include userId in the response for ownership checks
       res.json({
         id: gallery.id,
         slug: gallery.slug,
         title: gallery.title,
+        userId: gallery.userId, // Add this line to include the owner's ID
         images: processedImages
       });
     } catch (error) {
