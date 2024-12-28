@@ -8,14 +8,20 @@ if (!process.env.CLERK_SECRET_KEY) {
 
 export function setupClerkAuth(app: Express) {
   // Add enhanced debug logging
-  console.log('[Auth Setup] Initializing Clerk authentication...');
+  console.log('[Auth Setup] Initializing Clerk authentication...', {
+    hasSecretKey: !!process.env.CLERK_SECRET_KEY,
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
 
   // Initialize Clerk middleware with enhanced debug logging
   app.use((req, res, next) => {
     console.log(`[Auth Debug] Incoming request to ${req.path}`, {
       hasAuth: !!req.headers.authorization,
       method: req.method,
-      query: req.query
+      query: req.query,
+      referrer: req.headers.referer || 'none',
+      timestamp: new Date().toISOString()
     });
     next();
   });
@@ -25,7 +31,8 @@ export function setupClerkAuth(app: Express) {
       console.error('[Clerk Auth Error]', {
         message: err.message,
         stack: err.stack,
-        name: err.name
+        name: err.name,
+        timestamp: new Date().toISOString()
       });
       return null; // Allow request to continue for public routes
     }
@@ -37,7 +44,8 @@ export function setupClerkAuth(app: Express) {
       console.error('[Protected Route Error]:', {
         message: error.message,
         stack: error.stack,
-        name: error.name
+        name: error.name,
+        timestamp: new Date().toISOString()
       });
       return {
         success: false,
@@ -57,7 +65,9 @@ export async function extractUserInfo(req: any) {
       hasAuth: !!req.auth,
       hasUserId: !!req.auth?.userId,
       headers: !!req.headers.authorization,
-      path: req.path
+      path: req.path,
+      timestamp: new Date().toISOString(),
+      originalUrl: req.originalUrl
     });
 
     if (!req.auth) {
@@ -75,7 +85,8 @@ export async function extractUserInfo(req: any) {
     } catch (error: any) {
       console.error('[Clerk API Error]', {
         message: error.message,
-        userId: req.auth.userId
+        userId: req.auth.userId,
+        timestamp: new Date().toISOString()
       });
       throw new Error('Failed to fetch user details');
     }
@@ -91,14 +102,14 @@ export async function extractUserInfo(req: any) {
     const email = user.emailAddresses?.[0]?.emailAddress;
 
     // Determine best display name to use
-    const userName = firstName && lastName ? 
-      `${firstName} ${lastName}` : 
-      username || 
-      email || 
+    const userName = firstName && lastName ?
+      `${firstName} ${lastName}` :
+      username ||
+      email ||
       'Unknown User';
 
     // Get user's profile image if available
-    const userImageUrl = user.imageUrl || user.profileImageUrl;
+    const userImageUrl = user.imageUrl || null;
 
     const userInfo = {
       userId: req.auth.userId,
@@ -109,14 +120,16 @@ export async function extractUserInfo(req: any) {
     console.log('[Auth Debug] Successfully extracted user info:', {
       userId: userInfo.userId,
       hasName: !!userInfo.userName,
-      hasImage: !!userInfo.userImageUrl
+      hasImage: !!userInfo.userImageUrl,
+      timestamp: new Date().toISOString()
     });
 
     return userInfo;
   } catch (error: any) {
     console.error('[Auth Debug] Error extracting user info:', {
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
+      timestamp: new Date().toISOString()
     });
     throw error;
   }
