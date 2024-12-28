@@ -10,26 +10,6 @@ import { setupClerkAuth, extractUserInfo } from './auth';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { nanoid } from 'nanoid';
 
-// Add Clerk types to Express Request
-declare global {
-  namespace Express {
-    interface Request {
-      auth: {
-        userId: string;
-        user?: {
-          id: string;
-          firstName?: string;
-          lastName?: string;
-          username?: string;
-          emailAddresses?: Array<{ emailAddress: string; verified: boolean }>;
-          imageUrl?: string;
-          profileImageUrl?: string;
-        };
-      };
-    }
-  }
-}
-
 // Configure multer for local storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -59,10 +39,78 @@ export function registerRoutes(app: Express): Server {
   // Get Clerk auth middleware
   const protectRoute = setupClerkAuth(app);
 
-  // Protected routes with full user data
-  const protectedRouter = express.Router();
+  // Public Routes (No authentication required)
 
-  // Apply auth middleware to all protected routes
+  // Get gallery details (public view)
+  app.get('/api/galleries/:slug', async (req, res) => {
+    try {
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, req.params.slug),
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      const galleryImages = await db.query.images.findMany({
+        where: eq(images.galleryId, gallery.id),
+        orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)]
+      });
+
+      const commentCounts = await Promise.all(
+        galleryImages.map(async (img) => {
+          const result = await db.execute(
+            sql`SELECT COUNT(*) as count FROM comments WHERE image_id = ${img.id}`
+          );
+          return { imageId: img.id, count: parseInt(result.rows[0]?.count || '0', 10) };
+        })
+      );
+
+      const processedImages = galleryImages.map(img => ({
+        id: img.id,
+        url: img.url,
+        width: img.width,
+        height: img.height,
+        aspectRatio: img.width / img.height,
+        starred: img.starred,
+        originalFilename: img.originalFilename,
+        commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
+      }));
+
+      res.json({
+        id: gallery.id,
+        slug: gallery.slug,
+        title: gallery.title,
+        userId: gallery.userId,
+        images: processedImages
+      });
+    } catch (error) {
+      console.error('Gallery fetch error:', error);
+      res.status(500).json({ message: 'Failed to fetch gallery' });
+    }
+  });
+
+  // Get comments for an image (public)
+  app.get('/api/images/:imageId/comments', async (req, res) => {
+    try {
+      const imageComments = await db.query.comments.findMany({
+        where: eq(comments.imageId, parseInt(req.params.imageId)),
+        orderBy: (comments, { asc }) => [asc(comments.createdAt)]
+      });
+
+      res.json(imageComments);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch comments',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Protected Routes (Authentication required)
+  const protectedRouter = express.Router();
   protectedRouter.use(protectRoute);
 
   // Get galleries for current user (main endpoint)
@@ -460,59 +508,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get gallery details (public view)
-  app.get('/api/galleries/:slug', async (req, res) => {
-    try {
-      const gallery = await db.query.galleries.findFirst({
-        where: eq(galleries.slug, req.params.slug),
-      });
-
-      if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
-      }
-
-      const galleryImages = await db.query.images.findMany({
-        where: eq(images.galleryId, gallery.id),
-        orderBy: (images, { asc }) => [
-          asc(images.position),
-          asc(images.createdAt)
-        ]
-      });
-
-      const commentCounts = await Promise.all(
-        galleryImages.map(async (img) => {
-          const result = await db.execute(
-            sql`SELECT COUNT(*) as count FROM comments WHERE image_id = ${img.id}`
-          );
-          return { imageId: img.id, count: parseInt(result.rows[0]?.count || '0', 10) };
-        })
-      );
-
-      const processedImages = galleryImages.map(img => ({
-        id: img.id,
-        url: img.url,
-        width: img.width,
-        height: img.height,
-        aspectRatio: img.width / img.height,
-        starred: img.starred,
-        originalFilename: img.originalFilename,
-        commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
-      }));
-
-      // Include userId in the response for ownership checks
-      res.json({
-        id: gallery.id,
-        slug: gallery.slug,
-        title: gallery.title,
-        userId: gallery.userId,
-        images: processedImages
-      });
-    } catch (error) {
-      console.error('Gallery fetch error:', error);
-      res.status(500).json({ message: 'Failed to fetch gallery' });
-    }
-  });
-
 
   // Comment submission endpoint
   protectedRouter.post('/images/:imageId/comments', async (req: Request, res) => {
@@ -593,24 +588,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get comments for an image
-  app.get('/api/images/:imageId/comments', async (req, res) => {
-    try {
-      const imageComments = await db.query.comments.findMany({
-        where: eq(comments.imageId, parseInt(req.params.imageId)),
-        orderBy: (comments, { asc }) => [asc(comments.createdAt)]
-      });
-
-      res.json(imageComments);
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch comments',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
 
   // Get current gallery (most recently created/accessed)
   protectedRouter.get('/galleries/current', async (req: any, res) => {
@@ -742,7 +719,5 @@ export function registerRoutes(app: Express): Server {
 }
 
 function generateSlug(): string {
-  // Generate a URL-friendly unique identifier
-  // Using a shorter length (10) for more readable URLs while maintaining uniqueness
   return nanoid(10);
 }
