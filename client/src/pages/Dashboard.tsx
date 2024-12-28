@@ -197,7 +197,7 @@ export default function Dashboard() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive hover:text-destructive-foreground"
+                          className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-destructive hover:text-destructive-foreground"
                           onClick={(e) => {
                             e.stopPropagation();
                             setGalleryToDelete(gallery);
