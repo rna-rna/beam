@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Toolbar } from "./Toolbar";
 import { useUser, useAuth } from "@clerk/clerk-react";
+import { CommentBubble } from "./CommentBubble";
 
 interface MobileGalleryViewProps {
   images: Image[];
@@ -16,11 +17,11 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isDragging, setIsDragging] = useState(false);
   const [images, setImages] = useState(initialImages);
+  const [showCommentBubble, setShowCommentBubble] = useState(false);
   const startDistanceRef = useRef(0);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user } = useUser();
-  const { getToken } = useAuth();
 
   // Motion values for gestures
   const dragX = useMotionValue(0);
@@ -31,7 +32,7 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
 
   // Transform values for animations
   const imageOpacity = useTransform(scaleValue, [1, 3], [1, 1], { clamp: true });
-  const swipeOpacity = useTransform(dragY, [-400, 0, 400], [1, 1, 0], { clamp: true });
+  const swipeOpacity = useTransform(dragY, [-400, 0, 400], [1, 1, 0]);
   const dragScale = useTransform(dragY, [0, 400], [1, 0.7]);
   const revealOpacity = useTransform(dragY, [-600, 0, 400], [0.1, 1, 0]);
 
@@ -89,55 +90,6 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
     });
   };
 
-  // Comment mutation
-  const commentMutation = useMutation({
-    mutationFn: async (comment: string) => {
-      if (!user) {
-        throw new Error('Please sign in to add comments');
-      }
-
-      const token = await getToken();
-      if (!token) {
-        throw new Error('Authentication token not available');
-      }
-
-      const response = await fetch(`/api/images/${images[currentIndex].id}/comments`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ 
-          content: comment,
-          xPosition: 50, 
-          yPosition: 50
-        }),
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to add comment');
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
-      toast({
-        title: "Comment added",
-        duration: 2000
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: error.message || "Failed to add comment",
-        variant: "destructive",
-        duration: 2000
-      });
-    }
-  });
-
   const handleComment = () => {
     if (!user) {
       toast({
@@ -148,10 +100,7 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
       return;
     }
 
-    const comment = prompt('Add a comment:');
-    if (comment) {
-      commentMutation.mutate(comment);
-    }
+    setShowCommentBubble(true);
   };
 
   const clampPan = (value: number, maxDistance: number) => {
@@ -365,6 +314,18 @@ export function MobileGalleryView({ images: initialImages, initialIndex, onClose
           </AnimatePresence>
         </div>
       </motion.div>
+
+      {showCommentBubble && (
+        <CommentBubble
+          x={50}
+          y={50}
+          isNew={true}
+          onSubmit={(content) => {
+            setShowCommentBubble(false);
+            queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+          }}
+        />
+      )}
 
       <Toolbar
         isStarred={images[currentIndex]?.starred ?? false}
