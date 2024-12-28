@@ -7,8 +7,9 @@ import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { MobileGalleryView } from "@/components/MobileGalleryView";
-import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
-import { Upload, Grid, LayoutGrid, Filter } from "lucide-react";
+import { GalleryHeader } from "@/components/GalleryHeader"; //This line might be removed depending on the new header implementation.
+import type { Image, Gallery as GalleryType } from "@/types/gallery";
+import { Upload, Grid, LayoutGrid, Filter, Search, Sun, Moon, Check } from "lucide-react";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -21,12 +22,11 @@ import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+
 
 // Icons
 import {
@@ -57,7 +57,6 @@ import { Label } from "@/components/ui/label";
 interface GalleryProps {
   slug?: string;
   title: string;
-  onHeaderActionsChange?: (actions: React.ReactNode) => void;
 }
 
 interface ImageDimensions {
@@ -65,7 +64,7 @@ interface ImageDimensions {
   height: number;
 }
 
-export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
+export default function Gallery({ slug: propSlug, title }: GalleryProps) {
   // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
@@ -97,6 +96,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [filterOpen, setFilterOpen] = useState(false);
   const [showWithComments, setShowWithComments] = useState(false);
   const [showApproved, setShowApproved] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'masonry'>('grid');
+  const [selectionMode, setSelectionMode] = useState<'none' | 'multiple'>('none');
+  const [selectedCount, setSelectedCount] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+
 
   // Add mobile detection
   useEffect(() => {
@@ -481,6 +487,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         ? prev.filter(id => id !== imageId)
         : [...prev, imageId]
     );
+    setSelectedCount(selectedImages.length);
   };
 
   const toggleReorderMode = () => {
@@ -545,179 +552,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       reorderImageMutation.mutate(updatedImages.map(img => img.id));
     }
   }, [gallery, isReorderMode, queryClient, reorderImageMutation, slug]);
-
-  const renderGalleryControls = useCallback(() => {
-    if (!gallery) return null;
-
-    return (
-      <div className="flex items-center gap-2">
-        {/* Gallery Actions Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <MenuIcon className="w-4 h-4" />
-              Actions
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={handleCopyLink}
-                className="flex items-center gap-2"
-              >
-                <Link className="w-4 h-4" />
-                Copy Link
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleDownloadAll}
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download All
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={handleStarredToggle}
-                className="flex items-center gap-2"
-              >
-                <Star className={`w-4 h-4 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-                {showStarredOnly ? 'Show All' : 'Show Starred'}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleReorderToggle}
-                className="flex items-center gap-2"
-              >
-                <ArrowUpDown className="w-4 h-4" />
-                {isReorderMode ? 'Done Reordering' : 'Reorder Images'}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Filter Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Filter className="w-4 h-4" />
-              Filter {(showStarredOnly || showWithComments || showApproved) && '•'}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={() => setShowStarredOnly(!showStarredOnly)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <Star className={`w-4 h-4 mr-2 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-                  Show Starred
-                </div>
-                {showStarredOnly && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowWithComments(!showWithComments)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <MessageCircle className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
-                  Has Comments
-                </div>
-                {showWithComments && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowApproved(!showApproved)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className="flex items-center flex-1">
-                  <CheckCircle className={`w-4 h-4 mr-2 ${showApproved ? 'text-primary' : ''}`} />
-                  Approved
-                </div>
-                {showApproved && <CheckCircle className="w-4 h-4 text-primary" />}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => {
-                setShowStarredOnly(false);
-                setShowWithComments(false);
-                setShowApproved(false);
-              }}
-              className="text-sm text-muted-foreground"
-            >
-              Reset Filters
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {isUploading && (
-          <div className="flex items-center gap-4">
-            <Progress value={undefined} className="w-24" />
-            <span className="text-sm text-muted-foreground">Uploading...</span>
-          </div>
-        )}
-
-        {selectMode && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleReorderMode}
-              className={isReorderMode ? "bg-primary text-primary-foreground" : ""}
-            >
-              {isReorderMode ? "Done Reordering" : "Reorder"}
-            </Button>
-            {selectedImages.length > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => deleteImagesMutation.mutate(selectedImages)}
-                className="flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete ({selectedImages.length})
-              </Button>
-            )}
-          </>
-        )}
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleSelectMode}
-          className={selectMode ? "bg-primary text-primary-foreground" : ""}
-        >
-          {selectMode ? "Done" : "Select"}
-        </Button>
-      </div>
-    );
-  }, [
-    gallery,
-    isUploading,
-    selectMode,
-    isReorderMode,
-    selectedImages.length,
-    showStarredOnly,
-    showWithComments,
-    showApproved,
-    deleteImagesMutation,
-    handleCopyLink,
-    handleDownloadAll,
-    handleStarredToggle,
-    handleReorderToggle,
-    toggleReorderMode,
-    toggleSelectMode
-  ]);
 
   const renderImage = (image: Image, index: number) => (
     <motion.div
@@ -865,28 +699,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
 
-  useEffect(() => {
-    const controls = renderGalleryControls();
-    onHeaderActionsChange?.(controls);
-  }, [onHeaderActionsChange, renderGalleryControls]);
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-2xl font-bold text-foreground">Failed to load gallery</h1>
-      </div>
-    );
-  }
-
-  if (!gallery && !isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-2xl font-bold text-foreground">Gallery not found</h1>
-      </div>
-    );
-  }
-
-  // Modify the image click handler in the gallery grid
   const handleImageClick = (index: number) => {
     if (isMobile) {
       setMobileViewIndex(index);
@@ -917,9 +730,110 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       />
     );
   };
+
+  // Handlers for GalleryHeader - These are now in the new header
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    // Implement search logic here
+  };
+
+  const onSort = (option: 'recent' | 'popular' | 'alphabetical') => {
+      //Implement sort logic here
+  };
+
+  const toggleTheme = () => {
+    setIsDark(!isDark);
+  };
+
+
   return (
     <div className="min-h-screen relative" {...getRootProps()}>
       <input {...getInputProps()} />
+
+      {/* New minimal header */}
+      <header className="sticky top-0 z-10 backdrop-blur-lg bg-background/50 border-b">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          {searchOpen ? (
+            <div className="flex-1 max-w-md">
+              <Input
+                type="search"
+                placeholder="Search images..."
+                className="w-full"
+                onChange={(e) => handleSearch(e.target.value)}
+                autoFocus
+                onBlur={() => setSearchOpen(false)}
+              />
+            </div>
+          ) : (
+            <h1 className="text-lg font-medium">
+              {selectedImages.length > 0
+                ? `${selectedImages.length} selected`
+                : 'Gallery'
+              }
+            </h1>
+          )}
+
+          <div className="flex items-center gap-2">
+            {!searchOpen && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearchOpen(true)}
+                className="hover:bg-accent"
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+            )}
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMasonry(!isMasonry)}
+              className="hover:bg-accent"
+            >
+              <Grid className="h-5 w-5" />
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="hover:bg-accent">
+                  <Filter className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onSort('recent')}>
+                  Most Recent
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onSort('popular')}>
+                  Most Popular
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onSort('alphabetical')}>
+                  Alphabetical
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="hover:bg-accent"
+            >
+              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectMode(!selectMode)}
+              className="hover:bg-accent"
+            >
+              <Check className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
       {isDragActive && !selectMode && (
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="text-center">
