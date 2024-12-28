@@ -14,7 +14,6 @@ import { Upload, Grid, LayoutGrid, Filter } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -905,55 +904,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (!selectedImage || !newCommentPos) return null;
 
     return (
-      <Dialog open={!!newCommentPos} onOpenChange={() => setNewCommentPos(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Comment</DialogTitle>
-          </DialogHeader>
-          <form
-            onSubmit={(e) =>{
-              e.preventDefault();
-              const form = e.target as HTMLFormElement;
-              const content = (form.elements.namedItem('content') as HTMLTextAreaElement).value;
-
-              createCommentMutation.mutate({
-                imageId: selectedImage.id,
-                content,
-                x: newCommentPos.x,
-                y: newCommentPos.y
-              });
-            }}
-            className="space-y-4"
-          >
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="content">Comment</Label>
-                <Textarea
-                  id="content"
-                  name="content"
-                  placeholder="Enter your comment..."
-                  required
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="submit"
-                disabled={createCommentMutation.isPending}
-              >
-                {createCommentMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Adding Comment...
-                  </>
-                ) : (
-                  'Add Comment'
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CommentBubble
+        x={newCommentPos.x}
+        y={newCommentPos.y}
+        isNew={true}
+        imageId={selectedImage.id}
+        onSubmit={() => {
+          setNewCommentPos(null);
+          queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+        }}
+      />
     );
   };
 
