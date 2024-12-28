@@ -470,7 +470,7 @@ export function registerRoutes(app: Express): Server {
 
       try {
         // Extract user information using helper
-        const { userId, userName, userImageUrl } = extractUserInfo(req);
+        const { userId, userName, userImageUrl } = await extractUserInfo(req);
         console.log('Debug - Comment creation:', {
           userId,
           imageId,
