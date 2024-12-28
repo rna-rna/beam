@@ -101,7 +101,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [isMasonry, setIsMasonry] = useState(true);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [showWithComments, setShowWithComments] = useState(false);
   const [showApproved, setShowApproved] = useState(false);
 
@@ -611,17 +610,66 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <TooltipContent>Actions</TooltipContent>
           </Tooltip>
 
-          {/* Filter Button */}
+          {/* Filter Menu */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className={`h-9 w-9 hover:bg-transparent ${(showStarredOnly || showWithComments || showApproved) ? 'text-primary hover:text-primary' : ''}`}
-                onClick={() => setFilterOpen(true)}
-              >
-                <Filter className="h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`h-9 w-9 hover:bg-transparent ${(showStarredOnly || showWithComments || showApproved) ? 'text-primary hover:text-primary' : ''}`}
+                  >
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      onClick={() => setShowStarredOnly(!showStarredOnly)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className="flex items-center flex-1">
+                        <Star className={`w-4 h-4 mr-2 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                        Show Starred
+                      </div>
+                      {showStarredOnly && <CheckCircle className="w-4 h-4 text-primary" />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setShowWithComments(!showWithComments)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className="flex items-center flex-1">
+                        <MessageCircle className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
+                        Has Comments
+                      </div>
+                      {showWithComments && <CheckCircle className="w-4 h-4 text-primary" />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setShowApproved(!showApproved)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className="flex items-center flex-1">
+                        <CheckCircle className={`w-4 h-4 mr-2 ${showApproved ? 'text-primary' : ''}`} />
+                        Approved
+                      </div>
+                      {showApproved && <CheckCircle className="w-4 h-4 text-primary" />}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setShowStarredOnly(false);
+                      setShowWithComments(false);
+                      setShowApproved(false);
+                    }}
+                    className="text-sm text-muted-foreground"
+                  >
+                    Reset Filters
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </TooltipTrigger>
             <TooltipContent>Filter Images</TooltipContent>
           </Tooltip>
@@ -863,7 +911,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   if (!gallery && !isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-2xl font-bold text-foreground">Gallery not found</h1>
+        <h1 className="text-2xl fontbold text-foreground">Gallery not found</h1>
       </div>
     );
   }
