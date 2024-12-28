@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import type { Gallery } from "@db/schema";
+import { formatRelativeDate } from "@/lib/format-date";
 
 interface GalleryWithThumbnail extends Gallery {
   thumbnailUrl: string | null;
@@ -138,7 +139,7 @@ export default function Dashboard() {
                   <span>{gallery.imageCount} images</span>
                   <span className="mx-2">•</span>
                   <Clock className="w-4 h-4" />
-                  <span>{new Date(gallery.createdAt).toLocaleDateString()}</span>
+                  <span>{formatRelativeDate(gallery.createdAt)}</span>
                 </div>
               </CardContent>
             </Card>
