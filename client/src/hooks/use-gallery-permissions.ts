@@ -19,17 +19,33 @@ export function useGalleryPermissions(galleryUserId?: string) {
   const isAuthenticated = !!isSignedIn;
   const currentPath = window.location.pathname;
 
+  console.log('[Permissions Debug]', {
+    isSignedIn,
+    userId: user?.id,
+    galleryUserId,
+    isOwner,
+    currentPath,
+    timestamp: new Date().toISOString()
+  });
+
   const requiresAuth = (action: 'comment' | 'star' | 'edit') => {
     // Already authenticated users don't need redirection
     if (isAuthenticated) {
       return { required: false, redirectPath: currentPath };
     }
 
-    // Store current path for post-login redirect
-    return { 
-      required: true, 
-      redirectPath: currentPath
-    };
+    // Different handling based on action type
+    switch (action) {
+      case 'edit':
+        // Only owners can edit, and they need to be authenticated
+        return { required: true, redirectPath: currentPath };
+      case 'comment':
+      case 'star':
+        // These actions require auth but should trigger modal instead of redirect
+        return { required: true, redirectPath: currentPath };
+      default:
+        return { required: false, redirectPath: currentPath };
+    }
   };
 
   return {
