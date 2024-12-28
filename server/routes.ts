@@ -35,13 +35,15 @@ export function registerRoutes(app: Express): Server {
   }
   app.use('/uploads', express.static(uploadsDir));
 
-  // Get Clerk auth middleware
+  // Set up Clerk auth but don't apply it globally
   const protectRoute = setupClerkAuth(app);
 
-  // Public Routes (No authentication required)
+  // PUBLIC ROUTES - No Authentication Required
+
+  // Get gallery details (public view)
   app.get('/api/galleries/:slug', async (req, res) => {
     try {
-      console.log('[Route Debug] Fetching gallery:', req.params.slug);
+      console.log('[Route Debug] Fetching public gallery:', req.params.slug);
 
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
@@ -51,11 +53,13 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Gallery not found' });
       }
 
+      // Fetch images
       const galleryImages = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
         orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)]
       });
 
+      // Get comment counts
       const commentCounts = await Promise.all(
         galleryImages.map(async (img) => {
           const result = await db.execute<{ count: string }>(
@@ -68,6 +72,7 @@ export function registerRoutes(app: Express): Server {
         })
       );
 
+      // Process images for public view
       const processedImages = galleryImages.map(img => ({
         id: img.id,
         url: img.url,
@@ -75,7 +80,6 @@ export function registerRoutes(app: Express): Server {
         height: img.height,
         aspectRatio: img.width / img.height,
         starred: img.starred,
-        originalFilename: img.originalFilename,
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
 
@@ -83,7 +87,7 @@ export function registerRoutes(app: Express): Server {
         id: gallery.id,
         slug: gallery.slug,
         title: gallery.title,
-        userId: gallery.userId,
+        userId: gallery.userId, // Needed for ownership checks in frontend
         images: processedImages
       });
     } catch (error) {
@@ -95,7 +99,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get comments for an image (public)
+  // Get comments for an image (public view)
   app.get('/api/images/:imageId/comments', async (req, res) => {
     try {
       const imageComments = await db.query.comments.findMany({
@@ -105,16 +109,15 @@ export function registerRoutes(app: Express): Server {
 
       res.json(imageComments);
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      console.error('[Route Error] Error fetching comments:', error);
       res.status(500).json({
-        success: false,
         message: 'Failed to fetch comments',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 
-  // Protected Routes (Authentication required)
+  // PROTECTED ROUTES - Authentication Required
   const protectedRouter = express.Router();
   protectedRouter.use(protectRoute);
 

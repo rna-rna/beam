@@ -7,7 +7,7 @@ interface GalleryPermissions {
   canStar: boolean;
   isAuthenticated: boolean;
   isOwner: boolean;
-  requiresAuth: (action: 'comment' | 'star') => boolean;
+  requiresAuth: (action: 'comment' | 'star') => { required: boolean; redirectPath: string };
   currentPath: string;
 }
 
@@ -20,8 +20,11 @@ export function useGalleryPermissions(galleryUserId?: string) {
   const currentPath = window.location.pathname;
 
   const requiresAuth = (action: 'comment' | 'star') => {
-    if (isAuthenticated) return false;
-    return true;
+    if (isAuthenticated) return { required: false, redirectPath: currentPath };
+    return { 
+      required: true, 
+      redirectPath: currentPath // Store current path for post-login redirect
+    };
   };
 
   return {
