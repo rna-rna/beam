@@ -22,26 +22,6 @@ export function setupClerkAuth(app: Express) {
     }
   });
 
-  // Debug middleware to log auth state
-  app.use((req: any, _res: Response, next: NextFunction) => {
-    console.log('Debug - Auth Middleware:', {
-      path: req.path,
-      method: req.method,
-      hasAuth: !!req.auth,
-      headers: req.headers['authorization'] ? 'present' : 'missing'
-    });
-
-    if (!req.auth) {
-      return _res.status(401).json({
-        success: false,
-        message: 'Authentication required',
-        details: 'Please sign in to access this resource'
-      });
-    }
-
-    next();
-  });
-
   return protectedMiddleware;
 }
 
@@ -60,6 +40,10 @@ export function extractUserInfo(req: any) {
       headers: req.headers
     });
     throw new Error('Authentication required');
+  }
+
+  if (!req.auth.userId) {
+    throw new Error('User ID not found in session');
   }
 
   const user = req.auth.user;
