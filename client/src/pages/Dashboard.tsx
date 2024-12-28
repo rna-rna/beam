@@ -2,12 +2,16 @@ import { useState } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Plus, Image as ImageIcon, Clock, Trash2 } from "lucide-react";
+import { Plus, Grid, Image as ImageIcon, Clock, Trash2 } from "lucide-react";
 import { AnimatedLayout } from "@/components/AnimatedLayout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -23,6 +27,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Gallery } from "@db/schema";
 import { formatRelativeDate } from "@/lib/format-date";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface GalleryWithThumbnail extends Gallery {
   thumbnailUrl: string | null;
@@ -128,10 +133,8 @@ export default function Dashboard() {
   });
 
   return (
-    <AnimatedLayout>
+    <AnimatedLayout title="My Galleries">
       <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-semibold mb-6">My Galleries</h1>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {/* Create New Gallery Card */}
           <Card className="group hover:shadow-lg transition-all duration-200">
@@ -161,6 +164,7 @@ export default function Dashboard() {
               key={gallery.id}
               className="group hover:shadow-lg transition-all duration-200 relative"
             >
+              {/* Card Content (clickable area) */}
               <div
                 className="cursor-pointer"
                 onClick={() => setLocation(`/g/${gallery.slug}`)}
@@ -183,7 +187,7 @@ export default function Dashboard() {
                     {gallery.title}
                   </h3>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <ImageIcon className="w-4 h-4" />
+                    <Grid className="w-4 h-4" />
                     <span>{gallery.imageCount} images</span>
                     <span className="mx-2">•</span>
                     <Clock className="w-4 h-4" />
