@@ -27,7 +27,7 @@ export function AuthModal({
     onClose();
     openSignIn({
       redirectUrl: redirectPath || window.location.pathname,
-      afterSignInUrl: redirectPath || window.location.pathname
+      forceRedirectUrl: true // Force redirect to specified URL
     });
   };
 
