@@ -61,24 +61,7 @@ export function registerRoutes(app: Express): Server {
   const protectedRouter = express.Router();
 
   // Apply auth middleware to all protected routes
-  protectedRouter.use((req, res, next) => {
-    console.log('Debug - Protected route accessed:', {
-      path: req.path,
-      method: req.method,
-      hasAuth: !!req.auth,
-      headers: req.headers['authorization'] ? 'present' : 'missing'
-    });
-
-    if (!req.auth) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required',
-        details: 'Please sign in to access this resource'
-      });
-    }
-
-    protectRoute(req, res, next);
-  });
+  protectedRouter.use(protectRoute);
 
   // Get galleries for current user (main endpoint)
   protectedRouter.get('/galleries', async (req: any, res) => {
@@ -466,7 +449,7 @@ export function registerRoutes(app: Express): Server {
 
 
   // Post comment route handler
-  protectedRouter.post('/images/:imageId/comments', async (req: any, res) => {
+  protectedRouter.post('/images/:imageId/comments', async (req: Request, res) => {
     try {
       const { content, xPosition, yPosition } = req.body;
       const imageId = parseInt(req.params.imageId);
@@ -507,7 +490,7 @@ export function registerRoutes(app: Express): Server {
         await db
           .update(images)
           .set({
-            commentCount: sql`${images.commentCount} + 1`
+            commentCount: sql`COALESCE(${images.commentCount}, 0) + 1`
           })
           .where(eq(images.id, imageId));
 
