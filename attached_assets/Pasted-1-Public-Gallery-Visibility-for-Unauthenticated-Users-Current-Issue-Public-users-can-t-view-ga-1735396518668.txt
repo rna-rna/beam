@@ -1,0 +1,118 @@
+1. Public Gallery Visibility (for Unauthenticated Users):
+Current Issue:
+
+Public users can’t view galleries directly.
+This might stem from the route protection (ClerkExpressRequireAuth) applied broadly to gallery endpoints.
+Solution:
+
+Allow public access to specific routes (like /api/galleries/:slug).
+Separate gallery viewing from editing/management routes.
+Fix in routes.ts:
+
+Make Gallery Viewing Public (No Auth Check):
+Update the existing gallery fetch route to bypass authentication:
+
+ts
+Copy code
+app.get('/api/galleries/:slug', async (req, res) => {
+  try {
+    console.log('[Route Debug] Fetching gallery:', req.params.slug);
+
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, req.params.slug),
+    });
+
+    if (!gallery) {
+      return res.status(404).json({ message: 'Gallery not found' });
+    }
+
+    // Return public data without owner-specific details
+    const galleryImages = await db.query.images.findMany({
+      where: eq(images.galleryId, gallery.id),
+    });
+
+    res.json({
+      id: gallery.id,
+      slug: gallery.slug,
+      title: gallery.title,
+      images: galleryImages,
+    });
+  } catch (error) {
+    console.error('[Route Error] Gallery fetch error:', error);
+    res.status(500).json({ message: 'Failed to fetch gallery' });
+  }
+});
+Restrict Editing to Owners (Keep Protected):
+
+ts
+Copy code
+protectedRouter.post('/galleries/:slug/edit', async (req, res) => {
+  // Ownership check already exists here
+  const userId = req.auth.userId;
+  // Ensure only owners can edit
+});
+2. Logged-in Owners Redirecting to Dashboard (Instead of Gallery):
+Current Issue:
+
+After login, gallery owners are sent to /dashboard instead of staying in the gallery they were viewing.
+Solution:
+
+Use redirectUrl during login, and modify the Clerk redirect logic to check if the owner is accessing their gallery.
+This avoids the generic /dashboard redirect.
+Fix in AuthModal.tsx:
+
+Pass the Current Path Dynamically to Clerk Sign-in:
+tsx
+Copy code
+openSignIn({
+  redirectUrl: redirectPath || window.location.pathname
+});
+This ensures owners are redirected to the gallery they attempted to access.
+Fix in Backend (routes.ts):
+
+Detect If User Owns the Gallery Post-Login:
+ts
+Copy code
+protectedRouter.get('/galleries/:slug', async (req, res) => {
+  const userId = req.auth.userId;
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.slug, req.params.slug),
+  });
+
+  if (!gallery) {
+    return res.status(404).json({ message: 'Gallery not found' });
+  }
+
+  // If the user owns the gallery, keep them here
+  if (gallery.userId === userId) {
+    return res.json(gallery);
+  } else {
+    // Redirect non-owners
+    res.redirect('/dashboard');
+  }
+});
+3. Ensure Public URLs Work Without Login (Frontend):
+In the gallery page component (e.g., Gallery.tsx or GalleryView.tsx):
+
+Modify how the gallery is fetched to handle unauthenticated users:
+tsx
+Copy code
+const { canView, requiresAuth, currentPath } = useGalleryPermissions(gallery.userId);
+
+useEffect(() => {
+  if (!canView) {
+    openModal('view');
+  }
+}, [canView]);
+Testing Checklist:
+Public Users (No Login):
+
+Access /galleries/:slug directly without redirection.
+Commenting or starring triggers a modal.
+Logged-in Owners:
+
+Visiting their own gallery keeps them on the gallery page post-login.
+Direct navigation or gallery links do not force them to /dashboard.
+Logged-in Non-Owners:
+
+View but cannot edit.
