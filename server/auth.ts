@@ -1,33 +1,44 @@
 import { ClerkExpressRequireAuth, ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
-import { type Express, Response } from "express";
+import { type Express, Response, NextFunction } from "express";
 
+// Ensure required environment variables are present
 if (!process.env.CLERK_SECRET_KEY) {
   throw new Error('CLERK_SECRET_KEY is required');
 }
 
 export function setupClerkAuth(app: Express) {
-  // Initialize Clerk middleware for all routes to attach session data
+  // Initialize Clerk middleware without extra options as they're read from env
   app.use(ClerkExpressWithAuth());
 
-  // Configure protected routes middleware with proper error handling and debug logging
+  // Configure protected routes middleware with proper error handling
   const protectedMiddleware = ClerkExpressRequireAuth({
-    onError: (err: any, _req: any, res: Response) => {
-      console.error('Clerk Auth Error:', err);
-      res.status(401).json({
+    onError: (error: any) => {
+      console.error('Clerk Auth Error:', error);
+      return {
         success: false,
         message: 'Authentication failed',
-        details: err.message
-      });
+        details: error.message
+      };
     }
   });
 
-  app.use((req: any, _res, next) => {
+  // Debug middleware to log auth state
+  app.use((req: any, _res: Response, next: NextFunction) => {
     console.log('Debug - Auth Middleware:', {
+      path: req.path,
+      method: req.method,
       hasAuth: !!req.auth,
-      hasUser: !!req.auth?.user,
-      userId: req.auth?.userId,
-      path: req.path
+      headers: req.headers['authorization'] ? 'present' : 'missing'
     });
+
+    if (!req.auth) {
+      return _res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        details: 'Please sign in to access this resource'
+      });
+    }
+
     next();
   });
 

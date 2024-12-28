@@ -3,28 +3,40 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MessageCircle } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
+import { useUser } from "@clerk/clerk-react";
 
 interface CommentBubbleProps {
   x: number;
   y: number;
   content?: string;
   author?: string;
-  savedAuthor?: string;
-  onSubmit?: (content: string, author: string) => void;
+  onSubmit?: (content: string) => void;
   isNew?: boolean;
 }
 
-export function CommentBubble({ x, y, content, author, savedAuthor, onSubmit, isNew = false }: CommentBubbleProps) {
+export function CommentBubble({ x, y, content, author, onSubmit, isNew = false }: CommentBubbleProps) {
   const [isEditing, setIsEditing] = useState(isNew);
   const [text, setText] = useState(content || "");
+  const { user } = useUser();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      return; // Early return if not authenticated
+    }
+
     if (text.trim() && onSubmit) {
-      onSubmit(text, savedAuthor || author || "Anonymous");
+      onSubmit(text);
       setIsEditing(false);
     }
   };
+
+  // Ensure we have proper author information
+  const displayName = author || (user ? `${user.firstName} ${user.lastName}`.trim() : null);
+
+  if (!displayName && !isNew) {
+    return null; // Don't render invalid comments
+  }
 
   return (
     <div
@@ -50,19 +62,26 @@ export function CommentBubble({ x, y, content, author, savedAuthor, onSubmit, is
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 className="min-w-[200px] h-8"
-                placeholder="Add comment..."
+                placeholder={user ? "Add comment..." : "Please sign in to comment"}
+                disabled={!user}
                 data-comment-input
                 autoFocus
               />
             </form>
           ) : (
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <UserAvatar name={author || "Anonymous"} className="w-6 h-6 text-xs" />
-                <p className="text-xs font-medium text-muted-foreground">
-                  {author || "Anonymous"}
-                </p>
-              </div>
+              {displayName && (
+                <div className="flex items-center gap-2 mb-2">
+                  <UserAvatar 
+                    name={displayName}
+                    imageUrl={user?.imageUrl} 
+                    className="w-6 h-6 text-xs" 
+                  />
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {displayName}
+                  </p>
+                </div>
+              )}
               <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
             </div>
           )}
