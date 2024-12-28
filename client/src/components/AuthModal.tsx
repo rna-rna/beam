@@ -21,23 +21,13 @@ export function AuthModal({
   action = "continue",
   redirectPath 
 }: AuthModalProps) {
-  const { signIn } = useAuth();
+  const { openSignIn } = useAuth();
 
   const handleSignIn = () => {
-    const targetPath = redirectPath || window.location.pathname;
-    console.log('[Auth Debug] Sign in attempt:', {
-      currentPath: window.location.pathname,
-      redirectPath,
-      targetPath,
-      timestamp: new Date().toISOString()
-    });
-
     onClose();
-    signIn.create({
-      redirectUrl: targetPath,
-      initialValues: {
-        redirectUrl: targetPath
-      }
+    openSignIn({
+      redirectUrl: redirectPath || window.location.pathname,
+      forceRedirectUrl: true // Force redirect to specified URL
     });
   };
 
