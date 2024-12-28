@@ -556,7 +556,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (!gallery) return null;
 
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 bg-black/90 p-2 rounded-lg"> {/* Added dark background */}
         <TooltipProvider>
           {/* Gallery Actions Menu */}
           <Tooltip>
@@ -565,7 +565,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 <DropdownMenuTrigger asChild>
                   <Button
                     size="icon"
-                    className="h-9 w-9"
+                    variant="ghost"
+                    className="h-9 w-9 text-white hover:bg-white/10"
                   >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
@@ -576,32 +577,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       onClick={handleCopyLink}
                       className="flex items-center gap-2"
                     >
-                      <Link className="w-4 h-4" />
+                      <Link className="w-4 h-4 text-white" />
                       Copy Link
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={handleDownloadAll}
                       className="flex items-center gap-2"
                     >
-                      <Download className="w-4 h-4" />
+                      <Download className="w-4 h-4 text-white" />
                       Download All
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      onClick={handleStarredToggle}
-                      className="flex items-center gap-2"
-                    >
-                      <Star className={`w-4 h-4 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-                      {showStarredOnly ? 'Show All' : 'Show Starred'}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={handleReorderToggle}
-                      className="flex items-center gap-2"
-                    >
-                      <ArrowUpDown className="w-4 h-4" />
-                      {isReorderMode ? 'Done Reordering' : 'Reorder Images'}
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
@@ -618,7 +602,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   <Button
                     size="icon"
                     variant="ghost"
-                    className={`h-9 w-9 hover:bg-transparent ${(showStarredOnly || showWithComments || showApproved) ? 'text-primary hover:text-primary' : ''}`}
+                    className={`h-9 w-9 text-white hover:bg-white/10 ${
+                      (showStarredOnly || showWithComments || showApproved) 
+                        ? 'text-white/90' 
+                        : ''
+                    }`}
                   >
                     <Filter className="h-4 w-4" />
                   </Button>
@@ -677,7 +665,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           {isUploading && (
             <div className="flex items-center gap-4">
               <Progress value={undefined} className="w-24" />
-              <span className="text-sm text-muted-foreground">Uploading...</span>
+              <span className="text-sm text-white/70">Uploading...</span>
             </div>
           )}
 
@@ -688,7 +676,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   <Button
                     size="icon"
                     variant="ghost"
-                    className={`h-9 w-9 hover:bg-transparent ${isReorderMode ? "text-primary hover:text-primary" : ""}`}
+                    className={`h-9 w-9 text-white hover:bg-white/10 ${
+                      isReorderMode ? "text-white/90" : ""
+                    }`}
                     onClick={toggleReorderMode}
                   >
                     <ArrowUpDown className="h-4 w-4" />
@@ -701,9 +691,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="destructive"
+                      variant="ghost"
                       size="icon"
-                      className="h-9 w-9"
+                      className="h-9 w-9 text-white hover:bg-destructive/90"
                       onClick={() => deleteImagesMutation.mutate(selectedImages)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -720,7 +710,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               <Button
                 size="icon"
                 variant="ghost"
-                className={`h-9 w-9 hover:bg-transparent ${selectMode ? "text-primary hover:text-primary" : ""}`}
+                className={`h-9 w-9 text-white hover:bg-white/10 ${
+                  selectMode ? "text-white/90" : ""
+                }`}
                 onClick={toggleSelectMode}
               >
                 <CheckSquare className="h-4 w-4" />
@@ -948,13 +940,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   };
   return (
-    <div className="min-h-screen relative" {...getRootProps()}>
+    <div className="min-h-screen relative bg-black/90" {...getRootProps()}> {/* Added dark background */}
       <input {...getInputProps()} />
       {isDragActive && !selectMode && (
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="text-center">
             <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
-            <h3 className="text-xl font-semibold">Drop images here</h3>
+            <h3 className="text-xl font-semibold text-white">Drop images here</h3>
           </div>
         </div>
       )}
@@ -1047,7 +1039,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           variant="outline"
           size="icon"
           onClick={toggleGridView}
-          className={`h-10 w-10 rounded-full bg-background/95 backdrop-blur-sm hover:bg-background shadow-lg ${
+          className={`h-10 w-10 rounded-full bg-background/95 backdrop-blur-sm hover:bg-background shadow-lg text-white ${
             !isMasonry ? "bg-primary/20" : ""
           }`}
           title={`Switch to ${isMasonry ? "grid" : "masonry"} view`}
@@ -1105,7 +1097,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
             {/* Filename display */}
             {showFilename && selectedImage?.originalFilename && (
-              <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
+              <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50 text-white">
                 {selectedImage.originalFilename}
               </div>
             )}
@@ -1114,24 +1106,24 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <Button
               variant="ghost"
               size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 text-white"
               onClick={() => {
                 if (!gallery?.images?.length) return;
                 setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
               }}
             >
-              <ChevronLeft className="h-8 w-8 text-white" />
+              <ChevronLeft className="h-8 w-8" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 text-white"
               onClick={() => {
                 if (!gallery?.images?.length) return;
                 setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
               }}
             >
-              <ChevronRight className="h-8 w-8 text-white" />
+              <ChevronRight className="h-8 w-8" />
             </Button>
 
             {/* Controls */}
@@ -1140,7 +1132,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg"
+                  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white"
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleStarMutation.mutate(selectedImage.id);
@@ -1158,7 +1150,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 <Button
                   variant="secondary"
                   size="icon"
-                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
                     isAnnotationMode ? "bg-primary/20" : ""
                   }`}
                   onClick={(e) => {
@@ -1178,7 +1170,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 <Button
                   variant="secondary"
                   size="icon"
-                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg ${
+                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
                     isCommentPlacementMode ? "bg-primary/20" : ""
                   }`}
                   onClick={(e) => {
@@ -1207,7 +1199,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     onCheckedChange={setShowAnnotations}
                     className="data-[state=checked]:bg-primary h-5 w-9"
                   />
-                  <span className="text-xs font-medium">Comments</span>
+                  <span className="text-xs font-medium text-white">Comments</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch
@@ -1215,7 +1207,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     onCheckedChange={setShowFilename}
                     className="data-[state=checked]:bg-primary h-5 w-9"
                   />
-                  <span className="text-xs font-medium">Filename</span>
+                  <span className="text-xs font-medium text-white">Filename</span>
                 </div>
               </div>
             </div>
