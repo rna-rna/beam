@@ -164,54 +164,6 @@ export default function Dashboard() {
               key={gallery.id}
               className="group hover:shadow-lg transition-all duration-200 relative"
             >
-              {/* Delete Button (visible on hover) */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileHover={{ opacity: 1 }}
-                className="absolute top-2 right-2 z-10"
-              >
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setGalleryToDelete(gallery);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Gallery</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete "{gallery.title}"? This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel onClick={(e) => {
-                        e.stopPropagation();
-                        setGalleryToDelete(null);
-                      }}>
-                        Cancel
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteGalleryMutation.mutate(gallery);
-                        }}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </motion.div>
-
               {/* Card Content (clickable area) */}
               <div 
                 className="cursor-pointer"
@@ -240,6 +192,46 @@ export default function Dashboard() {
                     <span className="mx-2">•</span>
                     <Clock className="w-4 h-4" />
                     <span>{formatRelativeDate(gallery.createdAt)}</span>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setGalleryToDelete(gallery);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Gallery</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{gallery.title}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={(e) => {
+                            e.stopPropagation();
+                            setGalleryToDelete(null);
+                          }}>
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteGalleryMutation.mutate(gallery);
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </CardContent>
               </div>
