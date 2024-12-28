@@ -1285,8 +1285,19 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       />
                     ))}
 
-                  {/* New comment */}
-                  {renderCommentDialog()}
+                  {/* New comment placement */}
+                  {newCommentPos && selectedImage && (
+                    <CommentBubble
+                      x={newCommentPos.x}
+                      y={newCommentPos.y}
+                      isNew={true}
+                      imageId={selectedImage.id}
+                      onSubmit={() => {
+                        setNewCommentPos(null);
+                        queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+                      }}
+                    />
+                  )}
                 </div>
               </motion.div>
             )}
@@ -1294,7 +1305,19 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         </Dialog>
       )}
 
-      {renderCommentDialog()}
+      {/* New comment placement outside lightbox */}
+      {newCommentPos && selectedImage && (
+        <CommentBubble
+          x={newCommentPos.x}
+          y={newCommentPos.y}
+          isNew={true}
+          imageId={selectedImage.id}
+          onSubmit={() => {
+            setNewCommentPos(null);
+            queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+          }}
+        />
+      )}
     </div>
   );
 }
