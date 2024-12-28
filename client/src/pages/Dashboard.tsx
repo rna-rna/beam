@@ -2,16 +2,13 @@ import { useState } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Plus, Grid, Image as ImageIcon, Clock, Trash2, Check } from "lucide-react";
+import { Plus, Image as ImageIcon, Clock, Trash2 } from "lucide-react";
 import { AnimatedLayout } from "@/components/AnimatedLayout";
 import { Button } from "@/components/ui/button";
+import { GalleryHeader } from "@/components/GalleryHeader";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -27,7 +24,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Gallery } from "@db/schema";
 import { formatRelativeDate } from "@/lib/format-date";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface GalleryWithThumbnail extends Gallery {
   thumbnailUrl: string | null;
@@ -42,6 +38,8 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [galleryToDelete, setGalleryToDelete] = useState<GalleryWithThumbnail | null>(null);
   const [selectionMode, setSelectionMode] = useState<'none' | 'multiple'>('none');
+  const [viewMode, setViewMode] = useState<'grid' | 'masonry'>('grid');
+  const [selectedCount, setSelectedCount] = useState(0);
 
   // Query galleries
   const { data: galleries = [], isLoading } = useQuery<GalleryWithThumbnail[]>({
@@ -133,30 +131,29 @@ export default function Dashboard() {
     },
   });
 
-  return (
-    <AnimatedLayout title="My Galleries">
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">My Galleries</h1>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-accent"
-              onClick={() => setSelectionMode(selectionMode === 'none' ? 'multiple' : 'none')}
-            >
-              <Check className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-accent"
-            >
-              <Grid className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
+  const handleSearch = (query: string) => {
+    // TODO: Implement search functionality
+    console.log('Search query:', query);
+  };
 
+  const handleSort = (option: 'recent' | 'popular' | 'alphabetical') => {
+    // TODO: Implement sort functionality
+    console.log('Sort by:', option);
+  };
+
+  return (
+    <AnimatedLayout>
+      <GalleryHeader
+        selectedCount={selectedCount}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        selectionMode={selectionMode}
+        setSelectionMode={setSelectionMode}
+        onSort={handleSort}
+        onSearch={handleSearch}
+      />
+
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {/* Create New Gallery Card */}
           <Card className="group hover:shadow-lg transition-all duration-200">
@@ -186,7 +183,6 @@ export default function Dashboard() {
               key={gallery.id}
               className="group hover:shadow-lg transition-all duration-200 relative"
             >
-              {/* Card Content (clickable area) */}
               <div
                 className="cursor-pointer"
                 onClick={() => setLocation(`/g/${gallery.slug}`)}
@@ -209,7 +205,7 @@ export default function Dashboard() {
                     {gallery.title}
                   </h3>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Grid className="w-4 h-4" />
+                    <ImageIcon className="w-4 h-4" />
                     <span>{gallery.imageCount} images</span>
                     <span className="mx-2">•</span>
                     <Clock className="w-4 h-4" />
