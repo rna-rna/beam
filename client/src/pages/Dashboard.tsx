@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Plus, Grid, Image as ImageIcon, Clock, Trash2 } from "lucide-react";
+import { Plus, Grid, Image as ImageIcon, Clock, Trash2, Check } from "lucide-react";
 import { AnimatedLayout } from "@/components/AnimatedLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +41,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [galleryToDelete, setGalleryToDelete] = useState<GalleryWithThumbnail | null>(null);
+  const [selectionMode, setSelectionMode] = useState<'none' | 'multiple'>('none');
 
   // Query galleries
   const { data: galleries = [], isLoading } = useQuery<GalleryWithThumbnail[]>({
@@ -135,6 +136,27 @@ export default function Dashboard() {
   return (
     <AnimatedLayout title="My Galleries">
       <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">My Galleries</h1>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:bg-accent"
+              onClick={() => setSelectionMode(selectionMode === 'none' ? 'multiple' : 'none')}
+            >
+              <Check className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:bg-accent"
+            >
+              <Grid className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {/* Create New Gallery Card */}
           <Card className="group hover:shadow-lg transition-all duration-200">
