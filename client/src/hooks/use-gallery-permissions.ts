@@ -7,6 +7,8 @@ interface GalleryPermissions {
   canStar: boolean;
   isAuthenticated: boolean;
   isOwner: boolean;
+  requiresAuth: (action: 'comment' | 'star') => boolean;
+  currentPath: string;
 }
 
 export function useGalleryPermissions(galleryUserId?: string) {
@@ -15,6 +17,12 @@ export function useGalleryPermissions(galleryUserId?: string) {
 
   const isOwner = !!user && !!galleryUserId && user.id === galleryUserId;
   const isAuthenticated = !!isSignedIn;
+  const currentPath = window.location.pathname;
+
+  const requiresAuth = (action: 'comment' | 'star') => {
+    if (isAuthenticated) return false;
+    return true;
+  };
 
   return {
     canView: true, // Always allow viewing
@@ -23,5 +31,7 @@ export function useGalleryPermissions(galleryUserId?: string) {
     canStar: isAuthenticated,
     isAuthenticated,
     isOwner,
+    requiresAuth,
+    currentPath
   };
 }
