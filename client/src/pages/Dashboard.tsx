@@ -16,6 +16,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Gallery } from "@db/schema";
 
+interface GalleryWithThumbnail extends Gallery {
+  thumbnailUrl: string | null;
+  imageCount: number;
+}
+
 export default function Dashboard() {
   const { user } = useUser();
   const { getToken } = useAuth();
@@ -24,7 +29,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
 
   // Query galleries
-  const { data: galleries = [], isLoading } = useQuery<Gallery[]>({
+  const { data: galleries = [], isLoading } = useQuery<GalleryWithThumbnail[]>({
     queryKey: ['/api/galleries'],
     queryFn: async () => {
       const token = await getToken();
@@ -82,6 +87,7 @@ export default function Dashboard() {
     <AnimatedLayout title="My Galleries">
       <div className="container mx-auto py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Create New Gallery Card */}
           <Card className="group hover:shadow-lg transition-shadow duration-200">
             <CardContent className="pt-6">
               <Button 
@@ -96,10 +102,11 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          {/* Gallery Cards */}
           {galleries.map((gallery) => (
             <Card 
               key={gallery.id}
-              className="group hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+              className="group hover:shadow-lg transition-shadow duration-200 cursor-pointer overflow-hidden"
               onClick={() => setLocation(`/g/${gallery.slug}`)}
             >
               <CardHeader className="pb-4">
@@ -109,8 +116,18 @@ export default function Dashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                  <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                  {gallery.thumbnailUrl ? (
+                    <img
+                      src={gallery.thumbnailUrl}
+                      alt={gallery.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                  )}
                 </div>
               </CardContent>
               <CardFooter>
