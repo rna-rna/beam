@@ -912,10 +912,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         imageId={selectedImage.id}
         onSubmit={() => {
           setNewCommentPos(null);
-          queryClient.invalidateQueries({ queryKey: [`/api/images/${selectedImage?.id}/comments`] });
+          queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
         }}
       />
-        );
+    );
   };
   return (
     <div className="min-h-screen relative" {...getRootProps()}>
@@ -928,83 +928,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           </div>
         </div>
       )}
-
-      {/* Dialog for selected image (lightbox) */}
-      <Dialog open={selectedImageIndex >= 0} onOpenChange={(open) => !open && setSelectedImageIndex(-1)}>
-        <DialogContent className="max-w-[95vw] h-[90vh] p-0">
-          {selectedImage && (
-            <div className="relative w-full h-full">
-              {/* Image container */}
-              <div 
-                className="w-full h-full flex items-center justify-center bg-background/80 backdrop-blur-sm relative"
-                onClick={(e) => {
-                  if (isCommentPlacementMode) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const x = ((e.clientX - rect.left) / rect.width) * 100;
-                    const y = ((e.clientY - rect.top) / rect.height) * 100;
-                    setNewCommentPos({ x, y });
-                  }
-                }}
-              >
-                <img
-                  src={selectedImage.url}
-                  alt=""
-                  className="max-h-full max-w-full object-contain"
-                  onLoad={(e) => {
-                    const img = e.target as HTMLImageElement;
-                    setImageDimensions({
-                      width: img.naturalWidth,
-                      height: img.naturalHeight
-                    });
-                  }}
-                />
-
-                {/* Navigation buttons */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedImageIndex(prev => 
-                      prev <= 0 ? gallery!.images.length - 1 : prev - 1
-                    );
-                  }}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white/90 hover:bg-black/70 transition-colors"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedImageIndex(prev => 
-                      prev >= gallery!.images.length - 1 ? 0 : prev + 1
-                    );
-                  }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white/90 hover:bg-black/70 transition-colors"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-
-                {/* Comments */}
-                {comments.map((comment) => (
-                  <CommentBubble
-                    key={comment.id}
-                    x={comment.xPosition}
-                    y={comment.yPosition}
-                    content={comment.content}
-                    author={comment.userName}
-                  />
-                ))}
-
-                {/* New comment placement */}
-                {renderCommentDialog()}
-              </div>
-
-              {/* Toolbar */}
-              {/* Placeholder for Toolbar component -  needs to be implemented separately */}
-              <div>Toolbar Placeholder</div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       <div className="px-4 md:px-6 lg:px-8 py-8">
         <AnimatePresence mode="wait">
