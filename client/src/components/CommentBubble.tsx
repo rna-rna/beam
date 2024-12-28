@@ -31,14 +31,23 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
         throw new Error('Please sign in to add comments');
       }
 
-      const token = await getToken();
+      const token = await getToken().catch(() => null);
+      if (!token) {
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const response = await fetch(`/api/images/${imageId}/comments`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           content,
           xPosition: x,
           yPosition: y,
@@ -47,8 +56,14 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to add comment');
+        let errorMessage = "Failed to add comment";
+        try {
+          const error = await response.json();
+          errorMessage = error.message;
+        } catch {
+          errorMessage = "Unexpected server error.";
+        }
+        throw new Error(errorMessage);
       }
 
       return response.json();

@@ -7,6 +7,7 @@ import { db } from '@db';
 import { galleries, images, comments } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
+import { clerkClient } from '@clerk/clerk-sdk-node';
 
 // Add Clerk types to Express Request
 declare global {
@@ -448,7 +449,7 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-  // Post comment route handler
+  // Comment submission endpoint
   protectedRouter.post('/images/:imageId/comments', async (req: Request, res) => {
     try {
       const { content, xPosition, yPosition } = req.body;
@@ -460,6 +461,11 @@ export function registerRoutes(app: Express): Server {
           success: false,
           message: 'Invalid request: content, xPosition, and yPosition are required'
         });
+      }
+
+      const token = req.headers.authorization?.split(" ")[1];
+      if (!token) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
 
       try {
