@@ -76,7 +76,38 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
       console.log('Debug - Comment submission successful:', result);
       return result;
     },
-    onSuccess: () => {
+    onMutate: async (newCommentText) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+
+      // Get the previous comments
+      const previousComments = queryClient.getQueryData([`/api/images/${imageId}/comments`]);
+
+      // Optimistically update the comments cache
+      if (user) {
+        const optimisticComment = {
+          id: Date.now(), // temporary ID
+          content: newCommentText,
+          xPosition: x,
+          yPosition: y,
+          userId: user.id,
+          userName: `${user.firstName} ${user.lastName}`.trim(),
+          userImageUrl: user.imageUrl,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => [
+          ...old,
+          optimisticComment
+        ]);
+      }
+
+      return { previousComments };
+    },
+    onSuccess: (data) => {
+      // Update both the comments query and the gallery query to reflect new comment count
+      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
       queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
       setText(""); // Clear the input after successful submission
       setIsEditing(false);
@@ -88,14 +119,22 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
         onSubmit();
       }
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _variables, context) => {
       console.error('Comment submission error:', error);
+      // Revert the optimistic update on error
+      if (context?.previousComments) {
+        queryClient.setQueryData([`/api/images/${imageId}/comments`], context.previousComments);
+      }
       toast({
         title: "Error",
         description: error.message || "Failed to add comment",
         variant: "destructive",
         duration: 3000
       });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure cache is up to date
+      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
     }
   });
 
