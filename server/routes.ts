@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response } from "express";
 import { createServer, type Server } from "http";
 import multer from 'multer';
 import path from 'path';
@@ -254,17 +254,28 @@ export function registerRoutes(app: Express): Server {
       const isOwner = gallery.userId === userId;
       console.log('[Route Debug] Gallery ownership check:', { isOwner, galleryUserId: gallery.userId, requestUserId: userId });
 
-      // Owner-specific data
-      const galleryData = {
+      // If owner is accessing their gallery, keep them here
+      if (isOwner) {
+        const galleryData = {
+          ...gallery,
+          isOwner,
+          images: await db.query.images.findMany({
+            where: eq(images.galleryId, gallery.id),
+            orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)]
+          })
+        };
+        return res.json(galleryData);
+      }
+
+      // For non-owners, proceed with default gallery data
+      res.json({
         ...gallery,
-        isOwner,
+        isOwner: false,
         images: await db.query.images.findMany({
           where: eq(images.galleryId, gallery.id),
           orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)]
         })
-      };
-
-      res.json(galleryData);
+      });
     } catch (error) {
       console.error('[Route Error] Protected gallery fetch error:', error);
       res.status(500).json({
@@ -502,7 +513,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Comment submission endpoint
-  protectedRouter.post('/images/:imageId/comments', async (req: Request, res) => {
+  protectedRouter.post('/api/images/:imageId/comments', async (req: any, res: Response) => {
     try {
       const { content, xPosition, yPosition } = req.body;
       const imageId = parseInt(req.params.imageId);
@@ -515,16 +526,11 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
       try {
         // Extract user information using helper
-        const { userId, userName, userImageUrl } = await extractUserInfo(req);
+        const userInfo = await extractUserInfo(req);
         console.log('Debug - Comment creation:', {
-          userId,
+          userId: userInfo.userId,
           imageId,
           hasContent: !!content
         });
@@ -536,9 +542,9 @@ export function registerRoutes(app: Express): Server {
             content,
             xPosition,
             yPosition,
-            userId,
-            userName,
-            userImageUrl,
+            userId: userInfo.userId,
+            userName: userInfo.userName,
+            userImageUrl: userInfo.userImageUrl,
             createdAt: new Date(),
             updatedAt: new Date()
           })
@@ -554,7 +560,7 @@ export function registerRoutes(app: Express): Server {
 
         console.log('Debug - Comment created successfully:', {
           commentId: comment.id,
-          userId,
+          userId: userInfo.userId,
           imageId
         });
 
