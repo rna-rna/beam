@@ -103,6 +103,13 @@ function App() {
     }
   });
 
+  // Handle redirect on auth state change
+  useEffect(() => {
+    if (isSignedIn) {
+      setLocation("/dashboard");
+    }
+  }, [isSignedIn, setLocation]);
+
   return (
     <Switch>
       <Route path="/">
@@ -129,17 +136,19 @@ function App() {
 
       <Route path="/g/:slug">
         {(params) => (
-          <Layout 
-            title={gallery?.title || "Gallery"}
-            onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
-            actions={headerActions}
-          >
-            <Gallery 
-              slug={params.slug}
-              onHeaderActionsChange={setHeaderActions}
-              title={gallery?.title || "Gallery"}
-            />
-          </Layout>
+          <ProtectedRoute>
+            <Layout 
+              title={gallery?.title || "Untitled Gallery"}
+              onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
+              actions={headerActions}
+            >
+              <Gallery 
+                slug={params.slug}
+                onHeaderActionsChange={setHeaderActions}
+                title={gallery?.title || "Untitled Gallery"}
+              />
+            </Layout>
+          </ProtectedRoute>
         )}
       </Route>
     </Switch>
