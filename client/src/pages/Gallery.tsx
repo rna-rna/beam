@@ -616,7 +616,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <TooltipTrigger asChild>
               <Button
                 size="icon"
-                className={`h-9 w-9 ${(showStarredOnly || showWithComments || showApproved) ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`}
+                className={`h-9 w-9 ${(showStarredOnly || showWithComments || showApproved) ? 'text-primary' : ''}`}
                 onClick={() => setFilterOpen(true)}
               >
                 <Filter className="h-4 w-4" />
@@ -638,7 +638,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 <TooltipTrigger asChild>
                   <Button
                     size="icon"
-                    className={`h-9 w-9 ${isReorderMode ? "bg-primary text-primary-foreground" : ""}`}
+                    className={`h-9 w-9 ${isReorderMode ? "text-primary" : ""}`}
                     onClick={toggleReorderMode}
                   >
                     <ArrowUpDown className="h-4 w-4" />
@@ -669,7 +669,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <TooltipTrigger asChild>
               <Button
                 size="icon"
-                className={`h-9 w-9 ${selectMode ? "bg-primary text-primary-foreground" : ""}`}
+                className={`h-9 w-9 ${selectMode ? "text-primary" : ""}`}
                 onClick={toggleSelectMode}
               >
                 <CheckSquare className="h-4 w-4" />
