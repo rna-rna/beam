@@ -25,9 +25,9 @@ export function AuthModal({
 
   const handleSignIn = () => {
     onClose();
-    // Pass the current path as redirect URL
     openSignIn({
-      redirectUrl: redirectPath || window.location.pathname
+      redirectUrl: redirectPath || window.location.pathname,
+      afterSignInUrl: redirectPath || window.location.pathname
     });
   };
 

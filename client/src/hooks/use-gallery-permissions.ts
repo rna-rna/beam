@@ -7,7 +7,7 @@ interface GalleryPermissions {
   canStar: boolean;
   isAuthenticated: boolean;
   isOwner: boolean;
-  requiresAuth: (action: 'comment' | 'star') => { required: boolean; redirectPath: string };
+  requiresAuth: (action: 'comment' | 'star' | 'edit') => { required: boolean; redirectPath: string };
   currentPath: string;
 }
 
@@ -19,11 +19,16 @@ export function useGalleryPermissions(galleryUserId?: string) {
   const isAuthenticated = !!isSignedIn;
   const currentPath = window.location.pathname;
 
-  const requiresAuth = (action: 'comment' | 'star') => {
-    if (isAuthenticated) return { required: false, redirectPath: currentPath };
+  const requiresAuth = (action: 'comment' | 'star' | 'edit') => {
+    // Already authenticated users don't need redirection
+    if (isAuthenticated) {
+      return { required: false, redirectPath: currentPath };
+    }
+
+    // Store current path for post-login redirect
     return { 
       required: true, 
-      redirectPath: currentPath // Store current path for post-login redirect
+      redirectPath: currentPath
     };
   };
 

@@ -65,9 +65,9 @@ export function registerRoutes(app: Express): Server {
           const result = await db.execute<{ count: string }>(
             sql`SELECT COUNT(*)::text as count FROM ${comments} WHERE image_id = ${img.id}`
           );
-          return { 
-            imageId: img.id, 
-            count: parseInt(result.rows[0]?.count || '0', 10) 
+          return {
+            imageId: img.id,
+            count: parseInt(result.rows[0]?.count || '0', 10)
           };
         })
       );
@@ -92,7 +92,7 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       console.error('[Route Error] Gallery fetch error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: 'Failed to fetch gallery',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -236,52 +236,37 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-  // Get gallery details (with ownership check)
+  // Get gallery details (protected route with owner check)
   protectedRouter.get('/galleries/:slug', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
+      console.log('[Route Debug] Protected gallery fetch:', { slug: req.params.slug, userId });
 
       const gallery = await db.query.galleries.findFirst({
-        where: and(
-          eq(galleries.slug, req.params.slug),
-          eq(galleries.userId, userId)
-        ),
+        where: eq(galleries.slug, req.params.slug),
       });
 
       if (!gallery) {
         return res.status(404).json({ message: 'Gallery not found' });
       }
 
-      const galleryImages = await db.query.images.findMany({
-        where: eq(images.galleryId, gallery.id),
-        orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)]
-      });
+      // Check if user is the owner
+      const isOwner = gallery.userId === userId;
+      console.log('[Route Debug] Gallery ownership check:', { isOwner, galleryUserId: gallery.userId, requestUserId: userId });
 
-      // Get comment counts without requiring author field
-      const commentCounts = await Promise.all(
-        galleryImages.map(async (img) => {
-          const result = await db.execute<{ count: string }>(
-            sql`SELECT COUNT(*)::text as count FROM ${comments} WHERE image_id = ${img.id}`
-          );
-          return {
-            imageId: img.id,
-            count: parseInt(result.rows[0]?.count || '0', 10)
-          };
-        })
-      );
-
-      const processedImages = galleryImages.map(img => ({
-        ...img,
-        aspectRatio: img.width / img.height,
-        commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
-      }));
-
-      res.json({
+      // Owner-specific data
+      const galleryData = {
         ...gallery,
-        images: processedImages
-      });
+        isOwner,
+        images: await db.query.images.findMany({
+          where: eq(images.galleryId, gallery.id),
+          orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)]
+        })
+      };
+
+      res.json(galleryData);
     } catch (error) {
-      console.error('Gallery fetch error:', error);
+      console.error('[Route Error] Protected gallery fetch error:', error);
       res.status(500).json({
         message: 'Failed to fetch gallery',
         details: error instanceof Error ? error.message : 'Unknown error'

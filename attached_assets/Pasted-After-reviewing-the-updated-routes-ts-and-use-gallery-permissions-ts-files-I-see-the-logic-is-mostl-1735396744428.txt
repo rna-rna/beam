@@ -1,0 +1,99 @@
+After reviewing the updated routes.ts and use-gallery-permissions.ts files, I see the logic is mostly in place, but the issue likely persists due to two potential gaps:
+
+Gallery Owner Redirection to Dashboard
+
+In the routes.ts, when fetching gallery details for owners (/galleries/:slug), the logic doesn't account for keeping the owner on the gallery page after logging in.
+The protected route (/galleries/:slug) checks if the user is the owner but redirects them to the dashboard after login instead of the gallery they were trying to access.
+Public Gallery Visibility
+
+While /api/galleries/:slug correctly fetches gallery details for unauthenticated users, front-end routing or condition handling might be preventing the gallery from rendering fully in the UI.
+Fixes to Apply:
+1. Prevent Dashboard Redirect for Owners (Backend Fix in routes.ts)
+Current Issue (routes.ts - line 560+):
+In the protected route:
+
+ts
+Copy code
+protectedRouter.get('/galleries/:slug', async (req: any, res) => {
+  const userId = req.auth.userId;
+
+  const gallery = await db.query.galleries.findFirst({
+    where: and(
+      eq(galleries.slug, req.params.slug),
+      eq(galleries.userId, userId)  // Ownership check
+    ),
+  });
+
+  if (!gallery) {
+    return res.status(404).json({ message: 'Gallery not found' });
+  }
+
+  res.json(gallery);  // Sends data, but front-end might redirect elsewhere
+});
+Why It Fails:
+
+The response sends gallery data, but if the front-end isn't handling this correctly, the owner might still get redirected to /dashboard after login.
+Fix – Add Redirect to Gallery Directly:
+Modify the route to redirect owners back to their gallery after login:
+
+ts
+Copy code
+protectedRouter.get('/galleries/:slug', async (req: any, res) => {
+  const userId = req.auth.userId;
+
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.slug, req.params.slug),
+  });
+
+  if (!gallery) {
+    return res.status(404).json({ message: 'Gallery not found' });
+  }
+
+  // Owner check
+  const isOwner = gallery.userId === userId;
+
+  if (isOwner) {
+    // Redirect the owner back to the gallery
+    return res.redirect(`/galleries/${gallery.slug}`);
+  }
+
+  res.json(gallery);
+});
+Why This Works:
+
+Owners stay on the gallery after login instead of being sent to /dashboard.
+This logic ensures non-owners can still view the gallery without destructive options.
+2. Ensure Public Galleries Render Correctly for Unauthenticated Users (Frontend Fix)
+Problem:
+
+Even though the backend allows public access to /api/galleries/:slug, the front-end may block rendering for unauthenticated users.
+This could be happening in the React component where permissions are checked.
+Check Frontend Routing (React Example):
+In the component fetching the gallery:
+
+tsx
+Copy code
+const { canView, requiresAuth } = useGalleryPermissions(gallery.userId);
+
+useEffect(() => {
+  if (!canView) {
+    navigate('/login');  // Redirecting instead of allowing view
+  }
+}, [canView]);
+Fix:
+
+Modify the check to allow unauthenticated users to view galleries but block interactions:
+tsx
+Copy code
+if (requiresAuth('comment').required) {
+  openModal('Sign up to comment');
+}
+3. Handle Post-Login Redirect (Frontend AuthModal or Login)
+Ensure redirect path is preserved on login:
+
+tsx
+Copy code
+openSignIn({
+  redirectUrl: redirectPath || window.location.pathname
+});
+This ensures users are redirected to the correct gallery, not /dashboard.
