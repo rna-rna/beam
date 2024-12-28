@@ -687,6 +687,8 @@ export function registerRoutes(app: Express): Server {
 }
 
 function generateSlug(): string {
-  //Implementation for generating slug (replace with your actual implementation)
-  return 'some-unique-slug';
+  const { nanoid } = require('nanoid');
+  // Generate a URL-friendly unique identifier
+  // Using a shorter length (10) for more readable URLs while maintaining uniqueness
+  return nanoid(10);
 }
