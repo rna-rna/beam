@@ -99,24 +99,20 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
       return { previousComments };
     },
     onSuccess: (data) => {
-      // Update the cache with the server response
       queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => {
-        return [
-          ...old.filter(comment => !comment.optimistic),
-          {
-            ...data.data,
-            author: data.data.author !== null && data.data.author !== undefined
-              ? data.data.author  // Preserve server-provided author data
-              : {
-                  username: "Anonymous",
-                  id: "anonymous",
-                  imageUrl: undefined
-                }
-          }
-        ];
+        return old.map((comment) =>
+          comment.optimistic && comment.content === data.data.content
+            ? { 
+                ...data.data,
+                author: data.data.author && typeof data.data.author === 'object'
+                  ? data.data.author
+                  : comment.author // Keep optimistic author if server response isn't properly structured
+              }
+            : comment
+        );
       });
 
-      // Delay invalidation for smooth transition
+      // Delay the refetch to ensure backend data propagation
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
       }, 500);
