@@ -45,15 +45,27 @@ function App() {
     queryFn: async () => {
       if (!gallerySlug) return null;
       const token = await getToken();
-      const headers: HeadersInit = {};
+      const headers: HeadersInit = {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const res = await fetch(`/api/galleries/${gallerySlug}`, { headers });
+      const res = await fetch(`/api/galleries/${gallerySlug}`, { 
+        headers,
+        // Prevent browser caching
+        cache: 'no-store'
+      });
       if (!res.ok) throw new Error('Failed to fetch gallery');
       return res.json();
     },
     enabled: !!gallerySlug,
+    // Ensure fresh data on each query
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 
   // Mutation for updating title
