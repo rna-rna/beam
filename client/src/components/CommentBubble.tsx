@@ -86,7 +86,8 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
             imageUrl: user.imageUrl
           },
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          optimistic: true // Mark as optimistic
         };
 
         queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => [
@@ -98,8 +99,20 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
       return { previousComments };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+      // Update the cache with the server response instead of invalidating
+      queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => {
+        // Remove optimistic comment and add real one
+        return [
+          ...old.filter(comment => !comment.optimistic),
+          data.data // Use the actual server response
+        ];
+      });
+
+      // Delay the invalidation to ensure smooth transition
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+      }, 500);
+
       setText("");
       setIsEditing(false);
       toast({
@@ -124,9 +137,6 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           duration: 3000
         });
       }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
     }
   });
 
