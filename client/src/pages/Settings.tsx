@@ -12,7 +12,8 @@ export default function Settings() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    console.log({ isLoaded, isSignedIn, session: !!session });
+  }, [isLoaded, isSignedIn, session]);
 
   if (!mounted || !isLoaded) {
     return (
