@@ -460,6 +460,48 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Toggle gallery visibility
+  protectedRouter.patch('/galleries/:slug/visibility', async (req: any, res) => {
+    try {
+      const userId = req.auth.userId;
+      const { isPublic } = req.body;
+
+      if (typeof isPublic !== 'boolean') {
+        return res.status(400).json({ message: 'Invalid request: isPublic must be a boolean' });
+      }
+
+      // Find the gallery and verify ownership
+      const gallery = await db.query.galleries.findFirst({
+        where: and(
+          eq(galleries.slug, req.params.slug),
+          eq(galleries.userId, userId)
+        ),
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      // Update gallery visibility
+      const [updated] = await db
+        .update(galleries)
+        .set({ isPublic })
+        .where(eq(galleries.id, gallery.id))
+        .returning();
+
+      res.json({
+        success: true,
+        data: updated
+      });
+    } catch (error) {
+      console.error('Error updating gallery visibility:', error);
+      res.status(500).json({
+        message: 'Failed to update gallery visibility',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Get gallery details (public view)
   app.get('/api/galleries/:slug', async (req, res) => {
     try {
@@ -469,6 +511,12 @@ export function registerRoutes(app: Express): Server {
 
       if (!gallery) {
         return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      // Check if gallery is public or if user is authenticated and owns the gallery
+      const isOwner = req.auth?.userId === gallery.userId;
+      if (!gallery.isPublic && !isOwner) {
+        return res.status(403).json({ message: 'This gallery is private' });
       }
 
       const galleryImages = await db.query.images.findMany({

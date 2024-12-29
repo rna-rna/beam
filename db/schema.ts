@@ -7,6 +7,7 @@ export const galleries = pgTable('galleries', {
   slug: text('slug').unique().notNull(),
   title: text('title').default('Untitled Project').notNull(),
   userId: text('user_id').notNull(), // Clerk user ID
+  isPublic: boolean('is_public').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 }, (table) => ({
   userIdIdx: index('galleries_user_id_idx').on(table.userId)
@@ -34,7 +35,7 @@ export const comments = pgTable('comments', {
   xPosition: real('x_position').notNull(),
   yPosition: real('y_position').notNull(),
   userId: text('user_id').notNull(), // Clerk user ID
-  userName: text('user_name').notNull(), // Remove default value to ensure we always set it explicitly
+  userName: text('user_name').notNull(),
   userImageUrl: text('user_image_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()

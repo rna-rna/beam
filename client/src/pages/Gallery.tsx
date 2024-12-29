@@ -17,11 +17,7 @@ import {
   Loader2,
   Moon,
   Sun,
-  ChevronLeft,
-  ChevronRight,
-  ArrowUpDown,
-  Paintbrush,
-  MessageCircle
+  Share2
 } from "lucide-react";
 
 // UI Components
@@ -61,6 +57,7 @@ import Masonry from "react-masonry-css";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { ShareModal } from "@/components/ShareModal";
 
 
 interface GalleryProps {
@@ -106,6 +103,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [showWithComments, setShowWithComments] = useState(false);
   const [showApproved, setShowApproved] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false); // Added dark mode state
+  const [isOpenShareModal, setIsOpenShareModal] = useState(false);
 
 
   // Add mobile detection
@@ -565,9 +563,24 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (!gallery) return null;
 
     return (
-      <div className="flex items-center gap-2 bg-black/90 p-2 rounded-lg"> {/* Added dark background */}
+      <div className="flex items-center gap-2 bg-black/90 p-2 rounded-lg">
         <TooltipProvider>
-          {/* Copy Link Button - Moved out of dropdown */}
+          {/* Share Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 text-white hover:bg-white/10"
+                onClick={() => setIsOpenShareModal(true)}
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Share Gallery</TooltipContent>
+          </Tooltip>
+
+          {/* Copy Link Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -776,7 +789,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     toggleReorderMode,
     toggleSelectMode,
     toggleDarkMode,
-    isDarkMode
+    isDarkMode,
+    setIsOpenShareModal
   ]);
 
   const renderImage = (image: Image, index: number) => (
@@ -910,7 +924,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (selectedImageIndex >= 0) {
       const handleKeyDown = (e: KeyboardEvent) => {
         if (!gallery?.images?.length) return;
-
         if (e.key === "ArrowLeft") {
           setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
         } else if (e.key === "ArrowRight") {
@@ -978,7 +991,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   };
   return (
-    <div className="min-h-screen relative bg-black/90" {...getRootProps()}> {/* Added dark background */}
+    <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
       <input {...getInputProps()} />
       {isDragActive && !selectMode && (
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -1378,6 +1391,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           }}
         />
       )}
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isOpenShareModal}
+        onClose={() => setIsOpenShareModal(false)}
+        gallerySlug={gallery?.slug || ""}
+        isPublic={gallery?.isPublic || false}
+      />
     </div>
   );
 }
