@@ -511,14 +511,19 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
+        return res.status(404).json({ 
+          message: "This gallery is private.",
+          description: "Sorry, this link isn't public!",
+          isPrivate: true 
+        });
       }
 
       // Check if gallery is public or if user is authenticated and owns the gallery
       const isOwner = req.auth?.userId === gallery.userId;
       if (!gallery.isPublic && !isOwner) {
         return res.status(403).json({
-          message: 'This gallery is private',
+          message: "This gallery is private.",
+          description: "Sorry, this link isn't public!",
           isPrivate: true,
           requiresAuth: !req.auth
         });

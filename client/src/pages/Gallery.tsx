@@ -932,7 +932,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     </motion.div>
   );
 
-  useEffect(() => {
+useEffect(() => {
     if(selectedImageIndex >= 0) {
       const handleKeyDown = (e: KeyboardEvent) => {
         if (!gallery?.images?.length) return;
@@ -975,22 +975,22 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   if (!gallery && isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  if (!gallery) {
+  if (!gallery || error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle className="h-12 w-12 text-destructive" />
-              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
+              <Lock className="h-12 w-12 text-muted-foreground" />
+              <h1 className="text-2xl font-semibold">This gallery is private or not found.</h1>
               <p className="text-muted-foreground">
-                The gallery you're looking for doesn't exist or has been removed.
+                Sorry, there was an error loading this gallery.
               </p>
             </div>
           </CardContent>
