@@ -87,7 +87,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          optimistic: true // Mark as optimistic
+          optimistic: true
         };
 
         queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => [
@@ -101,10 +101,16 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
     onSuccess: (data) => {
       // Update the cache with the server response instead of invalidating
       queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => {
-        // Remove optimistic comment and add real one
         return [
           ...old.filter(comment => !comment.optimistic),
-          data.data // Use the actual server response
+          {
+            ...data.data,
+            author: data.data.author || {
+              username: "Anonymous",
+              id: "anonymous",
+              imageUrl: undefined
+            }
+          }
         ];
       });
 

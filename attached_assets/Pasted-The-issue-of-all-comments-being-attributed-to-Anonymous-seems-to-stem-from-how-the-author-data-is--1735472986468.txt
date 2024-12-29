@@ -1,0 +1,99 @@
+The issue of all comments being attributed to "Anonymous" seems to stem from how the author data is handled when fetching and displaying comments.
+
+Key Observations:
+From Gallery.tsx:
+tsx
+Copy code
+const { data: comments = [] } = useQuery<Comment[]>({
+  queryKey: [`/api/images/${selectedImage?.id}/comments`],
+  enabled: !!selectedImage?.id,
+  select: (data) => {
+    return data.map((comment) => ({
+      ...comment,
+      author: comment.author || "Anonymous",  // Fallback if author is missing
+    }));
+  }
+});
+Issue:
+The author is being overwritten as "Anonymous" if the comment.author is falsy.
+This likely happens because the backend API is not returning the author field correctly, or the frontend misinterprets the response.
+From CommentBubble.tsx:
+tsx
+Copy code
+<p className="text-xs font-medium text-muted-foreground">
+  {authorDisplay.username}
+</p>
+The authorDisplay logic correctly handles author when passed as a string or object, but the actual value being passed might always resolve to "Anonymous" due to the mapping logic in Gallery.tsx.
+Why This Happens:
+Backend Response Issue:
+
+The backend may not be returning the correct author field with the comment data.
+If author is missing in the API response, the fallback "Anonymous" is used.
+Frontend Overwrite:
+
+Even if the author is present, the mapping logic in Gallery.tsx might overwrite it as "Anonymous" by default.
+How to Fix It:
+Step 1: Fix the Backend to Return Author Data
+Locate the route that fetches comments in routes.ts (or your backend file):
+javascript
+Copy code
+app.get('/api/images/:id/comments', async (req, res) => {
+  const comments = await db.query.comments.findMany({
+    where: { imageId: req.params.id },
+  });
+  res.json(comments);
+});
+Ensure the author is included in the query:
+javascript
+Copy code
+const comments = await db.query.comments.findMany({
+  where: { imageId: req.params.id },
+  include: {
+    author: {
+      select: {
+        username: true,
+        imageUrl: true
+      }
+    }
+  }
+});
+res.json(comments);
+Step 2: Adjust the Frontend Mapping to Prevent Overwriting Author
+Open Gallery.tsx and modify the useQuery for comments:
+tsx
+Copy code
+const { data: comments = [] } = useQuery<Comment[]>({
+  queryKey: [`/api/images/${selectedImage?.id}/comments`],
+  enabled: !!selectedImage?.id,
+  select: (data) => {
+    return data.map((comment) => ({
+      ...comment,
+      author: comment.author || { username: "Anonymous" },  // Preserve author if available
+    }));
+  }
+});
+This prevents overwriting valid authors while still providing a fallback.
+Step 3: Ensure Author is Displayed Correctly in CommentBubble.tsx
+The existing logic in CommentBubble.tsx seems correct:
+tsx
+Copy code
+const authorDisplay = typeof author === 'string' ? {
+  username: author,
+  imageUrl: undefined
+} : author;
+This handles both object and string authors, ensuring backward compatibility.
+Testing the Fix:
+Add a comment as an authenticated user.
+Refresh the page and ensure the correct author name appears.
+Check console logs for the fetched comments to verify the author field exists.
+Test by visiting the API directly (/api/images/{imageId}/comments) and confirm the response contains:
+json
+Copy code
+{
+  "id": 25,
+  "content": "Nice photo!",
+  "author": {
+    "username": "John Doe",
+    "imageUrl": "https://example.com/avatar.jpg"
+  }
+}
