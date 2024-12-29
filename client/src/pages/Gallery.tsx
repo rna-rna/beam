@@ -126,12 +126,37 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // Queries
   const { data: gallery, isLoading, error } = useQuery<GalleryType>({
     queryKey: [`/api/galleries/${slug}`],
-    enabled: !!slug,
-    onError: (error: any) => {
-      if (error.message?.includes('This gallery is private')) {
-        setIsPrivateGallery(true);
+    queryFn: async () => {
+      const token = await getToken();
+      const headers: HeadersInit = {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
-    }
+
+      const res = await fetch(`/api/galleries/${slug}`, {
+        headers,
+        cache: 'no-store',
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        if (res.status === 403) {
+          throw new Error('This gallery is private');
+        }
+        throw new Error('Failed to fetch gallery');
+      }
+
+      return res.json();
+    },
+    enabled: !!slug,
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 
   const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
@@ -904,8 +929,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             variant="secondary"
           >
             <MessageSquare className="w-3 h-3" />
-            {image.commentCount}
-          </Badge>
+            {image.commentCount}          </Badge>
         )}
 
         {/* Selection checkbox */}
