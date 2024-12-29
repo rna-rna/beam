@@ -1134,37 +1134,32 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   // Modify the image click handler in the gallery grid
   const handleImageClick = (index: number) => {
+    console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
+
     if (isMobile) {
       setMobileViewIndex(index);
       setShowMobileView(true);
       return;
     }
 
-    if (isCommentPlacementMode) {
-      setIsCommentModalOpen(true);
-      return;
-    }
-
     setSelectedImageIndex(index);
-  };
-
-  // Add layout toggle handler
-  const toggleGridView = () => {
-    setIsMasonry(!isMasonry);
   };
 
   // Add comment position handler
   const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
+    console.log('handleImageComment triggered'); // Debug log
     if (!isCommentPlacementMode) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
 
+    console.log('Setting comment position:', { x, y }); // Debug log
     setNewCommentPos({ x, y });
     setIsCommentModalOpen(true);
   };
 
+  // Render comment dialog with debugging
   const renderCommentDialog = () => {
     if (!isCommentModalOpen) return null;
 
@@ -1174,6 +1169,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         onClose={() => {
           setIsCommentModalOpen(false);
           setNewCommentPos(null);
+          console.log('Comment modal closed'); // Debug log
         }}
         onSubmit={(content) => {
           if (!selectedImage?.id || !newCommentPos) return;
