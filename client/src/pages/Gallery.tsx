@@ -240,9 +240,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     enabled: !!selectedImage?.id,
   });
 
-  const { data: comments = [] } = useQuery<Comment[]>({
+  const { data: comments = [], isLoading: isCommentsLoading, error: commentsError } = useQuery<Comment[]>({
     queryKey: [`/api/images/${selectedImage?.id}/comments`],
     enabled: !!selectedImage?.id,
+    onSuccess: (data) => {
+      console.log("Fetched comments:", data);
+    },
+    onError: (err) => {
+      console.error("Failed to fetch comments:", err);
+    },
+    select: (data) => {
+      return data.map((comment) => ({
+        ...comment,
+        author: comment.author || "Anonymous",
+      }));
+    }
   });
 
   // Define all mutations first
