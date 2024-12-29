@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -39,9 +39,6 @@ interface GalleryWithThumbnail extends Gallery {
   imageCount: number;
 }
 
-const RECENTLY_VIEWED_KEY = 'recently-viewed-galleries';
-const MAX_RECENT = 10;
-
 export default function Dashboard() {
   const { user } = useUser();
   const { getToken } = useAuth();
@@ -51,17 +48,6 @@ export default function Dashboard() {
   const [galleryToDelete, setGalleryToDelete] = useState<GalleryWithThumbnail | null>(null);
   const [isCreatingGallery, setIsCreatingGallery] = useState(false);
   const [activeTab, setActiveTab] = useState("my-projects");
-
-  // Load recently viewed galleries from localStorage
-  const getRecentlyViewed = () => {
-    try {
-      const stored = localStorage.getItem(RECENTLY_VIEWED_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.error('Failed to load recently viewed:', error);
-      return [];
-    }
-  };
 
   // Query my galleries
   const { data: myGalleries = [], isLoading: isLoadingMyGalleries } = useQuery<GalleryWithThumbnail[]>({
@@ -86,19 +72,13 @@ export default function Dashboard() {
 
   // Query recently viewed galleries
   const { data: recentGalleries = [], isLoading: isLoadingRecent } = useQuery<GalleryWithThumbnail[]>({
-    queryKey: ['recently-viewed-galleries'],
+    queryKey: ['/api/galleries/recent'],
     queryFn: async () => {
-      const recentIds = getRecentlyViewed();
-      if (!recentIds.length) return [];
-
       const token = await getToken();
-      const res = await fetch(`/api/galleries/recent`, {
-        method: 'POST',
+      const res = await fetch('/api/galleries/recent', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ galleryIds: recentIds }),
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (!res.ok) {
@@ -107,6 +87,26 @@ export default function Dashboard() {
       return res.json();
     },
     enabled: !!user,
+  });
+
+  // Track gallery view mutation
+  const trackGalleryView = useMutation({
+    mutationFn: async (slug: string) => {
+      const token = await getToken();
+      const res = await fetch(`/api/galleries/${slug}/view`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        throw new Error('Failed to track gallery view');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries/recent'] });
+    }
   });
 
   // Create gallery mutation
@@ -148,6 +148,9 @@ export default function Dashboard() {
             return res.json();
           }
         });
+
+        // Track the new gallery view
+        await trackGalleryView.mutateAsync(data.slug);
 
         setLocation(`/g/${data.slug}`);
         toast({
@@ -194,6 +197,7 @@ export default function Dashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries/recent'] });
       toast({
         title: "Success",
         description: "Gallery deleted successfully",
@@ -210,6 +214,17 @@ export default function Dashboard() {
       setGalleryToDelete(null);
     },
   });
+
+  // Handle navigation to gallery and track view
+  const handleGalleryClick = async (gallery: GalleryWithThumbnail) => {
+    try {
+      await trackGalleryView.mutateAsync(gallery.slug);
+      setLocation(`/g/${gallery.slug}`);
+    } catch (error) {
+      console.error('Failed to track gallery view:', error);
+      setLocation(`/g/${gallery.slug}`);
+    }
+  };
 
   const renderGalleryGrid = (galleries: GalleryWithThumbnail[]) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -249,7 +264,7 @@ export default function Dashboard() {
         >
           <div
             className="cursor-pointer"
-            onClick={() => setLocation(`/g/${gallery.slug}`)}
+            onClick={() => handleGalleryClick(gallery)}
           >
             <div className="aspect-[4/3] relative overflow-hidden">
               {gallery.thumbnailUrl ? (
@@ -274,46 +289,48 @@ export default function Dashboard() {
                 <span className="mx-2">•</span>
                 <Clock className="w-4 h-4" />
                 <span>{formatRelativeDate(gallery.createdAt)}</span>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setGalleryToDelete(gallery);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Gallery</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete "{gallery.title}"? This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel onClick={(e) => {
-                        e.stopPropagation();
-                        setGalleryToDelete(null);
-                      }}>
-                        Cancel
-                      </AlertDialogCancel>
-                      <AlertDialogAction
+                {activeTab === "my-projects" && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-destructive hover:text-destructive-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteGalleryMutation.mutate(gallery);
+                          setGalleryToDelete(gallery);
                         }}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Gallery</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{gallery.title}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={(e) => {
+                          e.stopPropagation();
+                          setGalleryToDelete(null);
+                        }}>
+                          Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteGalleryMutation.mutate(gallery);
+                          }}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             </CardContent>
           </div>
