@@ -257,21 +257,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           author: authorData && typeof authorData === 'object'
             ? {
                 id: authorData.id,
-                firstName: authorData.firstName || '',
-                lastName: authorData.lastName || '',
-                imageUrl: authorData.imageUrl
+                username: authorData.userName || `${authorData.firstName || ''} ${authorData.lastName || ''}`.trim() || 'Unknown User',
+                imageUrl: authorData.userImageUrl || authorData.imageUrl
               }
             : typeof authorData === 'string'
               ? {
                   id: authorData,
-                  firstName: '',
-                  lastName: authorData,
+                  username: authorData,
                   imageUrl: undefined
                 }
               : {
                   id: 'unknown',
-                  firstName: 'Unknown',
-                  lastName: 'User',
+                  username: 'Unknown User',
                   imageUrl: undefined
                 }
         };
@@ -948,8 +945,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               >
                 {isDarkMode ? (
                   <Moon className="h-4 w-4" />
-                ) : (
-                  <Sun className="h-4 w-4" />
+                ) : (                  <Sun className="h-4 w-4" />
                 )}
               </Button>
             </TooltipTrigger>
