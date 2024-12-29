@@ -34,29 +34,34 @@ function App() {
   const [, setLocation] = useLocation();
   const { isSignedIn, user } = useUser();
   const { getToken } = useAuth();
+  const [location] = useLocation();
 
-  // Query for current gallery
+  // Get gallery slug from URL if we're on a gallery page
+  const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
+
+  // Query for specific gallery when on gallery page
   const { data: gallery } = useQuery({
-    queryKey: ['/api/galleries/current'],
+    queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : [],
     queryFn: async () => {
+      if (!gallerySlug) return null;
       const token = await getToken();
-      const res = await fetch('/api/galleries/current', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!res.ok) throw new Error('Failed to fetch current gallery');
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`/api/galleries/${gallerySlug}`, { headers });
+      if (!res.ok) throw new Error('Failed to fetch gallery');
       return res.json();
     },
-    enabled: isSignedIn && !!user,
+    enabled: !!gallerySlug,
   });
 
   // Mutation for updating title
   const titleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
-      if (!gallery?.slug) throw new Error("No gallery found");
+      if (!gallerySlug) throw new Error("No gallery found");
       const token = await getToken();
-      const res = await fetch(`/api/galleries/${gallery.slug}/title`, {
+      const res = await fetch(`/api/galleries/${gallerySlug}/title`, {
         method: "PATCH",
         headers: { 
           "Content-Type": "application/json",
@@ -72,16 +77,18 @@ function App() {
       return (await res.json()).title;
     },
     onMutate: async (newTitle) => {
-      await queryClient.cancelQueries({ queryKey: ['/api/galleries/current'] });
-      const previousGallery = queryClient.getQueryData(['/api/galleries/current']);
-      queryClient.setQueryData(['/api/galleries/current'], (old: any) => ({
+      await queryClient.cancelQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+      const previousGallery = queryClient.getQueryData([`/api/galleries/${gallerySlug}`]);
+      queryClient.setQueryData([`/api/galleries/${gallerySlug}`], (old: any) => ({
         ...old,
         title: newTitle
       }));
       return { previousGallery };
     },
     onError: (err, newTitle, context) => {
-      queryClient.setQueryData(['/api/galleries/current'], context?.previousGallery);
+      if (gallerySlug) {
+        queryClient.setQueryData([`/api/galleries/${gallerySlug}`], context?.previousGallery);
+      }
       toast({
         title: "Error",
         description: "Failed to update title",
@@ -89,17 +96,21 @@ function App() {
       });
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['/api/galleries/current'], (old: any) => ({
-        ...old,
-        title: data
-      }));
+      if (gallerySlug) {
+        queryClient.setQueryData([`/api/galleries/${gallerySlug}`], (old: any) => ({
+          ...old,
+          title: data
+        }));
+      }
       toast({
         title: "Success",
         description: "Gallery title updated successfully",
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries/current'] });
+      if (gallerySlug) {
+        queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+      }
     }
   });
 
@@ -136,19 +147,17 @@ function App() {
 
       <Route path="/g/:slug">
         {(params) => (
-          <ProtectedRoute>
-            <Layout 
+          <Layout 
+            title={gallery?.title || "Untitled Gallery"}
+            onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
+            actions={headerActions}
+          >
+            <Gallery 
+              slug={params.slug}
+              onHeaderActionsChange={setHeaderActions}
               title={gallery?.title || "Untitled Gallery"}
-              onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
-              actions={headerActions}
-            >
-              <Gallery 
-                slug={params.slug}
-                onHeaderActionsChange={setHeaderActions}
-                title={gallery?.title || "Untitled Gallery"}
-              />
-            </Layout>
-          </ProtectedRoute>
+            />
+          </Layout>
         )}
       </Route>
     </Switch>
