@@ -519,7 +519,8 @@ export function registerRoutes(app: Express): Server {
       if (!gallery.isPublic && !isOwner) {
         return res.status(403).json({
           message: 'This gallery is private',
-          isPrivate: true
+          isPrivate: true,
+          requiresAuth: !req.auth
         });
       }
 
@@ -558,7 +559,8 @@ export function registerRoutes(app: Express): Server {
         title: gallery.title,
         isPublic: gallery.isPublic,
         images: processedImages,
-        isOwner
+        isOwner,
+        createdAt: gallery.createdAt
       });
     } catch (error) {
       console.error('Gallery fetch error:', error);

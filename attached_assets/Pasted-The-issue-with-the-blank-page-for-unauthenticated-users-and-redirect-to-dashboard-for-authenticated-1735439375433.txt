@@ -1,0 +1,127 @@
+The issue with the blank page for unauthenticated users and redirect to /dashboard for authenticated users likely stems from how gallery access is handled in the routes.ts and Gallery.tsx files. Here's what I found and how to address it.
+
+1. Root Cause:
+Backend Route Restriction (routes.ts):
+
+ts
+Copy code
+protectedRouter.get('/galleries/:slug', async (req: any, res) => {
+  const userId = req.auth.userId;
+
+  const gallery = await db.query.galleries.findFirst({
+    where: and(
+      eq(galleries.slug, req.params.slug),
+      eq(galleries.userId, userId)
+    ),
+  });
+
+  if (!gallery) {
+    return res.status(404).json({ message: 'Gallery not found' });
+  }
+Problem: This route only fetches galleries owned by the authenticated user (eq(galleries.userId, userId)).
+If the gallery is public but belongs to another user, this route returns 404 even if the gallery exists.
+2. Solution – Allow Public Access to Galleries:
+Update the Route to Allow Public Viewing:
+
+ts
+Copy code
+app.get('/api/galleries/:slug', async (req, res) => {
+  try {
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, req.params.slug),
+    });
+
+    if (!gallery) {
+      return res.status(404).json({ message: 'Gallery not found' });
+    }
+
+    // Allow access if the gallery is public OR if the user owns the gallery
+    const isOwner = req.auth?.userId === gallery.userId;
+    if (!gallery.isPublic && !isOwner) {
+      return res.status(403).json({
+        message: 'This gallery is private',
+        isPrivate: true,
+      });
+    }
+
+    res.json(gallery);
+  } catch (error) {
+    console.error('Gallery fetch error:', error);
+    res.status(500).json({ message: 'Failed to fetch gallery' });
+  }
+});
+Why This Works:
+
+Public galleries are viewable by anyone.
+Private galleries are restricted to the owner.
+Unauthenticated users can now access public galleries without needing to log in.
+3. Frontend Fix – Handle Private Galleries (Gallery.tsx):
+Existing Logic (Gallery.tsx):
+
+tsx
+Copy code
+const { data: gallery, isLoading, error } = useQuery<GalleryType>({
+  queryKey: [`/api/galleries/${slug}`],
+  enabled: !!slug,
+  onError: (error: any) => {
+    if (error.message?.includes('This gallery is private')) {
+      setIsPrivateGallery(true);
+    }
+  }
+});
+Problem: The frontend detects private galleries but doesn't differentiate them properly.
+It may incorrectly redirect or show nothing for galleries that should be public.
+Fix:
+
+Add logic to gracefully handle private galleries without breaking the page.
+tsx
+Copy code
+if (isPrivateGallery) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Card className="w-full max-w-md mx-4">
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <Lock className="h-12 w-12 text-muted-foreground" />
+            <h1 className="text-2xl font-semibold">Private Gallery</h1>
+            <p className="text-muted-foreground">
+              This gallery is private and can only be accessed by its owner.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+4. Redirect Fix for Owners (Avoid /dashboard Redirect):
+Problem:
+
+When authenticated users access a gallery, they are redirected to /dashboard instead of staying on the gallery page.
+This happens because the backend only fetches the gallery for the current user.
+Fix:
+
+After login, redirect users back to the gallery page instead of /dashboard.
+In AuthModal.tsx:
+
+tsx
+Copy code
+const handleSignIn = () => {
+  onClose();
+  openSignIn({
+    redirectUrl: redirectPath || window.location.pathname,
+    afterSignInUrl: redirectPath || window.location.pathname,
+  });
+};
+5. Testing the Fixes:
+For Public Galleries:
+
+Visit /galleries/:slug while logged out.
+The gallery should load without a blank page.
+For Private Galleries:
+
+Visit a private gallery as a logged-out user.
+A message indicating the gallery is private should appear.
+For Logged-In Users (Gallery Owners):
+
+Visit /galleries/:slug as the gallery owner.
+Confirm you are not redirected to /dashboard but stay on the gallery.
