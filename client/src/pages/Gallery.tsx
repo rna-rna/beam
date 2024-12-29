@@ -136,10 +136,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       return res.json();
     },
-    onSuccess: () => {
-      // Invalidate both the specific gallery and gallery list queries
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+    onSuccess: (updatedGallery) => {
+      // Update the specific gallery cache
+      queryClient.setQueryData([`/api/galleries/${slug}`], updatedGallery);
+
+      // Update the gallery list cache
+      queryClient.setQueryData(['/api/galleries'], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((gallery: any) => 
+          gallery.slug === slug ? { ...gallery, title: updatedGallery.title } : gallery
+        );
+      });
+
       toast({
         title: "Success",
         description: "Gallery title updated successfully",
