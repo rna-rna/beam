@@ -252,8 +252,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     select: (data) => {
       return data.map((comment) => ({
         ...comment,
-        // Preserve the author object if it exists
-        author: comment.author || {
+        author: comment.author !== undefined ? comment.author : {
           username: "Anonymous",
           id: "anonymous",
           imageUrl: undefined
