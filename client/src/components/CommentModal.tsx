@@ -18,6 +18,8 @@ export function CommentModal({ isOpen, onClose, onSubmit, position }: CommentMod
   const { toast } = useToast();
   const { isSignedIn, isLoaded } = useUser();
 
+  console.log('CommentModal render:', { isOpen, isSignedIn, isLoaded }); // Debug log
+
   const handleSubmit = () => {
     if (!content.trim()) {
       toast({
@@ -34,8 +36,11 @@ export function CommentModal({ isOpen, onClose, onSubmit, position }: CommentMod
   };
 
   if (!isLoaded) {
+    console.log('CommentModal: Auth not loaded yet'); // Debug log
     return null;
   }
+
+  console.log('CommentModal: Rendering content', { isSignedIn }); // Debug log
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
