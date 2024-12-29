@@ -8,6 +8,7 @@ import { Layout } from "@/components/Layout";
 import { useState, ReactNode, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 // Protected route wrapper component
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -40,7 +41,7 @@ function App() {
   const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
 
   // Query for specific gallery when on gallery page
-  const { data: gallery } = useQuery({
+  const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
     queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : [],
     queryFn: async () => {
       if (!gallerySlug) return null;
@@ -55,15 +56,24 @@ function App() {
       const res = await fetch(`/api/galleries/${gallerySlug}`, { 
         headers,
         // Prevent browser caching
-        cache: 'no-store'
+        cache: 'no-store',
+        credentials: 'include'
       });
-      if (!res.ok) throw new Error('Failed to fetch gallery');
+      if (!res.ok) {
+        if (res.status === 404) {
+          throw new Error('Gallery not found');
+        }
+        if (res.status === 403) {
+          throw new Error('This gallery is private');
+        }
+        throw new Error('Failed to fetch gallery');
+      }
       return res.json();
     },
     enabled: !!gallerySlug,
     // Ensure fresh data on each query
     staleTime: 0,
-    cacheTime: 0,
+    retry: false,
     refetchOnMount: true,
     refetchOnWindowFocus: true
   });
@@ -77,7 +87,9 @@ function App() {
         method: "PATCH",
         headers: { 
           "Content-Type": "application/json",
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         },
         body: JSON.stringify({ title: newTitle }),
       });
@@ -88,42 +100,23 @@ function App() {
 
       return (await res.json()).title;
     },
-    onMutate: async (newTitle) => {
-      await queryClient.cancelQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-      const previousGallery = queryClient.getQueryData([`/api/galleries/${gallerySlug}`]);
+    onSuccess: (data) => {
       queryClient.setQueryData([`/api/galleries/${gallerySlug}`], (old: any) => ({
         ...old,
-        title: newTitle
+        title: data
       }));
-      return { previousGallery };
+      toast({
+        title: "Success",
+        description: "Gallery title updated successfully",
+      });
     },
-    onError: (err, newTitle, context) => {
-      if (gallerySlug) {
-        queryClient.setQueryData([`/api/galleries/${gallerySlug}`], context?.previousGallery);
-      }
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to update title",
         variant: "destructive"
       });
     },
-    onSuccess: (data) => {
-      if (gallerySlug) {
-        queryClient.setQueryData([`/api/galleries/${gallerySlug}`], (old: any) => ({
-          ...old,
-          title: data
-        }));
-      }
-      toast({
-        title: "Success",
-        description: "Gallery title updated successfully",
-      });
-    },
-    onSettled: () => {
-      if (gallerySlug) {
-        queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-      }
-    }
   });
 
   // Handle redirect on auth state change
@@ -132,6 +125,32 @@ function App() {
       setLocation("/dashboard");
     }
   }, [isSignedIn, setLocation]);
+
+  if (gallerySlug && isGalleryLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (gallerySlug && galleryError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold text-destructive">
+            {galleryError instanceof Error ? galleryError.message : 'An error occurred'}
+          </h1>
+          <button 
+            className="text-primary hover:underline"
+            onClick={() => setLocation('/dashboard')}
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Switch>
@@ -160,14 +179,14 @@ function App() {
       <Route path="/g/:slug">
         {(params) => (
           <Layout 
-            title={gallery?.title || "Untitled Gallery"}
+            title={gallery?.title || "Loading Gallery..."}
             onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
             actions={headerActions}
           >
             <Gallery 
               slug={params.slug}
               onHeaderActionsChange={setHeaderActions}
-              title={gallery?.title || "Untitled Gallery"}
+              title={gallery?.title || "Loading Gallery..."}
             />
           </Layout>
         )}

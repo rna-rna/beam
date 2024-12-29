@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Plus, Grid, Image as ImageIcon, Clock, Trash2 } from "lucide-react";
+import { Plus, Grid, Image as ImageIcon, Clock, Trash2, Loader2 } from "lucide-react";
 import { AnimatedLayout } from "@/components/AnimatedLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +41,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [galleryToDelete, setGalleryToDelete] = useState<GalleryWithThumbnail | null>(null);
+  const [isCreatingGallery, setIsCreatingGallery] = useState(false);
 
   // Query galleries
   const { data: galleries = [], isLoading } = useQuery<GalleryWithThumbnail[]>({
@@ -49,7 +50,9 @@ export default function Dashboard() {
       const token = await getToken();
       const res = await fetch('/api/galleries', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
       if (!res.ok) {
@@ -64,6 +67,7 @@ export default function Dashboard() {
   // Create gallery mutation
   const createGalleryMutation = useMutation({
     mutationFn: async () => {
+      setIsCreatingGallery(true);
       const token = await getToken();
       const res = await fetch('/api/galleries/create', {
         method: 'POST',
@@ -81,34 +85,47 @@ export default function Dashboard() {
       }
       return res.json();
     },
-    onSuccess: (data) => {
-      // Invalidate galleries query to refresh the dashboard
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+    onSuccess: async (data) => {
+      try {
+        // Invalidate galleries query to refresh the dashboard
+        await queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
 
-      // Prefetch the new gallery data before navigation
-      queryClient.prefetchQuery({
-        queryKey: [`/api/galleries/${data.slug}`],
-        queryFn: async () => {
-          const token = await getToken();
-          const res = await fetch(`/api/galleries/${data.slug}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
-          });
-          if (!res.ok) throw new Error('Failed to fetch new gallery');
-          return res.json();
-        }
-      }).then(() => {
+        // Prefetch the new gallery data before navigation
+        await queryClient.prefetchQuery({
+          queryKey: [`/api/galleries/${data.slug}`],
+          queryFn: async () => {
+            const token = await getToken();
+            const res = await fetch(`/api/galleries/${data.slug}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              }
+            });
+            if (!res.ok) throw new Error('Failed to fetch new gallery');
+            return res.json();
+          }
+        });
+
+        // Navigate to the new gallery
         setLocation(`/g/${data.slug}`);
         toast({
           title: "Success",
           description: "New gallery created successfully",
         });
-      });
+      } catch (error) {
+        console.error('Error after gallery creation:', error);
+        toast({
+          title: "Error",
+          description: "Gallery created but failed to load. Please try refreshing.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsCreatingGallery(false);
+      }
     },
     onError: (error) => {
+      setIsCreatingGallery(false);
       console.error('Gallery creation error:', error);
       toast({
         title: "Error",
@@ -164,15 +181,21 @@ export default function Dashboard() {
                 variant="ghost"
                 className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4 hover:bg-muted/50"
                 onClick={() => createGalleryMutation.mutate()}
-                disabled={createGalleryMutation.isPending}
+                disabled={isCreatingGallery || createGalleryMutation.isPending}
               >
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Plus className="h-8 w-8 text-primary" />
+                  {isCreatingGallery ? (
+                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                  ) : (
+                    <Plus className="h-8 w-8 text-primary" />
+                  )}
                 </div>
                 <div className="text-center">
-                  <h3 className="font-semibold text-lg">Create New Gallery</h3>
+                  <h3 className="font-semibold text-lg">
+                    {isCreatingGallery ? "Creating Gallery..." : "Create New Gallery"}
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    Start a new collection of images
+                    {isCreatingGallery ? "Please wait..." : "Start a new collection of images"}
                   </p>
                 </div>
               </Button>
