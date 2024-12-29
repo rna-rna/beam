@@ -52,11 +52,12 @@ export default function Settings() {
                 card: 'shadow-none border-0 p-0',
                 navbar: 'hidden',
                 headerTitle: 'text-2xl font-bold',
-                headerSubtitle: 'text-muted-foreground'
+                headerSubtitle: 'text-neutral-600'
               },
               variables: {
-                colorPrimary: 'hsl(var(--primary))',
-                borderRadius: 'var(--radius)',
+                colorPrimary: '#4F46E5',
+                borderRadius: '8px',
+                fontSize: '16px'
               }
             }}
           />
