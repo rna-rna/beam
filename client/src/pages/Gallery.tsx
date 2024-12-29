@@ -1145,6 +1145,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     setSelectedImageIndex(index);
   };
 
+  // Add layout toggle handler
+  const toggleGridView = () => {
+    setIsMasonry(!isMasonry);
+  };
+
   // Add comment position handler
   const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
     console.log('handleImageComment triggered'); // Debug log
