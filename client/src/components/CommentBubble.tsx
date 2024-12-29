@@ -15,7 +15,8 @@ interface CommentBubbleProps {
   content?: string;
   author?: {
     id: string;
-    username: string;
+    firstName?: string;
+    lastName?: string;
     imageUrl?: string;
   } | string;
   onSubmit?: () => void;
@@ -32,16 +33,24 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Handle both string and object author formats
-  const authorDisplay = typeof author === 'string' ? {
-    username: author,
-    id: author,
-    imageUrl: undefined
-  } : author || {
-    username: "Unknown User",
-    id: "unknown",
-    imageUrl: undefined
-  };
+  // Handle both string and object author formats with Clerk fields
+  const authorDisplay = typeof author === 'string' 
+    ? { 
+        username: author,
+        id: author,
+        imageUrl: undefined
+      }
+    : author
+    ? {
+        username: `${author.firstName || ''} ${author.lastName || ''}`.trim() || 'Unknown User',
+        id: author.id,
+        imageUrl: author.imageUrl
+      }
+    : {
+        username: "Unknown User",
+        id: "unknown",
+        imageUrl: undefined
+      };
 
   const commentMutation = useMutation({
     mutationFn: async (commentText: string) => {
@@ -93,7 +102,8 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           yPosition: y,
           author: {
             id: user.id,
-            username: `${user.firstName} ${user.lastName}`.trim(),
+            firstName: user.firstName,
+            lastName: user.lastName,
             imageUrl: user.imageUrl
           },
           createdAt: new Date().toISOString(),
