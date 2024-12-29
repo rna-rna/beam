@@ -99,13 +99,13 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
       return { previousComments };
     },
     onSuccess: (data) => {
-      // Update the cache with the server response instead of invalidating
+      // Update the cache with the server response
       queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => {
         return [
           ...old.filter(comment => !comment.optimistic),
           {
             ...data.data,
-            author: data.data.author || {
+            author: data.data.author !== undefined ? data.data.author : {
               username: "Anonymous",
               id: "anonymous",
               imageUrl: undefined
@@ -114,7 +114,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
         ];
       });
 
-      // Delay the invalidation to ensure smooth transition
+      // Delay invalidation for smooth transition
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
       }, 500);
