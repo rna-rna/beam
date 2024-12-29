@@ -66,6 +66,7 @@ import { saveAs } from 'file-saver';
 import { ShareModal } from "@/components/ShareModal";
 import { Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@clerk/clerk-react";
 
 interface GalleryProps {
   slug?: string;
@@ -84,6 +85,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const slug = propSlug || params?.slug;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
