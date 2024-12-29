@@ -7,13 +7,17 @@ import { useUser, useAuth } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { SignIn } from "@clerk/clerk-react";
+import { SignUp } from "@clerk/clerk-react";
 
 interface CommentBubbleProps {
   x: number;
   y: number;
   content?: string;
-  author?: string;
+  author?: {
+    id: string;
+    username: string;
+    imageUrl?: string;
+  };
   onSubmit?: () => void;
   isNew?: boolean;
   imageId?: number;
@@ -49,8 +53,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
         body: JSON.stringify({
           content: commentText,
           xPosition: x,
-          yPosition: y,
-          userId: user.id
+          yPosition: y
         })
       });
 
@@ -77,9 +80,11 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           content: newCommentText,
           xPosition: x,
           yPosition: y,
-          userId: user.id,
-          userName: `${user.firstName} ${user.lastName}`.trim(),
-          userImageUrl: user.imageUrl,
+          author: {
+            id: user.id,
+            username: `${user.firstName} ${user.lastName}`.trim(),
+            imageUrl: user.imageUrl
+          },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -137,9 +142,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
     }
   };
 
-  const displayName = author || (user ? `${user.firstName} ${user.lastName}`.trim() : null);
-
-  if (!displayName && !isNew) {
+  if (!author && !isNew) {
     return null;
   }
 
@@ -169,7 +172,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
                 readOnly={!user}
                 onClick={() => {
                   if (!user) {
-                    console.log('Triggering auth modal from input click'); 
+                    console.log('Triggering auth modal from input click');
                     setShowAuthModal(true);
                   }
                 }}
@@ -179,15 +182,15 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
             </form>
           ) : (
             <div>
-              {displayName && (
+              {author && (
                 <div className="flex items-center gap-2 mb-2">
                   <UserAvatar
-                    name={displayName}
-                    imageUrl={user?.imageUrl}
+                    name={author.username}
+                    imageUrl={author.imageUrl}
                     className="w-6 h-6 text-xs"
                   />
                   <p className="text-xs font-medium text-muted-foreground">
-                    {displayName}
+                    {author.username}
                   </p>
                 </div>
               )}
@@ -200,8 +203,8 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
       {showAuthModal && (
         <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
           <DialogContent className="max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Sign In to Comment</h2>
-            <SignIn afterSignInUrl={window.location.href} />
+            <h2 className="text-xl font-semibold mb-4">Sign Up to Comment</h2>
+            <SignUp afterSignUpUrl={window.location.href} />
           </DialogContent>
         </Dialog>
       )}

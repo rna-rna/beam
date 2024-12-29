@@ -1,0 +1,88 @@
+Fix the issue where all comments display the currently authenticated user as the author, instead of showing the correct original commenter in a photo gallery app. Ensure that each comment correctly reflects the author who left it.
+
+🛠️ Instructions (Replit):
+1. Backend – Update Comment Fetch Route to Include Author Data:
+Open routes.ts (or the file handling API routes).
+Locate the route responsible for fetching comments:
+typescript
+Copy code
+app.get('/api/images/:id/comments', async (req, res) => {
+  const comments = await db.query.comments.findMany({
+    where: { imageId: req.params.id },
+  });
+  res.json(comments);
+});
+Modify the route to include author information:
+typescript
+Copy code
+app.get('/api/images/:id/comments', async (req, res) => {
+  const comments = await db.query.comments.findMany({
+    where: { imageId: req.params.id },
+    include: {
+      author: true,  // Ensure author data is fetched
+    }
+  });
+  res.json(comments);
+});
+Save the changes.
+2. Frontend – Update Comment Display Logic (CommentBubble.tsx):
+Open CommentBubble.tsx in the components directory.
+Locate the section displaying the author's name:
+typescript
+Copy code
+<p className="text-xs font-medium text-muted-foreground">
+  {user?.fullName || "Anonymous"}
+</p>
+Replace it to pull the actual author from the comment data:
+typescript
+Copy code
+<p className="text-xs font-medium text-muted-foreground">
+  {author || "Anonymous"}
+</p>
+3. Pass Correct Author to CommentBubble (Gallery.tsx):
+Open Gallery.tsx.
+Locate the section mapping over comments to render CommentBubble components:
+typescript
+Copy code
+{comments.map((comment) => (
+  <CommentBubble
+    key={comment.id}
+    x={comment.xPosition}
+    y={comment.yPosition}
+    content={comment.content}
+    author={user?.fullName}  // ❌ Incorrect
+  />
+))}
+Update it to pass the correct author directly from the API response:
+typescript
+Copy code
+{comments.map((comment) => (
+  <CommentBubble
+    key={comment.id}
+    x={comment.xPosition}
+    y={comment.yPosition}
+    content={comment.content}
+    author={comment.author}  // ✅ Correct
+  />
+))}
+4. Ensure Comments are Correctly Mapped (Gallery.tsx):
+Locate the useQuery fetching comments:
+typescript
+Copy code
+const { data: comments = [] } = useQuery<Comment[]>({
+  queryKey: [`/api/images/${selectedImage?.id}/comments`],
+  enabled: !!selectedImage?.id,
+});
+Modify it to ensure comments default to "Anonymous" if no author exists:
+typescript
+Copy code
+const { data: comments = [] } = useQuery<Comment[]>({
+  queryKey: [`/api/images/${selectedImage?.id}/comments`],
+  enabled: !!selectedImage?.id,
+  select: (data) => {
+    return data.map((comment) => ({
+      ...comment,
+      author: comment.author || "Anonymous",
+    }));
+  },
+});
