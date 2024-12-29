@@ -66,8 +66,6 @@ import { saveAs } from 'file-saver';
 import { ShareModal } from "@/components/ShareModal";
 import { Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { AuthModal } from "@/components/AuthModal";
-import { useUser } from "@clerk/clerk-react";
 
 interface GalleryProps {
   slug?: string;
@@ -86,7 +84,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const slug = propSlug || params?.slug;
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isSignedIn, isLoaded } = useUser();
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
@@ -115,8 +112,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
 
   // Add mobile detection
   useEffect(() => {
@@ -361,22 +356,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     },
   });
 
-
-  const handleCommentAttempt = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isLoaded) return;
-
-    if (!isSignedIn) {
-      e.stopPropagation();
-      setIsAuthModalOpen(true);
-      return;
-    }
-
-    // Existing comment creation logic
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    setNewCommentPos({ x, y });
-  };
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -1458,11 +1437,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         onClose={() => setIsOpenShareModal(false)}
         gallerySlug={gallery?.slug || ""}
         isPublic={gallery?.isPublic || false}
-      />
-      <AuthModal 
-        isOpen={isAuthModalOpen}
-        onOpenChange={setIsAuthModalOpen}
-        redirectUrl={window.location.href}
       />
     </div>
   );
