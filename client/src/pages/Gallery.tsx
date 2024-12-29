@@ -68,6 +68,7 @@ import { Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
+import { useUser } from '@clerk/clerk-react';
 
 interface GalleryProps {
   slug?: string;
@@ -87,6 +88,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
+  const { user } = useUser();
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
@@ -452,6 +454,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       });
     },
   });
+
 
 
   const toggleVisibilityMutation = useMutation({
@@ -948,8 +951,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
-      initial={{ opacity: 0, y: 20}}
-      animate={{
+      initial={{ opacity: 0, y: 20}}      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
@@ -1155,6 +1157,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     console.log('handleImageComment triggered'); // Debug log
     if (!isCommentPlacementMode) return;
 
+    const { user } = useUser();
+
+    if (!user) {
+      setIsCommentModalOpen(true);
+      return;
+    }
+
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
@@ -1171,6 +1180,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     return (
       <CommentModal
         isOpen={isCommentModalOpen}
+        position={newCommentPos}
         onClose={() => {
           setIsCommentModalOpen(false);
           setNewCommentPos(null);
@@ -1178,14 +1188,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         }}
         onSubmit={(content) => {
           if (!selectedImage?.id || !newCommentPos) return;
+
           createCommentMutation.mutate({
             imageId: selectedImage.id,
             content,
             x: newCommentPos.x,
             y: newCommentPos.y,
           });
+
+          setIsCommentModalOpen(false);
+          setNewCommentPos(null);
         }}
-        position={newCommentPos}
       />
     );
   };
