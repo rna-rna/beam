@@ -255,14 +255,25 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         return {
           ...comment,
           author: authorData && typeof authorData === 'object'
-            ? authorData // Keep the original author object if it's valid
+            ? {
+                id: authorData.id,
+                firstName: authorData.firstName || '',
+                lastName: authorData.lastName || '',
+                imageUrl: authorData.imageUrl
+              }
             : typeof authorData === 'string'
-              ? { // Handle string author data
-                  username: authorData,
+              ? {
                   id: authorData,
+                  firstName: '',
+                  lastName: authorData,
                   imageUrl: undefined
                 }
-              : authorData // Don't apply fallback if author is intentionally null/undefined
+              : {
+                  id: 'unknown',
+                  firstName: 'Unknown',
+                  lastName: 'User',
+                  imageUrl: undefined
+                }
         };
       });
     }
@@ -942,8 +953,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Toggle Dark Mode</TooltipContent>
-          </Tooltip>
+            <TooltipContent>Toggle Dark Mode</TooltipContent>          </Tooltip>
         </TooltipProvider>
       </div>
     );
