@@ -1,15 +1,19 @@
 import { Switch, Route, useLocation } from "wouter";
-import { SignedIn, SignedOut, useUser, useAuth } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useUser, useAuth, ClerkProvider } from "@clerk/clerk-react";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
-import Settings from "@/pages/Settings"; //Import the Settings component
+import Settings from "@/pages/Settings";
 import { Layout } from "@/components/Layout";
 import { useState, ReactNode, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+
+if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
+  throw new Error("Missing Clerk Publishable Key");
+}
 
 // Protected route wrapper component
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -22,14 +26,18 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     }
   }, [isLoaded, isSignedIn, setLocation]);
 
-  // Show nothing while loading
-  if (!isLoaded) return null;
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  // Show children only when signed in
   return isSignedIn ? children : null;
 }
 
-function App() {
+function AppContent() {
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -54,7 +62,7 @@ function App() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const res = await fetch(`/api/galleries/${gallerySlug}`, { 
+      const res = await fetch(`/api/galleries/${gallerySlug}`, {
         headers,
         cache: 'no-store',
         credentials: 'include'
@@ -163,7 +171,7 @@ function App() {
           <h1 className="text-2xl font-bold text-destructive">
             {galleryError instanceof Error ? galleryError.message : 'An error occurred'}
           </h1>
-          <button 
+          <button
             className="text-primary hover:underline"
             onClick={() => setLocation('/dashboard')}
           >
@@ -187,7 +195,7 @@ function App() {
         </SignedOut>
       </Route>
 
-      <Route path="/settings"> {/* Added Route for Settings */}
+      <Route path="/settings">
         <ProtectedRoute>
           <Layout>
             <Settings />
@@ -197,7 +205,7 @@ function App() {
 
       <Route path="/dashboard">
         <ProtectedRoute>
-          <Layout 
+          <Layout
             title="My Galleries"
             actions={headerActions}
           >
@@ -208,12 +216,12 @@ function App() {
 
       <Route path="/g/:slug">
         {(params) => (
-          <Layout 
+          <Layout
             title={gallery?.title || "Loading Gallery..."}
             onTitleChange={(newTitle) => titleMutation.mutate(newTitle)}
             actions={headerActions}
           >
-            <Gallery 
+            <Gallery
               slug={params.slug}
               onHeaderActionsChange={setHeaderActions}
               title={gallery?.title || "Loading Gallery..."}
@@ -225,4 +233,11 @@ function App() {
   );
 }
 
-export default App;
+// Wrap the entire app with ClerkProvider
+export default function App() {
+  return (
+    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+      <AppContent />
+    </ClerkProvider>
+  );
+}
