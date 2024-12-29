@@ -17,7 +17,7 @@ interface CommentBubbleProps {
     id: string;
     username: string;
     imageUrl?: string;
-  };
+  } | string; // Allow string for backward compatibility
   onSubmit?: () => void;
   isNew?: boolean;
   imageId?: number;
@@ -142,7 +142,13 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
     }
   };
 
-  if (!author && !isNew) {
+  // Handle both string and object author formats
+  const authorDisplay = typeof author === 'string' ? {
+    username: author,
+    imageUrl: undefined
+  } : author;
+
+  if (!authorDisplay && !isNew) {
     return null;
   }
 
@@ -182,15 +188,15 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
             </form>
           ) : (
             <div>
-              {author && (
+              {authorDisplay && (
                 <div className="flex items-center gap-2 mb-2">
                   <UserAvatar
-                    name={author.username}
-                    imageUrl={author.imageUrl}
+                    name={authorDisplay.username}
+                    imageUrl={authorDisplay.imageUrl}
                     className="w-6 h-6 text-xs"
                   />
                   <p className="text-xs font-medium text-muted-foreground">
-                    {author.username}
+                    {authorDisplay.username}
                   </p>
                 </div>
               )}
