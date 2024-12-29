@@ -69,7 +69,9 @@ export default function Dashboard() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
       if (!res.ok) {
@@ -80,11 +82,30 @@ export default function Dashboard() {
       return res.json();
     },
     onSuccess: (data) => {
+      // Invalidate galleries query to refresh the dashboard
       queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
-      setLocation(`/g/${data.slug}`);
-      toast({
-        title: "Success",
-        description: "New gallery created successfully",
+
+      // Prefetch the new gallery data before navigation
+      queryClient.prefetchQuery({
+        queryKey: [`/api/galleries/${data.slug}`],
+        queryFn: async () => {
+          const token = await getToken();
+          const res = await fetch(`/api/galleries/${data.slug}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+          if (!res.ok) throw new Error('Failed to fetch new gallery');
+          return res.json();
+        }
+      }).then(() => {
+        setLocation(`/g/${data.slug}`);
+        toast({
+          title: "Success",
+          description: "New gallery created successfully",
+        });
       });
     },
     onError: (error) => {
