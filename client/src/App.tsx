@@ -40,39 +40,20 @@ function App() {
   const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
 
   // Query for specific gallery when on gallery page
-  const { data: gallery, error: galleryError } = useQuery({
+  const { data: gallery } = useQuery({
     queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : [],
     queryFn: async () => {
       if (!gallerySlug) return null;
-
-      try {
-        const token = await getToken();
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json'
-        };
-
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const res = await fetch(`/api/galleries/${gallerySlug}`, { 
-          headers,
-          credentials: 'include'
-        });
-
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message || 'Failed to fetch gallery');
-        }
-
-        return res.json();
-      } catch (error) {
-        console.error('Gallery fetch error:', error);
-        throw error;
+      const token = await getToken();
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
+      const res = await fetch(`/api/galleries/${gallerySlug}`, { headers });
+      if (!res.ok) throw new Error('Failed to fetch gallery');
+      return res.json();
     },
     enabled: !!gallerySlug,
-    retry: 1
   });
 
   // Mutation for updating title
@@ -133,12 +114,12 @@ function App() {
     }
   });
 
-  // Handle root route redirect only when not on a gallery page
+  // Handle redirect on auth state change
   useEffect(() => {
-    if (isSignedIn && location === "/") {
+    if (isSignedIn) {
       setLocation("/dashboard");
     }
-  }, [isSignedIn, setLocation, location]);
+  }, [isSignedIn, setLocation]);
 
   return (
     <Switch>

@@ -113,62 +113,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
 
-  // Queries
-  const { data: gallery, isLoading, error } = useQuery<GalleryType>({
-    queryKey: [`/api/galleries/${slug}`],
-    enabled: !!slug
-  });
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading gallery...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle className="h-12 w-12 text-destructive" />
-              <h1 className="text-2xl font-semibold">Error Loading Gallery</h1>
-              <p className="text-muted-foreground">
-                {error instanceof Error ? error.message : "Failed to load gallery"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Not found state
-  if (!gallery) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle className="h-12 w-12 text-muted-foreground" />
-              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
-              <p className="text-muted-foreground">
-                The gallery you're looking for doesn't exist or has been removed.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // Add mobile detection
   useEffect(() => {
     const checkMobile = () => {
@@ -178,6 +122,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Queries
+  const { data: gallery, isLoading, error } = useQuery<GalleryType>({
+    queryKey: [`/api/galleries/${slug}`],
+    enabled: !!slug,
+    onError: (error: any) => {
+      if (error.message?.includes('This gallery is private')) {
+        setIsPrivateGallery(true);
+      }
+    }
+  });
 
   const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
 
@@ -919,7 +874,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <Button
               variant="secondary"
               size="icon"
-              className="h-7 w-7 bg-background/80 hover:bg-background shadow-smbackdrop-blur-sm"
+              className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleStarMutation.mutate(image.id);
@@ -1018,6 +973,31 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   }
 
+  if (!gallery && isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!gallery) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
+              <p className="text-muted-foreground">
+                The gallery you're looking for doesn't exist or has been removed.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Modify the image click handler in the gallery grid
   const handleImageClick = (index: number) => {
