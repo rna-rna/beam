@@ -250,29 +250,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       console.error("Failed to fetch comments:", err);
     },
     select: (data) => {
-      return data.map((comment) => {
-        const authorData = comment.author;
-        return {
-          ...comment,
-          author: authorData && typeof authorData === 'object'
-            ? {
-                id: authorData.id,
-                username: authorData.userName || `${authorData.firstName || ''} ${authorData.lastName || ''}`.trim() || 'Unknown User',
-                imageUrl: authorData.userImageUrl || authorData.imageUrl
-              }
-            : typeof authorData === 'string'
-              ? {
-                  id: authorData,
-                  username: authorData,
-                  imageUrl: undefined
-                }
-              : {
-                  id: 'unknown',
-                  username: 'Unknown User',
-                  imageUrl: undefined
-                }
-        };
-      });
+      return data.map((comment) => ({
+        ...comment,
+        author: {
+          id: comment.userId || 'unknown',
+          username: comment.userName || 'Unknown User',
+          imageUrl: comment.userImageUrl || undefined
+        }
+      }));
     }
   });
 
@@ -962,8 +947,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     showStarredOnly,
     showWithComments,
     showApproved,
-    deleteImagesMutation,
-    handleCopyLink,
+    deleteImagesMutation,    handleCopyLink,
     handleDownloadAll,
     handleStarredToggle,
     handleReorderToggle,
