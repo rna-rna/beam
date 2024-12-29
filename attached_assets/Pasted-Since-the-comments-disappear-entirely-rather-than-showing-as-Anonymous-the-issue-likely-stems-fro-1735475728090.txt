@@ -1,0 +1,85 @@
+Since the comments disappear entirely rather than showing as "Anonymous," the issue likely stems from the conditional rendering logic in CommentBubble.tsx or comment fetching in Gallery.tsx.
+
+Root Cause:
+Conditional Check Prevents Rendering:
+tsx
+Copy code
+if (!authorDisplay && !isNew) {
+  return null;
+}
+If the authorDisplay is null or undefined, the comment doesn't render.
+This applies to both optimistic comments and fetched comments from the backend.
+If the backend response is delayed or missing author data temporarily, the comment vanishes.
+Fix – Ensure Comments Always Render:
+1. Relax Conditional Rendering in CommentBubble.tsx:
+Update the condition to prevent comments from disappearing:
+tsx
+Copy code
+if (!authorDisplay && !isNew) {
+  return (
+    <div className="bg-card p-2 rounded-lg shadow-sm">
+      <p className="text-xs font-medium text-muted-foreground">Unknown User</p>
+      <p className="text-sm text-foreground">{content}</p>
+    </div>
+  );
+}
+Why This Works:
+Instead of returning null, a placeholder comment renders even if the author data is missing.
+This ensures that previous comments without author fields still appear.
+2. Ensure Optimistic Comments Persist Until Overwritten:
+In the onSuccess block (after submitting a comment):
+tsx
+Copy code
+onSuccess: (data) => {
+  queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => {
+    return old.map((comment) =>
+      comment.optimistic && comment.content === data.data.content
+        ? {
+            ...data.data,
+            author: data.data.author || comment.author // Preserve the optimistic author
+          }
+        : comment
+    );
+  });
+};
+Why This Helps:
+If the backend response lacks the author temporarily, the frontend keeps the optimistic comment visible until the backend propagates the correct data.
+3. Prevent Overwriting Comments During Refetch (Gallery.tsx):
+In Gallery.tsx, adjust the query to ensure existing comments are not discarded during refetch:
+tsx
+Copy code
+select: (data) => {
+  return data.map((comment) => ({
+    ...comment,
+    author: comment.author && typeof comment.author === 'object'
+      ? comment.author
+      : {
+          username: "Unknown User",
+          id: "unknown",
+          imageUrl: undefined
+        }
+  }));
+}
+Why This Helps:
+Even if the backend returns incomplete data, the comment persists with a fallback user.
+4. Handle Missing Author Gracefully (Optional UI Improvement):
+If the author is missing, display "Unknown User" in CommentBubble.tsx:
+tsx
+Copy code
+<p className="text-xs font-medium text-muted-foreground">
+  {authorDisplay?.username || "Unknown User"}
+</p>
+Why:
+Comments without authors still render instead of disappearing.
+Testing the Fix:
+Submit a Comment – Ensure it remains visible even during the refetch process.
+Refresh the Page – All previously submitted comments should load, even without author data.
+Simulate Missing Author Data:
+Temporarily remove the author join from the API to simulate the issue.
+javascript
+Copy code
+const comments = await db.query.comments.findMany({
+  where: { imageId: req.params.id }
+  // Author join temporarily disabled
+});
+Ensure that comments still display with "Unknown User."

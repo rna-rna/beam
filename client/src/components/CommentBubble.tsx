@@ -17,7 +17,7 @@ interface CommentBubbleProps {
     id: string;
     username: string;
     imageUrl?: string;
-  } | string; // Allow string for backward compatibility
+  } | string;
   onSubmit?: () => void;
   isNew?: boolean;
   imageId?: number;
@@ -31,6 +31,17 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Handle both string and object author formats
+  const authorDisplay = typeof author === 'string' ? {
+    username: author,
+    id: author,
+    imageUrl: undefined
+  } : author || {
+    username: "Unknown User",
+    id: "unknown",
+    imageUrl: undefined
+  };
 
   const commentMutation = useMutation({
     mutationFn: async (commentText: string) => {
@@ -105,8 +116,8 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
             ? {
                 ...data.data,
                 author: data.data.author && typeof data.data.author === 'object'
-                  ? data.data.author // Use server author data if it's valid
-                  : comment.author // Keep optimistic author as fallback
+                  ? data.data.author
+                  : comment.author
               }
             : comment
         );
@@ -156,16 +167,6 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
     }
   };
 
-  // Handle both string and object author formats
-  const authorDisplay = typeof author === 'string' ? {
-    username: author,
-    imageUrl: undefined
-  } : author;
-
-  if (!authorDisplay && !isNew) {
-    return null;
-  }
-
   return (
     <div
       className="absolute"
@@ -192,7 +193,6 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
                 readOnly={!user}
                 onClick={() => {
                   if (!user) {
-                    console.log('Triggering auth modal from input click');
                     setShowAuthModal(true);
                   }
                 }}
@@ -202,18 +202,16 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
             </form>
           ) : (
             <div>
-              {authorDisplay && (
-                <div className="flex items-center gap-2 mb-2">
-                  <UserAvatar
-                    name={authorDisplay.username}
-                    imageUrl={authorDisplay.imageUrl}
-                    className="w-6 h-6 text-xs"
-                  />
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {authorDisplay.username}
-                  </p>
-                </div>
-              )}
+              <div className="flex items-center gap-2 mb-2">
+                <UserAvatar
+                  name={authorDisplay.username}
+                  imageUrl={authorDisplay.imageUrl}
+                  className="w-6 h-6 text-xs"
+                />
+                <p className="text-xs font-medium text-muted-foreground">
+                  {authorDisplay.username}
+                </p>
+              </div>
               <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
             </div>
           )}
