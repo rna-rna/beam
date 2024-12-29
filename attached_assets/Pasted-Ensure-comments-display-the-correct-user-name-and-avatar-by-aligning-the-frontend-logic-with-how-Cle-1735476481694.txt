@@ -1,0 +1,74 @@
+Ensure comments display the correct user name and avatar by aligning the frontend logic with how Clerk provides user data (firstName, lastName, and imageUrl).
+
+🛠️ Instructions (Replit):
+1. Understand How Clerk Delivers User Data:
+Clerk's useUser() hook returns user information as:
+
+javascript
+Copy code
+const { user } = useUser();
+console.log(user);
+Relevant Fields:
+user.firstName
+user.lastName
+user.imageUrl
+Key Insight:
+
+Clerk does not return an author field by default.
+If your frontend refers to author, it will result in undefined or "Unknown User."
+2. Update CommentBubble.tsx to Use the Correct Fields:
+Open CommentBubble.tsx in Replit.
+
+Locate the authorDisplay logic and update it to reference Clerk’s user fields:
+
+tsx
+Copy code
+const authorDisplay = typeof author === 'string'
+  ? { username: author, imageUrl: undefined }
+  : {
+      username: `${author?.firstName || "Unknown"} ${author?.lastName || "User"}`.trim(),
+      imageUrl: author?.imageUrl
+    };
+This ensures comments display firstName and lastName directly from Clerk.
+
+3. Update the Optimistic Comment in onMutate (Optimistic Update Logic):
+Locate the onMutate function in the comment mutation block:
+
+tsx
+Copy code
+const optimisticComment = {
+  id: Date.now(),
+  content: newCommentText,
+  xPosition: x,
+  yPosition: y,
+  user: {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    imageUrl: user.imageUrl
+  },
+  optimistic: true
+};
+This ensures that new comments reflect the logged-in user’s full name and avatar immediately.
+
+4. Adjust Comment Rendering in Gallery.tsx:
+Open Gallery.tsx and locate the section fetching comments:
+
+tsx
+Copy code
+select: (data) => {
+  return data.map((comment) => ({
+    ...comment,
+    author: comment.user
+      ? {
+          username: `${comment.user.firstName || "Unknown"} ${comment.user.lastName || "User"}`.trim(),
+          imageUrl: comment.user.imageUrl
+        }
+      : {
+          username: "Unknown User",
+          id: "unknown",
+          imageUrl: undefined
+        }
+  }));
+}
+This ensures fetched comments correctly map user.firstName and user.lastName instead of relying on a non-existent author field.
