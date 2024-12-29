@@ -149,6 +149,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         if (res.status === 403) {
           throw new Error('This gallery is private');
         }
+        if (res.status === 404) {
+          throw new Error('Gallery not found');
+        }
         throw new Error('Failed to fetch gallery');
       }
 
@@ -384,6 +387,43 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   });
 
 
+  const toggleVisibilityMutation = useMutation({
+    mutationFn: async (checked: boolean) => {
+      const token = await getToken();
+      const res = await fetch(`/api/galleries/${slug}/visibility`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        body: JSON.stringify({ isPublic: checked }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update visibility');
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      // Force cache refresh
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      toast({
+        title: "Success",
+        description: "Gallery visibility updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update visibility. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (selectedImageIndex >= 0 || selectMode) return;
@@ -553,11 +593,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     // Get cursor position at drag end
     const cursorPos = {
       x: event instanceof MouseEvent ? event.clientX :
-         'touches' in event && event.touches[0] ? event.touches[0].clientX :
-         info.point.x,
+        'touches' in event && event.touches[0] ? event.touches[0].clientX :
+        info.point.x,
       y: event instanceof MouseEvent ? event.clientY :
-         'touches' in event && event.touches[0] ? event.touches[0].clientY :
-         info.point.y
+        'touches' in event && event.touches[0] ? event.touches[0].clientY :
+        info.point.y
     };
 
     // Find closest drop target by comparing centers
@@ -1458,12 +1498,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         />
       )}
       {/* Share Modal */}
-      <ShareModal
-        isOpen={isOpenShareModal}
-        onClose={() => setIsOpenShareModal(false)}
-        gallerySlug={gallery?.slug || ""}
-        isPublic={gallery?.isPublic || false}
-      />
+      {isOpenShareModal && (
+        <ShareModal
+          isOpen={isOpenShareModal}
+          onClose={() => setIsOpenShareModal(false)}
+          isPublic={gallery?.isPublic || false}
+          onVisibilityChange={(checked) => toggleVisibilityMutation.mutate(checked)}
+          galleryUrl={window.location.href}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,81 @@
+Solutions to Address Inconsistencies:
+1. Force Cache Invalidation on Visibility Change (Frontend)
+Ensure the gallery cache is forcefully invalidated immediately after visibility is toggled. This will prevent stale private states from persisting.
+
+In Gallery.tsx (React Query Example):
+
+tsx
+Copy code
+const queryClient = useQueryClient();
+
+const toggleVisibility = async (checked: boolean) => {
+  await fetch(`/api/galleries/${slug}/visibility`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isPublic: checked }),
+  });
+
+  // Force cache refresh
+  queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+};
+2. Adjust Backend Cache-Control (routes.txt)
+Prevent browser-level caching by enforcing no-store headers directly from the backend.
+
+javascript
+Copy code
+app.get('/api/galleries/:slug', async (req, res) => {
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.slug, req.params.slug),
+  });
+
+  if (!gallery) {
+    return res.status(404).json({ message: 'Gallery not found' });
+  }
+
+  const isOwner = req.auth?.userId === gallery.userId;
+  if (!gallery.isPublic && !isOwner) {
+    return res.status(403).json({
+      message: 'This gallery is private',
+      isPrivate: true,
+    });
+  }
+
+  res.json(gallery);
+});
+3. Add Ownership Bypass for Private Galleries (routes.txt)
+Ensure that owners can always access their galleries, even if isPublic is false.
+
+javascript
+Copy code
+app.get('/api/galleries/:slug', async (req, res) => {
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.slug, req.params.slug),
+  });
+
+  const isOwner = req.auth?.userId === gallery.userId;
+
+  if (!gallery.isPublic && !isOwner) {
+    return res.status(403).json({
+      message: 'This gallery is private',
+    });
+  }
+
+  res.json(gallery);
+});
+4. Debug Clerk Authentication (routes.txt)
+Sometimes the req.auth object might not propagate properly, causing the system to mistake owners as unauthenticated users.
+
+Add logging to debug the authentication flow:
+
+javascript
+Copy code
+protectedRouter.use((req, res, next) => {
+  console.log('User Auth:', req.auth);
+  next();
+});
+If req.auth is null or undefined, check the setupClerkAuth middleware.
