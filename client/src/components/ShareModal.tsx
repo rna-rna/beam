@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Copy, CheckCircle, Globe, Lock } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@clerk/clerk-react";
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -20,14 +21,21 @@ export function ShareModal({ isOpen, onClose, gallerySlug, isPublic: initialIsPu
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   const shareUrl = `${window.location.origin}/gallery/${gallerySlug}`;
 
   const toggleVisibilityMutation = useMutation({
     mutationFn: async (isPublic: boolean) => {
+      const token = await getToken();
       const res = await fetch(`/api/galleries/${gallerySlug}/visibility`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
         body: JSON.stringify({ isPublic }),
         credentials: "include"
       });
@@ -40,6 +48,7 @@ export function ShareModal({ isOpen, onClose, gallerySlug, isPublic: initialIsPu
       return res.json();
     },
     onSuccess: () => {
+      // Force cache invalidation for the specific gallery
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
       toast({
         title: "Gallery visibility updated",
