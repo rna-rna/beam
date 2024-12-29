@@ -4,6 +4,7 @@ import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
+import Settings from "@/pages/Settings"; //Import the Settings component
 import { Layout } from "@/components/Layout";
 import { useState, ReactNode, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -184,6 +185,14 @@ function App() {
         <SignedOut>
           <Landing />
         </SignedOut>
+      </Route>
+
+      <Route path="/settings"> {/* Added Route for Settings */}
+        <ProtectedRoute>
+          <Layout>
+            <Settings />
+          </Layout>
+        </ProtectedRoute>
       </Route>
 
       <Route path="/dashboard">
