@@ -509,7 +509,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get gallery details (public view)
+  // Update the public gallery endpoint to include proper cache control and ownership checks
   app.get('/api/galleries/:slug', async (req, res) => {
     try {
       // Add cache control headers
