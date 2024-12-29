@@ -933,7 +933,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   );
 
   useEffect(() => {
-    if (selectedImageIndex >= 0) {
+    if(selectedImageIndex >= 0) {
       const handleKeyDown = (e: KeyboardEvent) => {
         if (!gallery?.images?.length) return;
         if (e.key === "ArrowLeft") {
@@ -962,9 +962,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4 text-center">
               <Lock className="h-12 w-12 text-muted-foreground" />
-              <h1 className="text-2xl font-semibold">Private Gallery</h1>
+              <h1 className="text-2xl font-semibold">This gallery is private.</h1>
               <p className="text-muted-foreground">
-                This gallery is private and can only be accessed by its owner.
+                Sorry, this link isn't public!
               </p>
             </div>
           </CardContent>
