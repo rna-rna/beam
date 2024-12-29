@@ -1156,14 +1156,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     console.log('handleImageComment triggered'); // Debug log
     if (!isCommentPlacementMode) return;
 
-    // Check authentication first
-    if (!user) {
-      console.log('User not authenticated, showing auth modal'); // Debug log
-      setIsCommentModalOpen(true);
-      return;
-    }
-
-    // Only set position if user is authenticated
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
