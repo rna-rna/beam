@@ -32,23 +32,15 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Handle both string and object author formats
-  const authorDisplay = typeof author === 'string' 
+  // Simplified author display logic
+  const authorDisplay = typeof author === 'string'
     ? { 
         username: author,
-        id: author,
         imageUrl: undefined
-      }
-    : author
-    ? {
-        username: author.username || 'Unknown User',
-        id: author.id,
-        imageUrl: author.imageUrl
       }
     : {
-        username: "Unknown User",
-        id: "unknown",
-        imageUrl: undefined
+        username: author?.username || 'Unknown User',
+        imageUrl: author?.imageUrl
       };
 
   const commentMutation = useMutation({
@@ -101,7 +93,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           yPosition: y,
           author: {
             id: user.id,
-            username: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
+            username: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
             imageUrl: user.imageUrl
           },
           createdAt: new Date().toISOString(),
@@ -123,16 +115,15 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           comment.optimistic && comment.content === data.data.content
             ? {
                 ...data.data,
-                author: data.data.author || comment.author  // Preserve optimistic author if server response lacks author data
+                author: {
+                  id: data.data.userId || user?.id,
+                  username: data.data.userName || user?.fullName || 'Unknown User',
+                  imageUrl: data.data.userImageUrl || user?.imageUrl
+                }
               }
             : comment
         );
       });
-
-      // Delay the refetch to ensure backend data propagation
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
-      }, 500);
 
       setText("");
       setIsEditing(false);
