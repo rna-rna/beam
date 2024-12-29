@@ -76,80 +76,12 @@ function App() {
     refetchOnWindowFocus: true
   });
 
-  // Mutation for updating title with optimistic updates
-  const titleMutation = useMutation({
-    mutationFn: async (newTitle: string) => {
-      if (!gallerySlug) throw new Error("No gallery found");
-      const token = await getToken();
-      const res = await fetch(`/api/galleries/${gallerySlug}/title`, {
-        method: "PATCH",
-        headers: { 
-          "Content-Type": "application/json",
-          'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        body: JSON.stringify({ title: newTitle }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to update title");
-      }
-
-      return (await res.json()).title;
-    },
-    onMutate: async (newTitle) => {
-      // Cancel any outgoing refetches so they don't overwrite our optimistic update
-      await queryClient.cancelQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-      await queryClient.cancelQueries({ queryKey: ['/api/galleries'] });
-
-      // Snapshot the previous values
-      const previousGallery = queryClient.getQueryData([`/api/galleries/${gallerySlug}`]);
-      const previousGalleries = queryClient.getQueryData(['/api/galleries']);
-
-      // Optimistically update the gallery title
-      queryClient.setQueryData([`/api/galleries/${gallerySlug}`], (old: any) => ({
-        ...old,
-        title: newTitle
-      }));
-
-      // Also update the gallery in the list
-      queryClient.setQueryData(['/api/galleries'], (old: any) => {
-        if (!old) return old;
-        return old.map((g: any) => 
-          g.slug === gallerySlug ? { ...g, title: newTitle } : g
-        );
-      });
-
-      return { previousGallery, previousGalleries };
-    },
-    onError: (err, newTitle, context) => {
-      // Revert back to the previous values if there's an error
-      if (context?.previousGallery) {
-        queryClient.setQueryData([`/api/galleries/${gallerySlug}`], context.previousGallery);
-      }
-      if (context?.previousGalleries) {
-        queryClient.setQueryData(['/api/galleries'], context.previousGalleries);
-      }
-      toast({
-        title: "Error",
-        description: "Failed to update title",
-        variant: "destructive"
-      });
-    },
-    onSettled: () => {
-      // Invalidate and refetch to ensure our optimistic update matches the server state
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
-    }
-  });
-
-  // Handle redirect on auth state change
+  // Handle redirect on auth state change - only redirect from root path
   useEffect(() => {
-    if (isSignedIn) {
+    if (isSignedIn && location === "/") {
       setLocation("/dashboard");
     }
-  }, [isSignedIn, setLocation]);
+  }, [isSignedIn, location, setLocation]);
 
   if (gallerySlug && isGalleryLoading) {
     return (
