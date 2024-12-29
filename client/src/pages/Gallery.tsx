@@ -932,8 +932,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     </motion.div>
   );
 
-useEffect(() => {
-    if(selectedImageIndex >= 0) {
+  useEffect(() => {
+    if (selectedImageIndex >= 0) {
       const handleKeyDown = (e: KeyboardEvent) => {
         if (!gallery?.images?.length) return;
         if (e.key === "ArrowLeft") {
@@ -962,9 +962,9 @@ useEffect(() => {
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4 text-center">
               <Lock className="h-12 w-12 text-muted-foreground" />
-              <h1 className="text-2xl font-semibold">This gallery is private.</h1>
+              <h1 className="text-2xl font-semibold">Private Gallery</h1>
               <p className="text-muted-foreground">
-                Sorry, this link isn't public!
+                This gallery is private and can only be accessed by its owner.
               </p>
             </div>
           </CardContent>
@@ -975,22 +975,22 @@ useEffect(() => {
 
   if (!gallery && isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  if (!gallery || error) {
+  if (!gallery) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4 text-center">
-              <Lock className="h-12 w-12 text-muted-foreground" />
-              <h1 className="text-2xl font-semibold">This gallery is private or not found.</h1>
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
               <p className="text-muted-foreground">
-                Sorry, there was an error loading this gallery.
+                The gallery you're looking for doesn't exist or has been removed.
               </p>
             </div>
           </CardContent>
