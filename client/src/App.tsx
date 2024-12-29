@@ -40,20 +40,39 @@ function App() {
   const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
 
   // Query for specific gallery when on gallery page
-  const { data: gallery } = useQuery({
+  const { data: gallery, error: galleryError } = useQuery({
     queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : [],
     queryFn: async () => {
       if (!gallerySlug) return null;
-      const token = await getToken();
-      const headers: HeadersInit = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+
+      try {
+        const token = await getToken();
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json'
+        };
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(`/api/galleries/${gallerySlug}`, { 
+          headers,
+          credentials: 'include'
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || 'Failed to fetch gallery');
+        }
+
+        return res.json();
+      } catch (error) {
+        console.error('Gallery fetch error:', error);
+        throw error;
       }
-      const res = await fetch(`/api/galleries/${gallerySlug}`, { headers });
-      if (!res.ok) throw new Error('Failed to fetch gallery');
-      return res.json();
     },
     enabled: !!gallerySlug,
+    retry: 1
   });
 
   // Mutation for updating title
