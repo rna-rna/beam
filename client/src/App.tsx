@@ -76,6 +76,70 @@ function App() {
     refetchOnWindowFocus: true
   });
 
+  // Title update mutation
+  const titleMutation = useMutation({
+    mutationFn: async (newTitle: string) => {
+      if (!gallerySlug) throw new Error('No gallery selected');
+      const token = await getToken();
+      if (!token) throw new Error('Not authenticated');
+
+      const res = await fetch(`/api/galleries/${gallerySlug}/title`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        body: JSON.stringify({ title: newTitle }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update title');
+      }
+
+      return res.json();
+    },
+    onMutate: async (newTitle) => {
+      await queryClient.cancelQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+      await queryClient.cancelQueries({ queryKey: ['/api/galleries'] });
+
+      const previousGallery = queryClient.getQueryData([`/api/galleries/${gallerySlug}`]);
+      const previousGalleries = queryClient.getQueryData(['/api/galleries']);
+
+      queryClient.setQueryData([`/api/galleries/${gallerySlug}`], (old: any) => ({
+        ...old,
+        title: newTitle
+      }));
+
+      queryClient.setQueryData(['/api/galleries'], (old: any) => {
+        if (!old) return old;
+        return old.map((gallery: any) =>
+          gallery.slug === gallerySlug ? { ...gallery, title: newTitle } : gallery
+        );
+      });
+
+      return { previousGallery, previousGalleries };
+    },
+    onError: (err, newTitle, context) => {
+      if (context?.previousGallery) {
+        queryClient.setQueryData([`/api/galleries/${gallerySlug}`], context.previousGallery);
+      }
+      if (context?.previousGalleries) {
+        queryClient.setQueryData(['/api/galleries'], context.previousGalleries);
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update title. Please try again.",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+    },
+  });
+
   // Handle redirect on auth state change - only redirect from root path
   useEffect(() => {
     if (isSignedIn && location === "/") {
