@@ -102,11 +102,11 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
       queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => {
         return old.map((comment) =>
           comment.optimistic && comment.content === data.data.content
-            ? { 
+            ? {
                 ...data.data,
                 author: data.data.author && typeof data.data.author === 'object'
-                  ? data.data.author
-                  : comment.author // Keep optimistic author if server response isn't properly structured
+                  ? data.data.author // Use server author data if it's valid
+                  : comment.author // Keep optimistic author as fallback
               }
             : comment
         );

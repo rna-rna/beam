@@ -251,21 +251,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     },
     select: (data) => {
       return data.map((comment) => {
-        // Keep the existing author data structure if it exists
-        const existingAuthor = comment.author;
+        const authorData = comment.author;
         return {
           ...comment,
-          author: existingAuthor && typeof existingAuthor === 'object'
-            ? existingAuthor
-            : {
-                username: existingAuthor 
-                  ? String(existingAuthor) 
-                  : "Anonymous",
-                id: existingAuthor 
-                  ? String(existingAuthor) 
-                  : "anonymous",
-                imageUrl: undefined
-              }
+          author: authorData && typeof authorData === 'object'
+            ? authorData // Keep the original author object if it's valid
+            : typeof authorData === 'string'
+              ? { // Handle string author data
+                  username: authorData,
+                  id: authorData,
+                  imageUrl: undefined
+                }
+              : authorData // Don't apply fallback if author is intentionally null/undefined
         };
       });
     }
