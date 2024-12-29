@@ -950,7 +950,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         }
       }}
       style={{        position: draggedItemIndex === index ? "absolute" : "relative",
-        top: draggedItemIndex === index ? dragPosition?.y : "auto",
+        top: draggedItemIndex === index ? dragPosition?.y :"auto",
         left: draggedItemIndex === index ? dragPosition?.x : "auto",
       }}
       drag={isReorderMode}
@@ -1202,7 +1202,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         </div>
       );
     }
-  }, [gallery, onHeaderActionsChange, handleTitleUpdate]);
+  }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
 
   return (
     <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
