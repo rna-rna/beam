@@ -58,6 +58,8 @@ import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { ShareModal } from "@/components/ShareModal";
+import { Lock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card"; // Import Card and CardContent
 
 
 interface GalleryProps {
@@ -104,7 +106,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [showApproved, setShowApproved] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false); // Added dark mode state
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
-
+  const [isPrivateGallery, setIsPrivateGallery] = useState(false); // Added private gallery state
 
   // Add mobile detection
   useEffect(() => {
@@ -119,7 +121,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // Queries
   const { data: gallery, isLoading, error } = useQuery<GalleryType>({
     queryKey: [`/api/galleries/${slug}`],
-    enabled: !!slug
+    enabled: !!slug,
+    onError: (error: any) => {
+      if (error.message?.includes('This gallery is private')) {
+        setIsPrivateGallery(true);
+      }
+    }
   });
 
   const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
@@ -913,7 +920,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               {selectedImages.includes(image.id) && (
                 <CheckCircle className="w-4 h-4 text-primary-foreground" />
               )}
-            </div>
+                        </div>
           </motion.div>
         )}
       </div>
@@ -942,6 +949,24 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     const controls = renderGalleryControls();
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
+
+  if (isPrivateGallery) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Lock className="h-12 w-12 text-muted-foreground" />
+              <h1 className="text-2xl font-semibold">Private Gallery</h1>
+              <p className="text-muted-foreground">
+                This gallery is private and can only be accessed by its owner.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (error) {
     return (
