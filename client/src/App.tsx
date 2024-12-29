@@ -123,9 +123,7 @@ function AppContent() {
     <Switch>
       <Route path="/">
         <SignedIn>
-          <Layout>
-            <Dashboard />
-          </Layout>
+          <Dashboard />
         </SignedIn>
         <SignedOut>
           <Landing />
@@ -142,12 +140,7 @@ function AppContent() {
 
       <Route path="/dashboard">
         <ProtectedRoute>
-          <Layout
-            title="My Galleries"
-            actions={headerActions}
-          >
-            <Dashboard />
-          </Layout>
+          <Dashboard />
         </ProtectedRoute>
       </Route>
 
