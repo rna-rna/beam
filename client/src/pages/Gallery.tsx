@@ -252,11 +252,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     select: (data) => {
       return data.map((comment) => ({
         ...comment,
-        author: comment.author !== undefined ? comment.author : {
-          username: "Anonymous",
-          id: "anonymous",
-          imageUrl: undefined
-        }
+        author: comment.author !== null && comment.author !== undefined
+          ? comment.author  // Preserve existing author data
+          : {
+              username: "Anonymous",
+              id: "anonymous",
+              imageUrl: undefined
+            }
       }));
     }
   });

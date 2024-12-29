@@ -105,11 +105,13 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           ...old.filter(comment => !comment.optimistic),
           {
             ...data.data,
-            author: data.data.author !== undefined ? data.data.author : {
-              username: "Anonymous",
-              id: "anonymous",
-              imageUrl: undefined
-            }
+            author: data.data.author !== null && data.data.author !== undefined
+              ? data.data.author  // Preserve server-provided author data
+              : {
+                  username: "Anonymous",
+                  id: "anonymous",
+                  imageUrl: undefined
+                }
           }
         ];
       });
