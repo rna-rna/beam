@@ -1,0 +1,86 @@
+The issue where all authenticated users (including the owner) are redirected to /dashboard when visiting a gallery link suggests that the redirection logic is applied too broadly, regardless of ownership or gallery visibility.
+
+Why This Happens:
+Likely Cause:
+The redirect to /dashboard may be triggered by a conditional check that assumes any authenticated user should not view the gallery page directly and should instead be sent to /dashboard.
+
+Where to Look:
+
+Frontend: The redirect might happen in Gallery.tsx or a route guard (e.g., PrivateRoute).
+Backend: A 403 or redirect response might be triggered, even for valid gallery access.
+Fixing the Issue – Frontend Adjustments:
+1. Modify the Gallery Fetch to Handle Redirection Properly (Gallery.tsx):
+Currently, if the gallery fetch returns a 403 (even for owners), it might trigger a redirect to /dashboard. This logic needs to check the ownership or visibility properly.
+
+tsx
+Copy code
+const { data: gallery, error } = useQuery<GalleryType>({
+  queryKey: [`/api/galleries/${slug}`],
+  queryFn: async () => {
+    const token = await getToken();
+    const headers: HeadersInit = { 'Cache-Control': 'no-cache' };
+
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`/api/galleries/${slug}`, {
+      headers,
+      credentials: 'include',
+    });
+
+    if (!res.ok) {
+      if (res.status === 403) throw new Error('This gallery is private');
+      if (res.status === 404) throw new Error('Gallery not found');
+      throw new Error('Failed to fetch gallery');
+    }
+
+    return res.json();
+  },
+  enabled: !!slug,
+});
+
+// Prevent automatic redirect for authenticated users
+useEffect(() => {
+  if (error && error.message === 'This gallery is private' && !gallery?.isOwner) {
+    navigate('/dashboard');  // Only redirect if user is NOT the owner
+  }
+}, [error, gallery, navigate]);
+2. Backend Adjustment – Ensure Proper Ownership Check (routes.txt):
+In the backend, ensure that the redirection or error for private galleries happens only if the user:
+
+Is not the owner
+And the gallery is not public
+javascript
+Copy code
+app.get('/api/galleries/:slug', async (req, res) => {
+  const gallery = await db.query.galleries.findFirst({
+    where: { slug: req.params.slug },
+  });
+
+  if (!gallery) {
+    return res.status(404).json({ message: 'Gallery not found' });
+  }
+
+  const isOwner = req.auth?.userId === gallery.userId;
+
+  // Allow access if public or if the user is the owner
+  if (gallery.isPublic || isOwner) {
+    return res.json({ ...gallery, isOwner });
+  }
+
+  // Restrict access if private and not the owner
+  return res.status(403).json({ message: 'This gallery is private' });
+});
+3. Adjust Navigation Guard (Optional) – Prevent Auto-Redirect on Page Load:
+If you have route protection that automatically redirects authenticated users (like a PrivateRoute wrapper), adjust it to allow access to specific routes like /galleries/:slug.
+
+tsx
+Copy code
+<Route
+  path="/galleries/:slug"
+  component={Gallery}
+/>
+
+<Route
+  path="/dashboard"
+  component={Dashboard}
+/>
