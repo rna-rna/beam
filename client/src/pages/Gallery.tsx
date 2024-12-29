@@ -67,6 +67,7 @@ import { ShareModal } from "@/components/ShareModal";
 import { Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
+import { CommentModal } from "@/components/CommentModal";
 
 interface GalleryProps {
   slug?: string;
@@ -114,6 +115,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
 
   // Title update mutation
   const titleUpdateMutation = useMutation({
@@ -153,7 +155,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       queryClient.setQueryData(['/api/galleries'], (old: any) => {
         if (!old) return old;
-        return old.map((gallery: any) => 
+        return old.map((gallery: any) =>
           gallery.slug === slug ? { ...gallery, title: newTitle } : gallery
         );
       });
@@ -946,7 +948,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 20}}
       animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
@@ -1132,12 +1134,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   // Modify the image click handler in the gallery grid
   const handleImageClick = (index: number) => {
-    if (isMobile) {
-      setMobileViewIndex(index);
-      setShowMobileView(true);
-    } else {
-      setSelectedImageIndex(index);
+    if (isCommentPlacementMode) {
+      setIsCommentModalOpen(true);
     }
+    setSelectedImageIndex(index);
   };
 
   // Add layout toggle handler
