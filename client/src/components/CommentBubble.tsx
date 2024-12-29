@@ -166,7 +166,13 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
                 onChange={(e) => setText(e.target.value)}
                 className="min-w-[200px] h-8"
                 placeholder={user ? "Add comment..." : "Please sign in to comment"}
-                disabled={!user || commentMutation.isPending}
+                readOnly={!user}
+                onClick={() => {
+                  if (!user) {
+                    console.log('Triggering auth modal from input click'); 
+                    setShowAuthModal(true);
+                  }
+                }}
                 data-comment-input
                 autoFocus
               />
@@ -175,10 +181,10 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
             <div>
               {displayName && (
                 <div className="flex items-center gap-2 mb-2">
-                  <UserAvatar 
+                  <UserAvatar
                     name={displayName}
-                    imageUrl={user?.imageUrl} 
-                    className="w-6 h-6 text-xs" 
+                    imageUrl={user?.imageUrl}
+                    className="w-6 h-6 text-xs"
                   />
                   <p className="text-xs font-medium text-muted-foreground">
                     {displayName}
