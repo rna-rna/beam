@@ -6,6 +6,7 @@ import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import { Layout } from "@/components/Layout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useState, ReactNode, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -236,15 +237,19 @@ function AppContent() {
 // Wrap the entire app with ClerkProvider and add loading states
 export default function App() {
   return (
-    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
-      <ClerkLoading>
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </ClerkLoading>
-      <ClerkLoaded>
-        <AppContent />
-      </ClerkLoaded>
-    </ClerkProvider>
+    <ErrorBoundary>
+      <ClerkProvider
+        publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+      >
+        <ClerkLoading>
+          <div className="min-h-screen flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </ClerkLoading>
+        <ClerkLoaded>
+          <AppContent />
+        </ClerkLoaded>
+      </ClerkProvider>
+    </ErrorBoundary>
   );
 }
