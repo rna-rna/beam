@@ -667,35 +667,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get current gallery (most recently created/accessed)
-  protectedRouter.get('/galleries/current', async (req: any, res) => {
-    try {
-      const userId = req.auth.userId;
-
-      // Find the most recent gallery for this user
-      const gallery = await db.query.galleries.findFirst({
-        where: eq(galleries.userId, userId),
-        orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
-      });
-
-      if (!gallery) {
-        // Create a new gallery for the user if none exists
-        const [newGallery] = await db.insert(galleries).values({
-          slug: generateSlug(),
-          title: "Untitled Project",
-          userId
-        }).returning();
-
-        return res.json(newGallery);
-      }
-
-      res.json(gallery);
-    } catch (error) {
-      console.error('Error fetching/creating current gallery:', error);
-      res.status(500).json({ message: 'Failed to initialize gallery' });
-    }
-  });
-
   // Delete multiple images from a gallery
   app.post('/api/galleries/:slug/images/delete', async (req: any, res) => {
     try {
