@@ -778,6 +778,7 @@ export function registerRoutes(app: Express): Server {
   protectedRouter.get('/galleries/recent', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
+      console.log('Fetching recent galleries for user:', userId);
 
       // Get recently viewed galleries with first image and total image count
       const recentlyViewed = await db.query.recentlyViewedGalleries.findMany({
@@ -796,6 +797,13 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
+      console.log('Found recently viewed galleries:', recentlyViewed.length);
+
+      // If no recently viewed galleries, return empty array instead of 404
+      if (!recentlyViewed.length) {
+        return res.json([]);
+      }
+
       // Get image counts for each gallery
       const galleryCounts = await Promise.all(
         recentlyViewed.map(async (rv) => {
@@ -813,9 +821,11 @@ export function registerRoutes(app: Express): Server {
       const galleriesWithThumbnails = recentlyViewed.map(rv => ({
         ...rv.gallery,
         thumbnailUrl: rv.gallery.images[0]?.url || null,
-        imageCount: galleryCounts.find(count => count.galleryId === rv.gallery.id)?.count || 0
+        imageCount: galleryCounts.find(count => count.galleryId === rv.gallery.id)?.count || 0,
+        viewedAt: rv.viewedAt
       }));
 
+      console.log('Returning galleries with thumbnails:', galleriesWithThumbnails.length);
       res.json(galleriesWithThumbnails);
     } catch (error) {
       console.error('Failed to fetch recent galleries:', error);
