@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { SignedIn, SignedOut, useUser, useAuth, ClerkProvider } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useUser, useAuth, ClerkProvider, ClerkLoaded, ClerkLoading } from "@clerk/clerk-react";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
@@ -233,11 +233,18 @@ function AppContent() {
   );
 }
 
-// Wrap the entire app with ClerkProvider
+// Wrap the entire app with ClerkProvider and add loading states
 export default function App() {
   return (
     <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
-      <AppContent />
+      <ClerkLoading>
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </ClerkLoading>
+      <ClerkLoaded>
+        <AppContent />
+      </ClerkLoaded>
     </ClerkProvider>
   );
 }
