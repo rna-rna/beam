@@ -250,16 +250,24 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       console.error("Failed to fetch comments:", err);
     },
     select: (data) => {
-      return data.map((comment) => ({
-        ...comment,
-        author: comment.author !== null && comment.author !== undefined
-          ? comment.author  // Preserve existing author data
-          : {
-              username: "Anonymous",
-              id: "anonymous",
-              imageUrl: undefined
-            }
-      }));
+      return data.map((comment) => {
+        // Keep the existing author data structure if it exists
+        const existingAuthor = comment.author;
+        return {
+          ...comment,
+          author: existingAuthor && typeof existingAuthor === 'object'
+            ? existingAuthor
+            : {
+                username: existingAuthor 
+                  ? String(existingAuthor) 
+                  : "Anonymous",
+                id: existingAuthor 
+                  ? String(existingAuthor) 
+                  : "anonymous",
+                imageUrl: undefined
+              }
+        };
+      });
     }
   });
 

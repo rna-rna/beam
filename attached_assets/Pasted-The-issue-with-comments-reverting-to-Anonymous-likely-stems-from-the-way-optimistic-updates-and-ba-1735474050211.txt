@@ -1,0 +1,111 @@
+The issue with comments reverting to "Anonymous" likely stems from the way optimistic updates and backend responses are handled in CommentBubble.tsx.
+
+Why This Happens:
+Optimistic Comment Logic:
+
+When a comment is added, the frontend creates an optimistic comment with the current user's name and avatar.
+tsx
+Copy code
+const optimisticComment = {
+  id: Date.now(),
+  content: newCommentText,
+  xPosition: x,
+  yPosition: y,
+  author: {
+    id: user.id,
+    username: `${user.firstName} ${user.lastName}`.trim(),
+    imageUrl: user.imageUrl
+  },
+  optimistic: true
+};
+This is added to the cache immediately, giving the appearance of a successful comment.
+Backend Response Overwrites Optimistic Comment:
+
+tsx
+Copy code
+onSuccess: (data) => {
+  queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => {
+    return [
+      ...old.filter(comment => !comment.optimistic),
+      {
+        ...data.data,
+        author: data.data.author !== null && data.data.author !== undefined
+          ? data.data.author
+          : {
+              username: "Anonymous",
+              id: "anonymous",
+              imageUrl: undefined
+            }
+      }
+    ];
+  });
+};
+If the backend response doesn't include author data immediately, the optimistic comment is replaced by one with the fallback "Anonymous".
+How to Fix It:
+Preserve the Optimistic Author Until the Backend Provides One:
+Modify the logic to keep the optimistic author if the backend response lacks author data.
+Fix in CommentBubble.tsx:
+
+tsx
+Copy code
+onSuccess: (data) => {
+  queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => {
+    return old.map((comment) =>
+      comment.optimistic && comment.content === data.data.content
+        ? {
+            ...data.data,
+            author: data.data.author || comment.author // Preserve optimistic author
+          }
+        : comment
+    );
+  });
+
+  // Delay the refetch slightly to ensure backend propagates data
+  setTimeout(() => {
+    queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+  }, 500);
+};
+Why This Works:
+Author Preservation:
+If the backend returns incomplete data, the optimistic author stays until the backend eventually resolves the correct author.
+Minimizing Flicker:
+Comments don't revert to "Anonymous" unnecessarily during refetches.
+Additional Checks:
+Ensure Backend Includes Author on Comment Creation (routes.ts or API):
+javascript
+Copy code
+const comment = await db.comment.create({
+  data: {
+    content,
+    xPosition,
+    yPosition,
+    userId: req.auth.userId
+  },
+  include: {
+    author: {
+      select: {
+        username: true,
+        imageUrl: true
+      }
+    }
+  }
+});
+res.json({ data: comment });
+This ensures the backend response always includes author data during comment creation.
+Verify Frontend Author Rendering in CommentBubble.tsx:
+tsx
+Copy code
+const authorDisplay = typeof author === 'string' ? {
+  username: author,
+  imageUrl: undefined
+} : author;
+Ensure the author object is passed correctly from Gallery.tsx:
+tsx
+Copy code
+<CommentBubble
+  key={comment.id}
+  x={comment.xPosition}
+  y={comment.yPosition}
+  content={comment.content}
+  author={comment.author}
+/>
