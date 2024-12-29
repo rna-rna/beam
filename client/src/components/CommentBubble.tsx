@@ -115,9 +115,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           comment.optimistic && comment.content === data.data.content
             ? {
                 ...data.data,
-                author: data.data.author && typeof data.data.author === 'object'
-                  ? data.data.author
-                  : comment.author
+                author: data.data.author || comment.author  // Preserve optimistic author if server response lacks author data
               }
             : comment
         );
