@@ -1510,3 +1510,49 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     </div>
   );
 }
+// Add this mutation after other mutations
+  const updateTitleMutation = useMutation({
+    mutationFn: async (title: string) => {
+      const token = await getToken();
+      const res = await fetch(`/api/galleries/${slug}/title`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        body: JSON.stringify({ title }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update gallery title");
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      // Force cache refresh
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      toast({
+        title: "Success",
+        description: "Gallery title updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update gallery title. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Add this handler function
+  const handleTitleUpdate = async (newTitle: string) => {
+    try {
+      await updateTitleMutation.mutateAsync(newTitle);
+    } catch (error) {
+      console.error('Failed to update title:', error);
+    }
+  };
