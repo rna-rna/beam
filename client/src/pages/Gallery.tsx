@@ -1134,15 +1134,30 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   // Modify the image click handler in the gallery grid
   const handleImageClick = (index: number) => {
+    if (isMobile) {
+      setMobileViewIndex(index);
+      setShowMobileView(true);
+      return;
+    }
+
     if (isCommentPlacementMode) {
       setIsCommentModalOpen(true);
+      return;
     }
+
     setSelectedImageIndex(index);
   };
 
-  // Add layout toggle handler
-  const toggleGridView = () => {
-    setIsMasonry(!isMasonry);
+  // Add comment position handler
+  const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isCommentPlacementMode) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+    setNewCommentPos({ x, y });
+    setIsCommentModalOpen(true);
   };
 
   const renderCommentDialog = () => {
