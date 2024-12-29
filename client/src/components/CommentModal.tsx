@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { SignIn } from "@clerk/clerk-react";
+import { SignUp } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
 
 interface CommentModalProps {
@@ -47,7 +47,7 @@ export function CommentModal({ isOpen, onClose, onSubmit, position }: CommentMod
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isSignedIn ? "Add Comment" : "Sign in to Comment"}
+            {isSignedIn ? "Add Comment" : "Sign up to Comment"}
           </DialogTitle>
         </DialogHeader>
         <div className="p-4 space-y-4">
@@ -70,7 +70,7 @@ export function CommentModal({ isOpen, onClose, onSubmit, position }: CommentMod
             </>
           ) : (
             <div className="flex flex-col items-center">
-              <SignIn afterSignInUrl={window.location.href} />
+              <SignUp afterSignUpUrl={window.location.href} />
             </div>
           )}
         </div>
