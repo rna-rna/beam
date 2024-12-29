@@ -951,7 +951,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       }}
       style={{        position: draggedItemIndex === index ? "absolute" : "relative",
         top: draggedItemIndex === index ? dragPosition?.y :"auto",
-        left: draggedItemIndex === index ? dragPosition?.x : "auto",
+        left: draggedItemIndex ===index ? dragPosition?.x : "auto",
       }}
       drag={isReorderMode}
       dragMomentum={false}
@@ -1074,22 +1074,32 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
 
   useEffect(() => {
-    const controls = renderGalleryControls();
-    onHeaderActionsChange?.(controls);
-  }, [onHeaderActionsChange, renderGalleryControls]);
+    if (onHeaderActionsChange && gallery) {
+      onHeaderActionsChange(
+        <div className="flex items-center justify-between w-full px-4">
+          <InlineEdit
+            value={gallery.title}
+            onSave={handleTitleUpdate}
+            className="text-xl font-semibold text-white"
+          />
+          {renderGalleryControls()}
+        </div>
+      );
+    }
+  }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
 
   if (isPrivateGallery) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <Lock className="h-12 w-12 text-muted-foreground" />
+            <div className="flex items-center gap-2 mb-4">
+              <Lock className="w-8 h-8 text-muted-foreground" />
               <h1 className="text-2xl font-semibold">Private Gallery</h1>
-              <p className="text-muted-foreground">
-                This gallery is private and can only be accessed by its owner.
-              </p>
             </div>
+            <p className="text-muted-foreground">
+              This gallery is private and can only be accessed by its owner.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -1192,11 +1202,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between w-full px-4">
           <InlineEdit
             value={gallery.title}
             onSave={handleTitleUpdate}
-            className="text-xl font-semibold"
+            className="text-xl font-semibold text-white"
           />
           {renderGalleryControls()}
         </div>
