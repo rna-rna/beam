@@ -69,6 +69,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
+import { InlineEdit } from "@/components/InlineEdit";
 
 interface GalleryProps {
   slug?: string;
@@ -140,48 +141,20 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       return res.json();
     },
-    onMutate: async (newTitle) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
-      await queryClient.cancelQueries({ queryKey: ['/api/galleries'] });
-
-      // Snapshot the previous values
-      const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
-      const previousGalleries = queryClient.getQueryData(['/api/galleries']);
-
-      // Optimistically update both caches
-      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
-        ...old,
-        title: newTitle
-      }));
-
-      queryClient.setQueryData(['/api/galleries'], (old: any) => {
-        if (!old) return old;
-        return old.map((gallery: any) =>
-          gallery.slug === slug ? { ...gallery, title: newTitle } : gallery
-        );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+      toast({
+        title: "Success",
+        description: "Gallery title updated successfully",
       });
-
-      return { previousGallery, previousGalleries };
     },
-    onError: (err, newTitle, context) => {
-      // Revert to previous values on error
-      if (context?.previousGallery) {
-        queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
-      }
-      if (context?.previousGalleries) {
-        queryClient.setQueryData(['/api/galleries'], context.previousGalleries);
-      }
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to update title. Please try again.",
         variant: "destructive",
       });
-    },
-    onSettled: () => {
-      // Invalidate both queries to ensure consistency
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
     },
   });
 
@@ -976,8 +949,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           duration: draggedItemIndex === index ? 0 : 0.25,
         }
       }}
-      style={{
-        position: draggedItemIndex === index ? "absolute" : "relative",
+      style={{        position: draggedItemIndex === index ? "absolute" : "relative",
         top: draggedItemIndex === index ? dragPosition?.y : "auto",
         left: draggedItemIndex === index ? dragPosition?.x : "auto",
       }}
@@ -1216,6 +1188,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       />
     );
   };
+
+  useEffect(() => {
+    if (onHeaderActionsChange && gallery) {
+      onHeaderActionsChange(
+        <div className="flex items-center gap-4">
+          <InlineEdit
+            value={gallery.title}
+            onSave={handleTitleUpdate}
+            className="text-xl font-semibold"
+          />
+          {renderGalleryControls()}
+        </div>
+      );
+    }
+  }, [gallery, onHeaderActionsChange, handleTitleUpdate]);
 
   return (
     <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
