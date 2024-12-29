@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/tooltip";
 
 // Components
-import { CommentBubble } from "@/components/CommentBubble";
+//import { CommentBubble } from "@/components/CommentBubble"; // Removed - likely unused
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 import { Textarea } from "@/components/ui/textarea";
@@ -1148,6 +1148,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     setSelectedImageIndex(index);
   };
 
+  // Add layout toggle handler
+  const toggleGridView = () => {
+    setIsMasonry(!isMasonry);
+  };
+
   // Add comment position handler
   const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isCommentPlacementMode) return;
@@ -1161,21 +1166,29 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   const renderCommentDialog = () => {
-    if (!selectedImage || !newCommentPos) return null;
+    if (!isCommentModalOpen) return null;
 
     return (
-      <CommentBubble
-        x={newCommentPos.x}
-        y={newCommentPos.y}
-        isNew={true}
-        imageId={selectedImage.id}
-        onSubmit={() => {
+      <CommentModal
+        isOpen={isCommentModalOpen}
+        onClose={() => {
+          setIsCommentModalOpen(false);
           setNewCommentPos(null);
-          queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
         }}
+        onSubmit={(content) => {
+          if (!selectedImage?.id || !newCommentPos) return;
+          createCommentMutation.mutate({
+            imageId: selectedImage.id,
+            content,
+            x: newCommentPos.x,
+            y: newCommentPos.y,
+          });
+        }}
+        position={newCommentPos}
       />
     );
   };
+
   return (
     <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
       <input {...getInputProps()} />
@@ -1587,6 +1600,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           galleryUrl={window.location.href}
         />
       )}
+      {renderCommentDialog()}
     </div>
   );
 }
