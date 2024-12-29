@@ -17,7 +17,13 @@ import {
   Loader2,
   Moon,
   Sun,
-  Share2
+  Share2,
+  AlertCircle, // Added import for AlertCircle
+  ArrowUpDown, // Added import for ArrowUpDown
+  ChevronLeft, // Added import for ChevronLeft
+  ChevronRight, // Added import for ChevronRight
+  Paintbrush, // Added import for Paintbrush
+  MessageCircle // Added import for MessageCircle
 } from "lucide-react";
 
 // UI Components
@@ -920,7 +926,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               {selectedImages.includes(image.id) && (
                 <CheckCircle className="w-4 h-4 text-primary-foreground" />
               )}
-                        </div>
+            </div>
           </motion.div>
         )}
       </div>
@@ -952,7 +958,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   if (isPrivateGallery) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4 text-center">
@@ -968,18 +974,28 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   }
 
-  if (error) {
+  if (!gallery && isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-2xl font-bold text-foreground">Failed to load gallery</h1>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  if (!gallery && !isLoading) {
+  if (!gallery) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-2xl fontbold text-foreground">Gallery not found</h1>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
+              <p className="text-muted-foreground">
+                The gallery you're looking for doesn't exist or has been removed.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
