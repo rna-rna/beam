@@ -114,12 +114,12 @@ function App() {
     }
   });
 
-  // Handle redirect on auth state change
+  // Handle root route redirect only when not on a gallery page
   useEffect(() => {
-    if (isSignedIn) {
+    if (isSignedIn && location === "/") {
       setLocation("/dashboard");
     }
-  }, [isSignedIn, setLocation]);
+  }, [isSignedIn, setLocation, location]);
 
   return (
     <Switch>

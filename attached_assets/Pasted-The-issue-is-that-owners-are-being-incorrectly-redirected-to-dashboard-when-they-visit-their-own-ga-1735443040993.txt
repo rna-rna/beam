@@ -1,0 +1,72 @@
+The issue is that owners are being incorrectly redirected to /dashboard when they visit their own gallery link. Instead, they should be able to view the gallery directly.
+
+Here's how to fix that behavior:
+
+Problem:
+When the owner visits their own gallery (by directly pasting the link), the app mistakenly redirects them to /dashboard.
+This likely happens because of the ownership check logic in the gallery fetch route.
+Solution:
+Adjust the backend route to skip the redirect for owners and properly serve the gallery.
+
+1. Fix the Backend Gallery Fetch Logic (routes.txt):
+Locate the gallery fetch route in routes.txt:
+
+javascript
+Copy code
+app.get('/api/galleries/:slug', async (req, res) => {
+  try {
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, req.params.slug),
+    });
+
+    if (!gallery) {
+      return res.status(404).json({ message: 'Gallery not found' });
+    }
+
+    // Ownership and visibility check
+    const isOwner = req.auth?.userId === gallery.userId;
+
+    if (!gallery.isPublic && !isOwner) {
+      return res.status(403).json({
+        message: 'This gallery is private',
+        isPrivate: true,
+        requiresAuth: !req.auth,
+      });
+    }
+
+    // Return gallery if owner or public
+    res.json({
+      id: gallery.id,
+      slug: gallery.slug,
+      title: gallery.title,
+      isPublic: gallery.isPublic,
+      images: gallery.images,
+      isOwner,
+      createdAt: gallery.createdAt,
+    });
+  } catch (error) {
+    console.error('Gallery fetch error:', error);
+    res.status(500).json({ message: 'Failed to fetch gallery' });
+  }
+});
+What Changed?
+The logic if (!gallery.isPublic && !isOwner) allows the owner to view their private gallery without redirecting to /dashboard.
+Only non-owners receive the 403 response.
+2. Update the Frontend to Prevent Redirection for Owners (Gallery.tsx):
+In the frontend fetch logic (likely in Gallery.tsx or similar), adjust how 403 responses are handled.
+
+tsx
+Copy code
+const { data: gallery, error } = useQuery(['/api/galleries', slug], {
+  onError: (error: any) => {
+    if (error.response?.status === 403) {
+      const isPrivate = error.response.data?.isPrivate;
+      const requiresAuth = error.response.data?.requiresAuth;
+
+      // Redirect to lock page only if the user is not authenticated
+      if (isPrivate && requiresAuth) {
+        window.location.href = `/galleries/${slug}/private`;
+      }
+    }
+  }
+});
