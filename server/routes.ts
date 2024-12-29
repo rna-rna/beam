@@ -489,6 +489,13 @@ export function registerRoutes(app: Express): Server {
         .where(eq(galleries.id, gallery.id))
         .returning();
 
+      // Set cache control headers to ensure fresh data
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+
       res.json({
         success: true,
         data: updated
@@ -505,6 +512,13 @@ export function registerRoutes(app: Express): Server {
   // Get gallery details (public view)
   app.get('/api/galleries/:slug', async (req, res) => {
     try {
+      // Add cache control headers
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+
       // Find the gallery first
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
