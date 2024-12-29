@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/tooltip";
 
 // Components
-//import { CommentBubble } from "@/components/CommentBubble"; // Removed - likely unused
+import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 import { Textarea } from "@/components/ui/textarea";
