@@ -136,29 +136,48 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       return res.json();
     },
-    onSuccess: (updatedGallery) => {
-      // Update the specific gallery cache
-      queryClient.setQueryData([`/api/galleries/${slug}`], updatedGallery);
+    onMutate: async (newTitle) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
+      await queryClient.cancelQueries({ queryKey: ['/api/galleries'] });
 
-      // Update the gallery list cache
-      queryClient.setQueryData(['/api/galleries'], (oldData: any) => {
-        if (!oldData) return oldData;
-        return oldData.map((gallery: any) => 
-          gallery.slug === slug ? { ...gallery, title: updatedGallery.title } : gallery
+      // Snapshot the previous values
+      const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
+      const previousGalleries = queryClient.getQueryData(['/api/galleries']);
+
+      // Optimistically update both caches
+      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
+        ...old,
+        title: newTitle
+      }));
+
+      queryClient.setQueryData(['/api/galleries'], (old: any) => {
+        if (!old) return old;
+        return old.map((gallery: any) => 
+          gallery.slug === slug ? { ...gallery, title: newTitle } : gallery
         );
       });
 
-      toast({
-        title: "Success",
-        description: "Gallery title updated successfully",
-      });
+      return { previousGallery, previousGalleries };
     },
-    onError: () => {
+    onError: (err, newTitle, context) => {
+      // Revert to previous values on error
+      if (context?.previousGallery) {
+        queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
+      }
+      if (context?.previousGalleries) {
+        queryClient.setQueryData(['/api/galleries'], context.previousGalleries);
+      }
       toast({
         title: "Error",
         description: "Failed to update title. Please try again.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Invalidate both queries to ensure consistency
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
     },
   });
 
