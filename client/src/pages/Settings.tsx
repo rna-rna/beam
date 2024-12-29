@@ -1,14 +1,20 @@
 import { UserProfile } from '@clerk/clerk-react';
 import { Card } from "@/components/ui/card";
 import { Loader2, AlertCircle } from "lucide-react";
-import { useUser } from "@clerk/clerk-react";
-import { useState } from 'react';
+import { useUser, useClerk } from "@clerk/clerk-react";
+import { useState, useEffect } from 'react';
 
 export default function Settings() {
   const { isLoaded, isSignedIn } = useUser();
+  const { session } = useClerk();
   const [error, setError] = useState<Error | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  if (!isLoaded) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -16,7 +22,7 @@ export default function Settings() {
     );
   }
 
-  if (!isSignedIn) {
+  if (!isSignedIn || !session) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
@@ -37,21 +43,23 @@ export default function Settings() {
           <p>{error.message}</p>
         </div>
       ) : (
-        <UserProfile
-          appearance={{
-            elements: {
-              rootBox: 'w-full',
-              card: 'shadow-none border-0 p-0',
-              navbar: 'hidden',
-              headerTitle: 'text-2xl font-bold',
-              headerSubtitle: 'text-muted-foreground'
-            },
-            variables: {
-              colorPrimary: 'hsl(var(--primary))',
-              borderRadius: 'var(--radius)',
-            }
-          }}
-        />
+        <div className="w-full">
+          <UserProfile
+            appearance={{
+              elements: {
+                rootBox: 'w-full',
+                card: 'shadow-none border-0 p-0',
+                navbar: 'hidden',
+                headerTitle: 'text-2xl font-bold',
+                headerSubtitle: 'text-muted-foreground'
+              },
+              variables: {
+                colorPrimary: 'hsl(var(--primary))',
+                borderRadius: 'var(--radius)',
+              }
+            }}
+          />
+        </div>
       )}
     </Card>
   );
