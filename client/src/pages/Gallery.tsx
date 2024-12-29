@@ -415,9 +415,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       x: number;
       y: number;
     }) => {
+      const token = await getToken();
       const res = await fetch(`/api/images/${imageId}/comments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
           content,
           xPosition: x,
