@@ -137,7 +137,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       return res.json();
     },
     onSuccess: () => {
+      // Invalidate both the specific gallery and gallery list queries
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
       toast({
         title: "Success",
         description: "Gallery title updated successfully",
@@ -951,7 +953,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           if (isReorderMode) {
             e.stopPropagation();
             return;
-                    }
+          }
           selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
         }}
       >
