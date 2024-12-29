@@ -1,0 +1,77 @@
+Objective:
+Remove the old /current gallery logic from the backend to prevent redundant or conflicting gallery creation.
+Ensure galleries are still created correctly using /galleries or /galleries/create.
+Clean up unused code paths to improve maintainability.
+1. Locate and Remove the /current Route in Backend Code
+Open the Replit project where your backend is hosted.
+Locate and open the routes.txt or the main route handling file (routes or index.ts).
+Search for this section:
+javascript
+Copy code
+protectedRouter.get('/galleries/current', async (req: any, res) => {
+    // Code logic here...
+});
+Delete or comment out the entire /current route block.
+javascript
+Copy code
+// protectedRouter.get('/galleries/current', async (req: any, res) => {
+//     try {
+//         // Old logic to fetch or create gallery
+//     } catch (error) {
+//         console.error('Error:', error);
+//         res.status(500).json({ message: 'Failed to initialize gallery' });
+//     }
+// });
+2. Update the Frontend (Optional but Recommended)
+In Replit, open the frontend code (likely in Gallery.tsx or similar).
+Search for any usage of:
+typescript
+Copy code
+useQuery([`/api/galleries/current`]);
+Replace it with a more reliable endpoint like:
+typescript
+Copy code
+useQuery([`/api/galleries`]);
+This ensures the gallery list is fetched directly instead of relying on /current.
+3. Ensure Proper Gallery Creation
+Ensure the /galleries/create route works correctly. The relevant code for creating a gallery should look like this:
+javascript
+Copy code
+protectedRouter.post('/galleries/create', async (req: any, res) => {
+  const userId = req.auth.userId;
+  const { title } = req.body;
+
+  const [gallery] = await db.insert(galleries).values({
+    slug: generateSlug(),
+    title: title || "Untitled Project",
+    userId,
+    createdAt: new Date()
+  }).returning();
+
+  res.json(gallery);
+});
+Test this by sending a POST request via Postman or curl:
+bash
+Copy code
+curl -X POST http://localhost:5000/api/galleries/create \
+-H "Authorization: Bearer YOUR_TOKEN" \
+-H "Content-Type: application/json" \
+-d '{"title": "New Gallery"}'
+4. Clean Up Frontend Calls (Optional)
+In the frontend, look for gallery fetching logic that references the /current endpoint and replace it with the /galleries or /galleries/:slug routes.
+typescript
+Copy code
+const { data: galleries } = useQuery(['api/galleries']);
+If users need to access the latest gallery, sort them by createdAt on the frontend:
+typescript
+Copy code
+const latestGallery = galleries?.[0];
+5. Test the Changes
+Stop the Replit server and restart it:
+bash
+Copy code
+npm run dev
+Test the app to confirm that:
+Gallery creation still works.
+The list of galleries loads correctly.
+No /api/galleries/current requests result in 404 errors.
