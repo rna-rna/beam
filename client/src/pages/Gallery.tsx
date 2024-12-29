@@ -18,12 +18,12 @@ import {
   Moon,
   Sun,
   Share2,
-  AlertCircle, // Added import for AlertCircle
-  ArrowUpDown, // Added import for ArrowUpDown
-  ChevronLeft, // Added import for ChevronLeft
-  ChevronRight, // Added import for ChevronRight
-  Paintbrush, // Added import for Paintbrush
-  MessageCircle // Added import for MessageCircle
+  AlertCircle,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Paintbrush,
+  MessageCircle
 } from "lucide-react";
 
 // UI Components
@@ -65,8 +65,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { ShareModal } from "@/components/ShareModal";
 import { Lock } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card"; // Import Card and CardContent
-
+import { Card, CardContent } from "@/components/ui/card";
 
 interface GalleryProps {
   slug?: string;
@@ -110,9 +109,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
   const [showApproved, setShowApproved] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false); // Added dark mode state
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
-  const [isPrivateGallery, setIsPrivateGallery] = useState(false); // Added private gallery state
+  const [isPrivateGallery, setIsPrivateGallery] = useState(false);
 
   // Add mobile detection
   useEffect(() => {
@@ -373,8 +372,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
     disabled: isUploading || selectMode,
-    noClick: true, // Disable click to upload
-    noKeyboard: true // Disable keyboard interaction
+    noClick: true,
+    noKeyboard: true
   });
 
   // Add upload progress placeholders to the masonry grid
@@ -488,7 +487,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const toggleSelectMode = () => {
     if (selectMode) {
       setSelectedImages([]);
-      setIsReorderMode(false); // added to reset reorder mode when exiting select mode
+      setIsReorderMode(false);
     }
     setSelectMode(!selectMode);
   };
@@ -822,7 +821,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         scale: draggedItemIndex === index ? 1.1 : 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
         transition: {
-          duration: draggedItemIndex === index ? 0 : 0.25,  // Smooth return without stutter
+          duration: draggedItemIndex === index ? 0 : 0.25,
         }
       }}
       style={{
@@ -870,7 +869,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           <motion.div
             className="absolute bottom-2 left-2 z-10 star-button opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 md:opacity-0 max-md:opacity-100"
             animate={{ scale: 1 }}
-            whileTap={{ scale: 0.8 }}  // Click animation
+            whileTap={{ scale: 0.8 }}
           >
             <Button
               variant="secondary"
@@ -1102,8 +1101,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             top: dragPosition.y,
             left: dragPosition.x,
             transform: "translate(-50%, -50%)",
-            width: '80px',  // Reduced size
-            height: '80px'  // Reduced size
+            width: '80px',
+            height: '80px'
           }}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{

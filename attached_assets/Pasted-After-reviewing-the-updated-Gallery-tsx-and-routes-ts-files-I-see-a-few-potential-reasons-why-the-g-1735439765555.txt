@@ -1,0 +1,120 @@
+After reviewing the updated Gallery.tsx and routes.ts files, I see a few potential reasons why the gallery page is blank for unauthenticated users and redirects authenticated users to the dashboard.
+
+Root Causes:
+Backend Route Restriction (routes.ts):
+In the route handling /galleries/:slug, the code checks for ownership using eq(galleries.userId, userId).
+This restricts access to the gallery only to the owner.
+ts
+Copy code
+protectedRouter.get('/galleries/:slug', async (req: any, res) => {
+  const userId = req.auth.userId;
+  const gallery = await db.query.galleries.findFirst({
+    where: and(
+      eq(galleries.slug, req.params.slug),
+      eq(galleries.userId, userId)  // Owner-only check
+    ),
+  });
+
+  if (!gallery) {
+    return res.status(404).json({ message: 'Gallery not found' });
+  }
+});
+Effect:
+If the user isn't the gallery owner or isn't authenticated, the gallery returns 404 (not found).
+This results in a blank page for public users or redirects to /dashboard for authenticated users.
+Frontend Handling of Private Galleries (Gallery.tsx):
+The frontend sets the gallery to private if the API returns a 403.
+This leads to the “Gallery Not Found” message, even if the gallery exists but is restricted.
+tsx
+Copy code
+const { data: gallery, isLoading, error } = useQuery<GalleryType>({
+  queryKey: [`/api/galleries/${slug}`],
+  enabled: !!slug,
+  onError: (error: any) => {
+    if (error.message?.includes('This gallery is private')) {
+      setIsPrivateGallery(true);
+    }
+  }
+});
+Effect:
+The gallery page stays blank because the component thinks the gallery is private or missing.
+Solution (Backend Fix for Public Galleries):
+Modify the gallery fetch route to:
+
+Allow public access to non-private galleries.
+Restrict private galleries to owners only.
+Update routes.ts (Public Access Fix):
+
+ts
+Copy code
+app.get('/api/galleries/:slug', async (req, res) => {
+  try {
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, req.params.slug),
+    });
+
+    if (!gallery) {
+      return res.status(404).json({ message: 'Gallery not found' });
+    }
+
+    // Check if the gallery is public OR the user is the owner
+    const isOwner = req.auth?.userId === gallery.userId;
+
+    if (!gallery.isPublic && !isOwner) {
+      return res.status(403).json({
+        message: 'This gallery is private',
+        isPrivate: true,
+        requiresAuth: !req.auth,
+      });
+    }
+
+    res.json(gallery);
+  } catch (error) {
+    console.error('Gallery fetch error:', error);
+    res.status(500).json({ message: 'Failed to fetch gallery' });
+  }
+});
+Solution (Frontend Fix for Blank Page):
+Modify the frontend to properly handle public/private galleries.
+Instead of showing a blank page, display a "Private Gallery" message when access is restricted.
+Update Gallery.tsx:
+
+tsx
+Copy code
+if (isPrivateGallery) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Card className="w-full max-w-md mx-4">
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <Lock className="h-12 w-12 text-muted-foreground" />
+            <h1 className="text-2xl font-semibold">Private Gallery</h1>
+            <p className="text-muted-foreground">
+              This gallery is private and can only be accessed by its owner.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+Effect:
+Public galleries load without authentication.
+Private galleries show a restricted access message instead of a blank page.
+Testing the Fixes:
+Unauthenticated User (Public Gallery):
+
+Visit /galleries/:slug without logging in.
+Ensure public galleries load without redirection.
+Unauthenticated User (Private Gallery):
+
+Attempt to access a private gallery.
+A “Private Gallery” message should display (no blank screen).
+Authenticated User (Non-Owner):
+
+Log in as a user who does not own the gallery.
+Confirm private galleries remain inaccessible, with the correct messaging.
+Gallery Owner Access:
+
+Log in as the gallery owner.
+Ensure the gallery loads normally without redirecting to /dashboard.
