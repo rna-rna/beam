@@ -505,6 +505,7 @@ export function registerRoutes(app: Express): Server {
   // Get gallery details (public view)
   app.get('/api/galleries/:slug', async (req, res) => {
     try {
+      // Find the gallery first
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
@@ -516,9 +517,13 @@ export function registerRoutes(app: Express): Server {
       // Check if gallery is public or if user is authenticated and owns the gallery
       const isOwner = req.auth?.userId === gallery.userId;
       if (!gallery.isPublic && !isOwner) {
-        return res.status(403).json({ message: 'This gallery is private' });
+        return res.status(403).json({
+          message: 'This gallery is private',
+          isPrivate: true
+        });
       }
 
+      // If access is allowed, get the gallery images
       const galleryImages = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
         orderBy: (images, { asc }) => [
@@ -551,7 +556,9 @@ export function registerRoutes(app: Express): Server {
         id: gallery.id,
         slug: gallery.slug,
         title: gallery.title,
-        images: processedImages
+        isPublic: gallery.isPublic,
+        images: processedImages,
+        isOwner
       });
     } catch (error) {
       console.error('Gallery fetch error:', error);
