@@ -456,7 +456,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   });
 
 
-
   const toggleVisibilityMutation = useMutation({
     mutationFn: async (checked: boolean) => {
       const token = await getToken();
@@ -1157,13 +1156,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     console.log('handleImageComment triggered'); // Debug log
     if (!isCommentPlacementMode) return;
 
-    const { user } = useUser();
-
+    // Check authentication first
     if (!user) {
+      console.log('User not authenticated, showing auth modal'); // Debug log
       setIsCommentModalOpen(true);
       return;
     }
 
+    // Only set position if user is authenticated
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
@@ -1187,6 +1187,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           console.log('Comment modal closed'); // Debug log
         }}
         onSubmit={(content) => {
+          if (!user) {
+            console.log('User not authenticated, cannot submit comment'); // Debug log
+            return;
+          }
+
           if (!selectedImage?.id || !newCommentPos) return;
 
           createCommentMutation.mutate({
