@@ -774,6 +774,55 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get recently viewed galleries
+  protectedRouter.post('/galleries/recent', async (req: any, res) => {
+    try {
+      const { galleryIds } = req.body;
+      const userId = req.auth.userId;
+
+      if (!Array.isArray(galleryIds)) {
+        return res.status(400).json({ message: 'Invalid request: galleryIds must be an array' });
+      }
+
+      // Get galleries with first image and total image count
+      const recentGalleries = await db.query.galleries.findMany({
+        where: inArray(galleries.id, galleryIds),
+        orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
+        with: {
+          images: {
+            orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)],
+            limit: 1 // Get only the first image for thumbnail
+          }
+        }
+      });
+
+      // Get image counts for each gallery
+      const galleryCounts = await Promise.all(
+        recentGalleries.map(async (gallery) => {
+          const result = await db.execute(
+            sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
+          );
+          return {
+            galleryId: gallery.id,
+            count: parseInt(result.rows[0].count.toString(), 10)
+          };
+        })
+      );
+
+      // Transform the response to include thumbnailUrl and correct image count
+      const galleriesWithThumbnails = recentGalleries.map(gallery => ({
+        ...gallery,
+        thumbnailUrl: gallery.images[0]?.url || null,
+        imageCount: galleryCounts.find(count => count.galleryId === gallery.id)?.count || 0
+      }));
+
+      res.json(galleriesWithThumbnails);
+    } catch (error) {
+      console.error('Failed to fetch recent galleries:', error);
+      res.status(500).json({ message: 'Failed to fetch recent galleries' });
+    }
+  });
+
   // Mount protected routes
   app.use('/api', protectedRouter);
 
