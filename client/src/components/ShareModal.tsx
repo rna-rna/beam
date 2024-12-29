@@ -5,69 +5,24 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Copy, CheckCircle, Globe, Lock } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@clerk/clerk-react";
 
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
-  gallerySlug: string;
   isPublic: boolean;
+  onVisibilityChange: (checked: boolean) => void;
+  galleryUrl: string;
 }
 
-export function ShareModal({ isOpen, onClose, gallerySlug, isPublic: initialIsPublic }: ShareModalProps) {
+export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisibilityChange, galleryUrl }: ShareModalProps) {
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { getToken } = useAuth();
-
-  const shareUrl = `${window.location.origin}/gallery/${gallerySlug}`;
-
-  const toggleVisibilityMutation = useMutation({
-    mutationFn: async (isPublic: boolean) => {
-      const token = await getToken();
-      const res = await fetch(`/api/galleries/${gallerySlug}/visibility`, {
-        method: "PATCH",
-        headers: { 
-          "Content-Type": "application/json",
-          'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        body: JSON.stringify({ isPublic }),
-        credentials: "include"
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error);
-      }
-
-      return res.json();
-    },
-    onSuccess: () => {
-      // Force cache invalidation for the specific gallery
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-      toast({
-        title: "Gallery visibility updated",
-        description: `Gallery is now ${isPublic ? "public" : "private"}`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to update gallery visibility: ${error.message}`,
-        variant: "destructive",
-      });
-      setIsPublic(!isPublic); // Revert the toggle
-    },
-  });
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(galleryUrl);
       setCopied(true);
       toast({
         title: "Link copied",
@@ -85,7 +40,7 @@ export function ShareModal({ isOpen, onClose, gallerySlug, isPublic: initialIsPu
 
   const handleToggleVisibility = (checked: boolean) => {
     setIsPublic(checked);
-    toggleVisibilityMutation.mutate(checked);
+    onVisibilityChange(checked);
   };
 
   return (
@@ -117,7 +72,7 @@ export function ShareModal({ isOpen, onClose, gallerySlug, isPublic: initialIsPu
               <div className="flex space-x-2">
                 <Input
                   id="share-link"
-                  value={shareUrl}
+                  value={galleryUrl}
                   readOnly
                   className="flex-1"
                 />
