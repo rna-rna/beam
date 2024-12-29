@@ -115,15 +115,51 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
 
-  // Add mobile detection
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  // Title update mutation
+  const titleUpdateMutation = useMutation({
+    mutationFn: async (newTitle: string) => {
+      const token = await getToken();
+      const res = await fetch(`/api/galleries/${slug}/title`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        body: JSON.stringify({ title: newTitle }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update title');
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      toast({
+        title: "Success",
+        description: "Gallery title updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update title. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Title update handler
+  const handleTitleUpdate = async (newTitle: string) => {
+    try {
+      await titleUpdateMutation.mutateAsync(newTitle);
+    } catch (error) {
+      console.error('Failed to update title:', error);
+    }
+  };
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<GalleryType>({
@@ -915,7 +951,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           if (isReorderMode) {
             e.stopPropagation();
             return;
-          }
+                    }
           selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
         }}
       >
@@ -1510,48 +1546,3 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     </div>
   );
 }
-
-// Move updateTitleMutation inside component
-const updateTitleMutation = useMutation({
-  mutationFn: async (title: string) => {
-    const token = await getToken();
-    const res = await fetch(`/api/galleries/${slug}/title`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      },
-      body: JSON.stringify({ title }),
-    });
-
-    if (!res.ok) {
-      throw new Error('Failed to update title');
-    }
-
-    return res.json();
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-    toast({
-      title: "Success",
-      description: "Gallery title updated successfully",
-    });
-  },
-  onError: () => {
-    toast({
-      title: "Error",
-      description: "Failed to update title. Please try again.",
-      variant: "destructive",
-    });
-  },
-});
-
-const handleTitleUpdate = async (newTitle: string) => {
-  try {
-    await updateTitleMutation.mutateAsync(newTitle);
-  } catch (error) {
-    console.error('Failed to update title:', error);
-  }
-};
