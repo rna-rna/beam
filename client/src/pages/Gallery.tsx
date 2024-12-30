@@ -5,38 +5,31 @@ import {
   Grid,
   LayoutGrid,
   MessageSquare,
-  SquareDashedMousePointer,
-  Download,
   Star,
-  Trash2,
-  CheckCircle,
+  Download,
   Loader2,
   MessageCircle,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@clerk/clerk-react";
+import { useUser } from '@clerk/clerk-react';
+import { useToast } from "@/hooks/use-toast";
+import { useDropzone } from 'react-dropzone';
 
 // UI Components
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Switch as SwitchComponent } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Card, CardContent } from "@/components/ui/card";
 
 import { CommentBubble } from "@/components/CommentBubble";
-import { useDropzone } from 'react-dropzone';
 import type { Image, Gallery as GalleryType, Comment } from "@/types/gallery";
-import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
-import { motion } from "framer-motion";
-import { useAuth } from "@clerk/clerk-react";
-import { CommentModal } from "@/components/CommentModal";
-import { useUser } from '@clerk/clerk-react';
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface UploadProgress {
   [key: string]: number;
@@ -57,7 +50,6 @@ export default function Gallery({
   selectMode,
   setSelectMode
 }: GalleryProps) {
-  // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
   const { toast } = useToast();
@@ -65,43 +57,37 @@ export default function Gallery({
   const { getToken } = useAuth();
   const { user } = useUser();
 
-  // State Management
+  // State
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
   const [scale, setScale] = useState(100);
-  const [isReorderMode, setIsReorderMode] = useState(false);
-  const [showStarredOnly, setShowStarredOnly] = useState(false);
-  const [isAnnotationMode, setIsAnnotationMode] = useState(false);
-  const [showAnnotations, setShowAnnotations] = useState(true);
-  const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
-  const [showFilename, setShowFilename] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
-  const [isMobile, setIsMobile] = useState(false);
-  const [showMobileView, setShowMobileView] = useState(false);
-  const [mobileViewIndex, setMobileViewIndex] = useState(-1);
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
   const [isMasonry, setIsMasonry] = useState(true);
-  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
-  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [showWithComments, setShowWithComments] = useState(false);
+  const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
 
-  // Queries
+  // Gallery Query
   const { data: gallery, isLoading } = useQuery<GalleryType>({
     queryKey: [`/api/galleries/${slug}`],
     enabled: !!slug,
+    refetchInterval: false,
+    refetchOnWindowFocus: false
   });
 
   const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
 
+  // Comments Query
   const { data: comments = [] } = useQuery<Comment[]>({
-    queryKey: [`/api/images/${selectedImage?.id}/annotations`],
+    queryKey: [`/api/images/${selectedImage?.id}/comments`],
     enabled: !!selectedImage?.id,
   });
 
-  // Mutations
+  // Star Mutation
   const toggleStarMutation = useMutation({
     mutationFn: async (imageId: number) => {
       const token = await getToken();
@@ -117,17 +103,20 @@ export default function Gallery({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      if ('vibrate' in navigator) {
+        navigator.vibrate(30);
+      }
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to toggle star. Please try again.",
+        description: "Failed to update favorite status",
         variant: "destructive",
       });
     },
   });
 
-  // Define onDrop before useDropzone
+  // Image Upload Handler
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (selectedImageIndex >= 0 || selectMode) return;
 
@@ -183,6 +172,7 @@ export default function Gallery({
     noKeyboard: true
   });
 
+  // Upload Progress UI
   const renderUploadPlaceholders = () => {
     if (!Object.keys(uploadProgress).length) return null;
 
@@ -205,7 +195,7 @@ export default function Gallery({
     ));
   };
 
-  // Handlers
+  // Event Handlers
   const handleImageClick = (index: number) => {
     if (selectMode) return;
     setSelectedImageIndex(index);
@@ -222,7 +212,7 @@ export default function Gallery({
     setIsCommentModalOpen(true);
   };
 
-  // Layout calculations
+  // Masonry Layout Configuration
   const breakpointCols = useMemo(
     () => ({
       default: Math.max(1, Math.floor(6 * (100 / scale))),
@@ -237,14 +227,29 @@ export default function Gallery({
     [scale]
   );
 
+  // Image Preloading
+  useEffect(() => {
+    if (gallery?.images) {
+      gallery.images.forEach(image => {
+        if (!preloadedImages.has(image.id)) {
+          const img = new Image();
+          img.src = image.url;
+          img.onload = () => {
+            setPreloadedImages(prev => new Set([...Array.from(prev), image.id]));
+          };
+        }
+      });
+    }
+  }, [gallery?.images, preloadedImages]);
+
+  // Image Render Function
   const renderImage = (image: Image, index: number) => (
     <motion.div
       key={image.id}
       layout="position"
       className={cn(
         "mb-4 image-container relative",
-        !isMasonry && "aspect-[4/3]",
-        isReorderMode && "cursor-grab active:cursor-grabbing"
+        !isMasonry && "aspect-[4/3]"
       )}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: preloadedImages.has(image.id) ? 1 : 0, y: 0 }}
@@ -253,9 +258,7 @@ export default function Gallery({
     >
       <div className={cn(
         "relative bg-card rounded-lg overflow-hidden transform transition-all duration-200",
-        !isReorderMode && "hover:scale-[1.02]",
-        !selectMode && "cursor-pointer",
-        isReorderMode && "border-2 border-dashed border-gray-200 border-opacity-50"
+        !selectMode && "cursor-pointer hover:scale-[1.02]"
       )}>
         {preloadedImages.has(image.id) && (
           <img
@@ -286,19 +289,10 @@ export default function Gallery({
                 toggleStarMutation.mutate(image.id);
               }}
             >
-              <motion.div
-                animate={{
-                  scale: image.starred ? 1.2 : 1,
-                  opacity: image.starred ? 1 : 0.6
-                }}
-                transition={{ duration: 0.2 }}
-              >
-                {image.starred ? (
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ) : (
-                  <Star className="h-4 w-4" />
-                )}
-              </motion.div>
+              <Star className={cn(
+                "h-4 w-4",
+                image.starred && "fill-yellow-400 text-yellow-400"
+              )} />
             </Button>
           </motion.div>
         )}
@@ -313,31 +307,17 @@ export default function Gallery({
             {image.commentCount}
           </Badge>
         )}
-
-        {/* Selection Checkbox */}
-        {selectMode && !isReorderMode && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute top-2 right-2 z-10"
-          >
-            <div
-              className={cn(
-                "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
-                selectedImages.includes(image.id)
-                  ? "bg-primary border-primary"
-                  : "bg-background/80 border-background/80"
-              )}
-            >
-              {selectedImages.includes(image.id) && (
-                <CheckCircle className="w-4 h-4 text-primary-foreground" />
-              )}
-            </div>
-          </motion.div>
-        )}
       </div>
     </motion.div>
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -347,7 +327,7 @@ export default function Gallery({
         {isDragActive && !selectMode && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
             <div className="text-center">
-              <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+              <Upload className="mx-auto h-12 w-12 text-primary" />
               <h3 className="mt-4 text-lg font-medium">Drop images to upload</h3>
               <p className="mt-2 text-sm text-muted-foreground">
                 Supported formats: JPG, PNG, GIF, WEBP
@@ -374,7 +354,7 @@ export default function Gallery({
           </Masonry>
         </div>
 
-        {/* Image Lightbox */}
+        {/* Lightbox */}
         <Dialog open={selectedImageIndex !== -1} onOpenChange={() => setSelectedImageIndex(-1)}>
           <DialogContent className="max-w-[95vw] h-[95vh] p-0 bg-background/95 backdrop-blur-sm overflow-hidden">
             {selectedImage && gallery?.images && (
@@ -387,7 +367,7 @@ export default function Gallery({
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedImageIndex(prev =>
-                      prev <= 0 ? gallery.images.length - 1 : prev - 1
+                      prev <= 0 ? gallery.images!.length - 1 : prev - 1
                     );
                   }}
                 >
@@ -402,7 +382,7 @@ export default function Gallery({
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedImageIndex(prev =>
-                      prev >= gallery.images.length - 1 ? 0 : prev + 1
+                      prev >= gallery.images!.length - 1 ? 0 : prev + 1
                     );
                   }}
                 >
@@ -427,14 +407,32 @@ export default function Gallery({
                   />
 
                   {/* Comment Bubbles */}
+                  <AnimatePresence>
                   {comments.map((comment) => (
                     <CommentBubble
                       key={comment.id}
-                      comment={comment}
                       x={comment.xPosition}
                       y={comment.yPosition}
+                      content={comment.content}
+                      author={comment.author}
+                      imageId={selectedImage.id}
                     />
                   ))}
+                  </AnimatePresence>
+
+                  {/* New Comment Bubble */}
+                  {isCommentPlacementMode && newCommentPos && (
+                    <CommentBubble
+                      x={newCommentPos.x}
+                      y={newCommentPos.y}
+                      isNew
+                      imageId={selectedImage.id}
+                      onSubmit={() => {
+                        setNewCommentPos(null);
+                        queryClient.invalidateQueries({ queryKey: [`/api/images/${selectedImage.id}/comments`] });
+                      }}
+                    />
+                  )}
                 </div>
 
                 {/* Image Tools */}
