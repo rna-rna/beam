@@ -69,8 +69,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
-import { InlineEdit } from "@/components/InlineEdit"; // Import InlineEdit component
-
+import { InlineEdit } from "@/components/InlineEdit";
 
 interface GalleryProps {
   slug?: string;
@@ -932,12 +931,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               >
                 {isDarkMode ? (
                   <Moon className="h-4 w-4" />
-                ) : (                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Sun className="h-4 w-4" />
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Toggle Dark Mode</TooltipContent>          </Tooltip>
-        </TooltipProvider>      </div>
+            <TooltipContent>Toggle Dark Mode</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     );
   }, [
     gallery,
@@ -948,7 +950,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     showStarredOnly,
     showWithComments,
     showApproved,
-    deleteImagesMutation,    handleCopyLink,
+    deleteImagesMutation,
+    handleCopyLink,
     handleDownloadAll,
     handleStarredToggle,
     handleReorderToggle,
@@ -968,7 +971,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
-      initial={{ opacity: 0, y: 20}}      animate={{
+      initial={{ opacity: 0, y: 20 }}
+      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
@@ -1057,7 +1061,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             variant="secondary"
           >
             <MessageSquare className="w-3 h-3" />
-            {image.commentCount}          </Badge>
+            {image.commentCount}
+          </Badge>
         )}
 
         {/* Selection checkbox */}
@@ -1105,12 +1110,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between w-full px-4 md:px-6 lg:px-8 py-6">
+          <InlineEdit
+            value={gallery?.title || 'Gallery'}
+            onSave={handleTitleUpdate}
+            className="text-3xl font-bold text-white"
+          />
           {renderGalleryControls()}
         </div>
       );
     }
-  }, [gallery, onHeaderActionsChange, renderGalleryControls]);
+  }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
 
   if (isPrivateGallery) {
     return (
@@ -1236,17 +1246,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   return (
     <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
       <input {...getInputProps()} />
-
-      <div className="px-4 md:px-6 lg:px-8 py-8">
-        <InlineEdit
-          value={gallery?.title || 'Gallery'}
-          onSave={handleTitleUpdate}
-          className="text-3xl font-bold text-white"
-        />
-      </div>
+      {isDragActive && !selectMode && (
+        <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="text-center">
+            <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white">Drop images here</h3>
+          </div>
+        </div>
+      )}
 
       <div className="px-4 md:px-6 lg:px-8 py-8">
         <AnimatePresence mode="wait">
+
           {isMasonry ? (
             <motion.div
               key="masonry"
