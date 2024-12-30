@@ -1,46 +1,34 @@
-import { Switch, Route, useParams } from "wouter";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "wouter";
 import {
   Upload,
   Grid,
-  LayoutGrid,
   Filter,
   MessageSquare,
   SquareDashedMousePointer,
-  Link,
   Download,
-  MoreVertical,
-  Star,
+  Share2,
   Trash2,
   CheckCircle,
   Loader2,
-  Moon,
-  Sun,
-  Share2,
-  AlertCircle,
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
   Paintbrush,
-  MessageCircle
+  ArrowUpDown
 } from "lucide-react";
+import { useDropzone } from 'react-dropzone';
+import { motion, AnimatePresence } from "framer-motion";
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import { useAuth } from "@clerk/clerk-react";
 
 // UI Components
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Switch as SwitchComponent } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -49,26 +37,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
 // Components
 import { CommentBubble } from "@/components/CommentBubble";
-import { DrawingCanvas } from "@/components/DrawingCanvas";
-import { useDropzone } from 'react-dropzone';
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { MobileGalleryView } from "@/components/MobileGalleryView";
-import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
-import { useToast } from "@/hooks/use-toast";
-import Masonry from "react-masonry-css";
-import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
-import { ShareModal } from "@/components/ShareModal";
-import { Lock } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
-import { useUser } from '@clerk/clerk-react';
+import { useToast } from "@/hooks/use-toast";
+import type { Image, Gallery as GalleryType, Comment } from "@/types/gallery";
+
 
 interface GalleryProps {
   slug?: string;
@@ -79,6 +53,78 @@ interface GalleryProps {
 interface ImageDimensions {
   width: number;
   height: number;
+}
+
+function FloatingToolbar({
+  selectedCount,
+  onDeselect,
+  onDelete,
+  onDownload,
+  onEdit,
+}: {
+  selectedCount: number;
+  onDeselect: () => void;
+  onDelete: () => void;
+  onDownload: () => void;
+  onEdit: () => void;
+}) {
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key="floating-toolbar"
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[100]"
+      >
+        <div className="bg-background/80 backdrop-blur-lg border rounded-lg shadow-lg p-4 flex items-center gap-6">
+          <span className="text-sm font-medium">{selectedCount} selected</span>
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={onEdit}>
+                    <Paintbrush className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Edit selected images</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={onDelete}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete selected images</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={onDownload}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Download selected images</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={onDeselect}>
+                    Deselect All
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Clear selection</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
 }
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
@@ -1151,8 +1197,57 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   };
 
+  // Add these handler functions before the return statement
+  const handleEditSelected = () => {
+    toast({
+      title: "Coming Soon",
+      description: "Edit functionality will be available soon",
+    });
+  };
+
+  const handleDownloadSelected = async () => {
+    if (!gallery) return;
+
+    try {
+      toast({
+        title: "Preparing Download",
+        description: "Creating ZIP file of selected images...",
+      });
+
+      const selectedImagesData = gallery.images.filter(img => selectedImages.includes(img.id));
+      const zip = new JSZip();
+
+      const imagePromises = selectedImagesData.map(async (image, index) => {
+        const response = await fetch(image.url);
+        const blob = await response.blob();
+        const extension = image.url.split('.').pop() || 'jpg';
+        zip.file(`image-${index + 1}.${extension}`, blob);
+      });
+
+      await Promise.all(imagePromises);
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `${gallery.title || 'gallery'}-selected-images.zip`);
+
+      toast({
+        title: "Success",
+        description: "Selected images downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download images. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    deleteImagesMutation.mutate(selectedImages);
+  };
+
   return (
-    <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
+    <div {...getRootProps()} className="min-h-screen bg-background relative">
       <input {...getInputProps()} />
       {isDragActive && !selectMode && (
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -1563,6 +1658,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         />
       )}
       {renderCommentDialog()}
+      {selectMode && selectedImages.length > 0 && (
+        <FloatingToolbar
+          selectedCount={selectedImages.length}
+          onDeselect={() => {
+            setSelectedImages([]);
+            setSelectMode(false);
+          }}
+          onDelete={handleDeleteSelected}
+          onDownload={handleDownloadSelected}
+          onEdit={handleEditSelected}
+        />
+      )}
     </div>
   );
 }
