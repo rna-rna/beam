@@ -1,0 +1,86 @@
+Findings – Why the Ref Error Persists:
+DropdownMenuTrigger and TooltipTrigger with asChild:
+tsx
+Copy code
+<DropdownMenuTrigger asChild>
+  <FilterDropdownTrigger>
+    <Filter className="h-4 w-4" />
+  </FilterDropdownTrigger>
+</DropdownMenuTrigger>
+DropdownMenuTrigger uses asChild, meaning the child (FilterDropdownTrigger) inherits the ref.
+While FilterDropdownTrigger is correctly wrapped in forwardRef, the child of this trigger (Filter) is not.
+This results in Filter (a standard Lucide React component) receiving the ref, causing the "Function components cannot be given refs" error.
+Root Cause:
+Lucide Icons (like Filter, MoreVertical) are functional components and do not accept refs.
+DropdownMenuTrigger and TooltipTrigger pass refs to these icons because asChild propagates the ref.
+How to Fix It:
+1. Wrap Icon Components in forwardRef:
+Create a wrapper around Lucide icons that can accept refs.
+Fix Example (Filter Icon):
+
+tsx
+Copy code
+const FilterIconWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof Filter>>(
+  (props, ref) => <Filter ref={ref} {...props} />
+);
+Now, FilterIconWithRef can handle refs properly.
+2. Replace Icon Usage Inside Dropdowns/Tooltips:
+Update the dropdown triggers to use the new ref-aware component:
+tsx
+Copy code
+<DropdownMenuTrigger asChild>
+  <FilterDropdownTrigger>
+    <FilterIconWithRef className="h-4 w-4" />
+  </FilterDropdownTrigger>
+</DropdownMenuTrigger>
+3. Apply Fix to Other Areas (Actions Menu and Share Button):
+Actions Dropdown:
+tsx
+Copy code
+<DropdownMenuTrigger asChild>
+  <DropdownTriggerButton>
+    <MoreVertical className="h-4 w-4" />
+  </DropdownTriggerButton>
+</DropdownMenuTrigger>
+Fix:
+tsx
+Copy code
+const MoreVerticalWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof MoreVertical>>(
+  (props, ref) => <MoreVertical ref={ref} {...props} />
+);
+Replace with:
+tsx
+Copy code
+<DropdownMenuTrigger asChild>
+  <DropdownTriggerButton>
+    <MoreVerticalWithRef className="h-4 w-4" />
+  </DropdownTriggerButton>
+</DropdownMenuTrigger>
+4. Tooltip (Dark Mode Toggle):
+tsx
+Copy code
+<TooltipTrigger asChild>
+  <Button>
+    {isDarkMode ? <Moon /> : <Sun />}
+  </Button>
+</TooltipTrigger>
+Fix:
+
+tsx
+Copy code
+const SunWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof Sun>>(
+  (props, ref) => <Sun ref={ref} {...props} />
+);
+
+const MoonWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof Moon>>(
+  (props, ref) => <Moon ref={ref} {...props} />
+);
+Replace with:
+
+tsx
+Copy code
+<TooltipTrigger asChild>
+  <Button>
+    {isDarkMode ? <MoonWithRef /> : <SunWithRef />}
+  </Button>
+</TooltipTrigger>
