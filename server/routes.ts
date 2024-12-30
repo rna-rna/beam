@@ -4,7 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images, comments, recentlyViewedGalleries } from '@db/schema';
+import { galleries, images, comments } from '@db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { clerkClient } from '@clerk/clerk-sdk-node';
@@ -771,103 +771,6 @@ export function registerRoutes(app: Express): Server {
         message: 'Failed to star image',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
-    }
-  });
-
-  // Get recently viewed galleries
-  protectedRouter.get('/galleries/recent', async (req: any, res) => {
-    try {
-      const userId = req.auth.userId;
-      console.log('Fetching recent galleries for user:', userId);
-
-      // Get recently viewed galleries with first image and total image count
-      const recentlyViewed = await db.query.recentlyViewedGalleries.findMany({
-        where: eq(recentlyViewedGalleries.userId, userId),
-        orderBy: (rv, { desc }) => [desc(rv.viewedAt)],
-        limit: 10,
-        with: {
-          gallery: {
-            with: {
-              images: {
-                orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)],
-                limit: 1
-              }
-            }
-          }
-        }
-      });
-
-      console.log('Found recently viewed galleries:', recentlyViewed.length);
-
-      // If no recently viewed galleries, return empty array
-      if (!recentlyViewed.length) {
-        return res.json([]);
-      }
-
-      // Get image counts for each gallery
-      const galleryCounts = await Promise.all(
-        recentlyViewed.map(async (rv) => {
-          const result = await db.execute(
-            sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${rv.gallery.id}`
-          );
-          return {
-            galleryId: rv.gallery.id,
-            count: parseInt(result.rows[0]?.count || '0', 10)
-          };
-        })
-      );
-
-      // Transform the response to include thumbnailUrl and correct image count
-      const galleriesWithThumbnails = recentlyViewed.map(rv => ({
-        ...rv.gallery,
-        thumbnailUrl: rv.gallery.images[0]?.url || null,
-        imageCount: galleryCounts.find(count => count.galleryId === rv.gallery.id)?.count || 0,
-        viewedAt: rv.viewedAt
-      }));
-
-      console.log('Returning galleries with thumbnails:', galleriesWithThumbnails.length);
-      res.json(galleriesWithThumbnails);
-    } catch (error) {
-      console.error('Failed to fetch recent galleries:', error);
-      res.status(500).json({ message: 'Failed to fetch recent galleries' });
-    }
-  });
-
-  // Track gallery view
-  protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
-    try {
-      const userId = req.auth.userId;
-
-      // Find the gallery
-      const gallery = await db.query.galleries.findFirst({
-        where: eq(galleries.slug, req.params.slug),
-      });
-
-      if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
-      }
-
-      // Delete any existing view record for this user and gallery
-      await db.delete(recentlyViewedGalleries)
-        .where(
-          and(
-            eq(recentlyViewedGalleries.userId, userId),
-            eq(recentlyViewedGalleries.galleryId, gallery.id)
-          )
-        );
-
-      // Create new view record
-      await db.insert(recentlyViewedGalleries)
-        .values({
-          userId,
-          galleryId: gallery.id,
-          viewedAt: new Date()
-        });
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Failed to track gallery view:', error);
-      res.status(500).json({ message: 'Failed to track gallery view' });
     }
   });
 

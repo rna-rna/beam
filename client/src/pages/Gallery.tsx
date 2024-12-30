@@ -1,6 +1,6 @@
 import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo, forwardRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Upload,
   Grid,
@@ -38,7 +38,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
-  DropdownMenuItem as OriginalDropdownMenuItem, // Keep original for reference
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -69,20 +69,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
-import { InlineEdit } from "@/components/InlineEdit";
-import { HeaderBar } from "@/components/HeaderBar";
-
-// Create a forwarded ref component for dropdown items
-const DropdownMenuItem = forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof DropdownMenu.Item>
->(({ children, ...props }, ref) => (
-  <OriginalDropdownMenuItem {...props}>
-    {children}
-  </OriginalDropdownMenuItem>
-));
-DropdownMenuItem.displayName = "DropdownMenuItem";
-
 
 interface GalleryProps {
   slug?: string;
@@ -154,20 +140,48 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
-      toast({
-        title: "Success",
-        description: "Gallery title updated successfully",
+    onMutate: async (newTitle) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
+      await queryClient.cancelQueries({ queryKey: ['/api/galleries'] });
+
+      // Snapshot the previous values
+      const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
+      const previousGalleries = queryClient.getQueryData(['/api/galleries']);
+
+      // Optimistically update both caches
+      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
+        ...old,
+        title: newTitle
+      }));
+
+      queryClient.setQueryData(['/api/galleries'], (old: any) => {
+        if (!old) return old;
+        return old.map((gallery: any) =>
+          gallery.slug === slug ? { ...gallery, title: newTitle } : gallery
+        );
       });
+
+      return { previousGallery, previousGalleries };
     },
-    onError: () => {
+    onError: (err, newTitle, context) => {
+      // Revert to previous values on error
+      if (context?.previousGallery) {
+        queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
+      }
+      if (context?.previousGalleries) {
+        queryClient.setQueryData(['/api/galleries'], context.previousGalleries);
+      }
       toast({
         title: "Error",
         description: "Failed to update title. Please try again.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Invalidate both queries to ensure consistency
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
     },
   });
 
@@ -768,7 +782,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       onClick={handleDownloadAll}
                       className="flex items-center gap-2"
                     >
-                      <Download className="w-4 h-4" />
+                      <Download className="w-4 h-4 text-white" />
                       Download All
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
@@ -845,6 +859,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </TooltipTrigger>
             <TooltipContent>Filter Images</TooltipContent>
           </Tooltip>
+
           {isUploading && (
             <div className="flex items-center gap-4">
               <Progress value={undefined} className="w-24" />
@@ -915,13 +930,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               >
                 {isDarkMode ? (
                   <Moon className="h-4 w-4" />
-                ) : (
-                  <Sun className="h-4 w-4" />
+                ) : (                  <Sun className="h-4 w-4" />
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Toggle Dark Mode</TooltipContent>
-          </Tooltip>
+            <TooltipContent>Toggle Dark Mode</TooltipContent>          </Tooltip>
         </TooltipProvider>
       </div>
     );
@@ -934,8 +947,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     showStarredOnly,
     showWithComments,
     showApproved,
-    deleteImagesMutation,
-    handleCopyLink,
+    deleteImagesMutation,    handleCopyLink,
     handleDownloadAll,
     handleStarredToggle,
     handleReorderToggle,
@@ -955,8 +967,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
-      initial={{ opacity: 0, y: 20 }}animate={{
-        opacity: preloadedImages.has(image.id) ? 1 :0,
+      initial={{ opacity: 0, y: 20}}      animate={{
+        opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
@@ -1044,8 +1056,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             variant="secondary"
           >
             <MessageSquare className="w-3 h-3" />
-            {image.commentCount}
-          </Badge>
+            {image.commentCount}          </Badge>
         )}
 
         {/* Selection checkbox */}
@@ -1091,29 +1102,22 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
 
   useEffect(() => {
-    if (onHeaderActionsChange && gallery) {
-      onHeaderActionsChange(
-        <HeaderBar
-          title={gallery.title}
-          onTitleChange={handleTitleUpdate}
-          actions={renderGalleryControls()}
-        />
-      );
-    }
-  }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
+    const controls = renderGalleryControls();
+    onHeaderActionsChange?.(controls);
+  }, [onHeaderActionsChange, renderGalleryControls]);
 
   if (isPrivateGallery) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Lock className="w-8 h-8 text-muted-foreground" />
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Lock className="h-12 w-12 text-muted-foreground" />
               <h1 className="text-2xl font-semibold">Private Gallery</h1>
+              <p className="text-muted-foreground">
+                This gallery is private and can only be accessed by its owner.
+              </p>
             </div>
-            <p className="text-muted-foreground">
-              This gallery is private and can only be accessed by its owner.
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -1212,18 +1216,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       />
     );
   };
-
-  useEffect(() => {
-    if (onHeaderActionsChange && gallery) {
-      onHeaderActionsChange(
-        <HeaderBar
-          title={gallery.title}
-          onTitleChange={handleTitleUpdate}
-          actions={renderGalleryControls()}
-        />
-      );
-    }
-  }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
 
   return (
     <div className="min-h-screen relative bg-black/90" {...getRootProps()}>

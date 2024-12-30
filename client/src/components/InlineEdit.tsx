@@ -19,10 +19,6 @@ export function InlineEdit({ value, onSave, className = "" }: InlineEditProps) {
     }
   }, [isEditing]);
 
-  useEffect(() => {
-    setEditValue(value);
-  }, [value]);
-
   const handleSubmit = () => {
     const trimmedValue = editValue.trim();
     if (trimmedValue && trimmedValue !== value) {
