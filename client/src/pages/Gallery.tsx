@@ -73,7 +73,6 @@ import { InlineEdit } from "@/components/InlineEdit";
 import { cn } from "@/utils/cn";
 import { UserNav } from "@/components/UserNav";
 
-
 // Create ref-forwarding wrappers for Lucide icons
 const FilterIconWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof Filter>>(
   (props, ref) => <Filter ref={ref} {...props} />
@@ -784,82 +783,84 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (!gallery) return null;
 
     return (
-      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/75 shadow-sm border-b flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-6">
-          <InlineEdit
-            value={gallery.title}
-            onSave={handleTitleUpdate}
-            className="text-2xl font-bold"
-          />
+      <TooltipProvider>
+        <div className="sticky top-0 z-50 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/75 shadow-sm border-b flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-6">
+            <InlineEdit
+              value={gallery.title}
+              onSave={handleTitleUpdate}
+              className="text-2xl font-bold"
+            />
 
-          {/* Tools Button */}
-          <Button
-            variant="outline"
-            onClick={toggleSelectMode}
-            className={cn(selectMode && "bg-accent text-accent-foreground")}
-          >
-            <SquareDashedMousePointer className="mr-2 h-4 w-4" />
-            Tools
-          </Button>
+            {/* Tools Button */}
+            <Button
+              variant="outline"
+              onClick={toggleSelectMode}
+              className={cn(selectMode && "bg-accent text-accent-foreground")}
+            >
+              <SquareDashedMousePointer className="mr-2 h-4 w-4" />
+              Tools
+            </Button>
 
-          {/* Filters Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <FilterIconWithRef className="mr-2 h-4 w-4" />
-                Filters
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => setShowStarredOnly(!showStarredOnly)}>
-                <Star className={`mr-2 h-4 w-4 ${showStarredOnly ? "fill-yellow-400 text-yellow-400" : ""}`} />
-                Starred
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowWithComments(!showWithComments)}>
-                <MessageSquare className={`mr-2 h-4 w-4 ${showWithComments ? "text-primary" : ""}`} />
-                With Comments
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => {
-                setShowStarredOnly(false);
-                setShowWithComments(false);
-                setShowApproved(false);
-              }}>
-                Reset Filters
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            {/* Filters Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <FilterIconWithRef className="mr-2 h-4 w-4" />
+                  Filters
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setShowStarredOnly(!showStarredOnly)}>
+                  <Star className={`mr-2 h-4 w-4 ${showStarredOnly ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                  Starred
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowWithComments(!showWithComments)}>
+                  <MessageSquare className={`mr-2 h-4 w-4 ${showWithComments ? "text-primary" : ""}`} />
+                  With Comments
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => {
+                  setShowStarredOnly(false);
+                  setShowWithComments(false);
+                  setShowApproved(false);
+                }}>
+                  Reset Filters
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Dark Mode Toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" onClick={toggleDarkMode}>
+                  {isDarkMode ? (
+                    <MoonWithRef className="h-4 w-4" />
+                  ) : (
+                    <SunWithRef className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Toggle Dark Mode</TooltipContent>
+            </Tooltip>
+
+            {/* Share Button */}
+            <Button
+              variant="default"
+              onClick={() => setIsOpenShareModal(true)}
+              className="gap-2"
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </Button>
+
+            {/* User Navigation */}
+            <UserNav />
+          </div>
         </div>
-
-        <div className="flex items-center gap-4">
-          {/* Dark Mode Toggle */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" onClick={toggleDarkMode}>
-                {isDarkMode ? (
-                  <MoonWithRef className="h-4 w-4" />
-                ) : (
-                  <SunWithRef className="h-4 w-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Toggle Dark Mode</TooltipContent>
-          </Tooltip>
-
-          {/* Share Button */}
-          <Button
-            variant="default"
-            onClick={() => setIsOpenShareModal(true)}
-            className="gap-2"
-          >
-            <Share2 className="h-4 w-4" />
-            Share
-          </Button>
-
-          {/* User Navigation */}
-          <UserNav />
-        </div>
-      </div>
+      </TooltipProvider>
     );
   }, [
     gallery,
@@ -938,7 +939,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
-        scale: draggedItemIndex === index ? 1.1 : 1,
+        scale: draggedItemIndex === index ? 1.1 :1,
         zIndex: draggedItemIndex === index ? 100 : 1,
         transition: {
           duration: draggedItemIndex === index ? 0 :0.25,
