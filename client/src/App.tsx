@@ -11,6 +11,7 @@ import { useState, ReactNode, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
@@ -59,6 +60,7 @@ function AppContent() {
   // Query for specific gallery when on gallery page
   const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
     queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : null,
+    enabled: !!gallerySlug,
     queryFn: async () => {
       if (!gallerySlug) return null;
       const token = await getToken();
@@ -85,7 +87,6 @@ function AppContent() {
       }
       return res.json();
     },
-    enabled: !!gallerySlug,
     staleTime: 0,
     retry: false,
     refetchOnMount: true,
@@ -126,65 +127,67 @@ function AppContent() {
   }
 
   return (
-    <Switch>
-      <Route path="/">
-        <SignedIn>
-          <Dashboard />
-        </SignedIn>
-        <SignedOut>
-          <Landing />
-        </SignedOut>
-      </Route>
+    <TooltipProvider>
+      <Switch>
+        <Route path="/">
+          <SignedIn>
+            <Dashboard />
+          </SignedIn>
+          <SignedOut>
+            <Landing />
+          </SignedOut>
+        </Route>
 
-      <Route path="/settings">
-        <ProtectedRoute>
-          <Layout>
-            <Settings />
-          </Layout>
-        </ProtectedRoute>
-      </Route>
+        <Route path="/settings">
+          <ProtectedRoute>
+            <Layout>
+              <Settings />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
 
-      <Route path="/dashboard">
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      </Route>
+        <Route path="/dashboard">
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        </Route>
 
-      <Route path="/g/:slug">
-        {(params) => (
-          <Layout
-            title={gallery?.title || "Loading Gallery..."}
-            actions={headerActions}
-            gallery={gallery}
-            isDarkMode={isDarkMode}
-            toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-            openShareModal={() => setIsOpenShareModal(true)}
-            toggleSelectionMode={() => setSelectMode(!selectMode)}
-            onFilterSelect={(filter) => {
-              if (filter === 'starred') {
-                setShowStarredOnly(true);
-                setShowWithComments(false);
-              } else if (filter === 'comments') {
-                setShowStarredOnly(false);
-                setShowWithComments(true);
-              } else {
-                setShowStarredOnly(false);
-                setShowWithComments(false);
-              }
-            }}
-            toggleGridView={() => setIsMasonry(!isMasonry)}
-            isMasonry={isMasonry}
-            selectMode={selectMode}
-          >
-            <Gallery
-              slug={params.slug}
-              onHeaderActionsChange={setHeaderActions}
+        <Route path="/g/:slug">
+          {(params) => (
+            <Layout
               title={gallery?.title || "Loading Gallery..."}
-            />
-          </Layout>
-        )}
-      </Route>
-    </Switch>
+              actions={headerActions}
+              gallery={gallery}
+              isDarkMode={isDarkMode}
+              toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+              openShareModal={() => setIsOpenShareModal(true)}
+              toggleSelectionMode={() => setSelectMode(!selectMode)}
+              onFilterSelect={(filter) => {
+                if (filter === 'starred') {
+                  setShowStarredOnly(true);
+                  setShowWithComments(false);
+                } else if (filter === 'comments') {
+                  setShowStarredOnly(false);
+                  setShowWithComments(true);
+                } else {
+                  setShowStarredOnly(false);
+                  setShowWithComments(false);
+                }
+              }}
+              toggleGridView={() => setIsMasonry(!isMasonry)}
+              isMasonry={isMasonry}
+              selectMode={selectMode}
+            >
+              <Gallery
+                slug={params.slug}
+                onHeaderActionsChange={setHeaderActions}
+                title={gallery?.title || "Loading Gallery..."}
+              />
+            </Layout>
+          )}
+        </Route>
+      </Switch>
+    </TooltipProvider>
   );
 }
 
