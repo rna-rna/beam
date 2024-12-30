@@ -949,9 +949,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           duration: draggedItemIndex === index ? 0 : 0.25,
         }
       }}
-      style={{        position: draggedItemIndex === index ? "absolute" : "relative",
-        top: draggedItemIndex === index ? dragPosition?.y :"auto",
-        left: draggedItemIndex ===index ? dragPosition?.x : "auto",
+      style={{        
+        position: draggedItemIndex === index ? "absolute" : "relative",
+        top: draggedItemIndex === index ? dragPosition?.y : "auto",
+        left: draggedItemIndex === index ? dragPosition?.x : "auto",
       }}
       drag={isReorderMode}
       dragMomentum={false}
@@ -1077,12 +1078,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
         <div className="flex items-center justify-between w-full px-4">
-          <InlineEdit
-            value={gallery.title}
-            onSave={handleTitleUpdate}
-            className="text-xl font-semibold text-white"
-          />
-          {renderGalleryControls()}
+          <div className="flex items-center">
+            <InlineEdit
+              value={gallery.title}
+              onSave={handleTitleUpdate}
+              className="text-2xl font-semibold text-white"
+            />
+          </div>
+          <div className="flex space-x-2">
+            {renderGalleryControls()}
+          </div>
         </div>
       );
     }
@@ -1203,12 +1208,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
         <div className="flex items-center justify-between w-full px-4">
-          <InlineEdit
-            value={gallery.title}
-            onSave={handleTitleUpdate}
-            className="text-xl font-semibold text-white"
-          />
-          {renderGalleryControls()}
+          <div className="flex items-center">
+            <InlineEdit
+              value={gallery.title}
+              onSave={handleTitleUpdate}
+              className="text-2xl font-semibold text-white"
+            />
+          </div>
+          <div className="flex space-x-2">
+            {renderGalleryControls()}
+          </div>
         </div>
       );
     }
