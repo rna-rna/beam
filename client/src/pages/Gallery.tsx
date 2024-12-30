@@ -13,10 +13,18 @@ import {
   CheckCircle,
   Loader2,
   Paintbrush,
-  ArrowUpDown
+  ArrowUpDown,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Lock,
+  AlertCircle,
+  LayoutGrid,
+  MessageCircle,
 } from "lucide-react";
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from "framer-motion";
+import type { PanInfo } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { useAuth, useUser } from "@clerk/clerk-react";
@@ -30,6 +38,8 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -38,12 +48,24 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+
 // Components
 import { CommentBubble } from "@/components/CommentBubble";
 import { CommentModal } from "@/components/CommentModal";
+import { ShareModal } from "@/components/ShareModal";
+import { DrawingCanvas } from "@/components/DrawingCanvas";
+import { MobileGalleryView } from "@/components/MobileGalleryView";
 import { useToast } from "@/hooks/use-toast";
-import type { Image, Gallery as GalleryType, Comment } from "@/types/gallery";
+import type { Image, Gallery as GalleryType, Comment, Annotation } from "@/types/gallery";
 
+interface UploadProgress {
+  [key: string]: number;
+}
 
 interface GalleryProps {
   slug?: string;
@@ -1502,7 +1524,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
               <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
                 <div className="flex items-center gap-2">
-                  <SwitchComponent
+                  <Switch
                     checked={showAnnotations}
                     onCheckedChange={setShowAnnotations}
                     className="data-[state=checked]:bg-primary h-5 w-9"
@@ -1510,7 +1532,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   <span className="text-xs font-medium text-white">Comments</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <SwitchComponent
+                  <Switch
                     checked={showFilename}
                     onCheckedChange={setShowFilename}
                     className="data-[state=checked]:bg-primary h-5 w-9"
