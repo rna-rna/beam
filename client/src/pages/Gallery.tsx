@@ -1077,12 +1077,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <div className="flex items-center justify-between w-full px-4">
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center">
             <InlineEdit
               value={gallery.title}
               onSave={handleTitleUpdate}
-              className="text-2xl font-semibold text-white"
+              className="text-2xl font-bold"
             />
           </div>
           <div className="flex space-x-2">
@@ -1207,12 +1207,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <div className="flex items-center justify-between w-full px-4">
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center">
             <InlineEdit
               value={gallery.title}
               onSave={handleTitleUpdate}
-              className="text-2xl font-semibold text-white"
+              className="text-2xl font-bold"
             />
           </div>
           <div className="flex space-x-2">
