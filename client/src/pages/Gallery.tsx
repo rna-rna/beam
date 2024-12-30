@@ -70,14 +70,31 @@ import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
 import { InlineEdit } from "@/components/InlineEdit";
+import { cn } from "@/utils/cn";
 
-// Create a forward ref wrapper for the dropdown trigger button
+// Create forwarded ref components for all dropdown triggers
 const DropdownTriggerButton = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof Button>>(
   (props, ref) => (
     <Button ref={ref} {...props} />
   )
 );
 DropdownTriggerButton.displayName = 'DropdownTriggerButton';
+
+const FilterDropdownTrigger = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof Button>>(
+  ({ className, children, ...props }, ref) => (
+    <Button
+      ref={ref}
+      size="icon"
+      variant="ghost"
+      className={cn("h-9 w-9 text-white hover:bg-white/10", className)}
+      {...props}
+    >
+      {children}
+    </Button>
+  )
+);
+FilterDropdownTrigger.displayName = 'FilterDropdownTrigger';
+
 
 interface GalleryProps {
   slug?: string;
@@ -736,6 +753,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     // Add your dark mode logic here, e.g., toggle a class on the body element
   };
 
+  // Update renderGalleryControls to use the new components
   const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
 
@@ -757,22 +775,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <TooltipContent>Share Gallery</TooltipContent>
           </Tooltip>
 
-          {/* Copy Link Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-9 w-9 text-white hover:bg-white/10"
-                onClick={handleCopyLink}
-              >
-                <Link className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Copy Link</TooltipContent>
-          </Tooltip>
-
-          {/* Gallery Actions Menu */}
+          {/* Actions Menu */}
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenu>
@@ -791,7 +794,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       onClick={handleDownloadAll}
                       className="flex items-center gap-2"
                     >
-                      <Download className="w-4 h-4 text-white" />
+                      <Download className="w-4 h-4" />
                       Download All
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
@@ -806,17 +809,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <TooltipTrigger asChild>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className={`h-9 w-9 text-white hover:bg-white/10 ${
+                  <FilterDropdownTrigger
+                    className={
                       (showStarredOnly || showWithComments || showApproved)
                         ? 'text-white/90'
                         : ''
-                    }`}
+                    }
                   >
                     <Filter className="h-4 w-4" />
-                  </Button>
+                  </FilterDropdownTrigger>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
@@ -937,10 +938,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 className="h-9 w-9 text-white hover:bg-white/10"
                 onClick={toggleDarkMode}
               >
-                                {isDarkMode ? (
+                {isDarkMode ? (
                   <Moon className="h-4 w-4" />
                 ) : (
-                  <Sun className="h-4 w-4" />
+                  <Sun className="h-4w-4" />
                 )}
               </Button>
             </TooltipTrigger>
