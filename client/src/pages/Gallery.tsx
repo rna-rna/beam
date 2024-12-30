@@ -74,24 +74,28 @@ import { cn } from "@/utils/cn";
 
 // Create forwarded ref components for all dropdown triggers
 const DropdownTriggerButton = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof Button>>(
-  (props, ref) => (
-    <Button ref={ref} {...props} />
-  )
+  (props, ref) => {
+    console.log('DropdownTriggerButton render with ref:', !!ref);
+    return <Button ref={ref} {...props} />;
+  }
 );
 DropdownTriggerButton.displayName = 'DropdownTriggerButton';
 
 const FilterDropdownTrigger = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof Button>>(
-  ({ className, children, ...props }, ref) => (
-    <Button
-      ref={ref}
-      size="icon"
-      variant="ghost"
-      className={cn("h-9 w-9 text-white hover:bg-white/10", className)}
-      {...props}
-    >
-      {children}
-    </Button>
-  )
+  ({ className, children, ...props }, ref) => {
+    console.log('FilterDropdownTrigger render with ref:', !!ref);
+    return (
+      <Button
+        ref={ref}
+        size="icon"
+        variant="ghost"
+        className={cn("h-9 w-9 text-white hover:bg-white/10", className)}
+        {...props}
+      >
+        {children}
+      </Button>
+    );
+  }
 );
 FilterDropdownTrigger.displayName = 'FilterDropdownTrigger';
 
@@ -755,6 +759,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   // Update renderGalleryControls to use the new components
   const renderGalleryControls = useCallback(() => {
+    console.log('renderGalleryControls called, gallery exists:', !!gallery);
+
     if (!gallery) return null;
 
     return (
@@ -762,6 +768,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         <TooltipProvider>
           {/* Share Button */}
           <Tooltip>
+            {console.log('Rendering Share Tooltip')}
             <TooltipTrigger asChild>
               <Button
                 size="icon"
@@ -777,8 +784,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
           {/* Actions Menu */}
           <Tooltip>
+            {console.log('Rendering Actions Menu Tooltip')}
             <TooltipTrigger asChild>
               <DropdownMenu>
+                {console.log('Rendering Actions DropdownMenu')}
                 <DropdownMenuTrigger asChild>
                   <DropdownTriggerButton
                     size="icon"
@@ -806,8 +815,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
           {/* Filter Menu */}
           <Tooltip>
+            {console.log('Rendering Filter Menu Tooltip')}
             <TooltipTrigger asChild>
               <DropdownMenu>
+                {console.log('Rendering Filter DropdownMenu')}
                 <DropdownMenuTrigger asChild>
                   <FilterDropdownTrigger
                     className={
