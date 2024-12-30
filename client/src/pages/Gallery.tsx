@@ -45,7 +45,7 @@ import { ShareModal } from "@/components/ShareModal";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
-import { GalleryHeader } from "@/components/GalleryHeader";
+
 
 interface GalleryProps {
   slug?: string;
@@ -904,8 +904,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               onClick={(e) => {
                 e.stopPropagation();
                 toggleStarMutation.mutate(image.id);
-              }}
-            >
+              }}            >
               <motion.div
                 animate={{
                   scale: image.starred ? 1.2 : 1,
@@ -1011,21 +1010,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   return (
     <>
-      <GalleryHeader 
-        title={gallery?.title || 'Gallery'}
-        onTitleUpdate={handleTitleUpdate}
-        isDarkMode={isDarkMode}
-        toggleDarkMode={toggleDarkMode}
-        openShareModal={() => setIsOpenShareModal(true)}
-        toggleSelectMode={toggleSelectMode}
-        selectMode={selectMode}
-        showStarredOnly={showStarredOnly}
-        setShowStarredOnly={setShowStarredOnly}
-        showWithComments={showWithComments}
-        setShowWithComments={setShowWithComments}
-        setShowApproved={setShowApproved}
-      />
-
       <div className="relative min-h-screen bg-background" {...getRootProps()}>
         <input {...getInputProps()} />
         {isDragActive && !selectMode && (
@@ -1096,6 +1080,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         {/* Floating Tools Toolbar */}
         {renderFloatingToolbar()}
       </div>
+      {renderCommentDialog()}
     </>
   );
 }
