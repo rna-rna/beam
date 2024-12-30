@@ -1103,9 +1103,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
 
   useEffect(() => {
-    const controls = renderGalleryControls();
-    onHeaderActionsChange?.(controls);
-  }, [onHeaderActionsChange, renderGalleryControls]);
+    if (onHeaderActionsChange && gallery) {
+      onHeaderActionsChange(
+        <div className="flex items-center gap-4">
+          {renderGalleryControls()}
+        </div>
+      );
+    }
+  }, [gallery, onHeaderActionsChange, renderGalleryControls]);
 
   if (isPrivateGallery) {
     return (
@@ -1222,28 +1227,23 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
         <div className="flex items-center gap-4">
-          <InlineEdit
-            value={gallery.title}
-            onSave={handleTitleUpdate}
-            className="text-xl font-semibold"
-          />
           {renderGalleryControls()}
         </div>
       );
     }
-  }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
+  }, [gallery, onHeaderActionsChange, renderGalleryControls]);
 
   return (
     <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
       <input {...getInputProps()} />
-      {isDragActive && !selectMode && (
-        <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="text-center">
-            <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white">Drop images here</h3>
-          </div>
-        </div>
-      )}
+
+      <div className="px-4 md:px-6 lg:px-8 py-8">
+        <InlineEdit
+          value={gallery?.title || 'Gallery'}
+          onSave={handleTitleUpdate}
+          className="text-3xl font-bold text-white"
+        />
+      </div>
 
       <div className="px-4 md:px-6 lg:px-8 py-8">
         <AnimatePresence mode="wait">
