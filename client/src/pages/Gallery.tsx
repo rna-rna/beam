@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import {
@@ -13,12 +13,7 @@ import {
   CheckCircle,
   Loader2,
   Paintbrush,
-  ArrowUpDown,
   Star,
-  Lock,
-  AlertCircle,
-  LayoutGrid,
-  MessageCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
@@ -44,13 +39,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import type { Image, Gallery as GalleryType } from "@/types/gallery";
-
-interface UploadProgress {
-  [key: string]: number;
-}
 
 interface GalleryProps {
   slug?: string;
@@ -138,33 +128,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [, setLocation] = useLocation();
 
   // State Management
-  const [isUploading, setIsUploading] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
-  const [newCommentPos, setNewCommentPos] = useState<{ x: number; y: number } | null>(null);
-  const [scale, setScale] = useState(100);
-  const [isReorderMode, setIsReorderMode] = useState(false);
-  const [showStarredOnly, setShowStarredOnly] = useState(false);
-  const [isAnnotationMode, setIsAnnotationMode] = useState(false);
-  const [showAnnotations, setShowAnnotations] = useState(true);
-  const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
-  const [showFilename, setShowFilename] = useState(true);
-  const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
-  const [isMobile, setIsMobile] = useState(false);
-  const [showMobileView, setShowMobileView] = useState(false);
-  const [mobileViewIndex, setMobileViewIndex] = useState(-1);
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
-  const [isMasonry, setIsMasonry] = useState(true);
-  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
-  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [showWithComments, setShowWithComments] = useState(false);
   const [showApproved, setShowApproved] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isOpenShareModal, setIsOpenShareModal] = useState(false);
-  const [isPrivateGallery, setIsPrivateGallery] = useState(false);
-  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
 
   // Query galleries
   const { data: gallery, isLoading } = useQuery<GalleryType>({
@@ -290,7 +258,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   const handleEditSelected = () => {
-    // Implement bulk edit functionality
     toast({
       title: "Coming Soon",
       description: "Bulk edit functionality will be available soon.",
@@ -341,7 +308,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   );
 
   // Gallery controls for header
-  const renderGalleryControls = () => {
+  const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
 
     return (
@@ -360,20 +327,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </TooltipTrigger>
             <TooltipContent>{selectMode ? "Exit Selection" : "Select Images"}</TooltipContent>
           </Tooltip>
-          {/* Share Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-9 w-9 text-white hover:bg-white/10"
-                onClick={() => setIsOpenShareModal(true)}
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Share Gallery</TooltipContent>
-          </Tooltip>
 
           {/* Filter Menu */}
           <Tooltip>
@@ -383,9 +336,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   <Button
                     size="icon"
                     variant="ghost"
-                    className={`h-9 w-9 text-white hover:bg-white/10 ${
+                    className={`h-9 w-9 hover:bg-accent ${
                       (showStarredOnly || showWithComments || showApproved)
-                        ? 'text-white/90'
+                        ? 'bg-accent/50'
                         : ''
                     }`}
                   >
@@ -442,57 +395,57 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </TooltipTrigger>
             <TooltipContent>Filter Images</TooltipContent>
           </Tooltip>
-
-          {isUploading && (
-            <div className="flex items-center gap-4">
-              <Progress value={undefined} className="w-24" />
-              <span className="text-sm text-white/70">Uploading...</span>
-            </div>
-          )}
-
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 text-white hover:bg-white/10"
+                onClick={() => {/* Handle share modal */}}
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Share Gallery</TooltipContent>
+          </Tooltip>
           {selectMode && (
             <>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    size="icon"
                     variant="ghost"
-                    className={`h-9 w-9 text-white hover:bg-white/10 ${
-                      isReorderMode ? "text-white/90" : ""
-                    }`}
-                    onClick={toggleReorderMode}
+                    size="icon"
+                    className="h-9 w-9 text-white hover:bg-destructive/90"
+                    onClick={() => deleteImagesMutation.mutate(selectedImages)}
                   >
-                    <ArrowUpDown className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Reorder Images</TooltipContent>
+                <TooltipContent>Delete Selected ({selectedImages.length})</TooltipContent>
               </Tooltip>
-
-              {selectedImages.length > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 text-white hover:bg-destructive/90"
-                      onClick={() => deleteImagesMutation.mutate(selectedImages)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Delete Selected ({selectedImages.length})</TooltipContent>
-                </Tooltip>
-              )}
             </>
           )}
         </TooltipProvider>
       </div>
     );
-  };
+  }, [
+    gallery,
+    selectMode,
+    selectedImages.length,
+    showStarredOnly,
+    showWithComments,
+    showApproved,
+    toggleSelectMode,
+    deleteImagesMutation
+  ]);
 
-  // Return JSX
+  // Update header actions
+  useEffect(() => {
+    onHeaderActionsChange?.(renderGalleryControls());
+  }, [onHeaderActionsChange, renderGalleryControls]);
+
   return (
-    <div className="min-h-screen bg-background relative">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Gallery Header */}
         <div className="mb-6">
@@ -515,7 +468,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             className="flex -ml-4 w-[calc(100%+1rem)]"
             columnClassName="pl-4"
           >
-            {gallery?.images?.map((image) => renderImage(image))}
+            {gallery?.images
+              ?.filter(image => {
+                if (showStarredOnly && !image.starred) return false;
+                if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                if (showApproved && !image.approved) return false;
+                return true;
+              })
+              .map(image => renderImage(image))}
           </Masonry>
         </div>
       </div>
@@ -537,9 +497,4 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       </AnimatePresence>
     </div>
   );
-}
-
-interface ImageDimensions {
-  width: number;
-  height: number;
 }
