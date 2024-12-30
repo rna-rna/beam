@@ -956,7 +956,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       }`}
       initial={{ opacity: 0, y: 20 }}
       animate={{
-        opacity: preloadedImages.has(image.id) ? 1 : 0,
+        opacity: preloadedImages.has(image.id) ? 1 :0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1: 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
@@ -1093,15 +1093,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <div className="flex items-center justify-between w-full">
-          <div>
+        <div className="px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-between">
             <InlineEdit
               value={gallery.title}
               onSave={handleTitleUpdate}
-              className="text-2xl font-bold"
+              className="text-3xl font-bold"
             />
-          </div>
-          <div>
             {renderGalleryControls()}
           </div>
         </div>
