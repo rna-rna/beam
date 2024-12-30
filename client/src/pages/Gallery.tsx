@@ -72,56 +72,7 @@ import { useUser } from '@clerk/clerk-react';
 import { InlineEdit } from "@/components/InlineEdit";
 import { cn } from "@/utils/cn";
 import { UserNav } from "@/components/UserNav";
-
-// Create ref-forwarding wrappers for Lucide icons
-const FilterIconWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof Filter>>(
-  (props, ref) => <Filter ref={ref} {...props} />
-);
-FilterIconWithRef.displayName = 'FilterIconWithRef';
-
-const MoreVerticalWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof MoreVertical>>(
-  (props, ref) => <MoreVertical ref={ref} {...props} />
-);
-MoreVerticalWithRef.displayName = 'MoreVerticalWithRef';
-
-const SunWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof Sun>>(
-  (props, ref) => <Sun ref={ref} {...props} />
-);
-SunWithRef.displayName = 'SunWithRef';
-
-const MoonWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof Moon>>(
-  (props, ref) => <Moon ref={ref} {...props} />
-);
-MoonWithRef.displayName = 'MoonWithRef';
-
-
-// Create forwarded ref components for all dropdown triggers
-const DropdownTriggerButton = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof Button>>(
-  (props, ref) => {
-    console.log('DropdownTriggerButton render with ref:', !!ref);
-    return <Button ref={ref} {...props} />;
-  }
-);
-DropdownTriggerButton.displayName = 'DropdownTriggerButton';
-
-const FilterDropdownTrigger = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof Button>>(
-  ({ className, children, ...props }, ref) => {
-    console.log('FilterDropdownTrigger render with ref:', !!ref);
-    return (
-      <Button
-        ref={ref}
-        size="icon"
-        variant="ghost"
-        className={cn("h-9 w-9 text-white hover:bg-white/10", className)}
-        {...props}
-      >
-        {children}
-      </Button>
-    );
-  }
-);
-FilterDropdownTrigger.displayName = 'FilterDropdownTrigger';
-
+import { GalleryHeader } from "@/components/GalleryHeader";
 
 
 interface GalleryProps {
@@ -776,155 +727,141 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     // Add your dark mode logic here, e.g., toggle a class on the body element
   };
 
-  // Update renderGalleryControls to use the new components
-  const renderGalleryControls = useCallback(() => {
-    console.log('renderGalleryControls called, gallery exists:', !!gallery);
 
-    if (!gallery) return null;
+  const handleImageClick = (index: number) => {
+    console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
 
-    return (
-      <TooltipProvider>
-        <div className="sticky top-0 z-50 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/75 shadow-sm border-b flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-6">
-            <InlineEdit
-              value={gallery.title}
-              onSave={handleTitleUpdate}
-              className="text-2xl font-bold"
-            />
+    if (isMobile) {
+      setMobileViewIndex(index);
+      setShowMobileView(true);
+      return;
+    }
 
-            {/* Tools Button */}
-            <Button
-              variant="outline"
-              onClick={toggleSelectMode}
-              className={cn(selectMode && "bg-accent text-accent-foreground")}
-            >
-              <SquareDashedMousePointer className="mr-2 h-4 w-4" />
-              Tools
-            </Button>
+    setSelectedImageIndex(index);
+  };
 
-            {/* Filters Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <FilterIconWithRef className="mr-2 h-4 w-4" />
-                  Filters
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setShowStarredOnly(!showStarredOnly)}>
-                  <Star className={`mr-2 h-4 w-4 ${showStarredOnly ? "fill-yellow-400 text-yellow-400" : ""}`} />
-                  Starred
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowWithComments(!showWithComments)}>
-                  <MessageSquare className={`mr-2 h-4 w-4 ${showWithComments ? "text-primary" : ""}`} />
-                  With Comments
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => {
-                  setShowStarredOnly(false);
-                  setShowWithComments(false);
-                  setShowApproved(false);
-                }}>
-                  Reset Filters
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+  const toggleGridView = () => {
+    setIsMasonry(!isMasonry);
+  };
 
-          <div className="flex items-center gap-4">
-            {/* Dark Mode Toggle */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" onClick={toggleDarkMode}>
-                  {isDarkMode ? (
-                    <MoonWithRef className="h-4 w-4" />
-                  ) : (
-                    <SunWithRef className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Toggle Dark Mode</TooltipContent>
-            </Tooltip>
+  const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
+    console.log('handleImageComment triggered'); // Debug log
+    if (!isCommentPlacementMode) return;
 
-            {/* Share Button */}
-            <Button
-              variant="default"
-              onClick={() => setIsOpenShareModal(true)}
-              className="gap-2"
-            >
-              <Share2 className="h-4 w-4" />
-              Share
-            </Button>
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
 
-            {/* User Navigation */}
-            <UserNav />
-          </div>
-        </div>
-      </TooltipProvider>
-    );
-  }, [
-    gallery,
-    isDarkMode,
-    selectMode,
-    showStarredOnly,
-    showWithComments,
-    toggleDarkMode,
-    toggleSelectMode,
-    handleTitleUpdate,
-    setIsOpenShareModal
-  ]);
+    console.log('Setting comment position:', { x, y }); // Debug log
+    setNewCommentPos({ x, y });
+    setIsCommentModalOpen(true);
+  };
 
-  // Add floating tools toolbar
-  const renderFloatingToolbar = useCallback(() => {
-    if (!selectMode) return null;
+  const renderCommentDialog = () => {
+    if (!isCommentModalOpen) return null;
 
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 20 }}
-        className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 bg-white shadow-lg rounded-lg px-4 py-3 flex items-center gap-4"
-      >
-        <span className="text-sm font-medium">
-          {selectedImages.length} selected
-        </span>
-        <div className="flex items-center gap-2">
-          {selectedImages.length > 0 && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => deleteImagesMutation.mutate(selectedImages)}
-                className="gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadAll}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Download
-              </Button>
-            </>
-          )}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setSelectedImages([]);
-              setSelectMode(false);
-            }}
-          >
-            Done
-          </Button>
-        </div>
-      </motion.div>
+      <CommentModal
+        isOpen={isCommentModalOpen}
+        position={newCommentPos}
+        onClose={() => {
+          setIsCommentModalOpen(false);
+          setNewCommentPos(null);
+          console.log('Comment modal closed'); // Debug log
+        }}
+        onSubmit={(content) => {
+          if (!user) {
+            console.log('User not authenticated, cannot submit comment'); // Debug log
+            return;
+          }
+
+          if (!selectedImage?.id || !newCommentPos) return;
+
+          createCommentMutation.mutate({
+            imageId: selectedImage.id,
+            content,
+            x: newCommentPos.x,
+            y: newCommentPos.y,
+          });
+
+          setIsCommentModalOpen(false);
+          setNewCommentPos(null);
+        }}
+      />
     );
-  }, [selectMode, selectedImages.length, deleteImagesMutation, handleDownloadAll]);
+  };
+
+  useEffect(() => {
+    if (onHeaderActionsChange && gallery) {
+      onHeaderActionsChange(
+        <div className="flex items-center gap-4">
+          {/*renderGalleryControls() removed */}
+        </div>
+      );
+    }
+  }, [gallery, onHeaderActionsChange]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!gallery?.images?.length) return;
+      if (e.key === "ArrowLeft") {
+        setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+      } else if (e.key === "ArrowRight") {
+        setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+      } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
+        toggleStarMutation.mutate(selectedImage.id);
+      }
+    };
+
+    if (selectedImageIndex >= 0) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
+
+  if (isPrivateGallery) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Lock className="h-12 w-12 text-muted-foreground" />
+              <h1 className="text-2xl font-semibold">Private Gallery</h1>
+              <p className="text-muted-foreground">
+                This gallery is private and can only be accessed by its owner.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!gallery && isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!gallery) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
+              <p className="text-muted-foreground">
+                The gallery you're looking for doesn't exist or has been removed.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const renderImage = (image: Image, index: number) => (
     <motion.div
@@ -939,10 +876,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
-        scale: draggedItemIndex === index ? 1.1 :1,
+        scale: draggedItemIndex === index ? 1.1 : 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
         transition: {
-          duration: draggedItemIndex === index ? 0 :0.25,
+          duration: draggedItemIndex === index ? 0 : 0.25,
         }
       }}
       style={{
@@ -978,8 +915,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             src={image.url}
             alt=""
             className={`w-full h-auto object-cover rounded-lg ${
-              selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
-            } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
+              selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''            } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
             loading="lazy"
             draggable={false}
           />
@@ -1054,37 +990,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   );
 
   useEffect(() => {
-    if (selectedImageIndex >= 0) {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (!gallery?.images?.length) return;
-        if (e.key === "ArrowLeft") {
-          setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-        } else if (e.key === "ArrowRight") {
-          setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-        } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
-          toggleStarMutation.mutate(selectedImage.id);
-        }
-      };
-
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
-
-  useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <div className="flex items-center justify-between w-full px-4 md:px-6 lg:px-8 py-6">
-          <InlineEdit
-            value={gallery?.title || 'Gallery'}
-            onSave={handleTitleUpdate}
-            className="text-3xl font-bold text-white"
-          />
-          {renderGalleryControls()}
+        <div className="flex items-center gap-4">
+          {/*renderGalleryControls() removed */}
         </div>
       );
     }
-  }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
+  }, [gallery, onHeaderActionsChange]);
 
   if (isPrivateGallery) {
     return (
@@ -1130,86 +1043,74 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   }
 
-  // Modify the image click handler in the gallery grid
-  const handleImageClick = (index: number) => {
-    console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
-
-    if (isMobile) {
-      setMobileViewIndex(index);
-      setShowMobileView(true);
-      return;
-    }
-
-    setSelectedImageIndex(index);
-  };
-
-  // Add layout toggle handler
-  const toggleGridView = () => {
-    setIsMasonry(!isMasonry);
-  };
-
-  // Add comment position handler
-  const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
-    console.log('handleImageComment triggered'); // Debug log
-    if (!isCommentPlacementMode) return;
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-    console.log('Setting comment position:', { x, y }); // Debug log
-    setNewCommentPos({ x, y });
-    setIsCommentModalOpen(true);
-  };
-
-  // Render comment dialog with debugging
-  const renderCommentDialog = () => {
-    if (!isCommentModalOpen) return null;
+  const renderFloatingToolbar = useCallback(() => {
+    if (!selectMode) return null;
 
     return (
-      <CommentModal
-        isOpen={isCommentModalOpen}
-        position={newCommentPos}
-        onClose={() => {
-          setIsCommentModalOpen(false);
-          setNewCommentPos(null);
-          console.log('Comment modal closed'); // Debug log
-        }}
-        onSubmit={(content) => {
-          if (!user) {
-            console.log('User not authenticated, cannot submit comment'); // Debug log
-            return;
-          }
-
-          if (!selectedImage?.id || !newCommentPos) return;
-
-          createCommentMutation.mutate({
-            imageId: selectedImage.id,
-            content,
-            x: newCommentPos.x,
-            y: newCommentPos.y,
-          });
-
-          setIsCommentModalOpen(false);
-          setNewCommentPos(null);
-        }}
-      />
-    );
-  };
-
-  useEffect(() => {
-    if (onHeaderActionsChange && gallery) {
-      onHeaderActionsChange(
-        <div className="flex items-center gap-4">
-          {renderGalleryControls()}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 bg-white shadow-lg rounded-lg px-4 py-3 flex items-center gap-4"
+      >
+        <span className="text-sm font-medium">
+          {selectedImages.length} selected
+        </span>
+        <div className="flex items-center gap-2">
+          {selectedImages.length > 0 && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => deleteImagesMutation.mutate(selectedImages)}
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadAll}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download
+              </Button>
+            </>
+          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setSelectedImages([]);
+              setSelectMode(false);
+            }}
+          >
+            Done
+          </Button>
         </div>
-      );
-    }
-  }, [gallery, onHeaderActionsChange, renderGalleryControls]);
+      </motion.div>
+    );
+  }, [selectMode, selectedImages.length, deleteImagesMutation, handleDownloadAll]);
 
   return (
     <>
-      {renderGalleryControls()}
+      <GalleryHeader 
+        title={gallery?.title || 'Gallery'}
+        onTitleUpdate={handleTitleUpdate}
+        isDarkMode={isDarkMode}
+        toggleDarkMode={toggleDarkMode}
+        openShareModal={() => setIsOpenShareModal(true)}
+        toggleSelectMode={toggleSelectMode}
+        selectMode={selectMode}
+        showStarredOnly={showStarredOnly}
+        setShowStarredOnly={setShowStarredOnly}
+        showWithComments={showWithComments}
+        setShowWithComments={setShowWithComments}
+        setShowApproved={setShowApproved}
+      />
+
       <div className="relative bg-black/90" {...getRootProps()}>
         <input {...getInputProps()} />
         {isDragActive && !selectMode && (
