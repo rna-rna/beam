@@ -17,10 +17,10 @@ import {
   SquareDashedMousePointer,
   Star,
   MessageSquare,
-  GridIcon,
-  Filter,
-  LayoutGrid
+  LayoutGrid,
+  Filter
 } from "lucide-react";
+import { cn } from "@/utils/cn";
 
 interface LayoutProps {
   children: ReactNode;
@@ -66,88 +66,88 @@ export function Layout({
 
   return (
     <div className="min-h-screen w-full bg-background">
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
-        <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/75 shadow-sm border-b">
+        <div className="px-6 py-4 flex items-center gap-6">
           {/* Title Section */}
           {isGalleryPage && gallery ? (
-            <>
+            <div className="flex items-center gap-6">
               {onTitleChange ? (
                 <InlineEdit
                   value={gallery.title}
                   onSave={onTitleChange}
-                  className="text-xl font-semibold"
+                  className="text-2xl font-bold"
                 />
               ) : (
-                <h1 className="text-xl font-semibold">{gallery.title}</h1>
+                <h1 className="text-2xl font-bold">{gallery.title}</h1>
               )}
 
-              {/* Gallery-specific Features */}
-              <div className="flex items-center gap-4">
-                {/* Tools Button */}
-                <Button
-                  variant="outline"
-                  onClick={toggleSelectionMode}
-                  className={selectMode ? "bg-accent text-accent-foreground" : ""}
-                >
-                  <SquareDashedMousePointer className="mr-2 h-4 w-4" />
-                  Tools
-                </Button>
+              {/* Tools Button */}
+              <Button
+                variant="outline"
+                onClick={toggleSelectionMode}
+                className={cn(selectMode && "bg-accent text-accent-foreground")}
+              >
+                <SquareDashedMousePointer className="mr-2 h-4 w-4" />
+                Tools
+              </Button>
 
-                {/* Grid View Toggle */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={toggleGridView}
-                  className={isMasonry ? "" : "bg-accent"}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
+              {/* Grid View Toggle */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleGridView}
+                className={cn(!isMasonry && "bg-accent text-accent-foreground")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
 
-                {/* Filters Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">
-                      <Filter className="mr-2 h-4 w-4" />
-                      Filters
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem 
-                      onClick={() => onFilterSelect?.('starred')}
-                      className={showStarredOnly ? "bg-accent" : ""}
-                    >
-                      <Star className={`mr-2 h-4 w-4 ${showStarredOnly ? "fill-yellow-400 text-yellow-400" : ""}`} />
-                      Starred
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => onFilterSelect?.('comments')}
-                      className={showWithComments ? "bg-accent" : ""}
-                    >
-                      <MessageSquare className={`mr-2 h-4 w-4 ${showWithComments ? "text-primary" : ""}`} />
-                      With Comments
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onFilterSelect?.('reset')}>
-                      Reset Filters
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Share Button */}
-                <Button variant="default" onClick={openShareModal} className="gap-2">
-                  <Share2 className="h-4 w-4" />
-                  Share
-                </Button>
-              </div>
-            </>
+              {/* Filters Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filters
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem 
+                    onClick={() => onFilterSelect?.('starred')}
+                    className={cn(showStarredOnly && "bg-accent text-accent-foreground")}
+                  >
+                    <Star className={`mr-2 h-4 w-4 ${showStarredOnly ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                    Starred
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => onFilterSelect?.('comments')}
+                    className={cn(showWithComments && "bg-accent text-accent-foreground")}
+                  >
+                    <MessageSquare className={`mr-2 h-4 w-4 ${showWithComments ? "text-primary" : ""}`} />
+                    With Comments
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onFilterSelect?.('reset')}>
+                    Reset Filters
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ) : (
-            title && <h1 className="text-xl font-semibold">{title}</h1>
+            title && <h1 className="text-2xl font-bold">{title}</h1>
           )}
 
           {/* Right Side Actions */}
           <div className="ml-auto flex items-center gap-4">
             {actions}
+            {isGalleryPage && (
+              <Button
+                variant="default"
+                onClick={openShareModal}
+                className="gap-2"
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </Button>
+            )}
             <ThemeToggle />
             <UserNav />
           </div>
