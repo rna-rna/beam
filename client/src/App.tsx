@@ -40,6 +40,12 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
 function AppContent() {
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isMasonry, setIsMasonry] = useState(true);
+  const [isOpenShareModal, setIsOpenShareModal] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
+  const [showWithComments, setShowWithComments] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -149,6 +155,26 @@ function AppContent() {
           <Layout
             title={gallery?.title || "Loading Gallery..."}
             actions={headerActions}
+            gallery={gallery}
+            isDarkMode={isDarkMode}
+            toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+            openShareModal={() => setIsOpenShareModal(true)}
+            toggleSelectionMode={() => setSelectMode(!selectMode)}
+            onFilterSelect={(filter) => {
+              if (filter === 'starred') {
+                setShowStarredOnly(true);
+                setShowWithComments(false);
+              } else if (filter === 'comments') {
+                setShowStarredOnly(false);
+                setShowWithComments(true);
+              } else {
+                setShowStarredOnly(false);
+                setShowWithComments(false);
+              }
+            }}
+            toggleGridView={() => setIsMasonry(!isMasonry)}
+            isMasonry={isMasonry}
+            selectMode={selectMode}
           >
             <Gallery
               slug={params.slug}
