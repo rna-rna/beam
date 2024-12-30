@@ -1093,16 +1093,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <div className="px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
+        <>
+          <div className="w-full px-4 md:px-6 lg:px-8 py-8">
             <InlineEdit
               value={gallery.title}
               onSave={handleTitleUpdate}
               className="text-3xl font-bold"
             />
-            {renderGalleryControls()}
           </div>
-        </div>
+          {renderGalleryControls()}
+        </>
       );
     }
   }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
@@ -1221,18 +1221,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <div className="flex items-center justify-between w-full">
-          <div>
+        <>
+          <div className="w-full px-4 md:px-6 lg:px-8 py-8">
             <InlineEdit
               value={gallery.title}
               onSave={handleTitleUpdate}
-              className="text-2xl font-bold"
+              className="text-3xl font-bold"
             />
           </div>
-          <div>
-            {renderGalleryControls()}
-          </div>
-        </div>
+          {renderGalleryControls()}
+        </>
       );
     }
   }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
