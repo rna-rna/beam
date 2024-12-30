@@ -958,7 +958,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       initial={{ opacity: 0, y: 20 }}animate={{
         opacity: preloadedImages.has(image.id) ? 1 :0,
         y: 0,
-        scale: draggedItemIndex === index ? 1.1: 1,
+        scale: draggedItemIndex === index ? 1.1 : 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
         transition: {
           duration: draggedItemIndex === index ? 0 : 0.25,
