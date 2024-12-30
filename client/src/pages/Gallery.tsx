@@ -70,6 +70,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
 import { InlineEdit } from "@/components/InlineEdit";
+import { HeaderBar } from "@/components/HeaderBar";
 
 // Create a forwarded ref component for dropdown items
 const DropdownMenuItem = forwardRef<
@@ -1093,16 +1094,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <>
-          <div className="w-full px-4 md:px-6 lg:px-8 py-8">
-            <InlineEdit
-              value={gallery.title}
-              onSave={handleTitleUpdate}
-              className="text-3xl font-bold"
-            />
-          </div>
-          {renderGalleryControls()}
-        </>
+        <HeaderBar
+          title={gallery.title}
+          onTitleChange={handleTitleUpdate}
+          actions={renderGalleryControls()}
+        />
       );
     }
   }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
@@ -1221,16 +1217,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <>
-          <div className="w-full px-4 md:px-6 lg:px-8 py-8">
-            <InlineEdit
-              value={gallery.title}
-              onSave={handleTitleUpdate}
-              className="text-3xl font-bold"
-            />
-          </div>
-          {renderGalleryControls()}
-        </>
+        <HeaderBar
+          title={gallery.title}
+          onTitleChange={handleTitleUpdate}
+          actions={renderGalleryControls()}
+        />
       );
     }
   }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
