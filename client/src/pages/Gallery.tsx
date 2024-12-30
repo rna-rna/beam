@@ -19,7 +19,7 @@ import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 
 // UI Components
 import { Button } from "@/components/ui/button";
