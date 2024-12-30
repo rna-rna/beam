@@ -71,6 +71,8 @@ import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
 import { InlineEdit } from "@/components/InlineEdit";
 import { cn } from "@/utils/cn";
+import { UserNav } from "@/components/UserNav";
+
 
 // Create ref-forwarding wrappers for Lucide icons
 const FilterIconWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof Filter>>(
@@ -791,8 +793,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           />
 
           {/* Tools Button */}
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={toggleSelectMode}
             className={cn(selectMode && "bg-accent text-accent-foreground")}
           >
@@ -845,8 +847,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           </Tooltip>
 
           {/* Share Button */}
-          <Button 
-            variant="default" 
+          <Button
+            variant="default"
             onClick={() => setIsOpenShareModal(true)}
             className="gap-2"
           >
@@ -939,7 +941,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         scale: draggedItemIndex === index ? 1.1 : 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
         transition: {
-          duration: draggedItemIndex === index ? 0 : 0.25,
+          duration: draggedItemIndex === index ? 0 :0.25,
         }
       }}
       style={{
