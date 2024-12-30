@@ -69,6 +69,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
+import { InlineEdit } from "@/components/InlineEdit"; // Import InlineEdit component
+
 
 interface GalleryProps {
   slug?: string;
@@ -935,8 +937,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               </Button>
             </TooltipTrigger>
             <TooltipContent>Toggle Dark Mode</TooltipContent>          </Tooltip>
-        </TooltipProvider>
-      </div>
+        </TooltipProvider>      </div>
     );
   }, [
     gallery,
@@ -1216,6 +1217,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       />
     );
   };
+
+  useEffect(() => {
+    if (onHeaderActionsChange && gallery) {
+      onHeaderActionsChange(
+        <div className="flex items-center gap-4">
+          <InlineEdit
+            value={gallery.title}
+            onSave={handleTitleUpdate}
+            className="text-xl font-semibold"
+          />
+          {renderGalleryControls()}
+        </div>
+      );
+    }
+  }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
 
   return (
     <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
