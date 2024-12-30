@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { useAuth, useUser } from "@clerk/clerk-react";
+import Masonry from 'react-masonry-css';
 
 // UI Components
 import { Button } from "@/components/ui/button";
