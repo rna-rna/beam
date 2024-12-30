@@ -98,7 +98,7 @@ function AppContent() {
   });
 
   // Query for specific gallery when on gallery page
-  const { data: gallery, isLoading: isGalleryLoading } = useQuery({
+  const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
     queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : null,
     enabled: !!gallerySlug,
     queryFn: async () => {
@@ -115,7 +115,15 @@ function AppContent() {
         headers,
         credentials: 'include'
       });
-      if (!res.ok) throw new Error('Failed to fetch gallery');
+      if (!res.ok) {
+        if (res.status === 403) {
+          throw new Error('This gallery is private');
+        }
+        if (res.status === 404) {
+          throw new Error('Gallery not found');
+        }
+        throw new Error('Failed to fetch gallery');
+      }
       return res.json();
     }
   });
