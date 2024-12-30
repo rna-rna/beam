@@ -1,6 +1,6 @@
 import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, forwardRef } from "react";
 import {
   Upload,
   Grid,
@@ -38,7 +38,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
-  DropdownMenuItem,
+  DropdownMenuItem as OriginalDropdownMenuItem, // Keep original for reference
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -70,6 +70,18 @@ import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
 import { InlineEdit } from "@/components/InlineEdit";
+
+// Create a forwarded ref component for dropdown items
+const DropdownMenuItem = forwardRef<
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<typeof DropdownMenu.Item>
+>(({ children, ...props }, ref) => (
+  <DropdownMenu.Item {...props} asChild>
+    <div ref={ref}>{children}</div>
+  </DropdownMenu.Item>
+));
+DropdownMenuItem.displayName = "DropdownMenuItem";
+
 
 interface GalleryProps {
   slug?: string;
@@ -755,7 +767,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       onClick={handleDownloadAll}
                       className="flex items-center gap-2"
                     >
-                      <Download className="w-4 h-4 text-white" />
+                      <Download className="w-4 h-4" />
                       Download All
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
@@ -832,7 +844,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </TooltipTrigger>
             <TooltipContent>Filter Images</TooltipContent>
           </Tooltip>
-
           {isUploading && (
             <div className="flex items-center gap-4">
               <Progress value={undefined} className="w-24" />
@@ -903,11 +914,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               >
                 {isDarkMode ? (
                   <Moon className="h-4 w-4" />
-                ) : (                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Sun className="h-4 w-4" />
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Toggle Dark Mode</TooltipContent>          </Tooltip>
+            <TooltipContent>Toggle Dark Mode</TooltipContent>
+          </Tooltip>
         </TooltipProvider>
       </div>
     );
@@ -920,7 +933,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     showStarredOnly,
     showWithComments,
     showApproved,
-    deleteImagesMutation,    handleCopyLink,
+    deleteImagesMutation,
+    handleCopyLink,
     handleDownloadAll,
     handleStarredToggle,
     handleReorderToggle,
@@ -940,7 +954,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
-      initial={{ opacity: 0, y: 20}}      animate={{
+      initial={{ opacity: 0, y: 20}}
+      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
@@ -949,10 +964,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           duration: draggedItemIndex === index ? 0 : 0.25,
         }
       }}
-      style={{        
+      style={{
         position: draggedItemIndex === index ? "absolute" : "relative",
         top: draggedItemIndex === index ? dragPosition?.y : "auto",
-        left: draggedItemIndex === index ? dragPosition?.x: "auto",
+        left: draggedItemIndex === index ? dragPosition?.x : "auto",
       }}
       drag={isReorderMode}
       dragMomentum={false}
@@ -1029,7 +1044,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             variant="secondary"
           >
             <MessageSquare className="w-3 h-3" />
-            {image.commentCount}          </Badge>
+            {image.commentCount}
+          </Badge>
         )}
 
         {/* Selection checkbox */}
