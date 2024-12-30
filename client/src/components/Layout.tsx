@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { 
   Share2, 
-  ChevronDown, 
   SquareDashedMousePointer,
   Star,
   MessageSquare,
@@ -138,7 +137,7 @@ export function Layout({
           {/* Right Side Actions */}
           <div className="ml-auto flex items-center gap-4">
             {actions}
-            {isGalleryPage && (
+            {isGalleryPage && openShareModal && (
               <Button
                 variant="default"
                 onClick={openShareModal}
@@ -148,7 +147,7 @@ export function Layout({
                 Share
               </Button>
             )}
-            <ThemeToggle />
+            {toggleDarkMode && <ThemeToggle />}
             <UserNav />
           </div>
         </div>

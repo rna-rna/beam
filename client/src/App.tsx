@@ -195,7 +195,14 @@ function AppContent() {
             isDarkMode={isDarkMode}
             toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
             openShareModal={() => setIsOpenShareModal(true)}
-            toggleSelectionMode={() => setSelectMode(!selectMode)}
+            toggleSelectionMode={() => {
+              if (selectMode) {
+                // Reset selection mode state
+                setSelectMode(false);
+              } else {
+                setSelectMode(true);
+              }
+            }}
             onFilterSelect={(filter) => {
               if (filter === 'starred') {
                 setShowStarredOnly(true);
