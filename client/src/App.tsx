@@ -235,21 +235,14 @@ function AppContent() {
             isDarkMode={isDarkMode}
             toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
             openShareModal={() => setIsOpenShareModal(true)}
-            toggleSelectionMode={() => {
-              if (selectMode) {
-                // Reset selection mode state
-                setSelectMode(false);
-              } else {
-                setSelectMode(true);
-              }
-            }}
+            toggleSelectionMode={() => setSelectMode(!selectMode)}
             onFilterSelect={(filter) => {
               if (filter === 'starred') {
-                setShowStarredOnly(true);
+                setShowStarredOnly(!showStarredOnly);
                 setShowWithComments(false);
               } else if (filter === 'comments') {
                 setShowStarredOnly(false);
-                setShowWithComments(true);
+                setShowWithComments(!showWithComments);
               } else {
                 setShowStarredOnly(false);
                 setShowWithComments(false);
@@ -269,6 +262,8 @@ function AppContent() {
               slug={params.slug}
               onHeaderActionsChange={setHeaderActions}
               title={gallery?.title || "Loading Gallery..."}
+              selectMode={selectMode}
+              setSelectMode={setSelectMode}
             />
           </Layout>
         )}

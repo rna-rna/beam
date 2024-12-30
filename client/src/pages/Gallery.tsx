@@ -55,9 +55,9 @@ interface GalleryProps {
   setSelectMode: (mode: boolean) => void;
 }
 
-export default function Gallery({ 
-  slug: propSlug, 
-  title, 
+export default function Gallery({
+  slug: propSlug,
+  title,
   onHeaderActionsChange,
   selectMode,
   setSelectMode
@@ -909,6 +909,7 @@ export default function Gallery({
               size="icon"
               className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
+                e.stopPropagation;
                 e.stopPropagation();
                 toggleStarMutation.mutate(image.id);
               }}            >
@@ -1041,56 +1042,71 @@ export default function Gallery({
           />
         )}
 
-        {/* Masonry Grid */}
-        <div className="p-4 md:p-6 lg:p-8">
-          {Object.keys(uploadProgress).length > 0 && (
-            <div className="mb-8 space-y-4">
-              {Object.entries(uploadProgress).map(([filename, progress]) => (
-                <div key={filename} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>{filename}</span>
-                    <span>{Math.round(progress)}%</span>
-                  </div>
-                  <Progress value={progress} />
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Gallery Grid */}
+        <div className="p-6">
+          <Masonry
+            breakpointCols={breakpointCols}
+            className="flex -ml-4 w-auto"
+            columnClassName="pl-4"
+          >
+            {/* Upload placeholders */}
+            {renderUploadPlaceholders()}
 
-          {gallery.images.length === 0 ? (
-            <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg">
-              <Upload className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No images yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Drag and drop images here or click to upload
-              </p>
-            </div>
-          ) : (
-            <Masonry
-              breakpointCols={breakpointCols}
-              className="flex gap-4"
-              columnClassName="flex flex-col gap-4"
-            >
-              {gallery.images.map((image, index) => renderImage(image, index))}
-              {renderUploadPlaceholders()}
-            </Masonry>
-          )}
+            {/* Gallery images */}
+            {gallery?.images
+              .filter(image => {
+                if (showStarredOnly) return image.starred;
+                if (showWithComments) return image.commentCount! > 0;
+                return true;
+              })
+              .map((image, index) => renderImage(image, index))}
+          </Masonry>
         </div>
-
-        {/* Share Modal */}
-        <ShareModal
-          open={isOpenShareModal}
-          onOpenChange={setIsOpenShareModal}
-          url={window.location.href}
-          onCopy={handleCopyLink}
-          isPublic={!isPrivateGallery}
-          onVisibilityChange={(checked) => toggleVisibilityMutation.mutate(checked)}
-        />
 
         {/* Floating Tools Toolbar */}
         {renderFloatingToolbar()}
+
+        {/* Masonry Resize Slider */}
+        <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 flex items-center gap-4">
+          <span className="text-sm text-muted-foreground">Grid Size</span>
+          <Slider
+            value={[scale]}
+            onValueChange={([value]) => setScale(value)}
+            min={50}
+            max={150}
+            step={10}
+            className="w-32"
+          />
+        </div>
+
+        {/* Image Lightbox */}
+        <Dialog open={selectedImageIndex !== -1} onOpenChange={() => setSelectedImageIndex(-1)}>
+          <DialogContent className="max-w-screen-lg w-full bg-background p-0">
+            {selectedImage && (
+              <div className="relative">
+                <img
+                  src={selectedImage.url}
+                  alt=""
+                  className="w-full h-auto object-contain"
+                  onClick={handleImageComment}
+                />
+                {/* Comments */}
+                {comments.map((comment) => (
+                  <CommentBubble
+                    key={comment.id}
+                    comment={comment}
+                    x={comment.xPosition}
+                    y={comment.yPosition}
+                  />
+                ))}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Comment Dialog */}
+        {renderCommentDialog()}
       </div>
-      {renderCommentDialog()}
     </>
   );
 }
