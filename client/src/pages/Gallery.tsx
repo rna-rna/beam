@@ -1,6 +1,6 @@
 import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, forwardRef } from "react";
 import {
   Upload,
   Grid,
@@ -70,6 +70,14 @@ import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
 import { InlineEdit } from "@/components/InlineEdit";
+
+// Create a forward ref wrapper for the dropdown trigger button
+const DropdownTriggerButton = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof Button>>(
+  (props, ref) => (
+    <Button ref={ref} {...props} />
+  )
+);
+DropdownTriggerButton.displayName = 'DropdownTriggerButton';
 
 interface GalleryProps {
   slug?: string;
@@ -769,13 +777,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <TooltipTrigger asChild>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
+                  <DropdownTriggerButton
                     size="icon"
                     variant="ghost"
                     className="h-9 w-9 text-white hover:bg-white/10"
                   >
                     <MoreVertical className="h-4 w-4" />
-                  </Button>
+                  </DropdownTriggerButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuGroup>
@@ -929,7 +937,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 className="h-9 w-9 text-white hover:bg-white/10"
                 onClick={toggleDarkMode}
               >
-                {isDarkMode ? (
+                                {isDarkMode ? (
                   <Moon className="h-4 w-4" />
                 ) : (
                   <Sun className="h-4 w-4" />
