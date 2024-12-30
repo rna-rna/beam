@@ -33,6 +33,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Gallery } from "@db/schema";
 import { formatRelativeDate } from "@/lib/format-date";
+import { HeaderBar } from "@/components/HeaderBar";
 
 interface GalleryWithThumbnail extends Gallery {
   thumbnailUrl: string | null;
@@ -346,7 +347,7 @@ export default function Dashboard() {
         {type === "projects" ? "No galleries yet" : "No recently viewed galleries"}
       </h3>
       <p className="mt-2 text-sm text-muted-foreground">
-        {type === "projects" 
+        {type === "projects"
           ? "Create your first gallery to start organizing your images."
           : "Galleries you view will appear here for quick access."}
       </p>
@@ -354,7 +355,8 @@ export default function Dashboard() {
   );
 
   return (
-    <AnimatedLayout title="My Galleries">
+    <AnimatedLayout>
+      <HeaderBar title="My Galleries" />
       <div className="px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="my-projects" onValueChange={setActiveTab}>
           <TabsList className="mb-6">
