@@ -4,9 +4,23 @@ import { InlineEdit } from "@/components/InlineEdit";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserNav } from "@/components/UserNav";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { 
+  DropdownMenu, 
+  DropdownMenuTrigger, 
+  DropdownMenuContent, 
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Share2, ChevronDown, SquareDashedMousePointer, Star, MessageSquare } from "lucide-react";
+import { 
+  Share2, 
+  ChevronDown, 
+  SquareDashedMousePointer,
+  Star,
+  MessageSquare,
+  GridIcon,
+  Filter
+} from "lucide-react";
 
 interface LayoutProps {
   children: ReactNode;
@@ -22,15 +36,15 @@ interface LayoutProps {
   toggleDarkMode?: () => void;
   openShareModal?: () => void;
   toggleSelectionMode?: () => void;
+  onFilterSelect?: (filter: string) => void;
+  toggleGridView?: () => void;
+  isMasonry?: boolean;
   selectMode?: boolean;
-  setShowStarredOnly?: (value: boolean) => void;
-  setShowWithComments?: (value: boolean) => void;
-  setShowApproved?: (value: boolean) => void;
 }
 
-export function Layout({ 
-  children, 
-  title, 
+export function Layout({
+  children,
+  title,
   onTitleChange,
   actions,
   gallery,
@@ -38,10 +52,10 @@ export function Layout({
   toggleDarkMode,
   openShareModal,
   toggleSelectionMode,
-  selectMode,
-  setShowStarredOnly,
-  setShowWithComments,
-  setShowApproved
+  onFilterSelect,
+  toggleGridView,
+  isMasonry,
+  selectMode
 }: LayoutProps) {
   const [location] = useLocation();
   const isGalleryPage = location.startsWith('/g/');
@@ -50,6 +64,7 @@ export function Layout({
     <div className="min-h-screen w-full bg-background">
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
         <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
+          {/* Title Section */}
           {isGalleryPage && gallery ? (
             <>
               {onTitleChange ? (
@@ -62,6 +77,7 @@ export function Layout({
                 <h1 className="text-xl font-semibold">{gallery.title}</h1>
               )}
 
+              {/* Gallery-specific Features */}
               <div className="flex items-center gap-4">
                 {/* Tools Button */}
                 <Button
@@ -73,29 +89,43 @@ export function Layout({
                   Tools
                 </Button>
 
+                {/* Grid View Toggle */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={toggleGridView}
+                      className={isMasonry ? "" : "bg-accent"}
+                    >
+                      <GridIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Toggle Grid View
+                  </TooltipContent>
+                </Tooltip>
+
                 {/* Filters Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline">
+                      <Filter className="mr-2 h-4 w-4" />
                       Filters
                       <ChevronDown className="ml-2 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => setShowStarredOnly?.(true)}>
+                    <DropdownMenuItem onClick={() => onFilterSelect?.('starred')}>
                       <Star className="mr-2 h-4 w-4" />
                       Starred
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShowWithComments?.(true)}>
+                    <DropdownMenuItem onClick={() => onFilterSelect?.('comments')}>
                       <MessageSquare className="mr-2 h-4 w-4" />
                       With Comments
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => {
-                      setShowStarredOnly?.(false);
-                      setShowWithComments?.(false);
-                      setShowApproved?.(false);
-                    }}>
+                    <DropdownMenuItem onClick={() => onFilterSelect?.('reset')}>
                       Reset Filters
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -112,6 +142,7 @@ export function Layout({
             title && <h1 className="text-xl font-semibold">{title}</h1>
           )}
 
+          {/* Right Side Actions */}
           <div className="ml-auto flex items-center gap-4">
             {actions}
             <ThemeToggle />
