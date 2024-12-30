@@ -4,6 +4,7 @@ import { InlineEdit } from "@/components/InlineEdit";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserNav } from "@/components/UserNav";
 import { Button } from "@/components/ui/button";
+import { ShareModal } from "@/components/ShareModal";
 import { 
   DropdownMenu, 
   DropdownMenuTrigger, 
@@ -41,6 +42,9 @@ interface LayoutProps {
   selectMode?: boolean;
   showStarredOnly?: boolean;
   showWithComments?: boolean;
+  isOpenShareModal?: boolean;
+  onShareModalClose?: () => void;
+  onVisibilityChange?: (checked: boolean) => void;
 }
 
 export function Layout({
@@ -55,10 +59,13 @@ export function Layout({
   toggleSelectionMode,
   onFilterSelect,
   toggleGridView,
-  isMasonry,
-  selectMode,
-  showStarredOnly,
-  showWithComments
+  isMasonry = true,
+  selectMode = false,
+  showStarredOnly = false,
+  showWithComments = false,
+  isOpenShareModal = false,
+  onShareModalClose,
+  onVisibilityChange
 }: LayoutProps) {
   const [location] = useLocation();
   const isGalleryPage = location.startsWith('/g/');
@@ -81,54 +88,60 @@ export function Layout({
               )}
 
               {/* Tools Button */}
-              <Button
-                variant="outline"
-                onClick={toggleSelectionMode}
-                className={cn(selectMode && "bg-accent text-accent-foreground")}
-              >
-                <SquareDashedMousePointer className="mr-2 h-4 w-4" />
-                Tools
-              </Button>
+              {toggleSelectionMode && (
+                <Button
+                  variant="outline"
+                  onClick={toggleSelectionMode}
+                  className={cn(selectMode && "bg-accent text-accent-foreground")}
+                >
+                  <SquareDashedMousePointer className="mr-2 h-4 w-4" />
+                  Tools
+                </Button>
+              )}
 
               {/* Grid View Toggle */}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={toggleGridView}
-                className={cn(!isMasonry && "bg-accent text-accent-foreground")}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
+              {toggleGridView && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleGridView}
+                  className={cn(!isMasonry && "bg-accent text-accent-foreground")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              )}
 
               {/* Filters Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filters
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem 
-                    onClick={() => onFilterSelect?.('starred')}
-                    className={cn(showStarredOnly && "bg-accent text-accent-foreground")}
-                  >
-                    <Star className={`mr-2 h-4 w-4 ${showStarredOnly ? "fill-yellow-400 text-yellow-400" : ""}`} />
-                    Starred
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => onFilterSelect?.('comments')}
-                    className={cn(showWithComments && "bg-accent text-accent-foreground")}
-                  >
-                    <MessageSquare className={`mr-2 h-4 w-4 ${showWithComments ? "text-primary" : ""}`} />
-                    With Comments
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => onFilterSelect?.('reset')}>
-                    Reset Filters
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {onFilterSelect && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      <Filter className="mr-2 h-4 w-4" />
+                      Filters
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem 
+                      onClick={() => onFilterSelect('starred')}
+                      className={cn(showStarredOnly && "bg-accent text-accent-foreground")}
+                    >
+                      <Star className={`mr-2 h-4 w-4 ${showStarredOnly ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                      Starred
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => onFilterSelect('comments')}
+                      className={cn(showWithComments && "bg-accent text-accent-foreground")}
+                    >
+                      <MessageSquare className={`mr-2 h-4 w-4 ${showWithComments ? "text-primary" : ""}`} />
+                      With Comments
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onFilterSelect('reset')}>
+                      Reset Filters
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           ) : (
             title && <h1 className="text-2xl font-bold">{title}</h1>
@@ -152,6 +165,18 @@ export function Layout({
           </div>
         </div>
       </div>
+
+      {/* Share Modal */}
+      {isGalleryPage && (
+        <ShareModal
+          isOpen={isOpenShareModal}
+          onClose={onShareModalClose}
+          url={window.location.href}
+          isPublic={gallery?.isPublic ?? false}
+          onVisibilityChange={onVisibilityChange}
+        />
+      )}
+
       <main className="relative">
         {children}
       </main>

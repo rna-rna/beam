@@ -97,6 +97,46 @@ function AppContent() {
     },
   });
 
+  // Visibility update mutation
+  const toggleVisibilityMutation = useMutation({
+    mutationFn: async (checked: boolean) => {
+      const token = await getToken();
+      if (!token) throw new Error('Authentication required');
+
+      const res = await fetch(`/api/galleries/${gallerySlug}/visibility`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        body: JSON.stringify({ isPublic: checked }),
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update visibility');
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+      toast({
+        title: "Success",
+        description: "Gallery visibility updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update visibility. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Query for specific gallery when on gallery page
   const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
     queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : null,
@@ -221,6 +261,9 @@ function AppContent() {
             showStarredOnly={showStarredOnly}
             showWithComments={showWithComments}
             onTitleChange={(newTitle) => titleUpdateMutation.mutate(newTitle)}
+            isOpenShareModal={isOpenShareModal}
+            onShareModalClose={() => setIsOpenShareModal(false)}
+            onVisibilityChange={(checked) => toggleVisibilityMutation.mutate(checked)}
           >
             <Gallery
               slug={params.slug}
