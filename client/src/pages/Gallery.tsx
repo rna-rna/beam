@@ -95,6 +95,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const titleUpdateMutation = useMutation({
     mutationFn: async (newTitle: string) => {
       const token = await getToken();
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+
       const res = await fetch(`/api/galleries/${slug}/title`, {
         method: 'PATCH',
         headers: {
@@ -104,10 +108,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           'Pragma': 'no-cache'
         },
         body: JSON.stringify({ title: newTitle }),
+        credentials: 'include'
       });
 
       if (!res.ok) {
-        throw new Error('Failed to update title');
+        const errorText = await res.text();
+        throw new Error(errorText || 'Failed to update title');
       }
 
       return res.json();
@@ -146,7 +152,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       }
       toast({
         title: "Error",
-        description: "Failed to update title. Please try again.",
+        description: err instanceof Error ? err.message : "Failed to update title. Please try again.",
         variant: "destructive",
       });
     },
@@ -182,18 +188,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       const res = await fetch(`/api/galleries/${slug}`, {
         headers,
-        cache: 'no-store',
         credentials: 'include'
       });
 
       if (!res.ok) {
+        const errorText = await res.text();
         if (res.status === 403) {
           throw new Error('This gallery is private');
         }
         if (res.status === 404) {
           throw new Error('Gallery not found');
         }
-        throw new Error('Failed to fetch gallery');
+        throw new Error(errorText || 'Failed to fetch gallery');
       }
 
       return res.json();
@@ -460,6 +466,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           'Pragma': 'no-cache'
         },
         body: JSON.stringify({ isPublic: checked }),
+        credentials: 'include'
       });
 
       if (!res.ok) {
