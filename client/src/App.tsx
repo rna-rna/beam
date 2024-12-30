@@ -40,12 +40,6 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
 function AppContent() {
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isMasonry, setIsMasonry] = useState(true);
-  const [isOpenShareModal, setIsOpenShareModal] = useState(false);
-  const [selectMode, setSelectMode] = useState(false);
-  const [showStarredOnly, setShowStarredOnly] = useState(false);
-  const [showWithComments, setShowWithComments] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -56,91 +50,9 @@ function AppContent() {
   // Get gallery slug from URL if we're on a gallery page
   const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
 
-  // Title update mutation
-  const titleUpdateMutation = useMutation({
-    mutationFn: async (newTitle: string) => {
-      const token = await getToken();
-      if (!token) throw new Error('Authentication required');
-
-      const res = await fetch(`/api/galleries/${gallerySlug}/title`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        body: JSON.stringify({ title: newTitle }),
-        credentials: 'include'
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || 'Failed to update title');
-      }
-
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-      toast({
-        title: "Success",
-        description: "Gallery title updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update title",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Visibility update mutation
-  const toggleVisibilityMutation = useMutation({
-    mutationFn: async (checked: boolean) => {
-      const token = await getToken();
-      if (!token) throw new Error('Authentication required');
-
-      const res = await fetch(`/api/galleries/${gallerySlug}/visibility`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        body: JSON.stringify({ isPublic: checked }),
-        credentials: 'include'
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to update visibility');
-      }
-
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-      toast({
-        title: "Success",
-        description: "Gallery visibility updated successfully",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update visibility. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
   // Query for specific gallery when on gallery page
   const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
     queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : null,
-    enabled: !!gallerySlug,
     queryFn: async () => {
       if (!gallerySlug) return null;
       const token = await getToken();
@@ -153,19 +65,25 @@ function AppContent() {
       }
       const res = await fetch(`/api/galleries/${gallerySlug}`, {
         headers,
+        cache: 'no-store',
         credentials: 'include'
       });
       if (!res.ok) {
-        if (res.status === 403) {
-          throw new Error('This gallery is private');
-        }
         if (res.status === 404) {
           throw new Error('Gallery not found');
+        }
+        if (res.status === 403) {
+          throw new Error('This gallery is private');
         }
         throw new Error('Failed to fetch gallery');
       }
       return res.json();
-    }
+    },
+    enabled: !!gallerySlug,
+    staleTime: 0,
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 
   // Handle redirect on auth state change - only redirect from root path
@@ -214,7 +132,7 @@ function AppContent() {
 
       <Route path="/settings">
         <ProtectedRoute>
-          <Layout title="Settings">
+          <Layout>
             <Settings />
           </Layout>
         </ProtectedRoute>
@@ -231,39 +149,11 @@ function AppContent() {
           <Layout
             title={gallery?.title || "Loading Gallery..."}
             actions={headerActions}
-            gallery={gallery}
-            isDarkMode={isDarkMode}
-            toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-            openShareModal={() => setIsOpenShareModal(true)}
-            toggleSelectionMode={() => setSelectMode(!selectMode)}
-            onFilterSelect={(filter) => {
-              if (filter === 'starred') {
-                setShowStarredOnly(!showStarredOnly);
-                setShowWithComments(false);
-              } else if (filter === 'comments') {
-                setShowStarredOnly(false);
-                setShowWithComments(!showWithComments);
-              } else {
-                setShowStarredOnly(false);
-                setShowWithComments(false);
-              }
-            }}
-            toggleGridView={() => setIsMasonry(!isMasonry)}
-            isMasonry={isMasonry}
-            selectMode={selectMode}
-            showStarredOnly={showStarredOnly}
-            showWithComments={showWithComments}
-            onTitleChange={(newTitle) => titleUpdateMutation.mutate(newTitle)}
-            isOpenShareModal={isOpenShareModal}
-            onShareModalClose={() => setIsOpenShareModal(false)}
-            onVisibilityChange={(checked) => toggleVisibilityMutation.mutate(checked)}
           >
             <Gallery
               slug={params.slug}
               onHeaderActionsChange={setHeaderActions}
               title={gallery?.title || "Loading Gallery..."}
-              selectMode={selectMode}
-              setSelectMode={setSelectMode}
             />
           </Layout>
         )}

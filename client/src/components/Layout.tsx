@@ -4,52 +4,33 @@ import { InlineEdit } from "@/components/InlineEdit";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserNav } from "@/components/UserNav";
 import { Button } from "@/components/ui/button";
-import { ShareModal } from "@/components/ShareModal";
-import { 
-  DropdownMenu, 
-  DropdownMenuTrigger, 
-  DropdownMenuContent, 
-  DropdownMenuItem,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
-import { 
-  Share2, 
-  SquareDashedMousePointer,
-  Star,
-  MessageSquare,
-  LayoutGrid,
-  Filter
-} from "lucide-react";
-import { cn } from "@/utils/cn";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Share2, ChevronDown, SquareDashedMousePointer, Star, MessageSquare } from "lucide-react";
 
 interface LayoutProps {
   children: ReactNode;
   title?: string;
   onTitleChange?: (newTitle: string) => void;
   actions?: ReactNode;
+  // Gallery-specific props
   gallery?: {
     isPublic?: boolean;
     title: string;
-    imageCount?: number;
   };
   isDarkMode?: boolean;
   toggleDarkMode?: () => void;
   openShareModal?: () => void;
   toggleSelectionMode?: () => void;
-  onFilterSelect?: (filter: string) => void;
-  toggleGridView?: () => void;
-  isMasonry?: boolean;
   selectMode?: boolean;
-  showStarredOnly?: boolean;
-  showWithComments?: boolean;
-  isOpenShareModal?: boolean;
-  onShareModalClose?: () => void;
-  onVisibilityChange?: (checked: boolean) => void;
+  setShowStarredOnly?: (value: boolean) => void;
+  setShowWithComments?: (value: boolean) => void;
+  setShowApproved?: (value: boolean) => void;
 }
 
-export function Layout({
-  children,
-  title,
+export function Layout({ 
+  children, 
+  title, 
   onTitleChange,
   actions,
   gallery,
@@ -57,126 +38,87 @@ export function Layout({
   toggleDarkMode,
   openShareModal,
   toggleSelectionMode,
-  onFilterSelect,
-  toggleGridView,
-  isMasonry = true,
-  selectMode = false,
-  showStarredOnly = false,
-  showWithComments = false,
-  isOpenShareModal = false,
-  onShareModalClose,
-  onVisibilityChange
+  selectMode,
+  setShowStarredOnly,
+  setShowWithComments,
+  setShowApproved
 }: LayoutProps) {
   const [location] = useLocation();
   const isGalleryPage = location.startsWith('/g/');
 
   return (
     <div className="min-h-screen w-full bg-background">
-      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/75 shadow-sm border-b">
-        <div className="px-6 py-4 flex items-center gap-6">
-          {/* Title Section */}
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
+        <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
           {isGalleryPage && gallery ? (
-            <div className="flex items-center gap-6">
+            <>
               {onTitleChange ? (
                 <InlineEdit
                   value={gallery.title}
                   onSave={onTitleChange}
-                  className="text-2xl font-bold"
+                  className="text-xl font-semibold"
                 />
               ) : (
-                <h1 className="text-2xl font-bold">{gallery.title}</h1>
+                <h1 className="text-xl font-semibold">{gallery.title}</h1>
               )}
 
-              {/* Tools Button */}
-              {toggleSelectionMode && (
+              <div className="flex items-center gap-4">
+                {/* Tools Button */}
                 <Button
                   variant="outline"
                   onClick={toggleSelectionMode}
-                  className={cn(selectMode && "bg-accent text-accent-foreground")}
+                  className={selectMode ? "bg-accent text-accent-foreground" : ""}
                 >
                   <SquareDashedMousePointer className="mr-2 h-4 w-4" />
                   Tools
                 </Button>
-              )}
 
-              {/* Grid View Toggle */}
-              {toggleGridView && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={toggleGridView}
-                  className={cn(!isMasonry && "bg-accent text-accent-foreground")}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-              )}
-
-              {/* Filters Dropdown */}
-              {onFilterSelect && (
+                {/* Filters Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline">
-                      <Filter className="mr-2 h-4 w-4" />
                       Filters
+                      <ChevronDown className="ml-2 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem 
-                      onClick={() => onFilterSelect('starred')}
-                      className={cn(showStarredOnly && "bg-accent text-accent-foreground")}
-                    >
-                      <Star className={`mr-2 h-4 w-4 ${showStarredOnly ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                    <DropdownMenuItem onClick={() => setShowStarredOnly?.(true)}>
+                      <Star className="mr-2 h-4 w-4" />
                       Starred
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => onFilterSelect('comments')}
-                      className={cn(showWithComments && "bg-accent text-accent-foreground")}
-                    >
-                      <MessageSquare className={`mr-2 h-4 w-4 ${showWithComments ? "text-primary" : ""}`} />
+                    <DropdownMenuItem onClick={() => setShowWithComments?.(true)}>
+                      <MessageSquare className="mr-2 h-4 w-4" />
                       With Comments
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onFilterSelect('reset')}>
+                    <DropdownMenuItem onClick={() => {
+                      setShowStarredOnly?.(false);
+                      setShowWithComments?.(false);
+                      setShowApproved?.(false);
+                    }}>
                       Reset Filters
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              )}
-            </div>
+
+                {/* Share Button */}
+                <Button variant="default" onClick={openShareModal} className="gap-2">
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </Button>
+              </div>
+            </>
           ) : (
-            title && <h1 className="text-2xl font-bold">{title}</h1>
+            title && <h1 className="text-xl font-semibold">{title}</h1>
           )}
 
-          {/* Right Side Actions */}
           <div className="ml-auto flex items-center gap-4">
             {actions}
-            {isGalleryPage && openShareModal && (
-              <Button
-                variant="default"
-                onClick={openShareModal}
-                className="gap-2"
-              >
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
-            )}
-            {toggleDarkMode && <ThemeToggle />}
+            <ThemeToggle />
             <UserNav />
           </div>
         </div>
       </div>
-
-      {/* Share Modal */}
-      {isGalleryPage && (
-        <ShareModal
-          isOpen={isOpenShareModal}
-          onClose={onShareModalClose}
-          url={window.location.href}
-          isPublic={gallery?.isPublic ?? false}
-          onVisibilityChange={onVisibilityChange}
-        />
-      )}
-
       <main className="relative">
         {children}
       </main>
