@@ -146,7 +146,10 @@ function AppContent() {
 
       <Route path="/g/:slug">
         {(params) => (
-          <Layout actions={headerActions}>
+          <Layout
+            title={gallery?.title || "Loading Gallery..."}
+            actions={headerActions}
+          >
             <Gallery
               slug={params.slug}
               onHeaderActionsChange={setHeaderActions}

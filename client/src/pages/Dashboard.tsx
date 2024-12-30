@@ -24,16 +24,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import type { Gallery } from "@db/schema";
 import { formatRelativeDate } from "@/lib/format-date";
-import { HeaderBar } from "@/components/HeaderBar";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface GalleryWithThumbnail extends Gallery {
   thumbnailUrl: string | null;
@@ -48,10 +42,9 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [galleryToDelete, setGalleryToDelete] = useState<GalleryWithThumbnail | null>(null);
   const [isCreatingGallery, setIsCreatingGallery] = useState(false);
-  const [activeTab, setActiveTab] = useState("my-projects");
 
-  // Query my galleries
-  const { data: myGalleries = [], isLoading: isLoadingMyGalleries } = useQuery<GalleryWithThumbnail[]>({
+  // Query galleries
+  const { data: galleries = [], isLoading } = useQuery<GalleryWithThumbnail[]>({
     queryKey: ['/api/galleries'],
     queryFn: async () => {
       const token = await getToken();
@@ -69,45 +62,6 @@ export default function Dashboard() {
       return res.json();
     },
     enabled: !!user,
-  });
-
-  // Query recently viewed galleries
-  const { data: recentGalleries = [], isLoading: isLoadingRecent } = useQuery<GalleryWithThumbnail[]>({
-    queryKey: ['/api/galleries/recent'],
-    queryFn: async () => {
-      const token = await getToken();
-      const res = await fetch('/api/galleries/recent', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch recent galleries');
-      }
-      return res.json();
-    },
-    enabled: !!user,
-  });
-
-  // Track gallery view mutation
-  const trackGalleryView = useMutation({
-    mutationFn: async (slug: string) => {
-      const token = await getToken();
-      const res = await fetch(`/api/galleries/${slug}/view`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!res.ok) {
-        throw new Error('Failed to track gallery view');
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries/recent'] });
-    }
   });
 
   // Create gallery mutation
@@ -133,7 +87,10 @@ export default function Dashboard() {
     },
     onSuccess: async (data) => {
       try {
+        // Invalidate galleries query to refresh the dashboard
         await queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+
+        // Prefetch the new gallery data before navigation
         await queryClient.prefetchQuery({
           queryKey: [`/api/galleries/${data.slug}`],
           queryFn: async () => {
@@ -150,9 +107,7 @@ export default function Dashboard() {
           }
         });
 
-        // Track the new gallery view
-        await trackGalleryView.mutateAsync(data.slug);
-
+        // Navigate to the new gallery
         setLocation(`/g/${data.slug}`);
         toast({
           title: "Success",
@@ -198,7 +153,6 @@ export default function Dashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries/recent'] });
       toast({
         title: "Success",
         description: "Gallery deleted successfully",
@@ -216,178 +170,128 @@ export default function Dashboard() {
     },
   });
 
-  // Handle navigation to gallery and track view
-  const handleGalleryClick = async (gallery: GalleryWithThumbnail) => {
-    try {
-      await trackGalleryView.mutateAsync(gallery.slug);
-      setLocation(`/g/${gallery.slug}`);
-    } catch (error) {
-      console.error('Failed to track gallery view:', error);
-      setLocation(`/g/${gallery.slug}`);
-    }
-  };
-
-  const renderGalleryGrid = (galleries: GalleryWithThumbnail[]) => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {activeTab === "my-projects" && (
-        <Card className="group hover:shadow-lg transition-all duration-200">
-          <div className="aspect-[4/3] relative">
-            <Button
-              variant="ghost"
-              className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4 hover:bg-muted/50"
-              onClick={() => createGalleryMutation.mutate()}
-              disabled={isCreatingGallery || createGalleryMutation.isPending}
-            >
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                {isCreatingGallery ? (
-                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                ) : (
-                  <Plus className="h-8 w-8 text-primary" />
-                )}
-              </div>
-              <div className="text-center">
-                <h3 className="font-semibold text-lg">
-                  {isCreatingGallery ? "Creating Gallery..." : "Create New Gallery"}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {isCreatingGallery ? "Please wait..." : "Start a new collection of images"}
-                </p>
-              </div>
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {galleries.map((gallery) => (
-        <Card
-          key={gallery.id}
-          className="group hover:shadow-lg transition-all duration-200"
-        >
-          <div
-            className="cursor-pointer"
-            onClick={() => handleGalleryClick(gallery)}
-          >
-            <div className="aspect-[4/3] relative overflow-hidden">
-              {gallery.thumbnailUrl ? (
-                <img
-                  src={gallery.thumbnailUrl}
-                  alt={gallery.title}
-                  className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                />
-              ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center">
-                  <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+  return (
+    <AnimatedLayout title="My Galleries">
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Create New Gallery Card */}
+          <Card className="group hover:shadow-lg transition-all duration-200">
+            <div className="aspect-[4/3] relative">
+              <Button
+                variant="ghost"
+                className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4 hover:bg-muted/50"
+                onClick={() => createGalleryMutation.mutate()}
+                disabled={isCreatingGallery || createGalleryMutation.isPending}
+              >
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  {isCreatingGallery ? (
+                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                  ) : (
+                    <Plus className="h-8 w-8 text-primary" />
+                  )}
                 </div>
-              )}
+                <div className="text-center">
+                  <h3 className="font-semibold text-lg">
+                    {isCreatingGallery ? "Creating Gallery..." : "Create New Gallery"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isCreatingGallery ? "Please wait..." : "Start a new collection of images"}
+                  </p>
+                </div>
+              </Button>
             </div>
-            <CardContent className="pt-4">
-              <h3 className="text-lg font-semibold line-clamp-1 mb-1">
-                {gallery.title}
-              </h3>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Grid className="w-4 h-4" />
-                <span>{gallery.imageCount} images</span>
-                <span className="mx-2">•</span>
-                <Clock className="w-4 h-4" />
-                <span>{formatRelativeDate(gallery.createdAt)}</span>
-                {activeTab === "my-projects" && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-destructive hover:text-destructive-foreground"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setGalleryToDelete(gallery);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Gallery</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{gallery.title}"? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel onClick={(e) => {
-                          e.stopPropagation();
-                          setGalleryToDelete(null);
-                        }}>
-                          Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction
+          </Card>
+
+          {/* Gallery Cards */}
+          {galleries.map((gallery) => (
+            <Card
+              key={gallery.id}
+              className="group hover:shadow-lg transition-all duration-200"
+            >
+              <div
+                className="cursor-pointer"
+                onClick={() => setLocation(`/g/${gallery.slug}`)}
+              >
+                <div className="aspect-[4/3] relative overflow-hidden">
+                  {gallery.thumbnailUrl ? (
+                    <img
+                      src={gallery.thumbnailUrl}
+                      alt={gallery.title}
+                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+                    </div>
+                  )}
+                </div>
+                <CardContent className="pt-4">
+                  <h3 className="text-lg font-semibold line-clamp-1 mb-1">
+                    {gallery.title}
+                  </h3>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Grid className="w-4 h-4" />
+                    <span>{gallery.imageCount} images</span>
+                    <span className="mx-2">•</span>
+                    <Clock className="w-4 h-4" />
+                    <span>{formatRelativeDate(gallery.createdAt)}</span>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-destructive hover:text-destructive-foreground"
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteGalleryMutation.mutate(gallery);
+                            setGalleryToDelete(gallery);
                           }}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Gallery</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{gallery.title}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={(e) => {
+                            e.stopPropagation();
+                            setGalleryToDelete(null);
+                          }}>
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteGalleryMutation.mutate(gallery);
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </CardContent>
               </div>
-            </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {galleries.length === 0 && !isLoading && (
+          <div className="text-center mt-12">
+            <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
+            <h3 className="mt-4 text-lg font-medium text-foreground">No galleries yet</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Create your first gallery to start organizing your images.
+            </p>
           </div>
-        </Card>
-      ))}
-    </div>
-  );
-
-  const renderEmptyState = (type: "projects" | "recent") => (
-    <div className="text-center mt-12">
-      <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
-      <h3 className="mt-4 text-lg font-medium text-foreground">
-        {type === "projects" ? "No galleries yet" : "No recently viewed galleries"}
-      </h3>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {type === "projects"
-          ? "Create your first gallery to start organizing your images."
-          : "Galleries you view will appear here for quick access."}
-      </p>
-    </div>
-  );
-
-  return (
-    <AnimatedLayout>
-      <HeaderBar title="My Galleries" />
-      <div className="p-6">
-        <Tabs defaultValue="my-projects" onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="my-projects">My Projects</TabsTrigger>
-            <TabsTrigger value="recently-viewed">Recently Viewed</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="my-projects">
-            {isLoadingMyGalleries ? (
-              <div className="flex items-center justify-center min-h-[200px]">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : myGalleries.length > 0 ? (
-              renderGalleryGrid(myGalleries)
-            ) : (
-              renderEmptyState("projects")
-            )}
-          </TabsContent>
-
-          <TabsContent value="recently-viewed">
-            {isLoadingRecent ? (
-              <div className="flex items-center justify-center min-h-[200px]">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : recentGalleries.length > 0 ? (
-              renderGalleryGrid(recentGalleries)
-            ) : (
-              renderEmptyState("recent")
-            )}
-          </TabsContent>
-        </Tabs>
+        )}
       </div>
     </AnimatedLayout>
   );

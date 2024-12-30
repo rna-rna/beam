@@ -44,21 +44,9 @@ export const comments = pgTable('comments', {
   userIdIdx: index('comments_user_id_idx').on(table.userId)
 }));
 
-// New table for tracking recently viewed galleries
-export const recentlyViewedGalleries = pgTable('recently_viewed_galleries', {
-  id: serial('id').primaryKey(),
-  userId: text('user_id').notNull(), // Clerk user ID
-  galleryId: integer('gallery_id').references(() => galleries.id).notNull(),
-  viewedAt: timestamp('viewed_at').defaultNow().notNull()
-}, (table) => ({
-  userGalleryIdx: index('recently_viewed_user_gallery_idx').on(table.userId, table.galleryId),
-  viewedAtIdx: index('recently_viewed_viewed_at_idx').on(table.viewedAt)
-}));
-
 // Define relationships
 export const galleriesRelations = relations(galleries, ({ many }) => ({
-  images: many(images),
-  recentlyViewed: many(recentlyViewedGalleries)
+  images: many(images)
 }));
 
 export const imagesRelations = relations(images, ({ one, many }) => ({
@@ -76,13 +64,6 @@ export const commentsRelations = relations(comments, ({ one }) => ({
   })
 }));
 
-export const recentlyViewedGalleriesRelations = relations(recentlyViewedGalleries, ({ one }) => ({
-  gallery: one(galleries, {
-    fields: [recentlyViewedGalleries.galleryId],
-    references: [galleries.id]
-  })
-}));
-
 // Create schemas for validation
 export const insertGallerySchema = createInsertSchema(galleries);
 export const selectGallerySchema = createSelectSchema(galleries);
@@ -90,8 +71,6 @@ export const insertImageSchema = createInsertSchema(images);
 export const selectImageSchema = createSelectSchema(images);
 export const insertCommentSchema = createInsertSchema(comments);
 export const selectCommentSchema = createSelectSchema(comments);
-export const insertRecentlyViewedSchema = createInsertSchema(recentlyViewedGalleries);
-export const selectRecentlyViewedSchema = createSelectSchema(recentlyViewedGalleries);
 
 // Export types
 export type Gallery = typeof galleries.$inferSelect;
@@ -100,5 +79,3 @@ export type Image = typeof images.$inferSelect;
 export type NewImage = typeof images.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
-export type RecentlyViewedGallery = typeof recentlyViewedGalleries.$inferSelect;
-export type NewRecentlyViewedGallery = typeof recentlyViewedGalleries.$inferInsert;
