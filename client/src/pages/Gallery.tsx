@@ -196,13 +196,14 @@ export default function Gallery({
   };
 
   // Event Handlers
-  const handleImageClick = (index: number) => {
+  const handleImageClick = useCallback((index: number) => {
     if (selectMode) return;
     setSelectedImageIndex(index);
-  };
+  }, [selectMode]);
 
-  const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleImageComment = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if (!isCommentPlacementMode) return;
+    event.stopPropagation();
 
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
@@ -210,7 +211,7 @@ export default function Gallery({
 
     setNewCommentPos({ x, y });
     setIsCommentModalOpen(true);
-  };
+  }, [isCommentPlacementMode]);
 
   // Masonry Layout Configuration
   const breakpointCols = useMemo(
@@ -220,9 +221,9 @@ export default function Gallery({
       1920: Math.max(1, Math.floor(5 * (100 / scale))),
       1536: Math.max(1, Math.floor(4 * (100 / scale))),
       1024: Math.max(1, Math.floor(3 * (100 / scale))),
-      768: Math.max(1, Math.min(5, Math.floor(3 * (100 / scale)))),
-      640: Math.max(1, Math.min(5, Math.floor(2 * (100 / scale)))),
-      480: Math.max(1, Math.min(5, Math.floor(2 * (100 / scale)))),
+      768: Math.max(1, Math.floor(3 * (100 / scale))),
+      640: Math.max(1, Math.floor(2 * (100 / scale))),
+      480: Math.max(1, Math.floor(2 * (100 / scale))),
     }),
     [scale]
   );
@@ -285,6 +286,7 @@ export default function Gallery({
               size="icon"
               className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 toggleStarMutation.mutate(image.id);
               }}
@@ -365,6 +367,7 @@ export default function Gallery({
                   size="icon"
                   className="absolute left-4 z-50 hover:bg-background/80"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     setSelectedImageIndex(prev =>
                       prev <= 0 ? gallery.images!.length - 1 : prev - 1
@@ -380,6 +383,7 @@ export default function Gallery({
                   size="icon"
                   className="absolute right-4 z-50 hover:bg-background/80"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     setSelectedImageIndex(prev =>
                       prev >= gallery.images!.length - 1 ? 0 : prev + 1
@@ -408,16 +412,16 @@ export default function Gallery({
 
                   {/* Comment Bubbles */}
                   <AnimatePresence>
-                  {comments.map((comment) => (
-                    <CommentBubble
-                      key={comment.id}
-                      x={comment.xPosition}
-                      y={comment.yPosition}
-                      content={comment.content}
-                      author={comment.author}
-                      imageId={selectedImage.id}
-                    />
-                  ))}
+                    {comments.map((comment) => (
+                      <CommentBubble
+                        key={comment.id}
+                        x={comment.xPosition}
+                        y={comment.yPosition}
+                        content={comment.content}
+                        author={comment.author}
+                        imageId={selectedImage.id}
+                      />
+                    ))}
                   </AnimatePresence>
 
                   {/* New Comment Bubble */}
@@ -437,7 +441,7 @@ export default function Gallery({
 
                 {/* Image Tools */}
                 <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background/80 to-transparent">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-4">
                       {/* Star Button */}
                       <Button
@@ -445,6 +449,7 @@ export default function Gallery({
                         size="icon"
                         className="hover:bg-background/20"
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
                           toggleStarMutation.mutate(selectedImage.id);
                         }}
@@ -464,6 +469,7 @@ export default function Gallery({
                           isCommentPlacementMode && "bg-accent text-accent-foreground"
                         )}
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
                           setIsCommentPlacementMode(!isCommentPlacementMode);
                         }}
@@ -485,6 +491,7 @@ export default function Gallery({
                       size="icon"
                       className="hover:bg-background/20"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         window.open(selectedImage.url, '_blank');
                       }}
