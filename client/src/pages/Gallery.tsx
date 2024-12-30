@@ -952,7 +952,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       style={{        
         position: draggedItemIndex === index ? "absolute" : "relative",
         top: draggedItemIndex === index ? dragPosition?.y : "auto",
-        left: draggedItemIndex === index ? dragPosition?.x : "auto",
+        left: draggedItemIndex === index ? dragPosition?.x: "auto",
       }}
       drag={isReorderMode}
       dragMomentum={false}
@@ -1077,14 +1077,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <>
+        <div className="flex items-center justify-between w-full">
           <InlineEdit
             value={gallery.title}
             onSave={handleTitleUpdate}
             className="text-2xl font-bold"
           />
           {renderGalleryControls()}
-        </>
+        </div>
       );
     }
   }, [gallery, onHeaderActionsChange, handleTitleUpdate, renderGalleryControls]);
@@ -1204,16 +1204,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center">
-            <InlineEdit
-              value={gallery.title}
-              onSave={handleTitleUpdate}
-              className="text-2xl font-bold"
-            />
-          </div>
-          <div className="flex space-x-2">
-            {renderGalleryControls()}
-          </div>
+          <InlineEdit
+            value={gallery.title}
+            onSave={handleTitleUpdate}
+            className="text-2xl font-bold"
+          />
+          {renderGalleryControls()}
         </div>
       );
     }
