@@ -11,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { 
   Share2, 
   ChevronDown, 
@@ -90,21 +89,14 @@ export function Layout({
                 </Button>
 
                 {/* Grid View Toggle */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={toggleGridView}
-                      className={isMasonry ? "" : "bg-accent"}
-                    >
-                      <GridIcon className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Toggle Grid View
-                  </TooltipContent>
-                </Tooltip>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleGridView}
+                  className={isMasonry ? "" : "bg-accent"}
+                >
+                  <GridIcon className="h-4 w-4" />
+                </Button>
 
                 {/* Filters Dropdown */}
                 <DropdownMenu>
