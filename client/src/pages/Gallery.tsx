@@ -51,9 +51,17 @@ interface GalleryProps {
   slug?: string;
   title: string;
   onHeaderActionsChange?: (actions: React.ReactNode) => void;
+  selectMode: boolean;
+  setSelectMode: (mode: boolean) => void;
 }
 
-export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
+export default function Gallery({ 
+  slug: propSlug, 
+  title, 
+  onHeaderActionsChange,
+  selectMode,
+  setSelectMode
+}: GalleryProps) {
   // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
@@ -79,7 +87,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [showMobileView, setShowMobileView] = useState(false);
   const [mobileViewIndex, setMobileViewIndex] = useState(-1);
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
-  const [selectMode, setSelectMode] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
   const [isMasonry, setIsMasonry] = useState(true);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
@@ -1013,10 +1020,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       <div className="relative min-h-screen bg-background" {...getRootProps()}>
         <input {...getInputProps()} />
         {isDragActive && !selectMode && (
-          <div className="absolute inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center">
-            <div className="bg-background p-8 rounded-lg shadow-lg text-center">
-              <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">Drop images to add to gallery</h3>
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+            <div className="text-center">
+              <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-medium">Drop images to upload</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Supported formats: JPG, PNG, GIF, WEBP
+              </p>
             </div>
           </div>
         )}
