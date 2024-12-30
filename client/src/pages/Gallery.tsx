@@ -72,6 +72,28 @@ import { useUser } from '@clerk/clerk-react';
 import { InlineEdit } from "@/components/InlineEdit";
 import { cn } from "@/utils/cn";
 
+// Create ref-forwarding wrappers for Lucide icons
+const FilterIconWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof Filter>>(
+  (props, ref) => <Filter ref={ref} {...props} />
+);
+FilterIconWithRef.displayName = 'FilterIconWithRef';
+
+const MoreVerticalWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof MoreVertical>>(
+  (props, ref) => <MoreVertical ref={ref} {...props} />
+);
+MoreVerticalWithRef.displayName = 'MoreVerticalWithRef';
+
+const SunWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof Sun>>(
+  (props, ref) => <Sun ref={ref} {...props} />
+);
+SunWithRef.displayName = 'SunWithRef';
+
+const MoonWithRef = forwardRef<SVGSVGElement, React.ComponentPropsWithoutRef<typeof Moon>>(
+  (props, ref) => <Moon ref={ref} {...props} />
+);
+MoonWithRef.displayName = 'MoonWithRef';
+
+
 // Create forwarded ref components for all dropdown triggers
 const DropdownTriggerButton = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof Button>>(
   (props, ref) => {
@@ -98,6 +120,7 @@ const FilterDropdownTrigger = forwardRef<HTMLButtonElement, React.ComponentProps
   }
 );
 FilterDropdownTrigger.displayName = 'FilterDropdownTrigger';
+
 
 
 interface GalleryProps {
@@ -768,7 +791,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         <TooltipProvider>
           {/* Share Button */}
           <Tooltip>
-            {console.log('Rendering Share Tooltip')}
             <TooltipTrigger asChild>
               <Button
                 size="icon"
@@ -784,17 +806,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
           {/* Actions Menu */}
           <Tooltip>
-            {console.log('Rendering Actions Menu Tooltip')}
             <TooltipTrigger asChild>
               <DropdownMenu>
-                {console.log('Rendering Actions DropdownMenu')}
                 <DropdownMenuTrigger asChild>
                   <DropdownTriggerButton
                     size="icon"
                     variant="ghost"
                     className="h-9 w-9 text-white hover:bg-white/10"
                   >
-                    <MoreVertical className="h-4 w-4" />
+                    <MoreVerticalWithRef className="h-4 w-4" />
                   </DropdownTriggerButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -815,10 +835,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
           {/* Filter Menu */}
           <Tooltip>
-            {console.log('Rendering Filter Menu Tooltip')}
             <TooltipTrigger asChild>
               <DropdownMenu>
-                {console.log('Rendering Filter DropdownMenu')}
                 <DropdownMenuTrigger asChild>
                   <FilterDropdownTrigger
                     className={
@@ -827,7 +845,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                         : ''
                     }
                   >
-                    <Filter className="h-4 w-4" />
+                    <FilterIconWithRef className="h-4 w-4" />
                   </FilterDropdownTrigger>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -918,8 +936,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Delete Selected ({selectedImages.length})</TooltipContent>
-                </Tooltip>
+                  <TooltipContent>Delete Selected ({selectedImages.length})</TooltipContent>                </Tooltip>
               )}
             </>
           )}
@@ -950,9 +967,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 onClick={toggleDarkMode}
               >
                 {isDarkMode ? (
-                  <Moon className="h-4 w-4" />
+                  <MoonWithRef className="h-4 w-4" />
                 ) : (
-                  <Sun className="h-4w-4" />
+                  <SunWithRef className="h-4 w-4" />
                 )}
               </Button>
             </TooltipTrigger>
