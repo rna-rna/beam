@@ -76,9 +76,9 @@ const DropdownMenuItem = forwardRef<
   HTMLDivElement,
   React.ComponentPropsWithoutRef<typeof DropdownMenu.Item>
 >(({ children, ...props }, ref) => (
-  <DropdownMenu.Item {...props} asChild>
-    <div ref={ref}>{children}</div>
-  </DropdownMenu.Item>
+  <OriginalDropdownMenuItem {...props}>
+    {children}
+  </OriginalDropdownMenuItem>
 ));
 DropdownMenuItem.displayName = "DropdownMenuItem";
 
@@ -954,11 +954,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
-      initial={{ opacity: 0, y: 20}}
+      initial={{ opacity: 0, y: 20 }}
       animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
-        scale: draggedItemIndex === index ? 1.1 : 1,
+        scale: draggedItemIndex === index ? 1.1: 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
         transition: {
           duration: draggedItemIndex === index ? 0 : 0.25,
@@ -1093,13 +1093,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <div className="flex items-center justify-between w-full">
-          <InlineEdit
-            value={gallery.title}
-            onSave={handleTitleUpdate}
-            className="text-2xl font-bold"
-          />
-          {renderGalleryControls()}
+        <div className="px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <InlineEdit
+              value={gallery.title}
+              onSave={handleTitleUpdate}
+              className="text-2xl font-bold"
+            />
+            {renderGalleryControls()}
+          </div>
         </div>
       );
     }
@@ -1219,13 +1221,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (onHeaderActionsChange && gallery) {
       onHeaderActionsChange(
-        <div className="flex items-center justify-between w-full">
-          <InlineEdit
-            value={gallery.title}
-            onSave={handleTitleUpdate}
-            className="text-2xl font-bold"
-          />
-          {renderGalleryControls()}
+        <div className="px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <InlineEdit
+              value={gallery.title}
+              onSave={handleTitleUpdate}
+              className="text-2xl font-bold"
+            />
+            {renderGalleryControls()}
+          </div>
         </div>
       );
     }
