@@ -1,29 +1,23 @@
 import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo, forwardRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Upload,
   Grid,
   LayoutGrid,
-  Filter,
   MessageSquare,
   SquareDashedMousePointer,
-  Link,
   Download,
-  MoreVertical,
   Star,
   Trash2,
   CheckCircle,
   Loader2,
-  Moon,
-  Sun,
-  Share2,
-  AlertCircle,
-  ArrowUpDown,
+  MessageCircle,
   ChevronLeft,
   ChevronRight,
   Paintbrush,
-  MessageCircle
+  Lock,
+  AlertCircle
 } from "lucide-react";
 
 // UI Components
@@ -34,46 +28,24 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Switch as SwitchComponent } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Components
 import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { MobileGalleryView } from "@/components/MobileGalleryView";
-import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
+import type { Image, Gallery as GalleryType, Comment, Annotation } from "@/types/gallery";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { ShareModal } from "@/components/ShareModal";
-import { Lock } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
-import { InlineEdit } from "@/components/InlineEdit";
-import { cn } from "@/utils/cn";
-import { UserNav } from "@/components/UserNav";
 import { GalleryHeader } from "@/components/GalleryHeader";
-
 
 interface GalleryProps {
   slug?: string;
@@ -727,7 +699,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     // Add your dark mode logic here, e.g., toggle a class on the body element
   };
 
-
   const handleImageClick = (index: number) => {
     console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
 
@@ -791,15 +762,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   };
 
-  useEffect(() => {
-    if (onHeaderActionsChange && gallery) {
-      onHeaderActionsChange(
-        <div className="flex items-center gap-4">
-          {/*renderGalleryControls() removed */}
-        </div>
-      );
-    }
-  }, [gallery, onHeaderActionsChange]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -988,60 +950,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       </div>
     </motion.div>
   );
-
-  useEffect(() => {
-    if (onHeaderActionsChange && gallery) {
-      onHeaderActionsChange(
-        <div className="flex items-center gap-4">
-          {/*renderGalleryControls() removed */}
-        </div>
-      );
-    }
-  }, [gallery, onHeaderActionsChange]);
-
-  if (isPrivateGallery) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <Lock className="h-12 w-12 text-muted-foreground" />
-              <h1 className="text-2xl font-semibold">Private Gallery</h1>
-              <p className="text-muted-foreground">
-                This gallery is private and can only be accessed by its owner.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!gallery && isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!gallery) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle className="h-12 w-12 text-destructive" />
-              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
-              <p className="text-muted-foreground">
-                The gallery you're looking for doesn't exist or has been removed.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   const renderFloatingToolbar = useCallback(() => {
     if (!selectMode) return null;
