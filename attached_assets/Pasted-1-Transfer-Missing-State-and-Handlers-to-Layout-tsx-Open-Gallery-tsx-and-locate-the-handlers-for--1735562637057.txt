@@ -1,0 +1,115 @@
+1. Transfer Missing State and Handlers to Layout.tsx
+Open Gallery.tsx and locate the handlers for:
+
+toggleSelectMode (for tools)
+setIsOpenShareModal (for sharing)
+setIsMasonry (for grid view toggle)
+Copy the relevant states and handlers.
+
+From Gallery.tsx (Relevant State and Handlers):
+
+tsx
+Copy code
+const [selectMode, setSelectMode] = useState(false);
+const [isOpenShareModal, setIsOpenShareModal] = useState(false);
+const [isMasonry, setIsMasonry] = useState(true);
+
+const toggleSelectMode = () => {
+  setSelectMode(!selectMode);
+};
+
+const toggleGridView = () => {
+  setIsMasonry(!isMasonry);
+};
+
+const openShareModal = () => {
+  setIsOpenShareModal(true);
+};
+Paste into Layout.tsx (Inside Layout Component):
+
+tsx
+Copy code
+const [selectMode, setSelectMode] = useState(false);
+const [isOpenShareModal, setIsOpenShareModal] = useState(false);
+const [isMasonry, setIsMasonry] = useState(true);
+
+// Handlers
+const toggleSelectMode = () => {
+  setSelectMode(!selectMode);
+};
+
+const toggleGridView = () => {
+  setIsMasonry(!isMasonry);
+};
+
+const openShareModal = () => {
+  setIsOpenShareModal(true);
+};
+2. Attach Handlers to Buttons in Layout.tsx
+Connect these handlers to the existing buttons (Tools, Grid View, Share) in the layout.
+Update Layout.tsx (Attach Handlers to Buttons):
+
+tsx
+Copy code
+{isGalleryPage && gallery && (
+  <div className="flex items-center gap-6">
+    {/* Tools Button */}
+    <Button
+      variant="outline"
+      onClick={toggleSelectMode}
+      className={cn(selectMode && "bg-accent text-accent-foreground")}
+    >
+      <SquareDashedMousePointer className="mr-2 h-4 w-4" />
+      Tools
+    </Button>
+
+    {/* Grid View Toggle */}
+    <Button
+      variant="outline"
+      size="icon"
+      onClick={toggleGridView}
+      className={cn(!isMasonry && "bg-accent text-accent-foreground")}
+    >
+      <LayoutGrid className="h-4 w-4" />
+    </Button>
+
+    {/* Share Button */}
+    <Button
+      variant="default"
+      onClick={openShareModal}
+      className="gap-2"
+    >
+      <Share2 className="h-4 w-4" />
+      Share
+    </Button>
+  </div>
+)}
+3. Transfer Modal Rendering Logic for Share Modal
+In Gallery.tsx, the share modal (ShareModal) is directly handled.
+Transfer the modal rendering to Layout.tsx to ensure the modal opens when triggered.
+Copy from Gallery.tsx:
+
+tsx
+Copy code
+<ShareModal
+  open={isOpenShareModal}
+  onOpenChange={setIsOpenShareModal}
+  url={window.location.href}
+  onCopy={handleCopyLink}
+  isPublic={!isPrivateGallery}
+  onVisibilityChange={(checked) => toggleVisibilityMutation.mutate(checked)}
+/>
+Paste into Layout.tsx (Below Main Content Block):
+
+tsx
+Copy code
+{isOpenShareModal && (
+  <ShareModal
+    open={isOpenShareModal}
+    onOpenChange={setIsOpenShareModal}
+    url={window.location.href}
+    onCopy={handleCopyLink}
+    isPublic={gallery?.isPublic}
+    onVisibilityChange={(checked) => toggleVisibilityMutation.mutate(checked)}
+  />
+)}
