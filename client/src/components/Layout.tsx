@@ -18,7 +18,8 @@ import {
   Star,
   MessageSquare,
   GridIcon,
-  Filter
+  Filter,
+  LayoutGrid
 } from "lucide-react";
 
 interface LayoutProps {
@@ -26,10 +27,10 @@ interface LayoutProps {
   title?: string;
   onTitleChange?: (newTitle: string) => void;
   actions?: ReactNode;
-  // Gallery-specific props
   gallery?: {
     isPublic?: boolean;
     title: string;
+    imageCount?: number;
   };
   isDarkMode?: boolean;
   toggleDarkMode?: () => void;
@@ -39,6 +40,8 @@ interface LayoutProps {
   toggleGridView?: () => void;
   isMasonry?: boolean;
   selectMode?: boolean;
+  showStarredOnly?: boolean;
+  showWithComments?: boolean;
 }
 
 export function Layout({
@@ -54,7 +57,9 @@ export function Layout({
   onFilterSelect,
   toggleGridView,
   isMasonry,
-  selectMode
+  selectMode,
+  showStarredOnly,
+  showWithComments
 }: LayoutProps) {
   const [location] = useLocation();
   const isGalleryPage = location.startsWith('/g/');
@@ -95,7 +100,7 @@ export function Layout({
                   onClick={toggleGridView}
                   className={isMasonry ? "" : "bg-accent"}
                 >
-                  <GridIcon className="h-4 w-4" />
+                  <LayoutGrid className="h-4 w-4" />
                 </Button>
 
                 {/* Filters Dropdown */}
@@ -108,12 +113,18 @@ export function Layout({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => onFilterSelect?.('starred')}>
-                      <Star className="mr-2 h-4 w-4" />
+                    <DropdownMenuItem 
+                      onClick={() => onFilterSelect?.('starred')}
+                      className={showStarredOnly ? "bg-accent" : ""}
+                    >
+                      <Star className={`mr-2 h-4 w-4 ${showStarredOnly ? "fill-yellow-400 text-yellow-400" : ""}`} />
                       Starred
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onFilterSelect?.('comments')}>
-                      <MessageSquare className="mr-2 h-4 w-4" />
+                    <DropdownMenuItem 
+                      onClick={() => onFilterSelect?.('comments')}
+                      className={showWithComments ? "bg-accent" : ""}
+                    >
+                      <MessageSquare className={`mr-2 h-4 w-4 ${showWithComments ? "text-primary" : ""}`} />
                       With Comments
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
