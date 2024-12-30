@@ -357,7 +357,7 @@ export default function Dashboard() {
   return (
     <AnimatedLayout>
       <HeaderBar title="My Galleries" />
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
         <Tabs defaultValue="my-projects" onValueChange={setActiveTab}>
           <TabsList className="mb-6">
             <TabsTrigger value="my-projects">My Projects</TabsTrigger>
