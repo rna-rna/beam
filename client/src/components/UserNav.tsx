@@ -17,16 +17,6 @@ import {
   User as UserIcon
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { forwardRef } from "react";
-
-// Create a ref-forwarding wrapper for motion.div
-const MotionDropdownWrapper = forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof motion.div>
->((props, ref) => (
-  <motion.div ref={ref} {...props} />
-));
-MotionDropdownWrapper.displayName = 'MotionDropdownWrapper';
 
 export function UserNav() {
   const { user } = useUser();
@@ -70,7 +60,7 @@ export function UserNav() {
         forceMount
         asChild
       >
-        <MotionDropdownWrapper
+        <motion.div
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -5 }}
@@ -109,7 +99,7 @@ export function UserNav() {
             <LogOut className="mr-2 h-4 w-4" />
             Log out
           </DropdownMenuItem>
-        </MotionDropdownWrapper>
+        </motion.div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

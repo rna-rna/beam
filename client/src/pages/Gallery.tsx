@@ -5,19 +5,25 @@ import {
   Upload,
   Grid,
   LayoutGrid,
+  Filter,
   MessageSquare,
   SquareDashedMousePointer,
+  Link,
   Download,
+  MoreVertical,
   Star,
   Trash2,
   CheckCircle,
   Loader2,
-  MessageCircle,
+  Moon,
+  Sun,
+  Share2,
+  AlertCircle,
+  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   Paintbrush,
-  Lock,
-  AlertCircle
+  MessageCircle
 } from "lucide-react";
 
 // UI Components
@@ -28,29 +34,51 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Switch as SwitchComponent } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Components
 import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { MobileGalleryView } from "@/components/MobileGalleryView";
-import type { Image, Gallery as GalleryType, Comment, Annotation } from "@/types/gallery";
+import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { ShareModal } from "@/components/ShareModal";
+import { Lock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
-import { GalleryHeader } from "@/components/GalleryHeader";
 
 interface GalleryProps {
   slug?: string;
   title: string;
   onHeaderActionsChange?: (actions: React.ReactNode) => void;
+}
+
+interface ImageDimensions {
+  width: number;
+  height: number;
 }
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
@@ -95,10 +123,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const titleUpdateMutation = useMutation({
     mutationFn: async (newTitle: string) => {
       const token = await getToken();
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
       const res = await fetch(`/api/galleries/${slug}/title`, {
         method: 'PATCH',
         headers: {
@@ -108,12 +132,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           'Pragma': 'no-cache'
         },
         body: JSON.stringify({ title: newTitle }),
-        credentials: 'include'
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || 'Failed to update title');
+        throw new Error('Failed to update title');
       }
 
       return res.json();
@@ -152,7 +174,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       }
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to update title. Please try again.",
+        description: "Failed to update title. Please try again.",
         variant: "destructive",
       });
     },
@@ -188,18 +210,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       const res = await fetch(`/api/galleries/${slug}`, {
         headers,
+        cache: 'no-store',
         credentials: 'include'
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
         if (res.status === 403) {
           throw new Error('This gallery is private');
         }
         if (res.status === 404) {
           throw new Error('Gallery not found');
         }
-        throw new Error(errorText || 'Failed to fetch gallery');
+        throw new Error('Failed to fetch gallery');
       }
 
       return res.json();
@@ -466,7 +488,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           'Pragma': 'no-cache'
         },
         body: JSON.stringify({ isPublic: checked }),
-        credentials: 'include'
       });
 
       if (!res.ok) {
@@ -706,131 +727,170 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     // Add your dark mode logic here, e.g., toggle a class on the body element
   };
 
-  const handleImageClick = (index: number) => {
-    console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
-
-    if (isMobile) {
-      setMobileViewIndex(index);
-      setShowMobileView(true);
-      return;
-    }
-
-    setSelectedImageIndex(index);
-  };
-
-  const toggleGridView = () => {
-    setIsMasonry(!isMasonry);
-  };
-
-  const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
-    console.log('handleImageComment triggered'); // Debug log
-    if (!isCommentPlacementMode) return;
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-    console.log('Setting comment position:', { x, y }); // Debug log
-    setNewCommentPos({ x, y });
-    setIsCommentModalOpen(true);
-  };
-
-  const renderCommentDialog = () => {
-    if (!isCommentModalOpen) return null;
+  const renderGalleryControls = useCallback(() => {
+    if (!gallery) return null;
 
     return (
-      <CommentModal
-        isOpen={isCommentModalOpen}
-        position={newCommentPos}
-        onClose={() => {
-          setIsCommentModalOpen(false);
-          setNewCommentPos(null);
-          console.log('Comment modal closed'); // Debug log
-        }}
-        onSubmit={(content) => {
-          if (!user) {
-            console.log('User not authenticated, cannot submit comment'); // Debug log
-            return;
-          }
+      <div className="flex items-center gap-2 bg-black/90 p-2 rounded-lg">
+        <TooltipProvider>
+          {/* Share Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 text-white hover:bg-white/10"
+                onClick={() => setIsOpenShareModal(true)}
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Share Gallery</TooltipContent>
+          </Tooltip>
 
-          if (!selectedImage?.id || !newCommentPos) return;
+          {/* Filter Menu */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`h-9 w-9 text-white hover:bg-white/10 ${
+                      (showStarredOnly || showWithComments || showApproved)
+                        ? 'text-white/90'
+                        : ''
+                    }`}
+                  >
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      onClick={() => setShowStarredOnly(!showStarredOnly)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className="flex items-center flex-1">
+                        <Star className={`w-4 h-4 mr-2 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                        Show Starred
+                      </div>
+                      {showStarredOnly && <CheckCircle className="w-4 h-4 text-primary" />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setShowWithComments(!showWithComments)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className="flex items-center flex-1">
+                        <MessageSquare className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
+                        Has Comments
+                      </div>
+                      {showWithComments && <CheckCircle className="w-4 h-4 text-primary" />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setShowApproved(!showApproved)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className="flex items-center flex-1">
+                        <CheckCircle className={`w-4 h-4 mr-2 ${showApproved ? 'text-primary' : ''}`} />
+                        Approved
+                      </div>
+                      {showApproved && <CheckCircle className="w-4 h-4 text-primary" />}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setShowStarredOnly(false);
+                      setShowWithComments(false);
+                      setShowApproved(false);
+                    }}
+                    className="text-sm text-muted-foreground"
+                  >
+                    Reset Filters
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent>Filter Images</TooltipContent>
+          </Tooltip>
 
-          createCommentMutation.mutate({
-            imageId: selectedImage.id,
-            content,
-            x: newCommentPos.x,
-            y: newCommentPos.y,
-          });
-
-          setIsCommentModalOpen(false);
-          setNewCommentPos(null);
-        }}
-      />
-    );
-  };
-
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!gallery?.images?.length) return;
-      if (e.key === "ArrowLeft") {
-        setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
-      } else if (e.key === "ArrowRight") {
-        setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
-      } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
-        toggleStarMutation.mutate(selectedImage.id);
-      }
-    };
-
-    if (selectedImageIndex >= 0) {
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
-
-  if (isPrivateGallery) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <Lock className="h-12 w-12 text-muted-foreground" />
-              <h1 className="text-2xl font-semibold">Private Gallery</h1>
-              <p className="text-muted-foreground">
-                This gallery is private and can only be accessed by its owner.
-              </p>
+          {isUploading && (
+            <div className="flex items-center gap-4">
+              <Progress value={undefined} className="w-24" />
+              <span className="text-sm text-white/70">Uploading...</span>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+          )}
 
-  if (!gallery && isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+          {selectMode && (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`h-9 w-9 text-white hover:bg-white/10 ${
+                      isReorderMode ? "text-white/90" : ""
+                    }`}
+                    onClick={toggleReorderMode}
+                  >
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Reorder Images</TooltipContent>
+              </Tooltip>
 
-  if (!gallery) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle className="h-12 w-12 text-destructive" />
-              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
-              <p className="text-muted-foreground">
-                The gallery you're looking for doesn't exist or has been removed.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+              {selectedImages.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-white hover:bg-destructive/90"
+                      onClick={() => deleteImagesMutation.mutate(selectedImages)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete Selected ({selectedImages.length})</TooltipContent>
+                </Tooltip>
+              )}
+            </>
+          )}
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className={`h-9 w-9 text-white hover:bg-white/10 ${
+                  selectMode ? "text-white/90" : ""
+                }`}
+                onClick={toggleSelectMode}
+              >
+                <SquareDashedMousePointer className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     );
-  }
+  }, [
+    gallery,
+    isUploading,
+    selectMode,
+    isReorderMode,
+    selectedImages.length,
+    showStarredOnly,
+    showWithComments,
+    showApproved,
+    deleteImagesMutation,
+    toggleReorderMode,
+    toggleSelectMode,
+    setIsOpenShareModal
+  ]);
 
   const renderImage = (image: Image, index: number) => (
     <motion.div
@@ -841,8 +901,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{
+      initial={{ opacity: 0, y: 20}}      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
@@ -884,7 +943,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             src={image.url}
             alt=""
             className={`w-full h-auto object-cover rounded-lg ${
-              selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''            } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
+              selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
+            } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
             loading="lazy"
             draggable={false}
           />
@@ -930,8 +990,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             variant="secondary"
           >
             <MessageSquare className="w-3 h-3" />
-            {image.commentCount}
-          </Badge>
+            {image.commentCount}          </Badge>
         )}
 
         {/* Selection checkbox */}
@@ -958,144 +1017,552 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     </motion.div>
   );
 
-  const renderFloatingToolbar = useCallback(() => {
-    if (!selectMode) return null;
+  useEffect(() => {
+    if (selectedImageIndex >= 0) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (!gallery?.images?.length) return;
+        if (e.key === "ArrowLeft") {
+          setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+        } else if (e.key === "ArrowRight") {
+          setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+        } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
+          toggleStarMutation.mutate(selectedImage.id);
+        }
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
+
+  useEffect(() => {
+    const controls = renderGalleryControls();
+    onHeaderActionsChange?.(controls);
+  }, [onHeaderActionsChange, renderGalleryControls]);
+
+  if (isPrivateGallery) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Lock className="h-12 w-12 text-muted-foreground" />
+              <h1 className="text-2xl font-semibold">Private Gallery</h1>
+              <p className="text-muted-foreground">
+                This gallery is private and can only be accessed by its owner.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!gallery && isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!gallery) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
+              <p className="text-muted-foreground">
+                The gallery you're looking for doesn't exist or has been removed.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Modify the image click handler in the gallery grid
+  const handleImageClick = (index: number) => {
+    console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
+
+    if (isMobile) {
+      setMobileViewIndex(index);
+      setShowMobileView(true);
+      return;
+    }
+
+    setSelectedImageIndex(index);
+  };
+
+  // Add layout toggle handler
+  const toggleGridView = () => {
+    setIsMasonry(!isMasonry);
+  };
+
+  // Add comment position handler
+  const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
+    console.log('handleImageComment triggered'); // Debug log
+    if (!isCommentPlacementMode) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+    console.log('Setting comment position:', { x, y }); // Debug log
+    setNewCommentPos({ x, y });
+    setIsCommentModalOpen(true);
+  };
+
+  // Render comment dialog with debugging
+  const renderCommentDialog = () => {
+    if (!isCommentModalOpen) return null;
 
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 20 }}
-        className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 bg-white shadow-lg rounded-lg px-4 py-3 flex items-center gap-4"
-      >
-        <span className="text-sm font-medium">
-          {selectedImages.length} selected
-        </span>
-        <div className="flex items-center gap-2">
-          {selectedImages.length > 0 && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => deleteImagesMutation.mutate(selectedImages)}
-                className="gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadAll}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Download
-              </Button>
-            </>
-          )}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setSelectedImages([]);
-              setSelectMode(false);
-            }}
-          >
-            Done
-          </Button>
-        </div>
-      </motion.div>
+      <CommentModal
+        isOpen={isCommentModalOpen}
+        position={newCommentPos}
+        onClose={() => {
+          setIsCommentModalOpen(false);
+          setNewCommentPos(null);
+          console.log('Comment modal closed'); // Debug log
+        }}
+        onSubmit={(content) => {
+          if (!user) {
+            console.log('User not authenticated, cannot submit comment'); // Debug log
+            return;
+          }
+
+          if (!selectedImage?.id || !newCommentPos) return;
+
+          createCommentMutation.mutate({
+            imageId: selectedImage.id,
+            content,
+            x: newCommentPos.x,
+            y: newCommentPos.y,
+          });
+
+          setIsCommentModalOpen(false);
+          setNewCommentPos(null);
+        }}
+      />
     );
-  }, [selectMode, selectedImages.length, deleteImagesMutation, handleDownloadAll]);
+  };
 
   return (
-    <>
-      <GalleryHeader 
-        title={gallery?.title || 'Gallery'}
-        onTitleUpdate={handleTitleUpdate}
-        isDarkMode={isDarkMode}
-        toggleDarkMode={toggleDarkMode}
-        openShareModal={() => setIsOpenShareModal(true)}
-        toggleSelectMode={toggleSelectMode}
-        selectMode={selectMode}
-        showStarredOnly={showStarredOnly}
-        setShowStarredOnly={setShowStarredOnly}
-        showWithComments={showWithComments}
-        setShowWithComments={setShowWithComments}
-        setShowApproved={setShowApproved}
-      />
-
-      <div className="relative min-h-screen bg-background" {...getRootProps()}>
-        <input {...getInputProps()} />
-        {isDragActive && !selectMode && (
-          <div className="absolute inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center">
-            <div className="bg-background p-8 rounded-lg shadow-lg text-center">
-              <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">Drop images to add to gallery</h3>
-            </div>
+    <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
+      <input {...getInputProps()} />
+      {isDragActive && !selectMode && (
+        <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="text-center">
+            <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white">Drop images here</h3>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Mobile Gallery View */}
-        {showMobileView && (
+      <div className="px-4 md:px-6 lg:px-8 py-8">
+        <AnimatePresence mode="wait">
+          {isMasonry ? (
+            <motion.div
+              key="masonry"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Masonry
+                breakpointCols={breakpointCols}
+                className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
+                columnClassName="pl-4 bg-background"
+              >
+                {renderUploadPlaceholders()}
+                {gallery?.images
+                  .filter((image: Image) => {
+                    if (showStarredOnly && !image.starred) return false;
+                    if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                    if (showApproved && !image.approved) return false;
+                    return true;
+                  })
+                  .map((image: Image, index: number) => renderImage(image, index))}
+              </Masonry>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="grid"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="grid gap-4"
+              style={{
+                gridTemplateColumns: `repeat(${breakpointCols.default}, minmax(0, 1fr))`,
+              }}
+            >
+              {renderUploadPlaceholders()}
+              {gallery?.images
+                .filter((image: Image) => {
+                  if (showStarredOnly && !image.starred) return false;
+                  if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                  if (showApproved && !image.approved) return false;
+                  return true;
+                })
+                .map((image: Image, index: number) => renderImage(image, index))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {dragPosition && draggedItemIndex !== null && gallery?.images && (
+        <motion.div
+          className="fixed pointer-events-none z-50 ghost-image"
+          style={{
+            top: dragPosition.y,
+            left: dragPosition.x,
+            transform: "translate(-50%, -50%)",
+            width: '80px',
+            height: '80px'
+          }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{
+            opacity: 0.8,
+            scale: 1,
+            transition: {
+              type: "spring",
+              stiffness: 300,
+              damping: 25
+            }
+          }}
+          exit={{ opacity: 0, scale: 0.8 }}
+        >
+          <img
+            src={gallery.images[draggedItemIndex].url}
+            alt="Dragged Preview"
+            className="w-full h-full object-cover rounded-lg shadow-lg"
+          />
+        </motion.div>
+      )}
+
+      {/* Grid View Toggle Button */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={toggleGridView}
+          className={`h-10 w-10 rounded-full bg-background/95 backdrop-blur-sm hover:bg-background shadow-lg text-white ${
+            !isMasonry ? "bg-primary/20" : ""
+          }`}
+          title={`Switch to ${isMasonry ? "grid" : "masonry"} view`}
+        >
+          {isMasonry ? (
+            <Grid className="h-5 w-5" />
+          ) : (
+            <LayoutGrid className="h5 w-5" />
+          )}
+        </Button>
+      </div>
+
+      {/* Scale Slider */}
+      <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
+        <Slider
+          value={[scale]}
+          onValueChange={([value]) => setScale(value)}
+          min={25}
+          max={150}
+          step={5}
+          className="w-[150px] touch-none select-none"
+          aria-label="Adjust gallery scale"
+        />
+      </div>
+
+      {/* Render mobile view when on mobile devices */}
+      <AnimatePresence>
+        {isMobile && showMobileView && gallery?.images && (
           <MobileGalleryView
             images={gallery.images}
             initialIndex={mobileViewIndex}
-            onClose={() => setShowMobileView(false)}
-            onStarImage={(imageId) => toggleStarMutation.mutate(imageId)}
+            onClose={() => {
+              setShowMobileView(false);
+              setMobileViewIndex(-1);
+            }}
           />
         )}
+      </AnimatePresence>
 
-        {/* Masonry Grid */}
-        <div className="p-4 md:p-6 lg:p-8">
-          {Object.keys(uploadProgress).length > 0 && (
-            <div className="mb-8 space-y-4">
-              {Object.entries(uploadProgress).map(([filename, progress]) => (
-                <div key={filename} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>{filename}</span>
-                    <span>{Math.round(progress)}%</span>
-                  </div>
-                  <Progress value={progress} />
-                </div>
-              ))}
+      {/* Only render the desktop lightbox when not on mobile */}
+      {!isMobile && selectedImageIndex >= 0 && (
+        <Dialog open={selectedImageIndex >= 0} onOpenChange={(open) => {
+          if (!open) {
+            setSelectedImageIndex(-1);
+            setNewCommentPos(null);
+          }
+        }}>
+          <DialogContent
+            className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
+            aria-describedby="gallery-lightbox-description"
+          >
+            <div id="gallery-lightbox-description" className="sr-only">
+              Image viewer with annotation and commenting capabilities
             </div>
-          )}
 
-          {gallery.images.length === 0 ? (
-            <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg">
-              <Upload className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No images yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Drag and drop images here or click to upload
-              </p>
-            </div>
-          ) : (
-            <Masonry
-              breakpointCols={breakpointCols}
-              className="flex gap-4"
-              columnClassName="flex flex-col gap-4"
+            {/* Filename display */}
+            {showFilename && selectedImage?.originalFilename && (
+              <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50 text-white">
+                {selectedImage.originalFilename}
+              </div>
+            )}
+
+            {/* Navigation buttons */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 text-white"
+              onClick={() => {
+                if (!gallery?.images?.length) return;
+                setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+              }}
             >
-              {gallery.images.map((image, index) => renderImage(image, index))}
-              {renderUploadPlaceholders()}
-            </Masonry>
-          )}
-        </div>
+              <ChevronLeft className="h-8 w-8" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 text-white"
+              onClick={() => {
+                if (!gallery?.images?.length) return;
+                setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+              }}
+            >
+              <ChevronRight className="h-8 w-8" />
+            </Button>
 
-        {/* Share Modal */}
-        <ShareModal
-          open={isOpenShareModal}
-          onOpenChange={setIsOpenShareModal}
-          url={window.location.href}
-          onCopy={handleCopyLink}
-          isPublic={!isPrivateGallery}
-          onVisibilityChange={(checked) => toggleVisibilityMutation.mutate(checked)}
+            {/* Controls */}
+            <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
+              {selectedImage && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleStarMutation.mutate(selectedImage.id);
+                  }}
+                >
+                  {selectedImage.starred ? (
+                    <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                  ) : (
+                    <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+                  )}
+                </Button>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
+                    isAnnotationMode ? "bg-primary/20" : ""
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsAnnotationMode(!isAnnotationMode);
+                    setIsCommentPlacementMode(false);
+                    setNewCommentPos(null);
+                  }}
+                  title="Toggle Drawing Mode"
+                >
+                  <Paintbrush
+                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                      isAnnotationMode ? "text-primary" : ""
+                    }`}
+                  />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
+                    isCommentPlacementMode ? "bg-primary/20" : ""
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCommentPlacementMode(!isCommentPlacementMode);
+                    setIsAnnotationMode(false);
+                    setNewCommentPos(null);
+                  }}
+                  title="Add Comment"
+                >
+                  <MessageCircle
+                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                      isCommentPlacementMode ? "text-primary" : ""
+                    }`}
+                  />
+                </Button>
+              </div>
+            </div>
+
+            {/* Settings toggles */}
+            <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
+              <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
+                <div className="flex items-center gap-2">
+                  <SwitchComponent
+                    checked={showAnnotations}
+                    onCheckedChange={setShowAnnotations}
+                    className="data-[state=checked]:bg-primary h-5 w-9"
+                  />
+                  <span className="text-xs font-medium text-white">Comments</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <SwitchComponent
+                    checked={showFilename}
+                    onCheckedChange={setShowFilename}
+                    className="data-[state=checked]:bg-primary h-5 w-9"
+                  />
+                  <span className="text-xs font-medium text-white">Filename</span>
+                </div>
+              </div>
+            </div>
+
+            {selectedImage && (
+              <motion.div
+                className={`relative w-full h-full flex items-center justify-center ${
+                  isCommentPlacementMode ? "cursor-crosshair" : ""
+                }`}
+                {...(isMobile && {
+                  drag: "x" as const,
+                  dragConstraints: { left: 0, right: 0 },
+                  dragElastic: 1,
+                  onDragEnd: (e: any, info: PanInfo) => {
+                    const swipe = Math.abs(info.offset.x) * info.velocity.x;
+                    if (swipe < -100 && selectedImageIndex < gallery!.images.length - 1) {
+                      setSelectedImageIndex(selectedImageIndex + 1);
+                    } else if (swipe > 100 && selectedImageIndex > 0) {
+                      setSelectedImageIndex(selectedImageIndex - 1);
+                    }
+                  }
+                })}
+                onClick={(e) => {
+                  if (!isCommentPlacementMode) return;
+                  const target = e.currentTarget;
+                  const rect = target.getBoundingClientRect();
+                  const x = ((e.clientX - rect.left) / rect.width) * 100;
+                  const y = ((e.clientY - rect.top) / rect.height) * 100;
+                  setNewCommentPos({ x, y });
+                  setIsCommentPlacementMode(false);
+                }}
+              >
+                <div className="relative">
+                  {/* Image with onLoad handler */}
+                  <motion.img
+                    src={selectedImage.url}
+                    alt=""
+                    className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    onLoad={(e) => {
+                      const img = e.currentTarget;
+                      setImageDimensions({
+                        width: img.clientWidth,
+                        height: img.clientHeight,
+                      });
+                    }}
+                  />
+
+                  {/* Drawing Canvas */}
+                  <div className="absolute inset-0">
+                    <DrawingCanvas
+                      width={imageDimensions?.width || 800}
+                      height={imageDimensions?.height || 600}
+                      imageWidth={imageDimensions?.width}
+                      imageHeight={imageDimensions?.height}
+                      isDrawing={isAnnotationMode}
+                      savedPaths={showAnnotations ? annotations : []}
+                      onSavePath={async (pathData) => {
+                        if (!selectedImage) return;
+                        try {
+                          await fetch(`/api/images/${selectedImage.id}/annotations`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ pathData }),
+                          });
+
+                          queryClient.invalidateQueries({
+                            queryKey: [`/api/images/${selectedImage.id}/annotations`],
+                          });
+
+                          toast({
+                            title: "Annotation saved",
+                            description: "Your drawing has been saved successfully.",
+                          });
+                        } catch (error) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to save annotation. Please try again.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* Comments */}
+                  {showAnnotations &&
+                    comments.map((comment) => (
+                      <CommentBubble
+                        key={comment.id}
+                        x={comment.xPosition}
+                        y={comment.yPosition}
+                        content={comment.content}
+                        author={comment.author}
+                      />
+                    ))}
+
+                  {/* New comment placement */}
+                  {newCommentPos && selectedImage && (
+                    <CommentBubble
+                      x={newCommentPos.x}
+                      y={newCommentPos.y}
+                      isNew={true}
+                      imageId={selectedImage.id}
+                      onSubmit={() => {
+                        setNewCommentPos(null);
+                        queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+                      }}
+                    />
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* New comment placement outside lightbox */}
+      {newCommentPos && selectedImage && (
+        <CommentBubble
+          x={newCommentPos.x}
+          y={newCommentPos.y}
+          isNew={true}
+          imageId={selectedImage.id}
+          onSubmit={() => {
+            setNewCommentPos(null);
+            queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+          }}
         />
-
-        {/* Floating Tools Toolbar */}
-        {renderFloatingToolbar()}
-      </div>
-    </>
+      )}
+      {/* Share Modal */}
+      {isOpenShareModal && (
+        <ShareModal
+          isOpen={isOpenShareModal}
+          onClose={() => setIsOpenShareModal(false)}
+          isPublic={gallery?.isPublic || false}
+          onVisibilityChange={(checked) => toggleVisibilityMutation.mutate(checked)}
+          galleryUrl={window.location.href}
+        />
+      )}
+      {renderCommentDialog()}
+    </div>
   );
 }
