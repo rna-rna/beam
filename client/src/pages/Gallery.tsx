@@ -14,9 +14,6 @@ import {
   MessageCircle,
   ChevronLeft,
   ChevronRight,
-  Paintbrush,
-  Lock,
-  AlertCircle
 } from "lucide-react";
 
 // UI Components
@@ -29,18 +26,12 @@ import { Switch as SwitchComponent } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
 
-// Components
 import { CommentBubble } from "@/components/CommentBubble";
-import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
-import { MobileGalleryView } from "@/components/MobileGalleryView";
-import type { Image, Gallery as GalleryType, Comment, Annotation } from "@/types/gallery";
+import type { Image, Gallery as GalleryType, Comment } from "@/types/gallery";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
 import { motion } from "framer-motion";
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
-import { ShareModal } from "@/components/ShareModal";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
@@ -95,10 +86,6 @@ export default function Gallery({
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
-  const [showApproved, setShowApproved] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isOpenShareModal, setIsOpenShareModal] = useState(false);
-  const [isPrivateGallery, setIsPrivateGallery] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
 
   // Queries
@@ -140,6 +127,84 @@ export default function Gallery({
     },
   });
 
+  // Define onDrop before useDropzone
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (selectedImageIndex >= 0 || selectMode) return;
+
+    setIsUploading(true);
+    const token = await getToken();
+    const formData = new FormData();
+
+    const progressMap: UploadProgress = {};
+    acceptedFiles.forEach((file) => {
+      formData.append("images", file);
+      progressMap[file.name] = 0;
+    });
+    setUploadProgress(progressMap);
+
+    try {
+      const res = await fetch(`/api/galleries/${slug}/images`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to upload images');
+      }
+
+      await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      toast({
+        title: "Success",
+        description: "Images uploaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload images",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress({});
+    }
+  }, [selectedImageIndex, selectMode, slug, getToken, queryClient, toast]);
+
+  // Dropzone configuration
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+    },
+    disabled: isUploading || selectMode,
+    noClick: true,
+    noKeyboard: true
+  });
+
+  const renderUploadPlaceholders = () => {
+    if (!Object.keys(uploadProgress).length) return null;
+
+    return Object.entries(uploadProgress).map(([filename, progress]) => (
+      <motion.div
+        key={filename}
+        initial={{ opacity: 0.5, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.3 }}
+        className="mb-4 bg-card rounded-lg overflow-hidden relative"
+      >
+        <div className="w-full aspect-[4/3] flex items-center justify-center">
+          <span className="text-muted-foreground">{filename}</span>
+        </div>
+        <div className="absolute inset-0 flex flex-col justify-end">
+          <Progress value={progress} className="h-1" />
+        </div>
+      </motion.div>
+    ));
+  };
+
   // Handlers
   const handleImageClick = (index: number) => {
     if (selectMode) return;
@@ -156,17 +221,6 @@ export default function Gallery({
     setNewCommentPos({ x, y });
     setIsCommentModalOpen(true);
   };
-
-  // Dropzone configuration
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
-    },
-    disabled: isUploading || selectMode,
-    noClick: true,
-    noKeyboard: true
-  });
 
   // Layout calculations
   const breakpointCols = useMemo(
@@ -284,72 +338,6 @@ export default function Gallery({
       </div>
     </motion.div>
   );
-
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (selectedImageIndex >= 0 || selectMode) return;
-
-    setIsUploading(true);
-    const token = await getToken();
-    const formData = new FormData();
-
-    const progressMap: UploadProgress = {};
-    acceptedFiles.forEach((file) => {
-      formData.append("images", file);
-      progressMap[file.name] = 0;
-    });
-    setUploadProgress(progressMap);
-
-    try {
-      const res = await fetch(`/api/galleries/${slug}/images`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to upload images');
-      }
-
-      await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      toast({
-        title: "Success",
-        description: "Images uploaded successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to upload images",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-      setUploadProgress({});
-    }
-  }, [selectedImageIndex, selectMode, slug, getToken, queryClient, toast]);
-
-  const renderUploadPlaceholders = () => {
-    if (!Object.keys(uploadProgress).length) return null;
-
-    return Object.entries(uploadProgress).map(([filename, progress]) => (
-      <motion.div
-        key={filename}
-        initial={{ opacity: 0.5, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.3 }}
-        className="mb-4 bg-card rounded-lg overflow-hidden relative"
-      >
-        <div className="w-full aspect-[4/3] flex items-center justify-center">
-          <span className="text-muted-foreground">{filename}</span>
-        </div>
-        <div className="absolute inset-0 flex flex-col justify-end">
-          <Progress value={progress} className="h-1" />
-        </div>
-      </motion.div>
-    ));
-  };
 
   return (
     <>
@@ -524,9 +512,6 @@ export default function Gallery({
             className="w-32"
           />
         </div>
-
-        {/* Comment Dialog */}
-        {/*renderCommentDialog()*/} {/* Commented out as it's not defined in the provided code */}
       </div>
     </>
   );
