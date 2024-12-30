@@ -955,8 +955,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{
+      initial={{ opacity: 0, y: 20 }}animate={{
         opacity: preloadedImages.has(image.id) ? 1 :0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1: 1,
