@@ -799,7 +799,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Found recently viewed galleries:', recentlyViewed.length);
 
-      // If no recently viewed galleries, return empty array instead of 404
+      // If no recently viewed galleries, return empty array
       if (!recentlyViewed.length) {
         return res.json([]);
       }
@@ -812,7 +812,7 @@ export function registerRoutes(app: Express): Server {
           );
           return {
             galleryId: rv.gallery.id,
-            count: parseInt(result.rows[0].count.toString(), 10)
+            count: parseInt(result.rows[0]?.count || '0', 10)
           };
         })
       );
