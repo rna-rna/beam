@@ -12,7 +12,14 @@ interface LayoutProps {
   toggleSelectMode?: () => void;
 }
 
-export function Layout({ children, title, onTitleChange, actions }: LayoutProps) {
+export function Layout({ 
+  children, 
+  title, 
+  onTitleChange, 
+  actions,
+  selectMode,
+  toggleSelectMode 
+}: LayoutProps) {
   return (
     <div className="min-h-screen w-full bg-background">
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">

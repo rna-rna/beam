@@ -648,8 +648,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     setSelectMode(!selectMode);
   };
 
-  const handleImageSelect = (imageId: number, event: React.MouseEvent) => {
-    event.stopPropagation();
+  const handleImageSelect = (imageId: number, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
     if (!selectMode) return;
 
     setSelectedImages(prev =>
@@ -657,6 +659,54 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         ? prev.filter(id => id !== imageId)
         : [...prev, imageId]
     );
+  };
+
+  const handleDeleteSelected = () => {
+    deleteImagesMutation.mutate(selectedImages);
+  };
+
+  const handleDownloadSelected = async () => {
+    try {
+      toast({
+        title: "Preparing Download",
+        description: "Creating ZIP file of selected images...",
+      });
+
+      const zip = new JSZip();
+      const imagePromises = selectedImages.map(async (imageId) => {
+        const image = gallery!.images.find(img => img.id === imageId);
+        if (!image) return;
+        
+        const response = await fetch(image.url);
+        const blob = await response.blob();
+        const extension = image.url.split('.').pop() || 'jpg';
+        zip.file(`image-${imageId}.${extension}`, blob);
+      });
+
+      await Promise.all(imagePromises);
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `selected-images.zip`);
+
+      toast({
+        title: "Success",
+        description: "Selected images downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download images. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditSelected = () => {
+    // Implement edit functionality for selected images
+    toast({
+      title: "Coming Soon",
+      description: "Batch editing will be available soon!",
+    });
   };
 
   const toggleReorderMode = () => {
@@ -1563,6 +1613,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         />
       )}
       {renderCommentDialog()}
+      
+      <AnimatePresence>
+        {selectMode && selectedImages.length > 0 && (
+          <FloatingToolbar
+            selectedCount={selectedImages.length}
+            onDeselect={() => {
+              setSelectedImages([]);
+              setSelectMode(false);
+            }}
+            onDelete={handleDeleteSelected}
+            onDownload={handleDownloadSelected}
+            onEdit={handleEditSelected}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
