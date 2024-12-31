@@ -64,6 +64,7 @@ import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { ShareModal } from "@/components/ShareModal";
+import { FloatingToolbar } from "@/components/FloatingToolbar";
 import { Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
