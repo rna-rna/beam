@@ -2,18 +2,15 @@ import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import {
-  Upload,
-  Grid,
-  Filter,
-  MessageSquare,
-  SquareDashedMousePointer,
   Download,
+  Filter,
   Share2,
   Trash2,
   CheckCircle,
   Loader2,
   Paintbrush,
   Star,
+  SquareDashedMousePointer,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
@@ -408,7 +405,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </TooltipTrigger>
             <TooltipContent>Share Gallery</TooltipContent>
           </Tooltip>
-          {selectMode && (
+          {selectMode && selectedImages.length > 0 && (
             <>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -447,14 +444,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        {/* Gallery Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">{gallery?.title || 'Loading...'}</h1>
-            {renderGalleryControls()}
-          </div>
-        </div>
-
         {/* Gallery Grid */}
         <div className="relative">
           <Masonry
