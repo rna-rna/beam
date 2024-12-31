@@ -8,6 +8,8 @@ interface LayoutProps {
   title?: string;
   onTitleChange?: (newTitle: string) => void;
   actions?: ReactNode;
+  selectMode?: boolean;
+  toggleSelectMode?: () => void;
 }
 
 export function Layout({ children, title, onTitleChange, actions }: LayoutProps) {
@@ -26,6 +28,11 @@ export function Layout({ children, title, onTitleChange, actions }: LayoutProps)
           )}
 
           <div className="ml-auto flex items-center gap-4">
+            {toggleSelectMode && (
+              <Button variant="outline" onClick={toggleSelectMode}>
+                {selectMode ? "Deselect" : "Tools"}
+              </Button>
+            )}
             {actions}
             <ThemeToggle />
             <UserNav />
