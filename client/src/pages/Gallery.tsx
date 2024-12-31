@@ -12,6 +12,10 @@ import {
   Star,
   SquareDashedMousePointer,
   MessageSquare,
+  ArrowUpDown,
+  Grid,
+  LayoutGrid,
+  Lock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
@@ -37,6 +41,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
+import { MobileGalleryView } from "@/components/MobileGalleryView";
+import { ShareModal } from "@/components/ShareModal";
 import { useToast } from "@/hooks/use-toast";
 import type { Image, Gallery as GalleryType } from "@/types/gallery";
 
@@ -44,6 +53,11 @@ interface GalleryProps {
   slug?: string;
   title: string;
   onHeaderActionsChange?: (actions: React.ReactNode) => void;
+}
+
+interface ImageDimensions {
+  width: number;
+  height: number;
 }
 
 function FloatingToolbar({
@@ -116,7 +130,6 @@ function FloatingToolbar({
 }
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
-  // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
   const { toast } = useToast();
@@ -131,6 +144,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [showWithComments, setShowWithComments] = useState(false);
   const [showApproved, setShowApproved] = useState(false);
+  const [isMasonry, setIsMasonry] = useState(true);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [scale, setScale] = useState(100);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
+  const [isOpenShareModal, setIsOpenShareModal] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
 
   // Query galleries
   const { data: gallery, isLoading } = useQuery<GalleryType>({
@@ -175,7 +194,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const deleteImagesMutation = useMutation({
     mutationFn: async (imageIds: number[]) => {
       const token = await getToken();
-      const response = await fetch(`/api/galleries/${slug}/images/delete`, {
+      const res = await fetch(`/api/galleries/${slug}/images/delete`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -183,8 +202,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         },
         body: JSON.stringify({ imageIds })
       });
-      if (!response.ok) throw new Error('Failed to delete images');
-      return response.json();
+      if (!res.ok) throw new Error('Failed to delete images');
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
@@ -204,7 +223,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   });
 
-  // Handlers
   const handleImageSelect = (imageId: number, event: React.MouseEvent) => {
     event.stopPropagation();
     if (!selectMode) return;
@@ -273,17 +291,45 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     setSelectMode(!selectMode);
   };
 
+  const toggleReorderMode = () => {
+    setIsReorderMode(!isReorderMode);
+    if (selectMode) {
+      setSelectedImages([]);
+      setSelectMode(false);
+    }
+  };
+
+  const handleLayoutToggle = () => {
+    setIsMasonry(!isMasonry);
+  };
+
+  const handleImageClick = (index: number) => {
+    if (selectMode) return;
+    setSelectedImageIndex(index);
+  };
+
   // Render function for individual images
   const renderImage = (image: Image) => (
     <div
       key={image.id}
       className={`relative group ${selectMode ? 'cursor-pointer' : ''}`}
-      onClick={(e) => handleImageSelect(image.id, e)}
+      onClick={(e) => {
+        if (selectMode) {
+          handleImageSelect(image.id, e);
+        } else {
+          handleImageClick(gallery?.images.findIndex(img => img.id === image.id) ?? -1);
+        }
+      }}
     >
       <img
         src={image.url}
-        alt={image.title || ''}
+        alt=""
         className="w-full h-auto rounded-lg"
+        style={{
+          transform: `scale(${scale / 100})`,
+          transformOrigin: 'center',
+          transition: 'transform 0.2s ease-out'
+        }}
       />
       {selectMode && (
         <div className={`absolute inset-0 bg-primary/10 transition-colors ${
@@ -326,7 +372,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <TooltipContent>{selectMode ? "Exit Selection" : "Select Images"}</TooltipContent>
           </Tooltip>
 
-          {/* Filter Menu */}
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenu>
@@ -393,37 +438,92 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </TooltipTrigger>
             <TooltipContent>Filter Images</TooltipContent>
           </Tooltip>
+
+          {/* Layout Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={handleLayoutToggle}
+              >
+                {isMasonry ? (
+                  <Grid className="h-4 w-4" />
+                ) : (
+                  <LayoutGrid className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isMasonry ? "Switch to Grid Layout" : "Switch to Masonry Layout"}
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Share Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-9 w-9 text-white hover:bg-white/10"
-                onClick={() => {/* Handle share modal */}}
+                className="h-9 w-9"
+                onClick={() => setIsOpenShareModal(true)}
               >
                 <Share2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Share Gallery</TooltipContent>
           </Tooltip>
-          {selectMode && selectedImages.length > 0 && (
+
+          {selectMode && (
             <>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-white hover:bg-destructive/90"
-                    onClick={() => deleteImagesMutation.mutate(selectedImages)}
+                    variant="ghost"
+                    className={`h-9 w-9 ${isReorderMode ? 'bg-primary text-primary-foreground' : ''}`}
+                    onClick={toggleReorderMode}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <ArrowUpDown className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Delete Selected ({selectedImages.length})</TooltipContent>
+                <TooltipContent>Reorder Images</TooltipContent>
               </Tooltip>
+
+              {selectedImages.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => deleteImagesMutation.mutate(selectedImages)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete Selected ({selectedImages.length})</TooltipContent>
+                </Tooltip>
+              )}
             </>
           )}
         </TooltipProvider>
+
+        {/* Grid Size Slider */}
+        {!selectMode && (
+          <div className="ml-4 flex items-center gap-2">
+            <Slider
+              value={[scale]}
+              onValueChange={([value]) => setScale(value)}
+              min={50}
+              max={150}
+              step={10}
+              className="w-[100px]"
+            />
+            <span className="text-sm">Scale: {scale}%</span>
+          </div>
+        )}
       </div>
     );
   }, [
@@ -434,7 +534,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     showWithComments,
     showApproved,
     toggleSelectMode,
-    deleteImagesMutation
+    deleteImagesMutation,
+    isMasonry,
+    isReorderMode,
+    scale,
+    setIsOpenShareModal
   ]);
 
   // Update header actions
@@ -447,26 +551,39 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       <div className="container mx-auto px-4 py-8">
         {/* Gallery Grid */}
         <div className="relative">
-          <Masonry
-            breakpointCols={{
-              default: 4,
-              1536: 3,
-              1024: 3,
-              768: 2,
-              640: 1,
-            }}
-            className="flex -ml-4 w-[calc(100%+1rem)]"
-            columnClassName="pl-4"
-          >
-            {gallery?.images
-              ?.filter(image => {
-                if (showStarredOnly && !image.starred) return false;
-                if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
-                if (showApproved && !image.approved) return false;
-                return true;
-              })
-              .map(image => renderImage(image))}
-          </Masonry>
+          {isMasonry ? (
+            <Masonry
+              breakpointCols={{
+                default: 4,
+                1536: 3,
+                1024: 3,
+                768: 2,
+                640: 1,
+              }}
+              className="flex -ml-4 w-[calc(100%+1rem)]"
+              columnClassName="pl-4"
+            >
+              {gallery?.images
+                ?.filter(image => {
+                  if (showStarredOnly && !image.starred) return false;
+                  if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                  if (showApproved && !image.approved) return false;
+                  return true;
+                })
+                .map(image => renderImage(image))}
+            </Masonry>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {gallery?.images
+                ?.filter(image => {
+                  if (showStarredOnly && !image.starred) return false;
+                  if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                  if (showApproved && !image.approved) return false;
+                  return true;
+                })
+                .map(image => renderImage(image))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -485,6 +602,23 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           />
         )}
       </AnimatePresence>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isOpenShareModal}
+        onClose={() => setIsOpenShareModal(false)}
+        galleryId={gallery?.id}
+        slug={slug}
+      />
+
+      {/* Lightbox */}
+      {selectedImageIndex !== -1 && gallery?.images && (
+        <MobileGalleryView
+          images={gallery.images}
+          initialIndex={selectedImageIndex}
+          onClose={() => setSelectedImageIndex(-1)}
+        />
+      )}
     </div>
   );
 }
