@@ -11,6 +11,7 @@ import {
   Paintbrush,
   Star,
   SquareDashedMousePointer,
+  MessageSquare,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
