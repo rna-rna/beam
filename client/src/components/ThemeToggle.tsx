@@ -7,7 +7,7 @@ export function ThemeToggle() {
 
   return (
     <Button
-      variant="outline"
+      variant="ghost"
       size="icon"
       onClick={toggleTheme}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
