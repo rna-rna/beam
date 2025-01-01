@@ -36,8 +36,17 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
       if (!res.ok) throw new Error('Upload failed');
 
       const data = await res.json();
-      setLocation(`/gallery/${data.slug}`);
-      onUpload(acceptedFiles);
+      if (data?.slug) {
+        setLocation(`/gallery/${data.slug}`);
+        onUpload(acceptedFiles);
+      } else {
+        console.error("Gallery slug missing from response", data);
+        toast({
+          title: "Error",
+          description: "Failed to load gallery. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
