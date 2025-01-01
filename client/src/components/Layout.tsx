@@ -4,6 +4,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserNav } from "@/components/UserNav";
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface LayoutProps {
   children: ReactNode;
@@ -42,7 +43,7 @@ export function Layout({
               <Button 
                 variant="outline" 
                 onClick={toggleSelectMode}
-                className={cn("", isDark ? "hover:bg-gray-800" : "hover:bg-gray-200")}
+                className={cn("transition-colors", isDark ? "text-white hover:bg-gray-800" : "hover:bg-gray-200")}
               >
                 {selectMode ? "Deselect" : "Tools"}
               </Button>
