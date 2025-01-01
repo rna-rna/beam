@@ -90,18 +90,24 @@ interface ImageDimensions {
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
   const params = useParams();
-  let slug = propSlug || params?.slug;
-  
-  // Ensure slug is a string
-  if (typeof slug !== 'string') {
-    console.error("Invalid gallery slug type:", typeof slug);
-    slug = String(slug); // Convert to string if possible
-  }
-  
-  if (!slug) {
-    console.error("Invalid gallery slug:", slug);
+  const slug = propSlug || params?.slug;
+
+  if (!slug || typeof slug !== 'string') {
+    console.error("Invalid or missing slug:", slug);
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
+              <p className="text-muted-foreground">Unable to load gallery. The URL may be invalid.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4 text-center">
