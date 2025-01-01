@@ -919,7 +919,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 }`}
                 onClick={toggleSelectMode}
               >
-                <SquareDashedMousePointer className="h-4 w-4" />
+                <SquareDashedMousePointer className={cn("h-4 w-4", isDark ? "text-white" : "text-black")} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
