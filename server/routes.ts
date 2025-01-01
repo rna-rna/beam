@@ -525,9 +525,11 @@ export function registerRoutes(app: Express): Server {
         'Expires': '0'
       });
 
+      const { slug } = req.params;
+      
       // Find the gallery first
       const gallery = await db.query.galleries.findFirst({
-        where: eq(galleries.slug, req.params.slug),
+        where: eq(galleries.slug, slug),
       });
 
       if (!gallery) {
@@ -535,11 +537,13 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Allow access if gallery is:
-      // 1. A guest upload
+      // 1. A guest upload (userId starts with 'guest-')
       // 2. Public
       // 3. User is authenticated and owns the gallery
+      const isGuestGallery = gallery.userId.startsWith('guest-');
       const isOwner = req.auth?.userId === gallery.userId;
-      if (!gallery.guestUpload && !gallery.isPublic && !isOwner) {
+      
+      if (!isGuestGallery && !gallery.isPublic && !isOwner) {
         return res.status(403).json({
           message: 'This gallery is private',
           isPrivate: true,
