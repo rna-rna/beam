@@ -813,11 +813,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       <div className="flex items-center flex-1">
                         <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-gray-800")} />
                         Show Starred
-                        <kbd className="ml-auto inline-flex h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100">
-                          <ArrowBigUp className="h-3 w-3" />
-                          <span>+</span>
-                          <span>S</span>
-                        </kbd>
+                        <div className="ml-auto inline-flex items-center gap-1">
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            <ArrowBigUp className="h-3 w-3" />
+                          </kbd>
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            S
+                          </kbd>
+                        </div>
                       </div>
                       {showStarredOnly && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
                     </DropdownMenuItem>
@@ -828,11 +831,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       <div className="flex items-center flex-1">
                         <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-gray-800")} />
                         Show Comments
-                        <kbd className="ml-auto inline-flex h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100">
-                          <ArrowBigUp className="h-3 w-3" />
-                          <span>+</span>
-                          <span>C</span>
-                        </kbd>
+                        <div className="ml-auto inline-flex items-center gap-1">
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            <ArrowBigUp className="h-3 w-3" />
+                          </kbd>
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            C
+                          </kbd>
+                        </div>
                       </div>
                       {showWithComments && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
                     </DropdownMenuItem>
@@ -847,11 +853,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   >
                     <div className="flex items-center flex-1">
                       Reset Filters
-                      <kbd className="ml-auto inline-flex h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100">
-                        <ArrowBigUp className="h-3 w-3" />
-                        <span>+</span>
-                        <span>R</span>
-                      </kbd>
+                      <div className="ml-auto inline-flex items-center gap-1">
+                        <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                          <ArrowBigUp className="h-3 w-3" />
+                        </kbd>
+                        <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                          R
+                        </kbd>
+                      </div>
                     </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
