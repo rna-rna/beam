@@ -813,6 +813,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       <div className="flex items-center flex-1">
                         <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-gray-800")} />
                         Show Starred
+                        <kbd className="ml-auto inline-flex h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100">
+                          <span className="text-xs">⇧</span>S
+                        </kbd>
                       </div>
                       {showStarredOnly && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
                     </DropdownMenuItem>
@@ -823,6 +826,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       <div className="flex items-center flex-1">
                         <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-gray-800")} />
                         Has Comments
+                        <kbd className="ml-auto inline-flex h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100">
+                          <span className="text-xs">⇧</span>C
+                        </kbd>
                       </div>
                       {showWithComments && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
                     </DropdownMenuItem>
@@ -1041,6 +1047,23 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       </div>
     </motion.div>
   );
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.shiftKey) {
+        if (e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          setShowStarredOnly(prev => !prev);
+        } else if (e.key.toLowerCase() === 'c') {
+          e.preventDefault();
+          setShowWithComments(prev => !prev);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   useEffect(() => {
     if (selectedImageIndex >= 0) {
