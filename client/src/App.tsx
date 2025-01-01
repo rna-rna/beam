@@ -175,7 +175,7 @@ function AppContent() {
         </ProtectedRoute>
       </Route>
 
-      <Route path="/g/:slug">
+      <Route path={["/g/:slug", "/gallery/:slug"]}>
         {(params) => (
           <Layout
             title={gallery?.title || "Loading Gallery..."}
