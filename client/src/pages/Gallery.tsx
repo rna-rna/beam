@@ -789,22 +789,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     return (
       <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
         <TooltipProvider>
-          {/* Share Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
-                variant="ghost"
-                onClick={() => setIsOpenShareModal(true)}
-              >
-                <Share className={cn("h-4 w-4", isDark ? "text-white" : "text-gray-800")} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Share Gallery</TooltipContent>
-          </Tooltip>
-
+        
           {/* Filter Menu */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -884,6 +869,24 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </>
           )}
 
+
+          {/* Share Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                variant="ghost"
+                onClick={() => setIsOpenShareModal(true)}
+              >
+                <Share className={cn("h-4 w-4", isDark ? "text-white" : "text-gray-800")} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Share Gallery</TooltipContent>
+          </Tooltip>
+
+          
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
