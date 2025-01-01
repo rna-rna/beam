@@ -149,11 +149,13 @@ function AppContent() {
           <Layout
             title={gallery?.title || "Loading Gallery..."}
             actions={headerActions}
+            onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
           >
             <Gallery
               slug={params.slug}
               onHeaderActionsChange={setHeaderActions}
               title={gallery?.title || "Loading Gallery..."}
+              onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
             />
           </Layout>
         )}

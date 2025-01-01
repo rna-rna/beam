@@ -34,7 +34,11 @@ export function Layout({
               className="text-xl font-semibold"
             />
           ) : (
-            <h1 className="text-xl font-semibold">{title}</h1>
+            <InlineEdit
+              value={title}
+              onSave={onTitleChange!}
+              className="text-xl font-semibold"
+            />
           )}
 
           <div className="ml-auto flex items-center gap-4">
