@@ -13,12 +13,12 @@ export default function Home() {
     Number(sessionStorage.getItem("guestGalleryCount")) || 0
   );
 
-  const handleGuestUpload = (files: File[]) => {
+  const handleGuestUpload = async (files: File[]) => {
     if (guestGalleryCount >= 1) {
       window.location.href = "/sign-up";
       return;
     }
-    console.log("Uploading guest gallery...");
+    console.log("Uploading guest gallery with guestUpload flag...");
     setGuestGalleryCount(1);
     sessionStorage.setItem("guestGalleryCount", "1");
   };
