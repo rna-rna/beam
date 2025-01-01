@@ -120,7 +120,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
-  const [showApproved, setShowApproved] = useState(false);
+  
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
@@ -836,24 +836,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       </div>
                       {showWithComments && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setShowApproved(!showApproved)}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <div className="flex items-center flex-1">
-                        <CheckCircle className={`w-4 h-4 mr-2 ${showApproved ? 'text-primary' : ''}`} />
-                        Approved
-                      </div>
-                      {showApproved && <CheckCircle className="w-4 h-4 text-primary" />}
-                    </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => {
                       setShowStarredOnly(false);
                       setShowWithComments(false);
-                      setShowApproved(false);
-                    }}
+                      }}
                     className="flex items-center gap-2 cursor-pointer"
                   >
                     <div className="flex items-center flex-1">
@@ -1247,7 +1236,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   .filter((image: Image) => {
                     if (showStarredOnly && !image.starred) return false;
                     if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
-                    if (showApproved && !image.approved) return false;
                     return true;
                   })
                   .map((image: Image, index: number) => renderImage(image, index))}
