@@ -119,7 +119,7 @@ export function registerRoutes(app: Express): Server {
       console.log('Creating gallery:', {
         title,
         userId: userId || 'guest',
-        isGuestUpload
+        guest_upload: isGuestUpload
       });
 
       // Create gallery
@@ -127,7 +127,7 @@ export function registerRoutes(app: Express): Server {
         slug: generateSlug(),
         title,
         userId: userId || 'guest',
-        guestUpload: isGuestUpload,
+        guest_upload: isGuestUpload,
         createdAt: new Date()
       }).returning();
 
@@ -541,7 +541,7 @@ export function registerRoutes(app: Express): Server {
       const isOwner = req.auth?.userId === gallery.userId;
       
       // Guest uploads are always accessible
-      if (gallery.guestUpload) {
+      if (gallery.guest_upload) {
         const galleryImages = await db.query.images.findMany({
           where: eq(images.galleryId, gallery.id),
           orderBy: (images, { asc }) => [
