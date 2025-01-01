@@ -916,7 +916,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     selectedImages.length,
     showStarredOnly,
     showWithComments,
-    showApproved,
     deleteImagesMutation,
     toggleReorderMode,
     toggleSelectMode,
