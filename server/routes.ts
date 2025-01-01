@@ -606,7 +606,6 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Only require authentication if the gallery is not a guest upload
       const image = await db.query.images.findFirst({
         where: eq(images.id, imageId),
         with: {
@@ -618,8 +617,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Image not found' });
       }
 
-      if (!image.gallery.guestUpload && !req.auth?.userId) {
-        return res.status(401).json({ message: 'Authentication required for non-guest galleries' });
+      // Require authentication for commenting
+      if (!req.auth?.userId) {
+        return res.status(401).json({ message: 'Authentication required for commenting' });
       }
 
       const token = req.headers.authorization?.split(" ")[1];
