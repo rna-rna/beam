@@ -677,7 +677,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const imagePromises = selectedImages.map(async (imageId) => {
         const image = gallery!.images.find(img => img.id === imageId);
         if (!image) return;
-        
+
         const response = await fetch(image.url);
         const blob = await response.blob();
         const extension = image.url.split('.').pop() || 'jpg';
@@ -952,7 +952,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
-      initial={{ opacity: 0, y: 20}}      animate={{
+      initial={{ opacity: 0, y: 20}}      
+      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
@@ -976,7 +977,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
     >
       <div
-        className={`relative bg-card rounded-lg overflow-hidden transform transition-all ${
+        className={`relative bg-background rounded-lg overflow-hidden transform transition-all ${
           !isReorderMode ? 'hover:scale-[1.02] cursor-pointer' : ''
         } ${selectMode ? 'hover:scale-100' : ''} ${
           isReorderMode ? 'border-2 border-dashed border-gray-200 border-opacity-50' : ''
@@ -1011,7 +1012,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <Button
               variant="secondary"
               size="icon"
-              className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
+              className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleStarMutation.mutate(image.id);
@@ -1067,6 +1068,93 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       </div>
     </motion.div>
   );
+
+  // Add this to the main gallery container
+  return (
+    <div {...getRootProps()} className="min-h-screen bg-background text-foreground p-4 sm:p-8">
+      <Masonry
+        breakpointCols={breakpointCols}
+        className="flex gap-4"
+        columnClassName="flex flex-col gap-4"
+      >
+        {renderUploadPlaceholders()}
+        {gallery?.images
+          .filter((image: Image) => {
+            if (showStarredOnly && !image.starred) return false;
+            if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+            if (showApproved && !image.approved) return false;
+            return true;
+          })
+          .map((image: Image, index: number) => renderImage(image, index))}
+      </Masonry>
+    </div>
+  );
+
+  const handleImageClick = (index: number) => {
+    console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
+
+    if (isMobile) {
+      setMobileViewIndex(index);
+      setShowMobileView(true);
+      return;
+    }
+
+    setSelectedImageIndex(index);
+  };
+
+  // Add layout toggle handler
+  const toggleGridView = () => {
+    setIsMasonry(!isMasonry);
+  };
+
+  // Add comment position handler
+  const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
+    console.log('handleImageComment triggered'); // Debug log
+    if (!isCommentPlacementMode) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+    console.log('Setting comment position:', { x, y }); // Debug log
+    setNewCommentPos({ x, y });
+    setIsCommentModalOpen(true);
+  };
+
+  // Render comment dialog with debugging
+  const renderCommentDialog = () => {
+    if (!isCommentModalOpen) return null;
+
+    return (
+      <CommentModal
+        isOpen={isCommentModalOpen}
+        position={newCommentPos}
+        onClose={() => {
+          setIsCommentModalOpen(false);
+          setNewCommentPos(null);
+          console.log('Comment modal closed'); // Debug log
+        }}
+        onSubmit={(content) => {
+          if (!user) {
+            console.log('User not authenticated, cannot submit comment'); // Debug log
+            return;
+          }
+
+          if (!selectedImage?.id || !newCommentPos) return;
+
+          createCommentMutation.mutate({
+            imageId: selectedImage.id,
+            content,
+            x: newCommentPos.x,
+            y: newCommentPos.y,
+          });
+
+          setIsCommentModalOpen(false);
+          setNewCommentPos(null);
+        }}
+      />
+    );
+  };
 
   useEffect(() => {
     if (selectedImageIndex >= 0) {
@@ -1135,75 +1223,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   }
 
-  // Modify the image click handler in the gallery grid
-  const handleImageClick = (index: number) => {
-    console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
-
-    if (isMobile) {
-      setMobileViewIndex(index);
-      setShowMobileView(true);
-      return;
-    }
-
-    setSelectedImageIndex(index);
-  };
-
-  // Add layout toggle handler
-  const toggleGridView = () => {
-    setIsMasonry(!isMasonry);
-  };
-
-  // Add comment position handler
-  const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
-    console.log('handleImageComment triggered'); // Debug log
-    if (!isCommentPlacementMode) return;
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-    console.log('Setting comment position:', { x, y }); // Debug log
-    setNewCommentPos({ x, y });
-    setIsCommentModalOpen(true);
-  };
-
-  // Render comment dialog with debugging
-  const renderCommentDialog = () => {
-    if (!isCommentModalOpen) return null;
-
-    return (
-      <CommentModal
-        isOpen={isCommentModalOpen}
-        position={newCommentPos}
-        onClose={() => {
-          setIsCommentModalOpen(false);
-          setNewCommentPos(null);
-          console.log('Comment modal closed'); // Debug log
-        }}
-        onSubmit={(content) => {
-          if (!user) {
-            console.log('User not authenticated, cannot submit comment'); // Debug log
-            return;
-          }
-
-          if (!selectedImage?.id || !newCommentPos) return;
-
-          createCommentMutation.mutate({
-            imageId: selectedImage.id,
-            content,
-            x: newCommentPos.x,
-            y: newCommentPos.y,
-          });
-
-          setIsCommentModalOpen(false);
-          setNewCommentPos(null);
-        }}
-      />
-    );
-  };
 
   return (
-    <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
+    <div className="min-h-screen relative bg-background text-foreground" {...getRootProps()}>
       <input {...getInputProps()} />
       {isDragActive && !selectMode && (
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -1614,7 +1636,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         />
       )}
       {renderCommentDialog()}
-      
+
       <AnimatePresence>
         {selectMode && selectedImages.length > 0 && (
           <FloatingToolbar
