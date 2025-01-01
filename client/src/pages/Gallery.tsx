@@ -92,8 +92,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const params = useParams();
   const slug = propSlug || params?.slug;
   
-  if (!slug) {
-    console.error("Gallery slug is missing");
+  if (typeof slug !== 'string' || !slug) {
+    console.error("Invalid gallery slug:", slug);
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md mx-4">
