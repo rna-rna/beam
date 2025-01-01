@@ -79,11 +79,7 @@ function AppContent() {
   };
 
   // Get gallery slug from URL if we're on a gallery page
-  const gallerySlug = (() => {
-    if (!location || typeof location !== 'string') return null;
-    const parts = location.split('/');
-    return location.startsWith('/g/') && parts.length >= 3 ? parts[2] : null;
-  })();
+  const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
 
   // Query for specific gallery when on gallery page
   const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
@@ -179,7 +175,7 @@ function AppContent() {
         </ProtectedRoute>
       </Route>
 
-      <Route path={["/g/:slug", "/gallery/:slug"]}>
+      <Route path="/g/:slug">
         {(params) => (
           <Layout
             title={gallery?.title || "Loading Gallery..."}

@@ -91,36 +91,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
-
-  if (!slug || typeof slug !== 'string') {
-    console.error("Invalid or missing slug:", slug);
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle className="h-12 w-12 text-destructive" />
-              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
-              <p className="text-muted-foreground">Unable to load gallery. The URL may be invalid.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-              <div className="flex flex-col items-center gap-4 text-center">
-                <AlertCircle className="h-12 w-12 text-destructive" />
-                <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
-                <p className="text-muted-foreground">
-                  Unable to load gallery. The URL may be invalid.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
