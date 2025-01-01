@@ -800,7 +800,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     variant="ghost"
                     className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
                   >
-                    <Filter className={cn("h-4 w-4", isDark ? "text-white" : "text-gray-800")} />
+                    <Filter className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -877,10 +877,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 size="icon"
                 variant="ghost"
                 className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
-                variant="ghost"
                 onClick={() => setIsOpenShareModal(true)}
               >
-                <Share className={cn("h-4 w-4", isDark ? "text-white" : "text-gray-800")} />
+                <Share className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Share Gallery</TooltipContent>
@@ -892,12 +891,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               <Button
                 size="icon"
                 variant="ghost"
-                className={`h-9 w-9 ${
-                  selectMode ? "text-white/90" : "text-black dark:text-white"
-                }`}
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
                 onClick={toggleSelectMode}
               >
-                <PencilRuler className={cn("h-4 w-4", isDark ? "text-white" : "text-black")} />
+                <PencilRuler className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
