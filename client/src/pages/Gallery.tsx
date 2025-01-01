@@ -827,7 +827,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     >
                       <div className="flex items-center flex-1">
                         <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-gray-800")} />
-                        Has Comments
+                        Show Comments
                         <kbd className="ml-auto inline-flex h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100">
                           <ArrowBigUp className="h-3 w-3" />
                           <span>+</span>
