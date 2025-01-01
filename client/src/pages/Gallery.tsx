@@ -18,12 +18,14 @@ import {
   Moon,
   Sun,
   Share2,
+  Share,
   AlertCircle,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   Paintbrush,
-  MessageCircle
+  MessageCircle,
+  PencilRuler
 } from "lucide-react";
 
 // UI Components
@@ -70,6 +72,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
+import { useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/utils";
 
 interface GalleryProps {
   slug?: string;
@@ -90,6 +94,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const { user } = useUser();
+  const { isDark } = useTheme();
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
@@ -782,23 +787,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (!gallery) return null;
 
     return (
-      <div className="flex items-center gap-2 bg-black/90 p-2 rounded-lg">
+      <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
         <TooltipProvider>
-          {/* Share Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-9 w-9 text-white hover:bg-white/10"
-                onClick={() => setIsOpenShareModal(true)}
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Share Gallery</TooltipContent>
-          </Tooltip>
-
+        
           {/* Filter Menu */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -807,11 +798,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   <Button
                     size="icon"
                     variant="ghost"
-                    className={`h-9 w-9 text-white hover:bg-white/10 ${
-                      (showStarredOnly || showWithComments || showApproved)
-                        ? 'text-white/90'
-                        : ''
-                    }`}
+                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
                   >
                     <Filter className="h-4 w-4" />
                   </Button>
@@ -824,20 +811,20 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       <div className="flex items-center flex-1">
-                        <Star className={`w-4 h-4 mr-2 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                        <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-gray-800")} />
                         Show Starred
                       </div>
-                      {showStarredOnly && <CheckCircle className="w-4 h-4 text-primary" />}
+                      {showStarredOnly && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => setShowWithComments(!showWithComments)}
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       <div className="flex items-center flex-1">
-                        <MessageSquare className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
+                        <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-gray-800")} />
                         Has Comments
                       </div>
-                      {showWithComments && <CheckCircle className="w-4 h-4 text-primary" />}
+                      {showWithComments && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => setShowApproved(!showApproved)}
@@ -870,57 +857,44 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           {isUploading && (
             <div className="flex items-center gap-4">
               <Progress value={undefined} className="w-24" />
-              <span className="text-sm text-white/70">Uploading...</span>
+              <span className={cn("text-sm", isDark ? "text-white/70" : "text-gray-600")}>Uploading...</span>
             </div>
           )}
 
           {selectMode && (
             <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className={`h-9 w-9 text-white hover:bg-white/10 ${
-                      isReorderMode ? "text-white/90" : ""
-                    }`}
-                    onClick={toggleReorderMode}
-                  >
-                    <ArrowUpDown className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Reorder Images</TooltipContent>
-              </Tooltip>
+              
 
-              {selectedImages.length > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 text-white hover:bg-destructive/90"
-                      onClick={() => deleteImagesMutation.mutate(selectedImages)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Delete Selected ({selectedImages.length})</TooltipContent>
-                </Tooltip>
-              )}
+              
             </>
           )}
 
+
+          {/* Share Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 size="icon"
                 variant="ghost"
-                className={`h-9 w-9 text-white hover:bg-white/10 ${
-                  selectMode ? "text-white/90" : ""
-                }`}
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                onClick={() => setIsOpenShareModal(true)}
+              >
+                <Share className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Share Gallery</TooltipContent>
+          </Tooltip>
+
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
                 onClick={toggleSelectMode}
               >
-                <SquareDashedMousePointer className="h-4 w-4" />
+                <PencilRuler className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
@@ -1203,7 +1177,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   return (
-    <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
+    <div className={cn("min-h-screen relative", isDark ? "bg-black/90" : "bg-background")} {...getRootProps()}>
       <input {...getInputProps()} />
       {isDragActive && !selectMode && (
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -1214,7 +1188,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         </div>
       )}
 
-      <div className="px-4 md:px-6 lg:px-8 py-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-4">
         <AnimatePresence mode="wait">
           {isMasonry ? (
             <motion.div
@@ -1626,6 +1600,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             onDelete={handleDeleteSelected}
             onDownload={handleDownloadSelected}
             onEdit={handleEditSelected}
+            onReorder={() => setIsReorderMode(!isReorderMode)}
           />
         )}
       </AnimatePresence>

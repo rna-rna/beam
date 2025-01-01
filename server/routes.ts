@@ -439,13 +439,18 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Gallery not found' });
       }
 
-      // Delete the gallery and its associated images
+      // Delete the gallery and all associated records
       await db.transaction(async (tx) => {
-        // Delete all images in the gallery first
+        // Delete recently viewed records first
+        await tx.execute(
+          sql`DELETE FROM recently_viewed_galleries WHERE gallery_id = ${gallery.id}`
+        );
+        
+        // Delete all images in the gallery
         await tx.delete(images)
           .where(eq(images.galleryId, gallery.id));
 
-        // Then delete the gallery itself
+        // Finally delete the gallery itself
         await tx.delete(galleries)
           .where(eq(galleries.id, gallery.id));
       });

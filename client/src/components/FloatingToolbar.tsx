@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Trash2, Download, Paintbrush } from "lucide-react";
+import { Trash2, Download, Paintbrush, ArrowUpDown } from "lucide-react";
 
 export function FloatingToolbar({
   selectedCount,
@@ -8,23 +8,29 @@ export function FloatingToolbar({
   onDelete,
   onDownload,
   onEdit,
+  onReorder,
 }: {
   selectedCount: number;
   onDeselect: () => void;
   onDelete: () => void;
   onDownload: () => void;
   onEdit: () => void;
+  onReorder: () => void;
 }) {
   return (
     <motion.div
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50"
+      className="fixed bottom-8 w-full flex justify-center z-50"
     >
       <div className="bg-background/80 backdrop-blur-lg border rounded-lg shadow-lg p-4 flex items-center gap-6">
         <span className="text-sm font-medium">{selectedCount} selected</span>
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={onReorder}>
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            Reorder
+          </Button>
           <Button variant="ghost" size="sm" onClick={onEdit}>
             <Paintbrush className="h-4 w-4 mr-2" />
             Edit

@@ -47,6 +47,37 @@ function AppContent() {
   const { getToken } = useAuth();
   const [location] = useLocation();
 
+  // Title update mutation
+  const handleTitleUpdate = async (newTitle: string) => {
+    if (!gallerySlug) return;
+    
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/galleries/${gallerySlug}/title`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        body: JSON.stringify({ title: newTitle }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update title');
+      }
+
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update title. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Get gallery slug from URL if we're on a gallery page
   const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
 
@@ -149,11 +180,13 @@ function AppContent() {
           <Layout
             title={gallery?.title || "Loading Gallery..."}
             actions={headerActions}
+            onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
           >
             <Gallery
               slug={params.slug}
               onHeaderActionsChange={setHeaderActions}
               title={gallery?.title || "Loading Gallery..."}
+              onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
             />
           </Layout>
         )}

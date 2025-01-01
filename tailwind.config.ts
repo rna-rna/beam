@@ -4,6 +4,10 @@ export default {
   darkMode: ["class"],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
+    fontFamily: {
+      geist: ['Geist Sans', 'sans-serif'],
+      'geist-mono': ['Geist Mono', 'monospace'],
+    },
     extend: {
       borderRadius: {
         lg: "var(--radius)",
