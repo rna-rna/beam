@@ -1418,7 +1418,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   }}
                   title="Add Comment"
                 >
-                  <MessageCircle
+                  <MessageSquare
                     className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
                       isCommentPlacementMode ? "text-primary" : ""
                     }`}
