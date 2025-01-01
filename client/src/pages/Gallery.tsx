@@ -804,7 +804,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     <Filter className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-64">
                   <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
                   <DropdownMenuGroup>
                     <DropdownMenuItem
