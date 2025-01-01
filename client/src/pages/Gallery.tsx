@@ -785,7 +785,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (!gallery) return null;
 
     return (
-      <div className="flex items-center gap-2 bg-black/90 p-2 rounded-lg">
+      <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
         <TooltipProvider>
           {/* Share Button */}
           <Tooltip>
@@ -793,7 +793,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-9 w-9 text-white hover:bg-white/10"
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
                 onClick={() => setIsOpenShareModal(true)}
               >
                 <Share2 className="h-4 w-4" />
@@ -873,7 +873,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           {isUploading && (
             <div className="flex items-center gap-4">
               <Progress value={undefined} className="w-24" />
-              <span className="text-sm text-white/70">Uploading...</span>
+              <span className={cn("text-sm", isDark ? "text-white/70" : "text-gray-600")}>Uploading...</span>
             </div>
           )}
 
