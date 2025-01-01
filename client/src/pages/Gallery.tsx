@@ -1325,7 +1325,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           }
         }}>
           <DialogContent
-            className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
+            className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden dark:bg-black/90"
             aria-describedby="gallery-lightbox-description"
           >
             <div id="gallery-lightbox-description" className="sr-only">
@@ -1334,7 +1334,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
             {/* Filename display */}
             {showFilename && selectedImage?.originalFilename && (
-              <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50 text-white">
+              <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
                 {selectedImage.originalFilename}
               </div>
             )}
@@ -1343,7 +1343,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <Button
               variant="ghost"
               size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 text-white"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 dark:text-white"
               onClick={() => {
                 if (!gallery?.images?.length) return;
                 setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
@@ -1354,7 +1354,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 text-white"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 dark:text-white"
               onClick={() => {
                 if (!gallery?.images?.length) return;
                 setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
@@ -1369,7 +1369,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white"
+                  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg dark:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleStarMutation.mutate(selectedImage.id);
@@ -1436,7 +1436,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     onCheckedChange={setShowAnnotations}
                     className="data-[state=checked]:bg-primary h-5 w-9"
                   />
-                  <span className="text-xs font-medium text-white">Comments</span>
+                  <span className="text-xs font-medium">Comments</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <SwitchComponent
