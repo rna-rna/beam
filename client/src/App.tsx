@@ -157,7 +157,7 @@ function AppContent() {
           <Dashboard />
         </SignedIn>
         <SignedOut>
-          <Landing />
+          <Home />
         </SignedOut>
       </Route>
 
