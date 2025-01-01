@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { Button } from "@/components/ui/button";
 import { InlineEdit } from "@/components/InlineEdit";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserNav } from "@/components/UserNav";
