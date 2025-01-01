@@ -562,7 +562,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Check access for non-guest galleries
-      if (!gallery.isPublic && !isOwner) {
+      if (!gallery.isPublic && !isOwner && !gallery.guestUpload) {
         return res.status(403).json({
           message: 'This gallery is private',
           isPrivate: true,
