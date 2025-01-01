@@ -20,7 +20,7 @@ export function FloatingToolbar({
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50"
+      className="fixed bottom-8 w-full flex justify-center z-50"
     >
       <div className="bg-background/80 backdrop-blur-lg border rounded-lg shadow-lg p-4 flex items-center gap-6">
         <span className="text-sm font-medium">{selectedCount} selected</span>
