@@ -636,6 +636,14 @@ export function registerRoutes(app: Express): Server {
           hasContent: !!content
         });
 
+        // Validate user info
+        if (!userId || !userName) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid user information'
+          });
+        }
+
         // Create the comment
         const [comment] = await db.insert(comments)
           .values({
@@ -645,7 +653,7 @@ export function registerRoutes(app: Express): Server {
             yPosition,
             userId,
             userName,
-            userImageUrl,
+            userImageUrl: userImageUrl || null,
             createdAt: new Date(),
             updatedAt: new Date()
           })
