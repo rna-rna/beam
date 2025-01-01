@@ -534,9 +534,12 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Gallery not found' });
       }
 
-      // Check if gallery is public or if user is authenticated and owns the gallery
+      // Allow access if gallery is:
+      // 1. A guest upload
+      // 2. Public
+      // 3. User is authenticated and owns the gallery
       const isOwner = req.auth?.userId === gallery.userId;
-      if (!gallery.isPublic && !isOwner) {
+      if (!gallery.guestUpload && !gallery.isPublic && !isOwner) {
         return res.status(403).json({
           message: 'This gallery is private',
           isPrivate: true,
