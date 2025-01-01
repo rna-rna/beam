@@ -598,6 +598,15 @@ export function registerRoutes(app: Express): Server {
       const { content, xPosition, yPosition } = req.body;
       const imageId = parseInt(req.params.imageId);
 
+      // Early auth check
+      if (!req.auth?.userId) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Authentication required for commenting',
+          requiresAuth: true
+        });
+      }
+
       // Validate required fields
       if (!content || typeof xPosition !== 'number' || typeof yPosition !== 'number') {
         return res.status(400).json({
@@ -614,12 +623,10 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!image || !image.gallery) {
-        return res.status(404).json({ message: 'Image not found' });
-      }
-
-      // Require authentication for commenting
-      if (!req.auth?.userId) {
-        return res.status(401).json({ message: 'Authentication required for commenting' });
+        return res.status(404).json({ 
+          success: false,
+          message: 'Image not found' 
+        });
       }
 
       const token = req.headers.authorization?.split(" ")[1];
@@ -687,6 +694,14 @@ export function registerRoutes(app: Express): Server {
       }
     } catch (error) {
       console.error('Error creating comment:', error);
+      // Ensure we always return JSON, even for auth errors
+      if (error.name === 'UnauthorizedError') {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          requiresAuth: true
+        });
+      }
       res.status(500).json({
         success: false,
         message: 'Failed to create comment',
