@@ -648,8 +648,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (selectMode) {
       setSelectedImages([]);
       setIsReorderMode(false);
+      setSelectMode(false);
+    } else {
+      setSelectMode(true);
     }
-    setSelectMode(!selectMode);
   };
 
   const handleImageSelect = (imageId: number, event?: React.MouseEvent) => {
@@ -1089,6 +1091,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     const controls = renderGalleryControls();
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
+
+  if (!gallery) return null;
+
+  return (
+    <Layout
+      title={gallery.title}
+      onTitleChange={handleTitleUpdate}
+      toggleSelectMode={toggleSelectMode}
+      selectMode={selectMode}
+    >
+      <div className={cn("min-h-screen relative", isDark ? "bg-black/90" : "bg-background")} {...getRootProps()}>
 
   if (isPrivateGallery) {
     return (
