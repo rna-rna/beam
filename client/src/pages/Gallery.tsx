@@ -70,6 +70,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
+import { useTheme } from "@/hooks/use-theme";
 
 interface GalleryProps {
   slug?: string;
@@ -90,6 +91,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const { user } = useUser();
+  const { isDark } = useTheme();
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
@@ -1203,7 +1205,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   return (
-    <div className="min-h-screen relative bg-black/90" {...getRootProps()}>
+    <div className={cn("min-h-screen relative", isDark ? "bg-black/90" : "bg-background")} {...getRootProps()}>
       <input {...getInputProps()} />
       {isDragActive && !selectMode && (
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
