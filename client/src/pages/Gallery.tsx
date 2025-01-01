@@ -950,7 +950,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
     >
       <div
-        className={`relative bg-card rounded-lg overflow-hidden transform transition-all ${
+        className={`group relative bg-card rounded-lg overflow-hidden transform transition-all ${
           !isReorderMode ? 'hover:scale-[1.02] cursor-pointer' : ''
         } ${selectMode ? 'hover:scale-100' : ''} ${
           isReorderMode ? 'border-2 border-dashed border-gray-200 border-opacity-50' : ''
@@ -975,10 +975,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           />
         )}
 
-        {/* Move star button to bottom-left corner */}
+        {/* Star button in bottom right corner */}
         {!selectMode && (
           <motion.div
-            className="absolute bottom-2 left-2 z-10 star-button opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 md:opacity-0 max-md:opacity-100"
+            className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
             animate={{ scale: 1 }}
             whileTap={{ scale: 0.8 }}
           >
