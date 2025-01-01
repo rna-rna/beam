@@ -528,6 +528,9 @@ export function registerRoutes(app: Express): Server {
       // Find the gallery first
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
+        columns: {
+          guestUpload: 'guest_upload'
+        }
       });
 
       if (!gallery) {
