@@ -33,13 +33,13 @@ export function Layout({
             <InlineEdit
               value={title}
               onSave={onTitleChange}
-              className="text-xl font-semibold"
+              className="text-l font-semibold"
             />
           ) : (
             <InlineEdit
               value={title}
               onSave={onTitleChange!}
-              className="text-xl font-semibold"
+              className="text-l font-semibold"
             />
           )}
 
