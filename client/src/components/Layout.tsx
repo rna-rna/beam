@@ -59,13 +59,22 @@ export function Layout({
               <UserNav />
             </SignedIn>
             <SignedOut>
-              <Button 
-                variant="default" 
-                onClick={() => window.location.href = "/sign-in"}
-                className={cn("", isDark ? "bg-white/10 hover:bg-white/20 text-white" : "")}
-              >
-                Sign In
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => window.location.href = "/sign-up"}
+                  className={cn("", isDark ? "text-white hover:bg-white/10" : "")}
+                >
+                  Sign Up
+                </Button>
+                <Button 
+                  variant="default" 
+                  onClick={() => window.location.href = "/sign-in"}
+                  className={cn("", isDark ? "bg-white/10 hover:bg-white/20 text-white" : "")}
+                >
+                  Sign In
+                </Button>
+              </div>
             </SignedOut>
           </div>
         </div>
