@@ -535,11 +535,30 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Allow access if gallery is:
-      // 1. A guest upload
+      // 1. A guest upload (accessible to everyone)
       // 2. Public
       // 3. User is authenticated and owns the gallery
       const isOwner = req.auth?.userId === gallery.userId;
-      if (!gallery.guestUpload && !gallery.isPublic && !isOwner) {
+      
+      // Guest uploads are always accessible
+      if (gallery.guestUpload) {
+        const galleryImages = await db.query.images.findMany({
+          where: eq(images.galleryId, gallery.id),
+          orderBy: (images, { asc }) => [
+            asc(images.position),
+            asc(images.createdAt)
+          ]
+        });
+
+        return res.json({
+          ...gallery,
+          images: galleryImages,
+          isOwner: false
+        });
+      }
+
+      // Check access for non-guest galleries
+      if (!gallery.isPublic && !isOwner) {
         return res.status(403).json({
           message: 'This gallery is private',
           isPrivate: true,
