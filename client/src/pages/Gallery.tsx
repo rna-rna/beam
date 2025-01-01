@@ -892,21 +892,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 <TooltipContent>Reorder Images</TooltipContent>
               </Tooltip>
 
-              {selectedImages.length > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 text-white hover:bg-destructive/90"
-                      onClick={() => deleteImagesMutation.mutate(selectedImages)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Delete Selected ({selectedImages.length})</TooltipContent>
-                </Tooltip>
-              )}
+              
             </>
           )}
 
