@@ -6,6 +6,7 @@ import {
   Grid,
   LayoutGrid,
   Filter,
+  ArrowBigUp,
   MessageSquare,
   SquareDashedMousePointer,
   Link,
@@ -814,7 +815,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                         <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-gray-800")} />
                         Show Starred
                         <kbd className="ml-auto inline-flex h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100">
-                          <span className="text-xs">⇧</span>S
+                          <ArrowBigUp className="h-3 w-3" />
+                          <span>+</span>
+                          <span>S</span>
                         </kbd>
                       </div>
                       {showStarredOnly && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
@@ -827,7 +830,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                         <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-gray-800")} />
                         Has Comments
                         <kbd className="ml-auto inline-flex h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100">
-                          <span className="text-xs">⇧</span>C
+                          <ArrowBigUp className="h-3 w-3" />
+                          <span>+</span>
+                          <span>C</span>
                         </kbd>
                       </div>
                       {showWithComments && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
