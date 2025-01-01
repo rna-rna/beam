@@ -805,7 +805,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64">
-                  <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
                   <DropdownMenuGroup>
                     <DropdownMenuItem
                       onClick={() => setShowStarredOnly(!showStarredOnly)}
@@ -855,9 +854,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       setShowWithComments(false);
                       setShowApproved(false);
                     }}
-                    className="text-sm text-muted-foreground"
+                    className="flex items-center gap-2 cursor-pointer"
                   >
-                    Reset Filters
+                    <div className="flex items-center flex-1">
+                      Reset Filters
+                      <kbd className="ml-auto inline-flex h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100">
+                        <ArrowBigUp className="h-3 w-3" />
+                        <span>+</span>
+                        <span>R</span>
+                      </kbd>
+                    </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1062,6 +1068,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         } else if (e.key.toLowerCase() === 'c') {
           e.preventDefault();
           setShowWithComments(prev => !prev);
+        } else if (e.key.toLowerCase() === 'r') {
+          e.preventDefault();
+          setShowStarredOnly(false);
+          setShowWithComments(false);
+          setShowApproved(false);
         }
       }
     };
