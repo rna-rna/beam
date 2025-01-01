@@ -2,6 +2,8 @@ import { ReactNode } from "react";
 import { InlineEdit } from "@/components/InlineEdit";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserNav } from "@/components/UserNav";
+import { useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/utils";
 
 interface LayoutProps {
   children: ReactNode;
@@ -20,9 +22,10 @@ export function Layout({
   selectMode,
   toggleSelectMode 
 }: LayoutProps) {
+  const { isDark } = useTheme();
   return (
-    <div className="min-h-screen w-full bg-background">
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
+    <div className={cn("min-h-screen w-full", isDark ? "bg-black/90" : "bg-background")}>
+      <div className={cn("sticky top-0 z-10 backdrop-blur-sm border-b", isDark ? "bg-black/80" : "bg-background/80")}>
         <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
           {title && onTitleChange ? (
             <InlineEdit
@@ -36,7 +39,11 @@ export function Layout({
 
           <div className="ml-auto flex items-center gap-4">
             {toggleSelectMode && (
-              <Button variant="outline" onClick={toggleSelectMode}>
+              <Button 
+                variant="outline" 
+                onClick={toggleSelectMode}
+                className={cn("", isDark ? "hover:bg-gray-800" : "hover:bg-gray-200")}
+              >
                 {selectMode ? "Deselect" : "Tools"}
               </Button>
             )}
