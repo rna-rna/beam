@@ -794,6 +794,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 size="icon"
                 variant="ghost"
                 className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                variant="ghost"
                 onClick={() => setIsOpenShareModal(true)}
               >
                 <Share2 className={cn("h-4 w-4", isDark ? "text-white" : "text-gray-800")} />

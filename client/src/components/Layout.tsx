@@ -40,9 +40,9 @@ export function Layout({
           <div className="ml-auto flex items-center gap-4">
             {toggleSelectMode && (
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 onClick={toggleSelectMode}
-                className={cn("", isDark ? "hover:bg-gray-800" : "hover:bg-gray-200")}
+                className={cn("", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
               >
                 {selectMode ? "Deselect" : "Tools"}
               </Button>
