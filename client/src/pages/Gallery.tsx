@@ -108,11 +108,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       </div>
     );
   }
-              <AlertCircle className="h-12 w-12 text-destructive" />
-              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
-              <p className="text-muted-foreground">
-                Unable to load gallery. The URL may be invalid.
-              </p>
+              <div className="flex flex-col items-center gap-4 text-center">
+                <AlertCircle className="h-12 w-12 text-destructive" />
+                <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
+                <p className="text-muted-foreground">
+                  Unable to load gallery. The URL may be invalid.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
