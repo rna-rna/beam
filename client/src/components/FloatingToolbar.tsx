@@ -22,8 +22,8 @@ export function FloatingToolbar({
       exit={{ y: 100, opacity: 0 }}
       className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50"
     >
-      <div className="bg-background/80 backdrop-blur-lg border rounded-lg shadow-lg px-6 py-3 flex items-center gap-6 mx-auto">
-        <span className="text-sm font-medium min-w-[80px]">{selectedCount} selected</span>
+      <div className="bg-background/80 backdrop-blur-lg border rounded-lg shadow-lg p-4 flex items-center gap-6">
+        <span className="text-sm font-medium">{selectedCount} selected</span>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={onEdit}>
             <Paintbrush className="h-4 w-4 mr-2" />
