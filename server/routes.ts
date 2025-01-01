@@ -593,7 +593,7 @@ export function registerRoutes(app: Express): Server {
 
 
   // Comment submission endpoint - supports both authenticated and guest gallery comments
-  app.post('/images/:imageId/comments', async (req: Request, res) => {
+  app.post('/api/images/:imageId/comments', async (req: Request, res) => {
     try {
       const { content, xPosition, yPosition } = req.body;
       const imageId = parseInt(req.params.imageId);
