@@ -108,9 +108,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       </div>
     );
   }
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
               <AlertCircle className="h-12 w-12 text-destructive" />
               <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
               <p className="text-muted-foreground">
