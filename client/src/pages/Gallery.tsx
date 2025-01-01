@@ -876,21 +876,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
           {selectMode && (
             <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className={`h-9 w-9 text-white hover:bg-white/10 ${
-                      isReorderMode ? "text-white/90" : ""
-                    }`}
-                    onClick={toggleReorderMode}
-                  >
-                    <ArrowUpDown className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Reorder Images</TooltipContent>
-              </Tooltip>
+              
 
               
             </>
