@@ -7,6 +7,12 @@ import { Upload } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserNav } from "@/components/UserNav";
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/utils";
 
 const creativeQuotes = [
   "Art enables us to find ourselves and lose ourselves at the same time. - Thomas Merton",
@@ -31,6 +37,7 @@ export default function Home({ title, onTitleChange }: HomeProps) {
   const { toast } = useToast();
   const [galleryId, setGalleryId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const { isDark } = useTheme();
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isGalleryCreated, setIsGalleryCreated] = useState(false);
@@ -146,8 +153,36 @@ export default function Home({ title, onTitleChange }: HomeProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="w-full h-[calc(100vh-4rem)]"
+      className="w-full h-screen"
     >
+      <div className={cn("sticky top-0 z-10 backdrop-blur-sm border-b", isDark ? "bg-black/80" : "bg-background/80")}>
+        <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4">
+          <h1 className="text-l font-semibold">Image Gallery Hub</h1>
+          <div className="ml-auto flex items-center gap-4">
+            <ThemeToggle />
+            <SignedIn>
+              <UserNav />
+            </SignedIn>
+            <SignedOut>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="secondary" 
+                  onClick={() => window.location.href = "/sign-up"}
+                >
+                  Sign Up
+                </Button>
+                <Button 
+                  variant="link" 
+                  onClick={() => window.location.href = "/sign-in"}
+                  className={cn("hover:underline", isDark ? "text-white" : "text-black")}
+                >
+                  Login
+                </Button>
+              </div>
+            </SignedOut>
+          </div>
+        </div>
+      </div>
       <div className="p-4 md:p-6 lg:p-8 h-full">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
