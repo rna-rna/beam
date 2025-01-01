@@ -18,12 +18,14 @@ import {
   Moon,
   Sun,
   Share2,
+  Share,
   AlertCircle,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   Paintbrush,
-  MessageCircle
+  MessageCircle,
+  PencilRuler
 } from "lucide-react";
 
 // UI Components
@@ -797,7 +799,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 variant="ghost"
                 onClick={() => setIsOpenShareModal(true)}
               >
-                <Share2 className={cn("h-4 w-4", isDark ? "text-white" : "text-gray-800")} />
+                <Share className={cn("h-4 w-4", isDark ? "text-white" : "text-gray-800")} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Share Gallery</TooltipContent>
@@ -892,7 +894,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 }`}
                 onClick={toggleSelectMode}
               >
-                <SquareDashedMousePointer className={cn("h-4 w-4", isDark ? "text-white" : "text-black")} />
+                <PencilRuler className={cn("h-4 w-4", isDark ? "text-white" : "text-black")} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
