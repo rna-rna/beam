@@ -1612,6 +1612,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             onDelete={handleDeleteSelected}
             onDownload={handleDownloadSelected}
             onEdit={handleEditSelected}
+            onReorder={() => setIsReorderMode(!isReorderMode)}
           />
         )}
       </AnimatePresence>
