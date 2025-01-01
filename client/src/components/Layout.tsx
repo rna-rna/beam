@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { InlineEdit } from "@/components/InlineEdit";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserNav } from "@/components/UserNav";
@@ -53,7 +54,18 @@ export function Layout({
             )}
             {actions}
             <ThemeToggle />
-            <UserNav />
+            <SignedIn>
+              <UserNav />
+            </SignedIn>
+            <SignedOut>
+              <Button 
+                variant="default" 
+                onClick={() => window.location.href = "/sign-in"}
+                className={cn("", isDark ? "bg-white/10 hover:bg-white/20 text-white" : "")}
+              >
+                Sign In
+              </Button>
+            </SignedOut>
           </div>
         </div>
       </div>
