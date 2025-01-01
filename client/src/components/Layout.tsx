@@ -28,7 +28,7 @@ export function Layout({
   return (
     <div className={cn("min-h-screen w-full", isDark ? "bg-black/90" : "bg-background")}>
       <div className={cn("sticky top-0 z-10 backdrop-blur-sm border-b", isDark ? "bg-black/80" : "bg-background/80")}>
-        <div className="px-6 md:px-8 lg:px-12 py-4 flex items-center gap-4">
+        <div className="px-6 md:px-8 lg:px-12 py-3 flex items-center gap-4">
           {title && onTitleChange ? (
             <InlineEdit
               value={title}
