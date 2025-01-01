@@ -205,6 +205,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const { data: gallery, isLoading, error } = useQuery<GalleryType>({
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
+      console.log('Fetching gallery with slug:', slug);
       const token = await getToken();
       const headers: HeadersInit = {
         'Cache-Control': 'no-cache',
@@ -215,6 +216,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      console.log('Request headers:', headers);
       const res = await fetch(`/api/galleries/${slug}`, {
         headers,
         cache: 'no-store',
@@ -222,6 +224,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       });
 
       if (!res.ok) {
+        console.error('Gallery fetch failed:', {
+          status: res.status,
+          statusText: res.statusText
+        });
         if (res.status === 403) {
           throw new Error('This gallery is private');
         }
@@ -231,13 +237,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         throw new Error('Failed to fetch gallery');
       }
 
-      return res.json();
+      const data = await res.json();
+      console.log('Gallery response:', data);
+      return data;
     },
     enabled: !!slug,
     staleTime: 0,
     cacheTime: 0,
     refetchOnMount: true,
-    refetchOnWindowFocus: true
+    refetchOnWindowFocus: true,
+    onError: (err) => {
+      console.error('Gallery query error:', err);
+    }
   });
 
   const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
