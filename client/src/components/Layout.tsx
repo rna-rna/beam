@@ -61,18 +61,18 @@ export function Layout({
             <SignedOut>
               <div className="flex items-center gap-2">
                 <Button 
-                  variant="ghost" 
+                  variant="secondary" 
                   onClick={() => window.location.href = "/sign-up"}
-                  className={cn("", isDark ? "text-white hover:bg-white/10" : "")}
+                  className={cn("", isDark ? "" : "")}
                 >
                   Sign Up
                 </Button>
                 <Button 
-                  variant="default" 
+                  variant="link" 
                   onClick={() => window.location.href = "/sign-in"}
-                  className={cn("", isDark ? "bg-white/10 hover:bg-white/20 text-white" : "")}
+                  className={cn("hover:underline", isDark ? "text-white" : "text-black")}
                 >
-                  Sign In
+                  Login
                 </Button>
               </div>
             </SignedOut>
