@@ -1333,7 +1333,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </div>
 
             {/* Filename display */}
-            {showFilename && selectedImage?.originalFilename && (
+            {selectedImage?.originalFilename && (
               <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
                 {selectedImage.originalFilename}
               </div>
@@ -1437,14 +1437,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     className="data-[state=checked]:bg-primary h-5 w-9"
                   />
                   <span className="text-xs font-medium">Comments</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <SwitchComponent
-                    checked={showFilename}
-                    onCheckedChange={setShowFilename}
-                    className="data-[state=checked]:bg-primary h-5 w-9"
-                  />
-                  <span className="text-xs font-medium text-white">Filename</span>
                 </div>
               </div>
             </div>
