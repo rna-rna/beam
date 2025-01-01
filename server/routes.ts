@@ -545,7 +545,7 @@ export function registerRoutes(app: Express): Server {
       // 1. A guest upload (accessible to everyone)
       // 2. Public
       // 3. User is authenticated and owns the gallery
-      const isOwner = req.auth?.userId === gallery.userId;
+      const isOwner = gallery.userId === 'guest' || req.auth?.userId === gallery.userId;
       
       // Guest uploads are always accessible
       if (gallery.guestUpload) {
