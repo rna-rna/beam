@@ -8,6 +8,7 @@ export const galleries = pgTable('galleries', {
   title: text('title').default('Untitled Project').notNull(),
   userId: text('user_id').notNull(), // Clerk user ID
   isPublic: boolean('is_public').default(false).notNull(),
+  guestUpload: boolean('guest_upload').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 }, (table) => ({
   userIdIdx: index('galleries_user_id_idx').on(table.userId)
