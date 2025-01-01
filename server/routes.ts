@@ -128,6 +128,7 @@ export function registerRoutes(app: Express): Server {
         title,
         userId: userId || 'guest',
         guestUpload: isGuestUpload,
+        isPublic: isGuestUpload ? true : false,  // Guest galleries are always public
         createdAt: new Date()
       }).returning();
 
