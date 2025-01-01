@@ -1069,7 +1069,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           e.preventDefault();
           setShowStarredOnly(false);
           setShowWithComments(false);
-          setShowApproved(false);
         }
       }
     };
