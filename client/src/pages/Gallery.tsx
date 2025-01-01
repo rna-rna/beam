@@ -1058,6 +1058,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectMode) {
+        e.preventDefault();
+        setSelectedImages([]);
+        setSelectMode(false);
+        return;
+      }
+      
       if (e.shiftKey) {
         if (e.key.toLowerCase() === 's') {
           e.preventDefault();
@@ -1075,7 +1082,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
+  }, [selectMode]);
 
   useEffect(() => {
     if (selectedImageIndex >= 0) {
