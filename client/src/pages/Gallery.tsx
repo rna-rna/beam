@@ -71,6 +71,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
 import { useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/utils";
 
 interface GalleryProps {
   slug?: string;
