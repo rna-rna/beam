@@ -109,24 +109,25 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Create empty gallery
-  protectedRouter.post('/galleries/create', async (req: any, res) => {
+  // Create gallery (supports both authenticated and guest users)
+  app.post('/api/galleries/create', async (req: any, res) => {
     try {
       const { title = "Untitled Project" } = req.body;
-      const userId = req.auth.userId;
+      const userId = req.auth?.userId || null;
+      const isGuestUpload = !userId;
 
-      if (!userId) {
-        console.error('Gallery creation failed: No user ID in auth token');
-        return res.status(401).json({ message: 'Unauthorized: No user ID found' });
-      }
+      console.log('Creating gallery:', {
+        title,
+        userId: userId || 'guest',
+        isGuestUpload
+      });
 
-      console.log('Creating gallery for user:', userId, 'with title:', title);
-
-      // Create gallery with user association
+      // Create gallery
       const [gallery] = await db.insert(galleries).values({
         slug: generateSlug(),
         title,
-        userId,
+        userId: userId || 'guest',
+        guestUpload: isGuestUpload,
         createdAt: new Date()
       }).returning();
 
