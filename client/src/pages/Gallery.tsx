@@ -796,7 +796,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
                 onClick={() => setIsOpenShareModal(true)}
               >
-                <Share2 className="h-4 w-4" />
+                <Share2 className={cn("h-4 w-4", isDark ? "text-white" : "text-gray-800")} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Share Gallery</TooltipContent>
@@ -810,13 +810,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   <Button
                     size="icon"
                     variant="ghost"
-                    className={`h-9 w-9 text-white hover:bg-white/10 ${
-                      (showStarredOnly || showWithComments || showApproved)
-                        ? 'text-white/90'
-                        : ''
-                    }`}
+                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
                   >
-                    <Filter className="h-4 w-4" />
+                    <Filter className={cn("h-4 w-4", isDark ? "text-white" : "text-gray-800")} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -827,20 +823,20 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       <div className="flex items-center flex-1">
-                        <Star className={`w-4 h-4 mr-2 ${showStarredOnly ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                        <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-gray-800")} />
                         Show Starred
                       </div>
-                      {showStarredOnly && <CheckCircle className="w-4 h-4 text-primary" />}
+                      {showStarredOnly && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => setShowWithComments(!showWithComments)}
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       <div className="flex items-center flex-1">
-                        <MessageSquare className={`w-4 h-4 mr-2 ${showWithComments ? 'text-primary' : ''}`} />
+                        <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-gray-800")} />
                         Has Comments
                       </div>
-                      {showWithComments && <CheckCircle className="w-4 h-4 text-primary" />}
+                      {showWithComments && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => setShowApproved(!showApproved)}
