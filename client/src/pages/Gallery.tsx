@@ -567,10 +567,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      if (selectedImageIndex >= 0 || selectMode) return;
+      if (acceptedFiles.length === 0) return;
       uploadMutation.mutate(acceptedFiles);
     },
-    [uploadMutation, selectedImageIndex, selectMode]
+    [uploadMutation]
   );
 
   // Modify the useDropzone configuration to disable click
@@ -579,9 +579,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
-    disabled: isUploading,
-    noClick: true,
-    noKeyboard: true
+    disabled: isUploading || selectMode || selectedImageIndex >= 0,
+    noClick: selectMode || selectedImageIndex >= 0,
+    noKeyboard: selectMode || selectedImageIndex >= 0
   });
 
   // Add upload progress placeholders to the masonry grid
