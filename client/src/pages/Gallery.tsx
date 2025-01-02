@@ -1033,13 +1033,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           />
         )}
 
-        {/* Star button in bottom right corner */}
+        {/* Star button and avatars */}
         {!selectMode && (
-          <motion.div
-            className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-            animate={{ scale: 1 }}
-            whileTap={{ scale: 0.8 }}
-          >
+          <>
+            <StarredAvatars 
+              imageId={image.id} 
+              className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            />
+            <motion.div
+              className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              animate={{ scale: 1 }}
+              whileTap={{ scale: 0.8 }}
+            >
             <Button
               variant="secondary"
               size="icon"
