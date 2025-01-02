@@ -45,6 +45,7 @@ export const annotations = pgTable('annotations', {
   imageId: integer('image_id').references(() => images.id).notNull(),
   content: text('content').default('').notNull(),
   userId: text('user_id').default('anonymous').notNull(),
+  pathData: text('path_data'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 });
 
