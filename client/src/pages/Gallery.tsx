@@ -1033,45 +1033,20 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           />
         )}
 
-        {/* Star button and avatars */}
+        {/* Star button in bottom right corner */}
         {!selectMode && (
-          <>
-            <StarredAvatars 
-              imageId={image.id} 
-              className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-            />
-            <motion.div
-              className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-              animate={{ scale: 1 }}
-              whileTap={{ scale: 0.8 }}
-            >
+          <motion.div
+            className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            animate={{ scale: 1 }}
+            whileTap={{ scale: 0.8 }}
+          >
             <Button
               variant="secondary"
               size="icon"
-              className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm backdrop-blur-sm"
+              className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
                 e.stopPropagation();
-                if (image.starred) {
-                  toggleStarMutation.mutate(image.id, {
-                    onError: () => {
-                      toast({
-                        title: "Error",
-                        description: "Failed to unstar image",
-                        variant: "destructive",
-                      });
-                    }
-                  });
-                } else {
-                  toggleStarMutation.mutate(image.id, {
-                    onError: () => {
-                      toast({
-                        title: "Error",
-                        description: "Failed to star image",
-                        variant: "destructive",
-                      });
-                    }
-                  });
-                }
+                toggleStarMutation.mutate(image.id);
               }}
             >
               <motion.div
@@ -1081,12 +1056,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 }}
                 transition={{ duration: 0.2 }}
               >
-                <Star 
-                  className={cn(
-                    "h-4 w-4",
-                    image.starred ? "fill-yellow-400 text-yellow-400" : "text-foreground"
-                  )}
-                />
+                {image.starred ? (
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                ) : (
+                  <Star className="h-4 w-4" />
+                )}
               </motion.div>
             </Button>
           </motion.div>
@@ -1121,7 +1095,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               )}
             </div>
           </motion.div>
-        </>
         )}
       </div>
     </motion.div>

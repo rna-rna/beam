@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, boolean, real, index, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean, real, index } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from 'drizzle-orm';
 
@@ -45,18 +45,7 @@ export const comments = pgTable('comments', {
   userIdIdx: index('comments_user_id_idx').on(table.userId)
 }));
 
-export const stars = pgTable('stars', {
-  id: serial('id').primaryKey(),
-  userId: text('user_id').notNull(),
-  imageId: integer('image_id').references(() => images.id).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull()
-}, (table) => ({
-  userIdIdx: index('stars_user_id_idx').on(table.userId),
-  imageIdIdx: index('stars_image_id_idx').on(table.imageId),
-  uniqueStar: unique().on(table.userId, table.imageId)
-}));
-
-// Update relations to include stars
+// Define relationships
 export const galleriesRelations = relations(galleries, ({ many }) => ({
   images: many(images)
 }));
@@ -66,8 +55,7 @@ export const imagesRelations = relations(images, ({ one, many }) => ({
     fields: [images.galleryId],
     references: [galleries.id]
   }),
-  comments: many(comments),
-  stars: many(stars)
+  comments: many(comments)
 }));
 
 export const commentsRelations = relations(comments, ({ one }) => ({
@@ -92,5 +80,3 @@ export type Image = typeof images.$inferSelect;
 export type NewImage = typeof images.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
-export type Star = typeof stars.$inferSelect;
-export type NewStar = typeof stars.$inferInsert;
