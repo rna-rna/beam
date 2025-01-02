@@ -1,5 +1,5 @@
 
-import { pgTable, text, serial, timestamp, integer, boolean, real, index, double } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean, real, index, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from 'drizzle-orm';
 
@@ -59,8 +59,8 @@ export const comments = pgTable('comments', {
   id: serial('id').primaryKey(),
   imageId: integer('image_id').references(() => images.id).notNull(),
   content: text('content').notNull(),
-  xPosition: double('x_position').notNull(),
-  yPosition: double('y_position').notNull(),
+  xPosition: doublePrecision('x_position').notNull(),
+  yPosition: doublePrecision('y_position').notNull(),
   userId: text('user_id').notNull(),
   userName: text('user_name').notNull(),
   userImageUrl: text('user_image_url'),
