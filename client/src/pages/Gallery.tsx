@@ -72,10 +72,11 @@ import { Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
-import { useUser } from '@clerk/clerk-react';
+import { useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/LoginModal";
+import { LoginButton } from "@/components/LoginButton";
 
 interface GalleryProps {
   slug?: string;
@@ -1531,26 +1532,31 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     }`}
                   />
                 </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
-                    isCommentPlacementMode ? "bg-primary/20" : ""
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsCommentPlacementMode(!isCommentPlacementMode);
-                    setIsAnnotationMode(false);
-                    setNewCommentPos(null);
-                  }}
-                  title="Add Comment"
-                >
-                  <MessageSquare
-                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                      isCommentPlacementMode ? "text-primary" : ""
+                <SignedIn>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
+                      isCommentPlacementMode ? "bg-primary/20" : ""
                     }`}
-                  />
-                </Button>
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCommentPlacementMode(!isCommentPlacementMode);
+                      setIsAnnotationMode(false);
+                      setNewCommentPos(null);
+                    }}
+                    title="Add Comment"
+                  >
+                    <MessageSquare
+                      className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                        isCommentPlacementMode ? "text-primary" : ""
+                      }`}
+                    />
+                  </Button>
+                </SignedIn>
+                <SignedOut>
+                  <LoginButton />
+                </SignedOut>
               </div>
             </div>
 
