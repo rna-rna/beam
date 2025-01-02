@@ -2,23 +2,28 @@
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-interface Star {
+interface StarData {
   id: number;
-  user: {
-    imageUrl?: string;
-    firstName?: string;
-  };
+  userId: string;
+  imageId: number;
+  createdAt: string;
 }
 
 interface StarredAvatarsProps {
   imageId: number;
 }
 
+interface StarResponse {
+  success: boolean;
+  data: StarData[];
+}
+
 export function StarredAvatars({ imageId }: StarredAvatarsProps) {
-  const { data: stars = [] } = useQuery<Star[]>({
+  const { data: response } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
   });
 
+  const stars = response?.data || [];
   const visibleStars = stars.slice(0, 3);
   const remainingCount = stars.length - visibleStars.length;
 
@@ -31,8 +36,7 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
           key={star.id}
           className={`w-6 h-6 border-2 border-background shadow-sm ${index > 0 ? '-ml-2' : ''}`}
         >
-          <AvatarImage src={star.user.imageUrl} alt={star.user.firstName || "User"} />
-          <AvatarFallback>{star.user.firstName?.charAt(0) || "U"}</AvatarFallback>
+          <AvatarFallback>U</AvatarFallback>
         </Avatar>
       ))}
       {remainingCount > 0 && (
