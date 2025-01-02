@@ -216,7 +216,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      console.log('Request headers:', headers);
       const res = await fetch(`/api/galleries/${slug}`, {
         headers,
         cache: 'no-store',
@@ -239,6 +238,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       const data = await res.json();
       console.log('Gallery response:', data);
+      
+      if (!data) {
+        throw new Error('Gallery returned null or undefined');
+      }
+
+      if (!data.images || !Array.isArray(data.images)) {
+        throw new Error('Invalid gallery data format');
+      }
+
       return data;
     },
     enabled: !!slug,
@@ -248,6 +256,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     refetchOnWindowFocus: true,
     onError: (err) => {
       console.error('Gallery query error:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to load gallery",
+        variant: "destructive"
+      });
     }
   });
 
