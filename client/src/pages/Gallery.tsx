@@ -1203,6 +1203,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   }
 
+  if (gallery && gallery.images.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <h1 className="text-xl text-muted-foreground">
+          This gallery is empty. Upload images to get started.
+        </h1>
+      </div>
+    );
+  }
+
   // Modify the image click handler in the gallery grid
   const handleImageClick = (index: number) => {
     console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
