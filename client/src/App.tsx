@@ -135,18 +135,25 @@ function AppContent() {
 
   if (gallerySlug && galleryError) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-destructive">
-            {galleryError instanceof Error ? galleryError.message : 'An error occurred'}
-          </h1>
-          <button
-            className="text-primary hover:underline"
-            onClick={() => setLocation('/dashboard')}
-          >
-            Return to Dashboard
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
+              <p className="text-muted-foreground">
+                {galleryError instanceof Error ? galleryError.message : 'The gallery you are looking for does not exist or has been removed.'}
+              </p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => setLocation('/dashboard')}
+              >
+                Return to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
