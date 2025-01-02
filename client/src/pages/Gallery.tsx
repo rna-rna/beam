@@ -28,7 +28,6 @@ import {
   MessageCircle,
   PencilRuler
 } from "lucide-react";
-import { Circle } from "lucide-react";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -78,8 +77,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/LoginModal";
 import { LoginButton } from "@/components/LoginButton";
-import { StarredAvatars } from "@/components/StarredAvatars";
-
 
 interface GalleryProps {
   slug?: string;
@@ -125,6 +122,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
+  
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
@@ -214,7 +212,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         hasToken: !!await getToken(),
         timestamp: new Date().toISOString()
       });
-
+      
       const token = await getToken();
       const headers: HeadersInit = {
         'Cache-Control': 'no-cache',
@@ -253,7 +251,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         hasImages: data?.images?.length > 0,
         timestamp: new Date().toISOString()
       });
-
+      
       if (!data) {
         throw new Error('Gallery returned null or undefined');
       }
@@ -729,7 +727,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const imagePromises = selectedImages.map(async (imageId) => {
         const image = gallery!.images.find(img => img.id === imageId);
         if (!image) return;
-
+        
         const response = await fetch(image.url);
         const blob = await response.blob();
         const extension = image.url.split('.').pop() || 'jpg';
@@ -836,7 +834,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     return (
       <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
         <TooltipProvider>
-
+        
           {/* Filter Menu */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -894,7 +892,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     onClick={() => {
                       setShowStarredOnly(false);
                       setShowWithComments(false);
-                    }}
+                      }}
                     className="flex items-center gap-2 cursor-pointer"
                   >
                     <div className="flex items-center flex-1">
@@ -918,14 +916,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           {isUploading && (
             <div className="flex items-center gap-4">
               <Progress value={undefined} className="w-24" />
-              <span className={cn("text-sm", isDark ? "text-white/70" :"text-gray-600")}>Uploading...</span>
+              <span className={cn("text-sm", isDark ? "text-white/70" : "text-gray-600")}>Uploading...</span>
             </div>
           )}
 
           {selectMode && (
             <>
+              
 
-
+              
             </>
           )}
 
@@ -985,8 +984,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
-      initial={{ opacity: 0, y: 20}}      
-      animate={{
+      initial={{ opacity: 0, y: 20}}      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
@@ -1001,61 +999,102 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         left: draggedItemIndex === index ? dragPosition?.x : "auto",
       }}
       drag={isReorderMode}
-      dragConstraints={false}
-      onDragStart={() => {
-        setDraggedItemIndex(index);
+      dragMomentum={false}
+      dragElastic={0.1}
+      onDragStart={() => setDraggedItemIndex(index)}
+      onDrag={(_, info) => {
+        setDragPosition({ x: info.point.x, y: info.point.y });
       }}
-      onDragEnd={(e: any, info: any) => handleDragEnd(e, index, info)}
+      onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
     >
-      <div className="group relative w-full h-full">
-        <AspectRatio ratio={4/3}>
+      <div
+        className={`group relative bg-card rounded-lg overflow-hidden transform transition-all ${
+          !isReorderMode ? 'hover:scale-[1.02] cursor-pointer' : ''
+        } ${selectMode ? 'hover:scale-100' : ''} ${
+          isReorderMode ? 'border-2 border-dashed border-gray-200 border-opacity-50' : ''
+        }`}
+        onClick={(e) => {
+          if (isReorderMode) {
+            e.stopPropagation();
+            return;
+          }
+          selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
+        }}
+      >
+        {preloadedImages.has(image.id) && (
           <img
             src={image.url}
-            alt={image.originalFilename || `Image ${index + 1}`}
-            className={cn(
-              "object-cover w-full h-full rounded-lg transition-all duration-200",
-              selectMode && "cursor-pointer hover:opacity-90"
-            )}
-            onClick={(e) => handleImageSelect(image.id, e)}
+            alt=""
+            className={`w-full h-auto object-cover rounded-lg ${
+              selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
+            } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
             loading="lazy"
+            draggable={false}
           />
-        </AspectRatio>
+        )}
 
-        {/* Show starred avatars */}
-        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <StarredAvatars imageId={image.id} />
-        </div>
+        {/* Star button in bottom right corner */}
+        {!selectMode && (
+          <motion.div
+            className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            animate={{ scale: 1 }}
+            whileTap={{ scale: 0.8 }}
+          >
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleStarMutation.mutate(image.id);
+              }}
+            >
+              <motion.div
+                animate={{
+                  scale: image.starred ? 1.2 : 1,
+                  opacity: image.starred ? 1 : 0.6
+                }}
+                transition={{ duration: 0.2 }}
+              >
+                {image.starred ? (
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                ) : (
+                  <Star className="h-4 w-4" />
+                )}
+              </motion.div>
+            </Button>
+          </motion.div>
+        )}
 
-        {/* Show star button on hover */}
-        <Button
-          size="icon"
-          variant="ghost"
-          className={cn(
-            "absolute bottom-2 right-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-            image.starred && "text-yellow-400 opacity-100"
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleStarMutation.mutate(image.id);
-          }}
-        >
-          <Star className={cn("h-5 w-5", image.starred && "fill-current")} />
-        </Button>
+        {/* Comment count badge */}
+        {!selectMode && image.commentCount! > 0 && (
+          <Badge
+            className="absolute top-2 right-2 bg-primary text-primary-foreground flex items-center gap-1"
+            variant="secondary"
+          >
+            <MessageSquare className="w-3 h-3" />
+            {image.commentCount}          </Badge>
+        )}
 
-        {selectMode && (
-          <div className="absolute inset-0 bg-black/5 transition-colors hover:bg-black/10">
-            <div className="absolute top-2 right-2">
-              {selectedImages.includes(image.id) ? (
-                <div className="bg-primary text-primary-foreground rounded-full p-1">
-                  <CheckCircle className="h-5 w-5" />
-                </div>
-              ) : (
-                <div className="border-2 border-muted-foreground rounded-full p-1">
-                  <Circle className="h-5 w-5" />
-                </div>
+        {/* Selection checkbox */}
+        {selectMode && !isReorderMode && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-2 right-2 z-10"
+          >
+            <div
+              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                selectedImages.includes(image.id)
+                  ? 'bg-primary border-primary'
+                  : 'bg-background/80 border-background/80'
+              }`}
+            >
+              {selectedImages.includes(image.id) && (
+                <CheckCircle className="w-4 h-4 text-primary-foreground" />
               )}
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     </motion.div>
@@ -1069,7 +1108,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         setSelectMode(false);
         return;
       }
-
+      
       if (e.shiftKey) {
         if (e.key.toLowerCase() === 's') {
           e.preventDefault();
@@ -1684,7 +1723,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       )}
       {renderCommentDialog()}
       
-
       <AnimatePresence>
         {selectMode && selectedImages.length > 0 && (
           <FloatingToolbar

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, boolean, real, index, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean, real, index } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from 'drizzle-orm';
 
@@ -45,18 +45,7 @@ export const comments = pgTable('comments', {
   userIdIdx: index('comments_user_id_idx').on(table.userId)
 }));
 
-export const stars = pgTable('stars', {
-  imageId: integer('image_id').references(() => images.id).notNull(),
-  userId: text('user_id').notNull(), // Clerk user ID
-  userName: text('user_name').notNull(),
-  userImageUrl: text('user_image_url'),
-  createdAt: timestamp('created_at').defaultNow().notNull()
-}, (table) => ({
-  pk: primaryKey({ columns: [table.imageId, table.userId] }), // Prevent duplicate stars
-  imageIdIdx: index('stars_image_id_idx').on(table.imageId),
-  userIdIdx: index('stars_user_id_idx').on(table.userId)
-}));
-
+// Define relationships
 export const galleriesRelations = relations(galleries, ({ many }) => ({
   images: many(images)
 }));
@@ -66,8 +55,7 @@ export const imagesRelations = relations(images, ({ one, many }) => ({
     fields: [images.galleryId],
     references: [galleries.id]
   }),
-  comments: many(comments),
-  stars: many(stars)
+  comments: many(comments)
 }));
 
 export const commentsRelations = relations(comments, ({ one }) => ({
@@ -77,27 +65,18 @@ export const commentsRelations = relations(comments, ({ one }) => ({
   })
 }));
 
-export const starsRelations = relations(stars, ({ one }) => ({
-  image: one(images, {
-    fields: [stars.imageId],
-    references: [images.id]
-  })
-}));
-
+// Create schemas for validation
 export const insertGallerySchema = createInsertSchema(galleries);
 export const selectGallerySchema = createSelectSchema(galleries);
 export const insertImageSchema = createInsertSchema(images);
 export const selectImageSchema = createSelectSchema(images);
 export const insertCommentSchema = createInsertSchema(comments);
 export const selectCommentSchema = createSelectSchema(comments);
-export const insertStarSchema = createInsertSchema(stars);
-export const selectStarSchema = createSelectSchema(stars);
 
+// Export types
 export type Gallery = typeof galleries.$inferSelect;
 export type NewGallery = typeof galleries.$inferInsert;
 export type Image = typeof images.$inferSelect;
 export type NewImage = typeof images.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
-export type Star = typeof stars.$inferSelect;
-export type NewStar = typeof stars.$inferInsert;
