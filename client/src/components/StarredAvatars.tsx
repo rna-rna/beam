@@ -15,7 +15,9 @@ interface StarredAvatarsProps {
 }
 
 export function StarredAvatars({ imageId }: StarredAvatarsProps) {
-  const { data: stars = [] } = useQuery<Star[]>([`/api/images/${imageId}/stars`]);
+  const { data: stars = [] } = useQuery<Star[]>({
+    queryKey: [`/api/images/${imageId}/stars`],
+  });
 
   const visibleStars = stars.slice(0, 3);
   const remainingCount = stars.length - visibleStars.length;
