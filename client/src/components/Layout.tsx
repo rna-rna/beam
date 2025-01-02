@@ -57,7 +57,7 @@ export function Layout({
             {actions}
             <ThemeToggle />
             <SignedIn>
-              <UserNav />
+              <UserAvatar />
             </SignedIn>
             <SignedOut>
               <div className="flex items-center gap-2">
