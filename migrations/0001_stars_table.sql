@@ -1,9 +1,6 @@
 
 DO $$ BEGIN
-    -- Drop starred column from images table
-    ALTER TABLE IF EXISTS images DROP COLUMN IF EXISTS starred;
-
-    -- Create stars table
+    -- Create stars table if it doesn't exist
     CREATE TABLE IF NOT EXISTS stars (
         id SERIAL PRIMARY KEY,
         image_id INTEGER NOT NULL REFERENCES images(id),
@@ -12,7 +9,7 @@ DO $$ BEGIN
         CONSTRAINT stars_image_user_idx UNIQUE(image_id, user_id)
     );
 
-    -- Create indexes
+    -- Create index for user_id
     CREATE INDEX IF NOT EXISTS stars_user_id_idx ON stars(user_id);
 
 END $$;
