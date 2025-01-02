@@ -27,18 +27,23 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
       acceptedFiles.forEach(file => {
         formData.append('images', file);
       });
+      formData.append('title', 'Untitled Project');
 
       const res = await fetch('/api/galleries/create', {
         method: 'POST',
         body: formData
       });
 
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) {
+        throw new Error('Upload failed');
+      }
 
       const data = await res.json();
-      setLocation(`/gallery/${data.slug}`);
+      console.log("Guest gallery created:", data);
+      setLocation(`/g/${data.slug}`);
       onUpload(acceptedFiles);
     } catch (error) {
+      console.error('Upload error:', error);
       toast({
         title: "Error",
         description: "Failed to upload images. Please try again.",
@@ -46,6 +51,7 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
       });
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   }, [isUploading, setLocation, toast, onUpload]);
 
