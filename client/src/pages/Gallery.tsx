@@ -1555,7 +1555,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   </Button>
                 </SignedIn>
                 <SignedOut>
-                  <LoginButton />
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white"
+                    onClick={() => setShowLoginModal(true)}
+                    title="Sign in to comment"
+                  >
+                    <MessageSquare className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+                  </Button>
+                  <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
                 </SignedOut>
               </div>
             </div>
