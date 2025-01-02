@@ -113,9 +113,14 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/galleries/create', upload.array('images', 50), async (req: any, res) => {
     try {
       const { title = "Untitled Project" } = req.body;
-      const userId = req.auth?.userId || null;
+      const userId = req.auth?.userId;
       const isGuestUpload = !userId;
       const files = req.files as Express.Multer.File[];
+
+      // Ensure either authenticated user or guest upload
+      if (!userId && !isGuestUpload) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
 
       console.log('Creating gallery:', {
         title,
