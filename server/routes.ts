@@ -519,6 +519,12 @@ export function registerRoutes(app: Express): Server {
   // Update the public gallery endpoint to include proper cache control and ownership checks
   app.get('/api/galleries/:slug', async (req, res) => {
     try {
+      console.log('Gallery fetch request:', {
+        slug: req.params.slug,
+        authenticatedUserId: req.auth?.userId || 'none',
+        hasAuth: !!req.auth
+      });
+
       // Add cache control headers
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -542,6 +548,14 @@ export function registerRoutes(app: Express): Server {
             eq(galleries.userId, req.auth?.userId || '')
           )
         )
+      });
+
+      console.log('Gallery fetch result:', {
+        found: !!gallery,
+        galleryId: gallery?.id,
+        isGuestUpload: gallery?.guestUpload,
+        isPublic: gallery?.isPublic,
+        ownerId: gallery?.userId
       });
 
       if (!gallery) {
