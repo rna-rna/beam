@@ -5,7 +5,6 @@ import { LoginButton } from "@/components/LoginButton";
 import { InlineEdit } from "@/components/InlineEdit";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserNav } from "@/components/UserNav";
-import { UserAvatar } from "@/components/UserAvatar";
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 
