@@ -9,7 +9,12 @@ DO $$ BEGIN
         CONSTRAINT stars_image_user_idx UNIQUE(image_id, user_id)
     );
 
-    -- Create index for user_id
-    CREATE INDEX IF NOT EXISTS stars_user_id_idx ON stars(user_id);
+    -- Create index for user_id if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes 
+        WHERE indexname = 'stars_user_id_idx'
+    ) THEN
+        CREATE INDEX stars_user_id_idx ON stars(user_id);
+    END IF;
 
 END $$;
