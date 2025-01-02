@@ -60,7 +60,9 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
-    disabled: isUploading
+    disabled: isUploading,
+    noClick: false,
+    noKeyboard: false
   });
 
   return (
