@@ -76,6 +76,7 @@ import { useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/LoginModal";
+import { StarredAvatars } from "@/components/StarredAvatars";
 import { LoginButton } from "@/components/LoginButton";
 
 interface GalleryProps {
@@ -1031,6 +1032,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             loading="lazy"
             draggable={false}
           />
+        )}
+
+        {/* Starred avatars in bottom left corner */}
+        {!selectMode && (
+          <div className="absolute bottom-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <StarredAvatars imageId={image.id} />
+          </div>
         )}
 
         {/* Star button in bottom right corner */}
