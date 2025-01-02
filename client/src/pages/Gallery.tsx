@@ -1149,6 +1149,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <h1 className="text-2xl text-destructive">
+          {error instanceof Error ? error.message : 'An error occurred'}
+        </h1>
+      </div>
+    );
+  }
+
   if (!gallery && isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
