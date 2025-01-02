@@ -3,6 +3,7 @@ import { SignedIn, SignedOut, useUser, useAuth } from "@clerk/clerk-react";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
+import SignUpPage from "@/pages/SignUp";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import { Layout } from "@/components/Layout";
@@ -159,6 +160,15 @@ function AppContent() {
         <SignedOut>
           <Home />
         </SignedOut>
+      </Route>
+
+      <Route path="/sign-up">
+        <SignedOut>
+          <SignUpPage />
+        </SignedOut>
+        <SignedIn>
+          <Dashboard />
+        </SignedIn>
       </Route>
 
       <Route path="/settings">
