@@ -195,7 +195,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
+        console.error(`Gallery not found for slug: ${req.params.slug}`);
+        return res.status(404).json({
+          message: 'Gallery not found',
+          error: 'NOT_FOUND',
+          details: 'The gallery you are looking for does not exist or has been removed'
+        });
       }
 
       const galleryImages = await db.query.images.findMany({
@@ -249,7 +254,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
+        console.error(`Gallery not found for slug: ${req.params.slug}`);
+        return res.status(404).json({
+          message: 'Gallery not found',
+          error: 'NOT_FOUND',
+          details: 'The gallery you are looking for does not exist or has been removed'
+        });
       }
 
       if (!req.files || !Array.isArray(req.files)) {
@@ -298,7 +308,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
+        console.error(`Gallery not found for slug: ${req.params.slug}`);
+        return res.status(404).json({
+          message: 'Gallery not found',
+          error: 'NOT_FOUND',
+          details: 'The gallery you are looking for does not exist or has been removed'
+        });
       }
 
       const [updated] = await db
@@ -332,7 +347,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
+        console.error(`Gallery not found for slug: ${req.params.slug}`);
+        return res.status(404).json({
+          message: 'Gallery not found',
+          error: 'NOT_FOUND',
+          details: 'The gallery you are looking for does not exist or has been removed'
+        });
       }
 
       // Validate all images belong to this gallery
@@ -387,7 +407,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
+        console.error(`Gallery not found for slug: ${req.params.slug}`);
+        return res.status(404).json({
+          message: 'Gallery not found',
+          error: 'NOT_FOUND',
+          details: 'The gallery you are looking for does not exist or has been removed'
+        });
       }
 
       // Validate image ownership
@@ -438,7 +463,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
+        console.error(`Gallery not found for slug: ${req.params.slug}`);
+        return res.status(404).json({
+          message: 'Gallery not found',
+          error: 'NOT_FOUND',
+          details: 'The gallery you are looking for does not exist or has been removed'
+        });
       }
 
       // Delete the gallery and all associated records
@@ -486,7 +516,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
+        console.error(`Gallery not found for slug: ${req.params.slug}`);
+        return res.status(404).json({
+          message: 'Gallery not found',
+          error: 'NOT_FOUND',
+          details: 'The gallery you are looking for does not exist or has been removed'
+        });
       }
 
       // Update gallery visibility
@@ -559,7 +594,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
+        console.error(`Gallery not found for slug: ${req.params.slug}`);
+        return res.status(404).json({
+          message: 'Gallery not found',
+          error: 'NOT_FOUND',
+          details: 'The gallery you are looking for does not exist or has been removed'
+        });
       }
 
       // Allow access if gallery is:
@@ -792,7 +832,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
+        console.error(`Gallery not found for slug: ${req.params.slug}`);
+        return res.status(404).json({
+          message: 'Gallery not found',
+          error: 'NOT_FOUND',
+          details: 'The gallery you are looking for does not exist or has been removed'
+        });
       }
 
       // Ensure all images belong to this gallery before deletion
