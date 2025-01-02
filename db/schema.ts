@@ -43,8 +43,8 @@ export const stars = pgTable('stars', {
 export const annotations = pgTable('annotations', {
   id: serial('id').primaryKey(),
   imageId: integer('image_id').references(() => images.id).notNull(),
-  content: text('content').notNull(),
-  userId: text('user_id').notNull(),
+  content: text('content').default('').notNull(),
+  userId: text('user_id').default('anonymous').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 });
 
