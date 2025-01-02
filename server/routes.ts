@@ -891,12 +891,21 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-  // Toggle star status for an image
+  // Star an image
   app.post('/api/images/:imageId/star', async (req, res) => {
     try {
-      const imageId = parseInt(req.params.imageId);
+      if (!req.auth?.userId) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Authentication required',
+          requiresAuth: true
+        });
+      }
 
-      // Get current image
+      const imageId = parseInt(req.params.imageId);
+      const userId = req.auth.userId;
+
+      // Verify image exists
       const image = await db.query.images.findFirst({
         where: eq(images.id, imageId)
       });
@@ -908,22 +917,79 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Toggle star status
-      const [updatedImage] = await db
-        .update(images)
-        .set({ starred: !image.starred })
-        .where(eq(images.id, imageId))
+      // Add star
+      const [star] = await db.insert(stars)
+        .values({
+          userId,
+          imageId: Number(imageId)
+        })
+        .onConflictDoNothing()
         .returning();
 
-      res.json({
-        success: true,
-        data: updatedImage
+      res.json({ 
+        success: true, 
+        data: star
       });
     } catch (error) {
       console.error('Error starring image:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to star image',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Unstar an image
+  app.delete('/api/images/:imageId/star', async (req, res) => {
+    try {
+      if (!req.auth?.userId) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Authentication required',
+          requiresAuth: true
+        });
+      }
+
+      const imageId = parseInt(req.params.imageId);
+      const userId = req.auth.userId;
+
+      await db.delete(stars)
+        .where(and(
+          eq(stars.userId, userId),
+          eq(stars.imageId, imageId)
+        ));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error unstarring image:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to unstar image',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get users who starred an image
+  app.get('/api/images/:imageId/stars', async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.imageId);
+
+      const starData = await db.query.stars.findMany({
+        where: eq(stars.imageId, imageId),
+        orderBy: (stars, { desc }) => [desc(stars.createdAt)]
+      });
+
+      res.json({
+        success: true,
+        data: starData
+      });
+    } catch (error) {
+      console.error('Error fetching stars:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch stars',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
