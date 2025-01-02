@@ -205,7 +205,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const { data: gallery, isLoading, error } = useQuery<GalleryType>({
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
-      console.log('Fetching gallery with slug:', slug);
+      console.log('Starting gallery fetch for slug:', slug, {
+        hasToken: !!await getToken(),
+        timestamp: new Date().toISOString()
+      });
+      
       const token = await getToken();
       const headers: HeadersInit = {
         'Cache-Control': 'no-cache',
@@ -237,7 +241,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       }
 
       const data = await res.json();
-      console.log('Gallery response:', data);
+      console.log('Gallery fetch response:', {
+        status: res.status,
+        ok: res.ok,
+        data,
+        hasImages: data?.images?.length > 0,
+        timestamp: new Date().toISOString()
+      });
       
       if (!data) {
         throw new Error('Gallery returned null or undefined');
