@@ -1121,6 +1121,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               )}
             </div>
           </motion.div>
+        </>
         )}
       </div>
     </motion.div>
