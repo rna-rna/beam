@@ -42,15 +42,11 @@ export function UserNav() {
             whileHover={{ scale: 1.05 }}
             className="h-8 w-8"
           >
-            <Avatar className="h-8 w-8">
-              <AvatarImage
-                src={user.imageUrl}
-                alt={user.fullName || user.username || "User avatar"}
-              />
-              <AvatarFallback>
-                <UserIcon className="h-4 w-4" />
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar 
+              imageUrl={user.imageUrl}
+              name={user.fullName || user.username || ""}
+              className="h-8 w-8"
+            />
           </motion.div>
         </Button>
       </DropdownMenuTrigger>
