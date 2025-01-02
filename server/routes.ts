@@ -110,16 +110,18 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Create gallery (supports both authenticated and guest users)
-  app.post('/api/galleries/create', async (req: any, res) => {
+  app.post('/api/galleries/create', upload.array('images', 50), async (req: any, res) => {
     try {
       const { title = "Untitled Project" } = req.body;
       const userId = req.auth?.userId || null;
       const isGuestUpload = !userId;
+      const files = req.files as Express.Multer.File[];
 
       console.log('Creating gallery:', {
         title,
         userId: userId || 'guest',
-        guestUpload: isGuestUpload
+        guestUpload: isGuestUpload,
+        fileCount: files?.length || 0
       });
 
       // Create gallery
@@ -131,6 +133,19 @@ export function registerRoutes(app: Express): Server {
         isPublic: isGuestUpload ? true : false,  // Guest galleries are always public
         createdAt: new Date()
       }).returning();
+
+      // Upload images immediately for guest galleries
+      if (isGuestUpload && files && files.length > 0) {
+        const imageInserts = files.map(file => ({
+          galleryId: gallery.id,
+          url: `/uploads/${file.filename}`,
+          publicId: file.filename,
+          originalFilename: file.originalname,
+          width: 800, // placeholder
+          height: 600 // placeholder
+        }));
+        await db.insert(images).values(imageInserts);
+      }
 
       console.log('Created gallery:', gallery);
       res.json(gallery);
