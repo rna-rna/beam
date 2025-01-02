@@ -1023,15 +1023,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         }}
       >
         {preloadedImages.has(image.id) && (
-          <img
-            src={image.url}
-            alt=""
-            className={`w-full h-auto object-cover rounded-lg ${
-              selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
-            } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
-            loading="lazy"
-            draggable={false}
-          />
+          <>
+            <img
+              src={image.url}
+              alt=""
+              className={`w-full h-auto object-cover rounded-lg ${
+                selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
+              } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
+              loading="lazy"
+              draggable={false}
+            />
+            {/* Starred avatars in top left corner */}
+            <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <StarredAvatars imageId={image.id} />
+            </div>
+          </>
         )}
 
         {/* Starred avatars in bottom left corner */}
