@@ -1,5 +1,6 @@
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
+import { useUser } from "@clerk/clerk-react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -14,8 +15,15 @@ interface UploadDropzoneProps {
 export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useUser();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  useEffect(() => {
+    console.log('UploadDropzone - User:', user);
+    console.log('UploadDropzone - isSignedIn:', user?.isSignedIn);
+    console.log('UploadDropzone - Disabled:', isUploading || (user && !user.isSignedIn));
+  }, [user, isUploading]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (isUploading) return;
