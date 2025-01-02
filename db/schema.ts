@@ -26,7 +26,8 @@ export const images = pgTable('images', {
   approved: boolean('approved').default(false).notNull(),
   commentCount: integer('comment_count').default(0).notNull(),
   position: integer('position').default(0),
-  createdAt: timestamp('created_at').defaultNow().notNull()
+  starred: boolean('starred').default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 });
 
 export const stars = pgTable('stars', {
@@ -39,17 +40,32 @@ export const stars = pgTable('stars', {
   userIdIdx: index('stars_user_id_idx').on(table.userId)
 }));
 
+export const annotations = pgTable('annotations', {
+  id: serial('id').primaryKey(),
+  imageId: integer('image_id').references(() => images.id).notNull(),
+  content: text('content').notNull(),
+  userId: text('user_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+});
+
+export const recentlyViewedGalleries = pgTable('recently_viewed_galleries', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  galleryId: integer('gallery_id').references(() => galleries.id).notNull(),
+  viewedAt: timestamp('viewed_at', { withTimezone: true }).defaultNow().notNull()
+});
+
 export const comments = pgTable('comments', {
   id: serial('id').primaryKey(),
   imageId: integer('image_id').references(() => images.id).notNull(),
   content: text('content').notNull(),
-  xPosition: real('x_position').notNull(),
-  yPosition: real('y_position').notNull(),
+  xPosition: double('x_position').notNull(),
+  yPosition: double('y_position').notNull(),
   userId: text('user_id').notNull(),
   userName: text('user_name').notNull(),
   userImageUrl: text('user_image_url'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull()
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
 }, (table) => ({
   imageIdIdx: index('comments_image_id_idx').on(table.imageId),
   userIdIdx: index('comments_user_id_idx').on(table.userId)
