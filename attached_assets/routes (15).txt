@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments } from '@db/schema';
-import { eq, and, sql, inArray, or } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { nanoid } from 'nanoid';
@@ -110,18 +110,16 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Create gallery (supports both authenticated and guest users)
-  app.post('/api/galleries/create', upload.array('images', 50), async (req: any, res) => {
+  app.post('/api/galleries/create', async (req: any, res) => {
     try {
       const { title = "Untitled Project" } = req.body;
       const userId = req.auth?.userId || null;
       const isGuestUpload = !userId;
-      const files = req.files as Express.Multer.File[];
 
       console.log('Creating gallery:', {
         title,
         userId: userId || 'guest',
-        guestUpload: isGuestUpload,
-        fileCount: files?.length || 0
+        isGuestUpload
       });
 
       // Create gallery
@@ -130,22 +128,8 @@ export function registerRoutes(app: Express): Server {
         title,
         userId: userId || 'guest',
         guestUpload: isGuestUpload,
-        isPublic: isGuestUpload ? true : false,  // Guest galleries are always public
         createdAt: new Date()
       }).returning();
-
-      // Upload images immediately for guest galleries
-      if (isGuestUpload && files && files.length > 0) {
-        const imageInserts = files.map(file => ({
-          galleryId: gallery.id,
-          url: `/uploads/${file.filename}`,
-          publicId: file.filename,
-          originalFilename: file.originalname,
-          width: 800, // placeholder
-          height: 600 // placeholder
-        }));
-        await db.insert(images).values(imageInserts);
-      }
 
       console.log('Created gallery:', gallery);
       res.json(gallery);
@@ -210,12 +194,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND',
-          details: 'The gallery you are looking for does not exist or has been removed'
-        });
+        return res.status(404).json({ message: 'Gallery not found' });
       }
 
       const galleryImages = await db.query.images.findMany({
@@ -269,12 +248,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND',
-          details: 'The gallery you are looking for does not exist or has been removed'
-        });
+        return res.status(404).json({ message: 'Gallery not found' });
       }
 
       if (!req.files || !Array.isArray(req.files)) {
@@ -323,12 +297,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND',
-          details: 'The gallery you are looking for does not exist or has been removed'
-        });
+        return res.status(404).json({ message: 'Gallery not found' });
       }
 
       const [updated] = await db
@@ -362,12 +331,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND',
-          details: 'The gallery you are looking for does not exist or has been removed'
-        });
+        return res.status(404).json({ message: 'Gallery not found' });
       }
 
       // Validate all images belong to this gallery
@@ -422,12 +386,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND',
-          details: 'The gallery you are looking for does not exist or has been removed'
-        });
+        return res.status(404).json({ message: 'Gallery not found' });
       }
 
       // Validate image ownership
@@ -478,12 +437,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND',
-          details: 'The gallery you are looking for does not exist or has been removed'
-        });
+        return res.status(404).json({ message: 'Gallery not found' });
       }
 
       // Delete the gallery and all associated records
@@ -531,12 +485,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND',
-          details: 'The gallery you are looking for does not exist or has been removed'
-        });
+        return res.status(404).json({ message: 'Gallery not found' });
       }
 
       // Update gallery visibility
@@ -569,12 +518,6 @@ export function registerRoutes(app: Express): Server {
   // Update the public gallery endpoint to include proper cache control and ownership checks
   app.get('/api/galleries/:slug', async (req, res) => {
     try {
-      console.log('Gallery fetch request:', {
-        slug: req.params.slug,
-        authenticatedUserId: req.auth?.userId || 'none',
-        hasAuth: !!req.auth
-      });
-
       // Add cache control headers
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -584,44 +527,18 @@ export function registerRoutes(app: Express): Server {
 
       // Find the gallery first
       const gallery = await db.query.galleries.findFirst({
-        where: or(
-          and(
-            eq(galleries.slug, req.params.slug),
-            eq(galleries.guestUpload, true)
-          ),
-          and(
-            eq(galleries.slug, req.params.slug),
-            eq(galleries.isPublic, true)
-          ),
-          and(
-            eq(galleries.slug, req.params.slug),
-            eq(galleries.userId, req.auth?.userId || '')
-          )
-        )
-      });
-
-      console.log('Gallery fetch result:', {
-        found: !!gallery,
-        galleryId: gallery?.id,
-        isGuestUpload: gallery?.guestUpload,
-        isPublic: gallery?.isPublic,
-        ownerId: gallery?.userId
+        where: eq(galleries.slug, req.params.slug),
       });
 
       if (!gallery) {
-        console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND',
-          details: 'The gallery you are looking for does not exist or has been removed'
-        });
+        return res.status(404).json({ message: 'Gallery not found' });
       }
 
       // Allow access if gallery is:
       // 1. A guest upload (accessible to everyone)
       // 2. Public
       // 3. User is authenticated and owns the gallery
-      const isOwner = gallery.userId === 'guest' || req.auth?.userId === gallery.userId;
+      const isOwner = req.auth?.userId === gallery.userId;
       
       // Guest uploads are always accessible
       if (gallery.guestUpload) {
@@ -641,7 +558,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Check access for non-guest galleries
-      if (!gallery.isPublic && !isOwner && !gallery.guestUpload) {
+      if (!gallery.isPublic && !isOwner) {
         return res.status(403).json({
           message: 'This gallery is private',
           isPrivate: true,
@@ -847,12 +764,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!gallery) {
-        console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND',
-          details: 'The gallery you are looking for does not exist or has been removed'
-        });
+        return res.status(404).json({ message: 'Gallery not found' });
       }
 
       // Ensure all images belong to this gallery before deletion

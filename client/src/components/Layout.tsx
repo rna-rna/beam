@@ -1,9 +1,11 @@
 import { ReactNode } from "react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
+import { LoginButton } from "@/components/LoginButton";
 import { InlineEdit } from "@/components/InlineEdit";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserNav } from "@/components/UserNav";
+import { UserAvatar } from "@/components/UserAvatar";
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 
@@ -67,13 +69,7 @@ export function Layout({
                 >
                   Sign Up
                 </Button>
-                <Button 
-                  variant="link" 
-                  onClick={() => window.location.href = "/sign-in"}
-                  className={cn("hover:underline", isDark ? "text-white" : "text-black")}
-                >
-                  Login
-                </Button>
+                <LoginButton />
               </div>
             </SignedOut>
           </div>

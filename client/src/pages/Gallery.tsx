@@ -6,6 +6,7 @@ import {
   Grid,
   LayoutGrid,
   Filter,
+  ArrowBigUp,
   MessageSquare,
   SquareDashedMousePointer,
   Link,
@@ -27,6 +28,7 @@ import {
   MessageCircle,
   PencilRuler
 } from "lucide-react";
+import { Circle } from "lucide-react";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -71,9 +73,13 @@ import { Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
-import { useUser } from '@clerk/clerk-react';
+import { useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
+import { LoginModal } from "@/components/LoginModal";
+import { LoginButton } from "@/components/LoginButton";
+import { StarredAvatars } from "@/components/StarredAvatars";
+
 
 interface GalleryProps {
   slug?: string;
@@ -119,11 +125,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
-  const [showApproved, setShowApproved] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Title update mutation
   const titleUpdateMutation = useMutation({
@@ -204,6 +210,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const { data: gallery, isLoading, error } = useQuery<GalleryType>({
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
+      console.log('Starting gallery fetch for slug:', slug, {
+        hasToken: !!await getToken(),
+        timestamp: new Date().toISOString()
+      });
+
       const token = await getToken();
       const headers: HeadersInit = {
         'Cache-Control': 'no-cache',
@@ -221,6 +232,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       });
 
       if (!res.ok) {
+        console.error('Gallery fetch failed:', {
+          status: res.status,
+          statusText: res.statusText
+        });
         if (res.status === 403) {
           throw new Error('This gallery is private');
         }
@@ -230,16 +245,48 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         throw new Error('Failed to fetch gallery');
       }
 
-      return res.json();
+      const data = await res.json();
+      console.log('Gallery fetch response:', {
+        status: res.status,
+        ok: res.ok,
+        data,
+        hasImages: data?.images?.length > 0,
+        timestamp: new Date().toISOString()
+      });
+
+      if (!data) {
+        throw new Error('Gallery returned null or undefined');
+      }
+
+      if (!data.images || !Array.isArray(data.images)) {
+        throw new Error('Invalid gallery data format');
+      }
+
+      return data;
     },
     enabled: !!slug,
     staleTime: 0,
     cacheTime: 0,
     refetchOnMount: true,
-    refetchOnWindowFocus: true
+    refetchOnWindowFocus: true,
+    onError: (err) => {
+      console.error('Gallery query error:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to load gallery",
+        variant: "destructive"
+      });
+    }
   });
 
   const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
+
+  console.log("Fetched gallery:", {
+    hasGallery: !!gallery,
+    imageCount: gallery?.images?.length,
+    selectedImageIndex,
+    selectedImage
+  });
 
   const { data: annotations = [] } = useQuery<Annotation[]>({
     queryKey: [`/api/images/${selectedImage?.id}/annotations`],
@@ -682,7 +729,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const imagePromises = selectedImages.map(async (imageId) => {
         const image = gallery!.images.find(img => img.id === imageId);
         if (!image) return;
-        
+
         const response = await fetch(image.url);
         const blob = await response.blob();
         const extension = image.url.split('.').pop() || 'jpg';
@@ -789,7 +836,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     return (
       <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
         <TooltipProvider>
-        
+
           {/* Filter Menu */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -803,8 +850,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     <Filter className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+                <DropdownMenuContent align="end" className="w-64">
                   <DropdownMenuGroup>
                     <DropdownMenuItem
                       onClick={() => setShowStarredOnly(!showStarredOnly)}
@@ -813,6 +859,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       <div className="flex items-center flex-1">
                         <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-gray-800")} />
                         Show Starred
+                        <div className="ml-auto inline-flex items-center gap-1">
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            <ArrowBigUp className="h-3 w-3" />
+                          </kbd>
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            S
+                          </kbd>
+                        </div>
                       </div>
                       {showStarredOnly && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
                     </DropdownMenuItem>
@@ -822,19 +876,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     >
                       <div className="flex items-center flex-1">
                         <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-gray-800")} />
-                        Has Comments
+                        Show Comments
+                        <div className="ml-auto inline-flex items-center gap-1">
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            <ArrowBigUp className="h-3 w-3" />
+                          </kbd>
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            C
+                          </kbd>
+                        </div>
                       </div>
                       {showWithComments && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setShowApproved(!showApproved)}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <div className="flex items-center flex-1">
-                        <CheckCircle className={`w-4 h-4 mr-2 ${showApproved ? 'text-primary' : ''}`} />
-                        Approved
-                      </div>
-                      {showApproved && <CheckCircle className="w-4 h-4 text-primary" />}
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
@@ -842,11 +894,20 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     onClick={() => {
                       setShowStarredOnly(false);
                       setShowWithComments(false);
-                      setShowApproved(false);
                     }}
-                    className="text-sm text-muted-foreground"
+                    className="flex items-center gap-2 cursor-pointer"
                   >
-                    Reset Filters
+                    <div className="flex items-center flex-1">
+                      Reset Filters
+                      <div className="ml-auto inline-flex items-center gap-1">
+                        <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                          <ArrowBigUp className="h-3 w-3" />
+                        </kbd>
+                        <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                          R
+                        </kbd>
+                      </div>
+                    </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -857,15 +918,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           {isUploading && (
             <div className="flex items-center gap-4">
               <Progress value={undefined} className="w-24" />
-              <span className={cn("text-sm", isDark ? "text-white/70" : "text-gray-600")}>Uploading...</span>
+              <span className={cn("text-sm", isDark ? "text-white/70" :"text-gray-600")}>Uploading...</span>
             </div>
           )}
 
           {selectMode && (
             <>
-              
 
-              
+
             </>
           )}
 
@@ -910,7 +970,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     selectedImages.length,
     showStarredOnly,
     showWithComments,
-    showApproved,
     deleteImagesMutation,
     toggleReorderMode,
     toggleSelectMode,
@@ -926,7 +985,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       } transform transition-all duration-200 ease-out ${
         isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
       }`}
-      initial={{ opacity: 0, y: 20}}      animate={{
+      initial={{ opacity: 0, y: 20}}      
+      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
@@ -941,106 +1001,93 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         left: draggedItemIndex === index ? dragPosition?.x : "auto",
       }}
       drag={isReorderMode}
-      dragMomentum={false}
-      dragElastic={0.1}
-      onDragStart={() => setDraggedItemIndex(index)}
-      onDrag={(_, info) => {
-        setDragPosition({ x: info.point.x, y: info.point.y });
+      dragConstraints={false}
+      onDragStart={() => {
+        setDraggedItemIndex(index);
       }}
-      onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
+      onDragEnd={(e: any, info: any) => handleDragEnd(e, index, info)}
     >
-      <div
-        className={`relative bg-card rounded-lg overflow-hidden transform transition-all ${
-          !isReorderMode ? 'hover:scale-[1.02] cursor-pointer' : ''
-        } ${selectMode ? 'hover:scale-100' : ''} ${
-          isReorderMode ? 'border-2 border-dashed border-gray-200 border-opacity-50' : ''
-        }`}
-        onClick={(e) => {
-          if (isReorderMode) {
-            e.stopPropagation();
-            return;
-          }
-          selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
-        }}
-      >
-        {preloadedImages.has(image.id) && (
+      <div className="group relative w-full h-full">
+        <AspectRatio ratio={4/3}>
           <img
             src={image.url}
-            alt=""
-            className={`w-full h-auto object-cover rounded-lg ${
-              selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
-            } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
+            alt={image.originalFilename || `Image ${index + 1}`}
+            className={cn(
+              "object-cover w-full h-full rounded-lg transition-all duration-200",
+              selectMode && "cursor-pointer hover:opacity-90"
+            )}
+            onClick={(e) => handleImageSelect(image.id, e)}
             loading="lazy"
-            draggable={false}
           />
-        )}
+        </AspectRatio>
 
-        {/* Move star button to bottom-left corner */}
-        {!selectMode && (
-          <motion.div
-            className="absolute bottom-2 left-2 z-10 star-button opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 md:opacity-0 max-md:opacity-100"
-            animate={{ scale: 1 }}
-            whileTap={{ scale: 0.8 }}
-          >
-            <Button
-              variant="secondary"
-              size="icon"
-              className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleStarMutation.mutate(image.id);
-              }}
-            >
-              <motion.div
-                animate={{
-                  scale: image.starred ? 1.2 : 1,
-                  opacity: image.starred ? 1 : 0.6
-                }}
-                transition={{ duration: 0.2 }}
-              >
-                {image.starred ? (
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ) : (
-                  <Star className="h-4 w-4" />
-                )}
-              </motion.div>
-            </Button>
-          </motion.div>
-        )}
+        {/* Show starred avatars */}
+        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <StarredAvatars imageId={image.id} />
+        </div>
 
-        {/* Comment count badge */}
-        {!selectMode && image.commentCount! > 0 && (
-          <Badge
-            className="absolute top-2 right-2 bg-primary text-primary-foreground flex items-center gap-1"
-            variant="secondary"
-          >
-            <MessageSquare className="w-3 h-3" />
-            {image.commentCount}          </Badge>
-        )}
+        {/* Show star button on hover */}
+        <Button
+          size="icon"
+          variant="ghost"
+          className={cn(
+            "absolute bottom-2 right-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+            image.starred && "text-yellow-400 opacity-100"
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleStarMutation.mutate(image.id);
+          }}
+        >
+          <Star className={cn("h-5 w-5", image.starred && "fill-current")} />
+        </Button>
 
-        {/* Selection checkbox */}
-        {selectMode && !isReorderMode && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute top-2 right-2 z-10"
-          >
-            <div
-              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                selectedImages.includes(image.id)
-                  ? 'bg-primary border-primary'
-                  : 'bg-background/80 border-background/80'
-              }`}
-            >
-              {selectedImages.includes(image.id) && (
-                <CheckCircle className="w-4 h-4 text-primary-foreground" />
+        {selectMode && (
+          <div className="absolute inset-0 bg-black/5 transition-colors hover:bg-black/10">
+            <div className="absolute top-2 right-2">
+              {selectedImages.includes(image.id) ? (
+                <div className="bg-primary text-primary-foreground rounded-full p-1">
+                  <CheckCircle className="h-5 w-5" />
+                </div>
+              ) : (
+                <div className="border-2 border-muted-foreground rounded-full p-1">
+                  <Circle className="h-5 w-5" />
+                </div>
               )}
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
     </motion.div>
   );
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectMode) {
+        e.preventDefault();
+        setSelectedImages([]);
+        setSelectMode(false);
+        return;
+      }
+
+      if (e.shiftKey) {
+        if (e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          setShowStarredOnly(prev => !prev);
+        } else if (e.key.toLowerCase() === 'c') {
+          e.preventDefault();
+          setShowWithComments(prev => !prev);
+        } else if (e.key.toLowerCase() === 'r') {
+          e.preventDefault();
+          setShowStarredOnly(false);
+          setShowWithComments(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [selectMode]);
 
   useEffect(() => {
     if (selectedImageIndex >= 0) {
@@ -1083,10 +1130,43 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
+              <p className="text-muted-foreground">
+                {error instanceof Error ? error.message : 'The gallery you are looking for does not exist or has been removed.'}
+              </p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => setLocation('/dashboard')}
+              >
+                Return to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!gallery && isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!gallery && !isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-xl">Gallery not found</p>
       </div>
     );
   }
@@ -1105,6 +1185,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </div>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  if (gallery && gallery.images.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <h1 className="text-xl text-muted-foreground">
+          This gallery is empty. Upload images to get started.
+        </h1>
       </div>
     );
   }
@@ -1208,7 +1298,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   .filter((image: Image) => {
                     if (showStarredOnly && !image.starred) return false;
                     if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
-                    if (showApproved && !image.approved) return false;
                     return true;
                   })
                   .map((image: Image, index: number) => renderImage(image, index))}
@@ -1325,7 +1414,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           }
         }}>
           <DialogContent
-            className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden"
+            className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden dark:bg-black/90"
             aria-describedby="gallery-lightbox-description"
           >
             <div id="gallery-lightbox-description" className="sr-only">
@@ -1333,8 +1422,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </div>
 
             {/* Filename display */}
-            {showFilename && selectedImage?.originalFilename && (
-              <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50 text-white">
+            {selectedImage?.originalFilename && (
+              <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
                 {selectedImage.originalFilename}
               </div>
             )}
@@ -1343,7 +1432,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <Button
               variant="ghost"
               size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 text-white"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 dark:text-white"
               onClick={() => {
                 if (!gallery?.images?.length) return;
                 setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
@@ -1354,7 +1443,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 text-white"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 dark:text-white"
               onClick={() => {
                 if (!gallery?.images?.length) return;
                 setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
@@ -1369,7 +1458,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white"
+                  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg dark:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleStarMutation.mutate(selectedImage.id);
@@ -1404,26 +1493,40 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     }`}
                   />
                 </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
-                    isCommentPlacementMode ? "bg-primary/20" : ""
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsCommentPlacementMode(!isCommentPlacementMode);
-                    setIsAnnotationMode(false);
-                    setNewCommentPos(null);
-                  }}
-                  title="Add Comment"
-                >
-                  <MessageCircle
-                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                      isCommentPlacementMode ? "text-primary" : ""
+                <SignedIn>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
+                      isCommentPlacementMode ? "bg-primary/20" : ""
                     }`}
-                  />
-                </Button>
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCommentPlacementMode(!isCommentPlacementMode);
+                      setIsAnnotationMode(false);
+                      setNewCommentPos(null);
+                    }}
+                    title="Add Comment"
+                  >
+                    <MessageSquare
+                      className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
+                        isCommentPlacementMode ? "text-primary" : ""
+                      }`}
+                    />
+                  </Button>
+                </SignedIn>
+                <SignedOut>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white"
+                    onClick={() => setShowLoginModal(true)}
+                    title="Sign in to comment"
+                  >
+                    <MessageSquare className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+                  </Button>
+                  <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+                </SignedOut>
               </div>
             </div>
 
@@ -1436,15 +1539,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     onCheckedChange={setShowAnnotations}
                     className="data-[state=checked]:bg-primary h-5 w-9"
                   />
-                  <span className="text-xs font-medium text-white">Comments</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <SwitchComponent
-                    checked={showFilename}
-                    onCheckedChange={setShowFilename}
-                    className="data-[state=checked]:bg-primary h-5 w-9"
-                  />
-                  <span className="text-xs font-medium text-white">Filename</span>
+                  <span className="text-xs font-medium">Comments</span>
                 </div>
               </div>
             </div>
@@ -1589,6 +1684,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       )}
       {renderCommentDialog()}
       
+
       <AnimatePresence>
         {selectMode && selectedImages.length > 0 && (
           <FloatingToolbar
@@ -1604,6 +1700,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           />
         )}
       </AnimatePresence>
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </div>
   );
 }
