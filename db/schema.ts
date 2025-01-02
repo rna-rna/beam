@@ -7,7 +7,7 @@ export const galleries = pgTable('galleries', {
   id: serial('id').primaryKey(),
   slug: text('slug').unique().notNull(),
   title: text('title').default('Untitled Project').notNull(),
-  userId: text('user_id').notNull(), // Clerk user ID
+  userId: text('user_id').default('guest'), // Clerk user ID
   isPublic: boolean('is_public').default(false).notNull(),
   guestUpload: boolean('guest_upload').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
