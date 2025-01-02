@@ -75,6 +75,7 @@ import { CommentModal } from "@/components/CommentModal";
 import { useUser } from '@clerk/clerk-react';
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
+import { LoginModal } from "@/components/LoginModal";
 
 interface GalleryProps {
   slug?: string;
@@ -125,6 +126,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Title update mutation
   const titleUpdateMutation = useMutation({
@@ -1721,6 +1723,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           />
         )}
       </AnimatePresence>
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </div>
   );
 }

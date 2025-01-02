@@ -34,6 +34,20 @@ interface GalleryWithThumbnail extends Gallery {
   imageCount: number;
 }
 
+// Placeholder for LoginModal component.  Replace with your actual component.
+const LoginModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="bg-white p-8 rounded-lg shadow-lg">
+        <p>Login Modal Content</p>
+        <button onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
+};
+
+
 export default function Dashboard() {
   const { user } = useUser();
   const { getToken } = useAuth();
@@ -42,6 +56,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [galleryToDelete, setGalleryToDelete] = useState<GalleryWithThumbnail | null>(null);
   const [isCreatingGallery, setIsCreatingGallery] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false); // Added state for LoginModal
 
   // Query galleries
   const { data: galleries = [], isLoading } = useQuery<GalleryWithThumbnail[]>({
@@ -292,6 +307,7 @@ export default function Dashboard() {
             </p>
           </div>
         )}
+        <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} /> {/* Added LoginModal */}
       </div>
     </AnimatedLayout>
   );
