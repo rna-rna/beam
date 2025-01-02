@@ -579,7 +579,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
-    disabled: isUploading || selectMode,
+    disabled: isUploading,
     noClick: true,
     noKeyboard: true
   });
