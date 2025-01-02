@@ -1048,10 +1048,30 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <Button
               variant="secondary"
               size="icon"
-              className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
+              className="h-7 w-7 bg-background/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
                 e.stopPropagation();
-                toggleStarMutation.mutate(image.id);
+                if (image.starred) {
+                  toggleStarMutation.mutate(image.id, {
+                    onError: () => {
+                      toast({
+                        title: "Error",
+                        description: "Failed to unstar image",
+                        variant: "destructive",
+                      });
+                    }
+                  });
+                } else {
+                  toggleStarMutation.mutate(image.id, {
+                    onError: () => {
+                      toast({
+                        title: "Error",
+                        description: "Failed to star image",
+                        variant: "destructive",
+                      });
+                    }
+                  });
+                }
               }}
             >
               <motion.div
@@ -1061,11 +1081,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 }}
                 transition={{ duration: 0.2 }}
               >
-                {image.starred ? (
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ) : (
-                  <Star className="h-4 w-4" />
-                )}
+                <Star 
+                  className={cn(
+                    "h-4 w-4",
+                    image.starred ? "fill-yellow-400 text-yellow-400" : "text-foreground"
+                  )}
+                />
               </motion.div>
             </Button>
           </motion.div>
