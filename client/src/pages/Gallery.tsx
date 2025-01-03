@@ -1247,10 +1247,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
         <SignedIn>
-          <div className="max-w-xl w-full space-y-6">
-            <h1 className="text-xl text-muted-foreground text-center mb-6">
-              This gallery is empty. Upload images to get started.
-            </h1>
+          <div className="max-w-xl w-full">
             <UploadDropzone 
               onUpload={(files) => {
                 if (!files.length) return;
@@ -1260,9 +1257,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           </div>
         </SignedIn>
         <SignedOut>
-          <h1 className="text-xl text-muted-foreground text-center">
-            This gallery is empty.
-          </h1>
+          <div className="max-w-xl w-full">
+            <UploadDropzone onUpload={handleGuestUpload} />
+          </div>
         </SignedOut>
       </div>
     );
