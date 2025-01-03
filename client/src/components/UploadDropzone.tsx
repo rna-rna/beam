@@ -55,18 +55,34 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
         gallerySlug = galleryData.slug;
       }
 
-      const res = await fetch(`/api/galleries/${gallerySlug}/images`, {
-        method: 'POST',
-        body: formData
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `/api/galleries/${gallerySlug}/images`);
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = (event.loaded / event.total) * 100;
+            setUploadProgress(progress);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const response = JSON.parse(xhr.response);
+            console.log("Upload successful:", response);
+            onUpload(acceptedFiles);
+            resolve(response);
+          } else {
+            reject(new Error('Upload failed'));
+          }
+        };
+
+        xhr.onerror = () => {
+          reject(new Error('Network error during upload'));
+        };
+
+        xhr.send(formData);
       });
-
-      if (!res.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const data = await res.json();
-      console.log("Images uploaded to gallery:", data);
-      onUpload(acceptedFiles);
       
       // Navigate to the gallery if newly created
       if (!currentPath.includes('/g/')) {
