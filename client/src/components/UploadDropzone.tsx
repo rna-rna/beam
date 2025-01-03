@@ -20,12 +20,6 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  useEffect(() => {
-    console.log('UploadDropzone - User:', user);
-    console.log('UploadDropzone - isSignedIn:', user?.isSignedIn);
-    console.log('UploadDropzone - Disabled:', isUploading || (user && !user.isSignedIn));
-  }, [user, isUploading]);
-
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (isUploading) return;
     setIsUploading(true);
@@ -40,7 +34,6 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
       const currentPath = window.location.pathname;
       let gallerySlug = currentPath.split('/').pop();
 
-      // Create gallery if slug is missing
       if (!gallerySlug || gallerySlug === '') {
         const createRes = await fetch('/api/galleries/create', {
           method: 'POST',
@@ -56,13 +49,13 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
         gallerySlug = galleryData.slug;
       }
 
-      return new Promise((resolve, reject) => {
+      await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `/api/galleries/${gallerySlug}/images`);
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
-            const progress = (event.loaded / event.total) * 100;
+            const progress = Math.round((event.loaded / event.total) * 100);
             setUploadProgress(progress);
           }
         };
@@ -88,8 +81,7 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
 
         xhr.send(formData);
       });
-      
-      // Navigate to the gallery if newly created
+
       if (!currentPath.includes('/g/')) {
         setLocation(`/g/${gallerySlug}`);
       }
@@ -128,7 +120,7 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
           <div className="w-full space-y-4">
             <Progress value={uploadProgress} className="w-full" />
             <p className="text-sm text-center text-muted-foreground">
-              Uploading... {Math.round(uploadProgress)}%
+              Uploading... {uploadProgress}%
             </p>
           </div>
         ) : (
