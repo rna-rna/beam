@@ -1,6 +1,7 @@
 
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { LoginButton } from "@/components/LoginButton";
+import { SignUpButton } from "@/components/SignUpButton";
 import { useState } from "react";
 import UploadDropzone from "@/components/UploadDropzone";
 import { UserNav } from "@/components/UserNav";
@@ -37,6 +38,7 @@ export default function Home() {
             <SignedOut>
               <div className="flex items-center gap-2">
                 <LoginButton />
+                <SignUpButton />
               </div>
             </SignedOut>
           </div>
