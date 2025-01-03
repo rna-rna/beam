@@ -7,6 +7,11 @@ interface StarData {
   userId: string;
   imageId: number;
   createdAt: string;
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    imageUrl?: string;
+  };
 }
 
 interface StarredAvatarsProps {
@@ -29,6 +34,13 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
 
   if (stars.length === 0) return null;
 
+  const getInitials = (user?: StarData['user']) => {
+    if (!user) return '?';
+    const first = user.firstName?.charAt(0) || '';
+    const last = user.lastName?.charAt(0) || '';
+    return (first + last).toUpperCase() || '?';
+  };
+
   return (
     <div className="relative flex items-center">
       {visibleStars.map((star, index) => (
@@ -36,7 +48,8 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
           key={star.id}
           className={`w-6 h-6 border-2 border-background shadow-sm ${index > 0 ? '-ml-2' : ''}`}
         >
-          <AvatarFallback>U</AvatarFallback>
+          {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
+          <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
         </Avatar>
       ))}
       {remainingCount > 0 && (
