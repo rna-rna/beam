@@ -29,7 +29,10 @@ export default function Home() {
     <div className="min-h-screen">
       <div className={cn("sticky top-0 z-10 backdrop-blur-sm border-b", isDark ? "bg-black/80" : "bg-background/80")}>
         <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4">
-          <h1 className="text-l font-semibold">Image Gallery Hub</h1>
+          <div className="flex items-center gap-2">
+            <img src="/beam-logo-1.svg" alt="Image Gallery Hub Logo" className="h-8 w-auto" />
+            <h1 className="text-l font-semibold">Image Gallery Hub</h1>
+          </div>
           <div className="ml-auto flex items-center gap-4">
             <ThemeToggle />
             <SignedIn>
