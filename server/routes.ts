@@ -122,6 +122,19 @@ export function registerRoutes(app: Express): Server {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
+      // Check for existing gallery
+      const existingGallery = await db.query.galleries.findFirst({
+        where: and(
+          eq(galleries.title, title),
+          eq(galleries.userId, userId || 'guest')
+        )
+      });
+
+      if (existingGallery) {
+        console.log('Found existing gallery:', existingGallery);
+        return res.json(existingGallery);
+      }
+
       console.log('Creating gallery:', {
         title,
         userId: userId || 'guest',
