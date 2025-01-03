@@ -51,6 +51,42 @@ function AppContent() {
   // Get gallery slug from URL if we're on a gallery page
   const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
 
+  // Query for specific gallery when on gallery page
+  const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
+    queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : null,
+    queryFn: async () => {
+      if (!gallerySlug) return null;
+      const token = await getToken();
+      const headers: HeadersInit = {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`/api/galleries/${gallerySlug}`, {
+        headers,
+        cache: 'no-store',
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        if (res.status === 404) {
+          throw new Error('Gallery not found');
+        }
+        if (res.status === 403) {
+          throw new Error('This gallery is private');
+        }
+        throw new Error('Failed to fetch gallery');
+      }
+      return res.json();
+    },
+    enabled: !!gallerySlug,
+    staleTime: 0,
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
+  });
+
   useEffect(() => {
     if (gallerySlug && gallery?.title) {
       document.title = `${gallery.title} | Beam`;
@@ -93,42 +129,6 @@ function AppContent() {
       });
     }
   };
-
-  // Query for specific gallery when on gallery page
-  const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
-    queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : null,
-    queryFn: async () => {
-      if (!gallerySlug) return null;
-      const token = await getToken();
-      const headers: HeadersInit = {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      const res = await fetch(`/api/galleries/${gallerySlug}`, {
-        headers,
-        cache: 'no-store',
-        credentials: 'include'
-      });
-      if (!res.ok) {
-        if (res.status === 404) {
-          throw new Error('Gallery not found');
-        }
-        if (res.status === 403) {
-          throw new Error('This gallery is private');
-        }
-        throw new Error('Failed to fetch gallery');
-      }
-      return res.json();
-    },
-    enabled: !!gallerySlug,
-    staleTime: 0,
-    retry: false,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true
-  });
 
   // Handle redirect on auth state change - only redirect from root path
   useEffect(() => {
