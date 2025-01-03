@@ -174,14 +174,10 @@ function AppContent() {
     <Switch>
       <Route path="/">
         <SignedIn>
-          <Layout title="Beam | Dashboard">
-            <Dashboard />
-          </Layout>
+          <Dashboard />
         </SignedIn>
         <SignedOut>
-          <Layout title="Beam | Home">
-            <Home />
-          </Layout>
+          <Home />
         </SignedOut>
       </Route>
 
@@ -196,7 +192,7 @@ function AppContent() {
 
       <Route path="/settings">
         <ProtectedRoute>
-          <Layout title="Beam | Settings">
+          <Layout>
             <Settings />
           </Layout>
         </ProtectedRoute>
@@ -204,9 +200,7 @@ function AppContent() {
 
       <Route path="/dashboard">
         <ProtectedRoute>
-          <Layout title="Beam | Dashboard">
-            <Dashboard />
-          </Layout>
+          <Dashboard />
         </ProtectedRoute>
       </Route>
 
