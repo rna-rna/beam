@@ -1469,6 +1469,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       
 
+      {/* Logo */}
+      <div className="fixed bottom-6 left-6 z-50 opacity-60">
+        <Logo size="lg" />
+      </div>
+
       {/* Scale Slider */}
       <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
         <Slider
