@@ -117,41 +117,27 @@ export function registerRoutes(app: Express): Server {
       const isGuestUpload = !userId;
       const files = req.files as Express.Multer.File[];
 
-      // Ensure either authenticated user or guest upload
       if (!userId && !isGuestUpload) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      // Check for existing gallery
-      const existingGallery = await db.query.galleries.findFirst({
-        where: and(
-          eq(galleries.title, title),
-          eq(galleries.userId, userId || 'guest')
-        )
-      });
-
-      if (existingGallery) {
-        console.log('Found existing gallery:', existingGallery);
-        return res.json(existingGallery);
-      }
-
-      console.log('Creating gallery:', {
+      // Skip checking for existing galleries
+      console.log('Creating new gallery:', {
         title,
         userId: userId || 'guest',
         guestUpload: isGuestUpload,
         fileCount: files?.length || 0
       });
 
-      // Generate unique slug
+      // Generate unique slug for every new gallery
       const slug = nanoid(10);
-      
-      // Create gallery
+
       const [gallery] = await db.insert(galleries).values({
         slug,
         title,
         userId: userId || 'guest',
         guestUpload: isGuestUpload,
-        isPublic: isGuestUpload ? true : false,  // Guest galleries are always public
+        isPublic: isGuestUpload ? true : false,
         createdAt: new Date()
       }).returning();
 
