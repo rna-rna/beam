@@ -1078,10 +1078,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               loading="lazy"
               draggable={false}
             />
-            {/* Starred avatars in top left corner */}
-            <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <StarredAvatars imageId={image.id} />
-            </div>
           </>
         )}
 
