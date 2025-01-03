@@ -70,7 +70,11 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
           if (xhr.status >= 200 && xhr.status < 300) {
             const response = JSON.parse(xhr.response);
             console.log("Upload successful:", response);
-            onUpload(acceptedFiles);
+            toast({
+              title: "Success",
+              description: "Images uploaded successfully!",
+            });
+            queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
             resolve(response);
           } else {
             reject(new Error('Upload failed'));
