@@ -43,9 +43,9 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="container mx-auto px-0 flex-grow flex">
+      <div className="w-full h-[calc(100vh-4rem)] flex">
         <SignedOut>
-          <div className="flex flex-col items-center justify-center w-full">
+          <div className="flex flex-col items-center justify-center w-full h-full">
             <UploadDropzone onUpload={handleGuestUpload} />
           </div>
         </SignedOut>
