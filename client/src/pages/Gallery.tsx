@@ -624,7 +624,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         className="mb-4 bg-gray-200 rounded-lg overflow-hidden relative"
       >
         <div className="w-full aspect-[4/3] flex items-center justify-center">
-          <span className="text-gray-500">{filename}</span>
+          <span className="text-lg font-geist-mono font-medium text-gray-500/80">{filename}</span>
         </div>
         <div className="absolute inset-0 flex flex-col justify-end">
           <Progress value={progress} className="h-1" />
