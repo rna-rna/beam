@@ -113,6 +113,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       uploadMutation.mutate(files);
     }
   };
+
+  
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const { user } = useUser();
@@ -1317,10 +1319,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     setSelectedImageIndex(index);
   };
 
-  // Add layout toggle handler
-  const toggleGridView = () => {
-    setIsMasonry(!isMasonry);
-  };
+  
 
   // Add comment position handler
   const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
