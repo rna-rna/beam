@@ -854,6 +854,25 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
         <TooltipProvider>
         
+          {/* Grid View Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={toggleGridView}
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200", !isMasonry && "bg-primary/20")}
+              >
+                {isMasonry ? (
+                  <Grid className="h-4 w-4" />
+                ) : (
+                  <LayoutGrid className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
+          </Tooltip>
+
           {/* Filter Menu */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1444,24 +1463,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         </motion.div>
       )}
 
-      {/* Grid View Toggle Button */}
-      <div className="fixed bottom-6 left-6 z-50">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={toggleGridView}
-          className={`h-10 w-10 rounded-full bg-background/95 backdrop-blur-sm hover:bg-background shadow-lg text-white ${
-            !isMasonry ? "bg-primary/20" : ""
-          }`}
-          title={`Switch to ${isMasonry ? "grid" : "masonry"} view`}
-        >
-          {isMasonry ? (
-            <Grid className="h-5 w-5" />
-          ) : (
-            <LayoutGrid className="h5 w-5" />
-          )}
-        </Button>
-      </div>
+      
 
       {/* Scale Slider */}
       <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
