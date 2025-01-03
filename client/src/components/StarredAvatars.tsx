@@ -30,8 +30,6 @@ export function StarredAvatars({ imageId, optimisticStars }: StarredAvatarsProps
   });
 
   const stars = optimisticStars || response?.data || [];
-
-  const stars = response?.data || [];
   const visibleStars = stars.slice(0, 3);
   const remainingCount = stars.length - visibleStars.length;
 
