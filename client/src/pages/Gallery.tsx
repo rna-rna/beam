@@ -1252,7 +1252,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               This gallery is empty. Upload images to get started.
             </h1>
             <UploadDropzone 
-              onUpload={(files) => uploadMutation.mutate(files)} 
+              onUpload={(files) => onUpload(files)} 
             />
           </div>
         </SignedIn>
