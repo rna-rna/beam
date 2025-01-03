@@ -79,6 +79,7 @@ import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/LoginModal";
 import { StarredAvatars } from "@/components/StarredAvatars";
 import { LoginButton } from "@/components/LoginButton";
+import { Logo } from "@/components/Logo";
 
 interface GalleryProps {
   slug?: string;
