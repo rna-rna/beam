@@ -47,9 +47,6 @@ export default function Home() {
         <SignedOut>
           <div className="flex flex-col items-center justify-center min-h-[80vh]">
             <UploadDropzone onUpload={handleGuestUpload} />
-            <p className="text-sm text-muted-foreground mt-4">
-              Create one gallery as a guest. Sign up to upload more.
-            </p>
           </div>
         </SignedOut>
 
