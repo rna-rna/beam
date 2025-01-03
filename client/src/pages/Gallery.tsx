@@ -96,6 +96,23 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const params = useParams();
   const slug = propSlug || params?.slug;
   const { toast } = useToast();
+  const [guestGalleryCount, setGuestGalleryCount] = useState(
+    Number(sessionStorage.getItem("guestGalleryCount")) || 0
+  );
+
+  const handleGuestUpload = async (files: File[]) => {
+    if (guestGalleryCount >= 1) {
+      window.location.href = "/sign-up";
+      return;
+    }
+    console.log("Uploading guest gallery with guestUpload flag...");
+    setGuestGalleryCount(1);
+    sessionStorage.setItem("guestGalleryCount", "1");
+
+    if (files?.length) {
+      uploadMutation.mutate(files);
+    }
+  };
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const { user } = useUser();
