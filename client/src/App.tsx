@@ -47,6 +47,9 @@ function AppContent() {
   const { isSignedIn, user } = useUser();
   const { getToken } = useAuth();
   const [location] = useLocation();
+  
+  // Get gallery slug from URL if we're on a gallery page
+  const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
 
   useEffect(() => {
     if (gallerySlug && gallery?.title) {
