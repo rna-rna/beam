@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { queryClient } from "@/lib/queryClient";
 
 interface UploadDropzoneProps {
   onUpload: (files: File[]) => void;
