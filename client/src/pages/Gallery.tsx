@@ -1262,10 +1262,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   if (gallery && gallery.images.length === 0) {
     return (
-      <div className="flex flex-col h-screen overflow-hidden">
-        <div className="flex-1 w-full">
+      <div className="flex flex-col min-h-screen max-h-screen overflow-hidden">
+        <div className="flex-1 w-full overflow-hidden relative">
           <SignedIn>
-            <div className="h-full w-full">
+            <div className="absolute inset-0">
               <UploadDropzone 
                 onUpload={(files) => {
                   if (!files.length) return;
@@ -1275,7 +1275,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </div>
           </SignedIn>
           <SignedOut>
-            <div className="h-full w-full">
+            <div className="absolute inset-0">
               <UploadDropzone onUpload={handleGuestUpload} />
             </div>
           </SignedOut>
