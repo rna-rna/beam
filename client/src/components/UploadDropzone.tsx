@@ -35,9 +35,15 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
       acceptedFiles.forEach(file => {
         formData.append('images', file);
       });
-      formData.append('title', 'Untitled Project');
 
-      const res = await fetch('/api/galleries/create', {
+      const currentPath = window.location.pathname;
+      const gallerySlug = currentPath.split('/').pop();
+
+      if (!gallerySlug) {
+        throw new Error('No gallery context found');
+      }
+
+      const res = await fetch(`/api/galleries/${gallerySlug}/images`, {
         method: 'POST',
         body: formData
       });
@@ -47,8 +53,7 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
       }
 
       const data = await res.json();
-      console.log("Guest gallery created:", data);
-      setLocation(`/g/${data.slug}`);
+      console.log("Images uploaded to existing gallery:", data);
       onUpload(acceptedFiles);
     } catch (error) {
       console.error('Upload error:', error);
