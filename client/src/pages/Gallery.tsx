@@ -237,10 +237,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         hasToken: !!await getToken(),
         timestamp: new Date().toISOString()
       });
-    },
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    staleTime: 0,
       
       const token = await getToken();
       const headers: HeadersInit = {
