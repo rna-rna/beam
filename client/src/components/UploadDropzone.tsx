@@ -1,5 +1,5 @@
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -111,7 +111,9 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
   return (
     <Card
       {...getRootProps()}
-      className="w-full max-w-md p-8 cursor-pointer border-2 border-dashed transition-colors hover:border-primary/50"
+      className={`w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer border-2 border-dashed transition-colors ${
+        isUploading ? 'bg-gray-100' : 'hover:border-primary/50'
+      }`}
     >
       <input {...getInputProps()} />
       <div className="flex flex-col items-center gap-4">
@@ -120,7 +122,7 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
           <div className="w-full space-y-4">
             <Progress value={uploadProgress} className="w-full" />
             <p className="text-sm text-center text-muted-foreground">
-              Uploading... {uploadProgress}%
+              Uploading... {Math.round(uploadProgress)}%
             </p>
           </div>
         ) : (
