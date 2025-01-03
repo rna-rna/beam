@@ -94,9 +94,6 @@ function AppContent() {
     }
   };
 
-  // Get gallery slug from URL if we're on a gallery page
-  const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
-
   // Query for specific gallery when on gallery page
   const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
     queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : null,
