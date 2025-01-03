@@ -1262,22 +1262,24 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   if (gallery && gallery.images.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-        <SignedIn>
-          <div className="max-w-xl w-full">
-            <UploadDropzone 
-              onUpload={(files) => {
-                if (!files.length) return;
-                uploadMutation.mutate(files);
-              }} 
-            />
-          </div>
-        </SignedIn>
-        <SignedOut>
-          <div className="max-w-xl w-full">
-            <UploadDropzone onUpload={handleGuestUpload} />
-          </div>
-        </SignedOut>
+      <div className="flex flex-col min-h-screen">
+        <div className="flex-grow flex">
+          <SignedIn>
+            <div className="w-full flex">
+              <UploadDropzone 
+                onUpload={(files) => {
+                  if (!files.length) return;
+                  uploadMutation.mutate(files);
+                }} 
+              />
+            </div>
+          </SignedIn>
+          <SignedOut>
+            <div className="w-full flex">
+              <UploadDropzone onUpload={handleGuestUpload} />
+            </div>
+          </SignedOut>
+        </div>
       </div>
     );
   }
