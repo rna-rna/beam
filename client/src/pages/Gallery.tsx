@@ -1424,7 +1424,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 .filter((image: Image) => {
                   if (showStarredOnly && !image.starred) return false;
                   if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
-                  if (showApproved && !image.approved) return false;
                   return true;
                 })
                 .map((image: Image, index: number) => renderImage(image, index))}
