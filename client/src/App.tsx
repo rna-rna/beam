@@ -49,12 +49,16 @@ function AppContent() {
   const [location] = useLocation();
 
   useEffect(() => {
-    const updateTitle = (newTitle?: string) => {
-      document.title = newTitle ? `${newTitle} | Beam` : 'Beam';
-    };
+    if (gallerySlug && gallery?.title) {
+      document.title = `${gallery.title} | Beam`;
+    } else {
+      document.title = 'Beam';
+    }
     
-    return () => updateTitle();
-  }, []);
+    return () => {
+      document.title = 'Beam';
+    };
+  }, [gallerySlug, gallery?.title]);
 
   // Title update mutation
   const handleTitleUpdate = async (newTitle: string) => {
