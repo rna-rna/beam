@@ -1244,10 +1244,22 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   if (gallery && gallery.images.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <h1 className="text-xl text-muted-foreground">
-          This gallery is empty. Upload images to get started.
-        </h1>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+        <SignedIn>
+          <div className="max-w-xl w-full space-y-6">
+            <h1 className="text-xl text-muted-foreground text-center mb-6">
+              This gallery is empty. Upload images to get started.
+            </h1>
+            <UploadDropzone 
+              onUpload={(files) => uploadMutation.mutate(files)} 
+            />
+          </div>
+        </SignedIn>
+        <SignedOut>
+          <h1 className="text-xl text-muted-foreground text-center">
+            This gallery is empty.
+          </h1>
+        </SignedOut>
       </div>
     );
   }
