@@ -278,10 +278,9 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add images to existing gallery (protected)
-  protectedRouter.post('/galleries/:slug/images', upload.array('images', 50), async (req: any, res) => {
+  // Add images to gallery (supports both guest and authenticated uploads)
+  app.post('/api/galleries/:slug/images', upload.array('images', 50), async (req: any, res) => {
     try {
-      // Check if gallery exists without ownership check first
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug)
       });
@@ -295,7 +294,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Allow access for guest galleries or authenticated owners
+      // Allow uploads for guest galleries or authenticated owners
       const userId = req.auth?.userId;
       if (!gallery.guestUpload && (!userId || userId !== gallery.userId)) {
         return res.status(401).json({ message: 'Unauthorized' });
@@ -305,19 +304,16 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: 'No images uploaded' });
       }
 
-      const imageInserts = [];
-      for (const file of req.files) {
-        const [image] = await db.insert(images).values({
-          galleryId: gallery.id,
-          url: `/uploads/${file.filename}`,
-          publicId: file.filename,
-          originalFilename: file.originalname,
-          width: 800, // placeholder
-          height: 600 // placeholder
-        }).returning();
-        imageInserts.push(image);
-      }
+      const imageInserts = req.files.map(file => ({
+        galleryId: gallery.id,
+        url: `/uploads/${file.filename}`,
+        publicId: file.filename,
+        originalFilename: file.originalname,
+        width: 800,
+        height: 600
+      }));
 
+      await db.insert(images).values(imageInserts);
       res.json({ success: true });
     } catch (error) {
       console.error('Upload error:', error);
