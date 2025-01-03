@@ -108,8 +108,8 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
     disabled: isUploading,
-    noClick: true,
-    noKeyboard: true,
+    noClick: isClickDisabled,
+    noKeyboard: false,
     onDragEnter: () => setIsDragging(true),
     onDragLeave: () => setIsDragging(false),
   });
