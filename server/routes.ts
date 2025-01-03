@@ -141,6 +141,22 @@ export function registerRoutes(app: Express): Server {
         createdAt: new Date()
       }).returning();
 
+      console.log('Gallery created, waiting for propagation...');
+
+      let attempts = 0;
+      while (attempts < 5) {
+        const exists = await db.query.galleries.findFirst({
+          where: eq(galleries.slug, slug)
+        });
+        
+        if (exists) {
+          console.log('Gallery available after:', attempts + 1, 'attempts');
+          break;
+        }
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1-second delay
+      }
+
       // Upload images immediately for guest galleries
       if (isGuestUpload && files && files.length > 0) {
         const imageInserts = files.map(file => ({
