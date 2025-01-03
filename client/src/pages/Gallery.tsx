@@ -1101,7 +1101,29 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
                 e.stopPropagation();
-                toggleStarMutation.mutate(image.id);
+                const currentStarred = image.starred;
+                // Optimistic update
+                queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
+                  ...old,
+                  images: old.images.map((img: Image) =>
+                    img.id === image.id ? { ...img, starred: !currentStarred } : img
+                  )
+                }));
+                
+                toggleStarMutation.mutate(image.id, {
+                  onSuccess: () => {
+                    queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+                  },
+                  onError: () => {
+                    // Revert optimistic update on error
+                    queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
+                      ...old,
+                      images: old.images.map((img: Image) =>
+                        img.id === image.id ? { ...img, starred: currentStarred } : img
+                      )
+                    }));
+                  }
+                });
               }}
             >
               <motion.div
