@@ -3,8 +3,6 @@ import { SignUp } from "@clerk/clerk-react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 
 interface SignUpModalProps {
@@ -15,17 +13,14 @@ interface SignUpModalProps {
 export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Create an account</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-md p-0">
         <SignUp
           appearance={{
             elements: {
               formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-              card: 'bg-background shadow-none dark:bg-black',
-              headerTitle: 'text-foreground dark:text-white',
-              headerSubtitle: 'text-muted-foreground dark:text-gray-400',
+              card: 'bg-background shadow-none dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md',
+              headerTitle: 'hidden',
+              headerSubtitle: 'hidden',
               formFieldLabel: 'dark:text-gray-300',
               formFieldInput: 'dark:bg-gray-900 dark:text-white dark:border-gray-700',
               formFieldError: 'dark:text-red-400',
