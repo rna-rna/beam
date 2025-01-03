@@ -8,6 +8,7 @@ import { UserNav } from "@/components/UserNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
+import { Logo } from "@/components/Logo";
 
 export default function Home() {
   const { isDark } = useTheme();
@@ -30,7 +31,7 @@ export default function Home() {
       <div className={cn("sticky top-0 z-10 backdrop-blur-sm border-b", isDark ? "bg-black/80" : "bg-background/80")}>
         <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <img src="/beam-logo-1.svg" alt="Image Gallery Hub Logo" className="h-8 w-auto" />
+            <Logo size="md" />
             <h1 className="text-l font-semibold">Image Gallery Hub</h1>
           </div>
           <div className="ml-auto flex items-center gap-4">
