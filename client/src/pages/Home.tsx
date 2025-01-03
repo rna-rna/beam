@@ -1,4 +1,3 @@
-
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { LoginButton } from "@/components/LoginButton";
 import { SignUpButton } from "@/components/SignUpButton";
