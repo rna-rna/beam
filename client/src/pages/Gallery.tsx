@@ -1471,7 +1471,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       
 
       {/* Logo */}
-      <div className="fixed bottom-6 left-6 z-50 opacity-30">
+      <div 
+        className="fixed bottom-6 left-6 z-50 opacity-30 hover:opacity-60 transition-opacity cursor-pointer" 
+        onClick={() => window.location.href = '/'}
+      >
         <Logo size="sm" />
       </div>
 
