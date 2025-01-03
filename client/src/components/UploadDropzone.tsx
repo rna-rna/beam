@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useDropzone } from "react-dropzone";
@@ -18,6 +19,7 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
   const { user } = useUser();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (isUploading) return;
@@ -97,21 +99,23 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
     }
   }, [isUploading, user, setLocation, toast, onUpload]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
     disabled: isUploading,
     noClick: false,
-    noKeyboard: false
+    noKeyboard: false,
+    onDragEnter: () => setIsDragging(true),
+    onDragLeave: () => setIsDragging(false),
   });
 
   return (
     <Card
       {...getRootProps()}
-      className={`w-full h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer border-2 border-dashed transition-colors ${
-        isUploading ? 'bg-gray-100' : 'hover:border-primary/50'
+      className={`w-full h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer border-2 border-dashed transition-all ${
+        isDragging ? 'bg-gray-100' : ''
       }`}
     >
       <input {...getInputProps()} />
@@ -127,7 +131,7 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
         ) : (
           <div className="text-center">
             <p className="text-lg font-medium">
-              {isDragActive ? "Drop images here" : "Drag & drop images here"}
+              {isDragging ? "Drop to Upload!" : "Drag & drop images here"}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
               or click to select files
