@@ -139,6 +139,6 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 }
