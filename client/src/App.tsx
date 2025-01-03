@@ -50,7 +50,7 @@ function AppContent() {
 
   useEffect(() => {
     const updateTitle = (newTitle?: string) => {
-      document.title = newTitle ? `${newTitle} | Gallery Hub` : 'Gallery Hub';
+      document.title = newTitle ? `${newTitle} | Beam` : 'Beam';
     };
     
     return () => updateTitle();
