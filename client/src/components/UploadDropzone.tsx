@@ -11,10 +11,10 @@ import { queryClient } from "@/lib/queryClient";
 
 interface UploadDropzoneProps {
   onUpload: (files: File[]) => void;
-  imageCount?: number;
+  imageCount: number;
 }
 
-export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
+export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useUser();
@@ -106,20 +106,18 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
     disabled: isUploading,
-    noClick: false,
+    noClick: imageCount > 0,
     noKeyboard: false,
     onDragEnter: () => setIsDragging(true),
     onDragLeave: () => setIsDragging(false),
   });
 
   return (
-    <div
+    <Card
       {...getRootProps()}
-      className={`w-full h-full flex-1 flex items-center justify-center cursor-pointer ${
-        isDragging 
-          ? 'bg-gray-200 dark:bg-gray-800' 
-          : 'bg-white dark:bg-black'
-      } transition-all rounded-lg overflow-hidden min-h-0`}
+      className={`w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer border-2 border-dashed ${
+        isUploading ? 'bg-gray-100' : 'hover:border-primary/50'
+      }`}
     >
       <input {...getInputProps()} />
       <div className="flex flex-col items-center gap-4">
@@ -128,20 +126,22 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
           <div className="w-full space-y-4">
             <Progress value={uploadProgress} className="w-full" />
             <p className="text-sm text-center text-muted-foreground">
-              Uploading... {Math.round(uploadProgress)}%
+              Uploading... {uploadProgress}%
             </p>
           </div>
         ) : (
           <div className="text-center">
             <p className="text-lg font-medium">
-              {isDragging ? "Drop to Upload!" : "Drag & drop images here"}
+              {isDragActive ? "Drop images here" : "Drag & drop images here"}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              or click to select files
-            </p>
+            {imageCount === 0 && (
+              <p className="text-sm text-muted-foreground mt-1">
+                or click to select files
+              </p>
+            )}
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
