@@ -112,11 +112,11 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
   });
 
   return (
-    <Card
+    <div
       {...getRootProps()}
-      className={`w-full h-full flex items-center justify-center cursor-pointer border-2 border-dashed transition-all ${
+      className={`w-full h-full flex items-center justify-center cursor-pointer ${
         isDragging ? 'bg-gray-200' : 'bg-white'
-      }`}
+      } transition-all`}
     >
       <input {...getInputProps()} />
       <div className="flex flex-col items-center gap-4">
