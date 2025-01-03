@@ -120,6 +120,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const { user } = useUser();
   const { isDark } = useTheme();
 
+  const toggleGridView = () => {
+    setIsMasonry(!isMasonry);
+  };
+
   // State Management
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
