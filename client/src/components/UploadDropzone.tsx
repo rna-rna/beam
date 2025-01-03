@@ -11,6 +11,7 @@ import { queryClient } from "@/lib/queryClient";
 
 interface UploadDropzoneProps {
   onUpload: (files: File[]) => void;
+  imageCount?: number;
 }
 
 export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {

@@ -1289,7 +1289,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 onUpload={(files) => {
                   if (!files.length) return;
                   uploadMutation.mutate(files);
-                }} 
+                }}
+                imageCount={gallery?.images?.length || 0}
               />
             </div>
           </SignedIn>
