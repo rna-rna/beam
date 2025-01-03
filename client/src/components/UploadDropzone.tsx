@@ -1,5 +1,5 @@
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -100,13 +100,15 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
     }
   }, [isUploading, user, setLocation, toast, onUpload]);
 
+  const isClickDisabled = useMemo(() => imageCount > 0, [imageCount]);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
     disabled: isUploading,
-    noClick: imageCount > 0,
+    noClick: isClickDisabled,
     noKeyboard: false,
     onDragEnter: () => setIsDragging(true),
     onDragLeave: () => setIsDragging(false),
