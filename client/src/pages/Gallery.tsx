@@ -621,10 +621,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.3 }}
-        className="mb-4 bg-gray-200 rounded-lg overflow-hidden relative"
+        className="mb-4 bg-zinc-900 rounded-lg overflow-hidden relative"
       >
         <div className="w-full aspect-[4/3] flex items-center justify-center">
-          <span className="text-lg font-geist-mono font-medium text-gray-500/80">{filename}</span>
+          <span className="text-sm font-geist-mono font-medium text-zinc-500/80">{filename}</span>
         </div>
         <div className="absolute inset-0 flex flex-col justify-end">
           <Progress value={progress} className="h-1" />
