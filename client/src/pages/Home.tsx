@@ -43,7 +43,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-0 py-0">
         <SignedOut>
           <div className="flex flex-col items-center justify-center min-h-[80vh]">
             <UploadDropzone onUpload={handleGuestUpload} />

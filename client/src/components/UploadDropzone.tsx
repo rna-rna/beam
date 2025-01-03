@@ -110,7 +110,7 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
   return (
     <Card
       {...getRootProps()}
-      className={`w-full min-h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer border-2 border-dashed transition-colors ${
+      className={`w-full h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer border-2 border-dashed transition-colors ${
         isUploading ? 'bg-gray-100' : 'hover:border-primary/50'
       }`}
     >
