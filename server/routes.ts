@@ -142,9 +142,12 @@ export function registerRoutes(app: Express): Server {
         fileCount: files?.length || 0
       });
 
+      // Generate unique slug
+      const slug = nanoid(10);
+      
       // Create gallery
       const [gallery] = await db.insert(galleries).values({
-        slug: generateSlug(),
+        slug,
         title,
         userId: userId || 'guest',
         guestUpload: isGuestUpload,
