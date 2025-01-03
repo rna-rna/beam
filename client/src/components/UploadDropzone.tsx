@@ -115,7 +115,9 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
     <div
       {...getRootProps()}
       className={`w-full h-full flex-1 flex items-center justify-center cursor-pointer ${
-        isDragging ? 'bg-gray-200' : 'bg-white'
+        isDragging 
+          ? 'bg-gray-200 dark:bg-gray-800' 
+          : 'bg-white dark:bg-black'
       } transition-all rounded-lg overflow-hidden min-h-0`}
     >
       <input {...getInputProps()} />
