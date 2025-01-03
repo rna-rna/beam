@@ -48,6 +48,14 @@ function AppContent() {
   const { getToken } = useAuth();
   const [location] = useLocation();
 
+  useEffect(() => {
+    const updateTitle = (newTitle?: string) => {
+      document.title = newTitle ? `${newTitle} | Gallery Hub` : 'Gallery Hub';
+    };
+    
+    return () => updateTitle();
+  }, []);
+
   // Title update mutation
   const handleTitleUpdate = async (newTitle: string) => {
     if (!gallerySlug) return;
