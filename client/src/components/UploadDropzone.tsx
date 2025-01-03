@@ -37,10 +37,22 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
       });
 
       const currentPath = window.location.pathname;
-      const gallerySlug = currentPath.split('/').pop();
+      let gallerySlug = currentPath.split('/').pop();
 
-      if (!gallerySlug) {
-        throw new Error('No gallery context found');
+      // Create gallery if slug is missing
+      if (!gallerySlug || gallerySlug === '') {
+        const createRes = await fetch('/api/galleries/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            title: 'Untitled Project',
+            userId: user?.id || 'guest'
+          })
+        });
+
+        if (!createRes.ok) throw new Error('Gallery creation failed');
+        const galleryData = await createRes.json();
+        gallerySlug = galleryData.slug;
       }
 
       const res = await fetch(`/api/galleries/${gallerySlug}/images`, {
@@ -53,8 +65,13 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
       }
 
       const data = await res.json();
-      console.log("Images uploaded to existing gallery:", data);
+      console.log("Images uploaded to gallery:", data);
       onUpload(acceptedFiles);
+      
+      // Navigate to the gallery if newly created
+      if (!currentPath.includes('/g/')) {
+        setLocation(`/g/${gallerySlug}`);
+      }
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -66,7 +83,7 @@ export default function UploadDropzone({ onUpload }: UploadDropzoneProps) {
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [isUploading, setLocation, toast, onUpload]);
+  }, [isUploading, user, setLocation, toast, onUpload]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
