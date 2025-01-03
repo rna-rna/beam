@@ -605,8 +605,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
     disabled: isUploading || selectMode || selectedImageIndex >= 0,
-    noClick: selectMode || selectedImageIndex >= 0,
-    noKeyboard: selectMode || selectedImageIndex >= 0
+    noClick: true,
+    noKeyboard: true
   });
 
   // Add upload progress placeholders to the masonry grid
