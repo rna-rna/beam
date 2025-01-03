@@ -281,14 +281,9 @@ export function registerRoutes(app: Express): Server {
   // Add images to existing gallery (protected)
   protectedRouter.post('/galleries/:slug/images', upload.array('images', 50), async (req: any, res) => {
     try {
-      const userId = req.auth.userId;
-
-      // Check gallery ownership
+      // Check if gallery exists without ownership check first
       const gallery = await db.query.galleries.findFirst({
-        where: and(
-          eq(galleries.slug, req.params.slug),
-          eq(galleries.userId, userId)
-        ),
+        where: eq(galleries.slug, req.params.slug)
       });
 
       if (!gallery) {
@@ -298,6 +293,12 @@ export function registerRoutes(app: Express): Server {
           error: 'NOT_FOUND',
           details: 'The gallery you are looking for does not exist or has been removed'
         });
+      }
+
+      // Allow access for guest galleries or authenticated owners
+      const userId = req.auth?.userId;
+      if (!gallery.guestUpload && (!userId || userId !== gallery.userId)) {
+        return res.status(401).json({ message: 'Unauthorized' });
       }
 
       if (!req.files || !Array.isArray(req.files)) {
