@@ -1,6 +1,7 @@
 import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import UploadDropzone from "@/components/UploadDropzone";
 import {
   Upload,
   Grid,
