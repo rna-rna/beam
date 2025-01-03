@@ -15,7 +15,7 @@ const sizes = {
 export function Logo({ className, size = "md" }: LogoProps) {
   return (
     <img 
-      src="/beam-logo-1.svg" 
+      src="/src/assets/beam-logo-1.svg" 
       alt="Image Gallery Hub Logo" 
       className={cn(sizes[size], className)}
     />
