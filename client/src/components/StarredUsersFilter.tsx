@@ -1,5 +1,5 @@
 
-import { Users } from "lucide-react";
+import { Users, Star } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
