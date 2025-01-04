@@ -88,7 +88,7 @@ const LightboxDialogContent = React.forwardRef<
       {/* Starred avatars */}
       {selectedImage && (
         <div className="absolute bottom-4 right-4 z-50">
-          <StarredAvatars imageId={selectedImage.id} />
+          <StarredAvatars imageId={selectedImage.id} size="lg" />
         </div>
       )}
     </div>

@@ -17,6 +17,7 @@ interface StarData {
 
 interface StarredAvatarsProps {
   imageId: number;
+  size?: "default" | "lg";
 }
 
 interface StarResponse {
@@ -59,7 +60,7 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
           {visibleStars.map((star, index) => (
             <Avatar
               key={star.userId}
-              className={`w-5 h-5 shadow-sm ${index > 0 ? '-ml-2' : ''}`}
+              className={`${size === "lg" ? "w-7 h-7" : "w-5 h-5"} shadow-sm ${index > 0 ? '-ml-2' : ''}`}
             >
               {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
               <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
