@@ -16,7 +16,6 @@ interface StarData {
 
 interface StarredAvatarsProps {
   imageId: number;
-  optimisticStars?: StarData[];
 }
 
 interface StarResponse {
@@ -24,12 +23,12 @@ interface StarResponse {
   data: StarData[];
 }
 
-export function StarredAvatars({ imageId, optimisticStars }: StarredAvatarsProps) {
+export function StarredAvatars({ imageId }: StarredAvatarsProps) {
   const { data: response } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
   });
 
-  const stars = optimisticStars || response?.data || [];
+  const stars = response?.data || [];
   const visibleStars = stars.slice(0, 3);
   const remainingCount = stars.length - visibleStars.length;
 

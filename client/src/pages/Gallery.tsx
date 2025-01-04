@@ -1102,44 +1102,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               onClick={(e) => {
                 e.stopPropagation();
                 const currentStarred = image.starred;
-                const user = useUser();
-                
-                // Create optimistic star data
-                const optimisticStar = {
-                  id: Date.now(),
-                  imageId: image.id,
-                  userId: user?.id || '',
-                  createdAt: new Date().toISOString(),
-                  user: {
-                    firstName: user?.firstName || '',
-                    lastName: user?.lastName || '',
-                    imageUrl: user?.imageUrl
-                  }
-                };
-
-                // Optimistic update for gallery
+                // Optimistic update
                 queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
                   ...old,
                   images: old.images.map((img: Image) =>
                     img.id === image.id ? { ...img, starred: !currentStarred } : img
                   )
                 }));
-
-                // Optimistic update for stars
-                queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
-                  const currentStars = old?.data || [];
-                  return {
-                    success: true,
-                    data: !currentStarred 
-                      ? [...currentStars, optimisticStar]
-                      : currentStars.filter((star: StarData) => star.userId !== user?.id)
-                  };
-                });
                 
                 toggleStarMutation.mutate(image.id, {
                   onSuccess: () => {
                     queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-                    queryClient.invalidateQueries({ queryKey: [`/api/images/${image.id}/stars`] });
                   },
                   onError: () => {
                     // Revert optimistic update on error
