@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { HoverCard, HoverCardTrigger, HoverCardContent, HoverCardPortal } from "@/components/ui/hover-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -74,7 +73,7 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
       </HoverCardTrigger>
       <HoverCardPortal>
         <HoverCardContent className="w-64 p-4 shadow-lg">
-        <h4 className="text-xs font-semibold mb-2">Favorited by:</h4>
+        <h4 className="text-sm font-medium text-zinc-700 mb-2">Favorited by:</h4>
         <div className="space-y-2">
           {stars.map((star) => (
             <div key={star.userId} className="flex items-center space-x-3">
