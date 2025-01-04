@@ -362,8 +362,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       });
 
       const result = await res.json();
-      console.log('Star API Response:', result);
-
       if (!res.ok || result?.success === false) {
         throw new Error(result.message || 'Failed to update star status');
       }
@@ -371,17 +369,28 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       return { ...result, imageId };
     },
     onMutate: async ({ imageId, isStarred }) => {
-      // Cancel any outgoing refetches to avoid race conditions
-      await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
-      await queryClient.cancelQueries({ queryKey: [`/api/images/${imageId}/stars`] });
-
-      // Snapshot previous values
+      await queryClient.cancelQueries([`/api/galleries/${slug}`]);
+      await queryClient.cancelQueries([`/api/images/${imageId}/stars`]);
       const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
       const previousStars = queryClient.getQueryData([`/api/images/${imageId}/stars`]);
 
-      // No need to update gallery data since starred state comes from stars query
+      // Update Lightbox Image (if open)
+      setSelectedImage((prev) =>
+        prev?.id === imageId ? { ...prev, userStarred: !isStarred } : prev
+      );
 
-      // Optimistically update stars data
+      // Update Gallery Grid
+      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          images: oldData.images.map((image: any) =>
+            image.id === imageId ? { ...image, userStarred: !isStarred } : image
+          ),
+        };
+      });
+
+      // Update stars data
       queryClient.setQueryData([`/api/images/${imageId}/stars`], (old: any) => {
         if (!old) return { success: true, data: [] };
         const updatedData = isStarred
@@ -398,13 +407,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         return { ...old, data: updatedData };
       });
 
-      // Update selected image if necessary
-      if (selectedImage?.id === imageId) {
-        setSelectedImage((prev) =>
-          prev ? { ...prev, starred: !isStarred } : prev
-        );
-      }
-
       return { previousGallery, previousStars };
     },
     onError: (err, variables, context) => {
@@ -413,14 +415,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       }
       toast({
         title: "Error",
-        description: err.message || "Failed to update star status. Please try again.",
+        description: "Failed to update star status. Please try again.",
         variant: "destructive",
       });
     },
-    onSettled: (result, error, variables) => {
-      if (variables && variables.imageId) {
-        queryClient.invalidateQueries({ queryKey: [`/api/images/${variables.imageId}/stars`] });
-      }
+    onSettled: () => {
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
     },
   });
 
