@@ -20,6 +20,11 @@ const LightboxDialogContent = React.forwardRef<
   const lightboxRef = React.useRef<HTMLDivElement>(null);
   const [showStarIndicator, setShowStarIndicator] = React.useState(false);
 
+  const triggerStarIndicator = React.useCallback(() => {
+    setShowStarIndicator(true);
+    setTimeout(() => setShowStarIndicator(false), 1500);
+  }, []);
+
   React.useEffect(() => {
     if (lightboxRef.current) {
       lightboxRef.current.focus({ preventScroll: true });
@@ -57,7 +62,7 @@ const LightboxDialogContent = React.forwardRef<
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1.2 }}
           exit={{ opacity: 0, scale: 0.8 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
+          transition={{ duration: 0.9, ease: "easeOut" }}
           className="absolute inset-0 flex items-center justify-center z-[60]"
         >
           {selectedImage?.userStarred ? (
