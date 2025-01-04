@@ -4,20 +4,19 @@ import { cn } from "@/lib/utils";
 import { DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { Image } from "@/types/gallery";
 
 interface LightboxDialogContentProps
   extends React.HTMLAttributes<HTMLDivElement> {
   onOpenChange?: (open: boolean) => void;
-  selectedImage?: {
-    id: number;
-    starred?: boolean;
-  };
+  selectedImage?: Image;
+  setSelectedImage?: (image: Image | null) => void;
 }
 
 const LightboxDialogContent = React.forwardRef<
   HTMLDivElement,
   LightboxDialogContentProps
->(({ className, children, onOpenChange, ...props }, ref) => {
+>(({ className, children, onOpenChange, selectedImage, setSelectedImage, ...props }, ref) => {
   const lightboxRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
