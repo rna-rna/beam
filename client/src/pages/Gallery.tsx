@@ -1698,7 +1698,15 @@ const renderGalleryControls = useCallback(() => {
             setNewCommentPos(null);
           }
         }}>
-          <LightboxDialogContent aria-describedby="gallery-lightbox-description">
+          <LightboxDialogContent 
+            aria-describedby="gallery-lightbox-description"
+            onOpenChange={(open) => {
+              if (!open) {
+                setSelectedImageIndex(-1);
+                setNewCommentPos(null);
+              }
+            }}
+          >
             <div id="gallery-lightbox-description" className="sr-only">
               Image viewer with annotation and commenting capabilities
             </div>
