@@ -1,4 +1,5 @@
-import { Users, Star } from "lucide-react"; // Added Star import
+
+import { Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -70,12 +71,8 @@ export function StarredUsersFilter({
           <DropdownMenuCheckboxItem
             checked={selectAllTriggered}
             onCheckedChange={toggleAll}
-            className="pl-2 pr-8"
           >
-            <div className="flex items-center gap-2">
-              <Star className="h-4 w-4" />
-              View all Stars
-            </div>
+            View all Stars
           </DropdownMenuCheckboxItem>
           <DropdownMenuSeparator />
           {users.map((user) => (
@@ -85,7 +82,6 @@ export function StarredUsersFilter({
               onCheckedChange={() => toggleUser(user.userId)}
             >
               <span className="flex items-center gap-2">
-                {user.imageUrl ? <img src={user.imageUrl} alt={`${user.firstName} ${user.lastName} avatar`} className="h-6 w-6 rounded-full" /> : null} {/* Added mini avatar */}
                 {user.firstName} {user.lastName}
               </span>
             </DropdownMenuCheckboxItem>
