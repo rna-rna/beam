@@ -423,8 +423,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       });
     },
     onSettled: (_, variables) => {
-      // Invalidate and refetch after successful mutation
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      // Only invalidate the stars query to prevent full gallery refetch
       queryClient.invalidateQueries({ queryKey: [`/api/images/${variables.imageId}/stars`] });
     },
   });
