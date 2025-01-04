@@ -56,7 +56,7 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
       {visibleStars.map((star, index) => (
         <Avatar
           key={star.userId}
-          className={`w-6 h-6 border border-background shadow-sm ${index > 0 ? '-ml-2' : ''}`}
+          className={`w-6 h-6 shadow-sm ${index > 0 ? '-ml-2' : ''}`}
         >
           {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
           <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
