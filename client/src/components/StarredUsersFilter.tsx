@@ -75,7 +75,7 @@ export function StarredUsersFilter({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="h-9 w-9" data-filter-trigger>
-          <Users className="h-4 w-4" />
+          <Users className="h-5 w-5" /> {/* Changed icon size here */}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
