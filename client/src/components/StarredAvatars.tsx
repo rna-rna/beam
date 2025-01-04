@@ -1,72 +1,51 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils";
 
-interface StarData {
-  id: number;
-  userId: string;
-  imageId: number;
-  createdAt: string;
-  user?: {
-    firstName?: string;
-    lastName?: string;
-    imageUrl?: string;
-  };
-}
+export const StarredAvatars = ({ imageId }: { imageId: number }) => {
+  const { data: stars = [] } = useQuery([`/api/images/${imageId}/stars`]);
 
-interface StarredAvatarsProps {
-  imageId: number;
-}
+  if (!stars.length) return null;
 
-interface StarResponse {
-  success: boolean;
-  data: StarData[];
-}
-
-export function StarredAvatars({ imageId }: StarredAvatarsProps) {
-  const { data: response, isLoading } = useQuery<StarResponse>({
-    queryKey: [`/api/images/${imageId}/stars`],
-    staleTime: 5000,
-    cacheTime: 10000,
-    select: (data) => ({
-      ...data,
-      data: Array.from(
-        new Map(
-          (data?.data || []).map(star => [star.userId, star])
-        ).values()
-      )
-    })
-  });
-
-  const stars = response?.data || [];
   const visibleStars = stars.slice(0, 3);
-  const remainingCount = Math.max(0, stars.length - visibleStars.length);
-
-  if (stars.length === 0) return null;
-
-  const getInitials = (user?: StarData['user']) => {
-    if (!user) return '?';
-    const first = user.firstName?.charAt(0) || '';
-    const last = user.lastName?.charAt(0) || '';
-    return (first + last).toUpperCase() || '?';
-  };
+  const remainingStars = stars.length - visibleStars.length;
 
   return (
-    <div className="relative flex items-center">
-      {visibleStars.map((star, index) => (
-        <Avatar
-          key={star.userId}
-          className={`w-6 h-6 shadow-sm ${index > 0 ? '-ml-2' : ''}`}
-        >
-          {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
-          <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
-        </Avatar>
-      ))}
-      {remainingCount > 0 && (
-        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium -ml-2">
-          +{remainingCount}
+    <HoverCard>
+      <HoverCardTrigger className="flex -space-x-2">
+        {visibleStars.map((star, index) => (
+          <Avatar
+            key={star.userId}
+            className={`w-6 h-6 shadow-sm ${index > 0 ? '-ml-2' : ''}`}
+          >
+            {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
+            <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
+          </Avatar>
+        ))}
+        {remainingStars > 0 && (
+          <div className="h-6 w-6 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-xs shadow-sm">
+            +{remainingStars}
+          </div>
+        )}
+      </HoverCardTrigger>
+      <HoverCardContent className="w-64 p-4">
+        <h4 className="text-sm font-semibold mb-2">Favorited by:</h4>
+        <div className="space-y-2">
+          {stars.map((star) => (
+            <div key={star.userId} className="flex items-center space-x-3">
+              <Avatar className="h-8 w-8">
+                {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
+                <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
+              </Avatar>
+              <div className="text-sm font-medium">
+                {star.user?.firstName} {star.user?.lastName}
+              </div>
+            </div>
+          ))}
         </div>
-      )}
-    </div>
+      </HoverCardContent>
+    </HoverCard>
   );
-}
+};
