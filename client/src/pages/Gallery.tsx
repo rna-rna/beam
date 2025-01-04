@@ -27,7 +27,9 @@ import {
   ChevronRight,
   Paintbrush,
   MessageCircle,
-  PencilRuler
+  PencilRuler,
+  Eye,
+  EyeOff
 } from "lucide-react";
 
 // UI Components
@@ -1764,6 +1766,7 @@ const renderGalleryControls = useCallback(() => {
               )}
 
               <div className="flex gap-2">
+                {/* Annotation button temporarily hidden
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1777,6 +1780,20 @@ const renderGalleryControls = useCallback(() => {
                   title="Toggle Drawing Mode"
                 >
                   <Paintbrush className="h-4 w-4" />
+                </Button>
+                */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                  onClick={() => setShowAnnotations(!showAnnotations)}
+                  title={showAnnotations ? "Hide Comments" : "Show Comments"}
+                >
+                  {showAnnotations ? (
+                    <Eye className="h-4 w-4" />
+                  ) : (
+                    <EyeOff className="h-4 w-4" />
+                  )}
                 </Button>
                 <SignedIn>
                   <Button
@@ -1809,19 +1826,7 @@ const renderGalleryControls = useCallback(() => {
               </div>
             </div>
 
-            {/* Settings toggles */}
-            <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
-              <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
-                <div className="flex items-center gap-2">
-                  <SwitchComponent
-                    checked={showAnnotations}
-                    onCheckedChange={setShowAnnotations}
-                    className="data-[state=checked]:bg-primary h-5 w-9"
-                  />
-                  <span className="text-xs font-medium">Comments</span>
-                </div>
-              </div>
-            </div>
+            {/* Settings toggles removed */}
 
             {selectedImage && (
               <motion.div
