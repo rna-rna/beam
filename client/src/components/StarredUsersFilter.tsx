@@ -36,13 +36,16 @@ export function StarredUsersFilter({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
         e.preventDefault();
-        const button = document.querySelector('[data-filter-trigger]') as HTMLButtonElement;
-        button?.click();
+        e.stopPropagation();
+        const button = document.querySelector<HTMLButtonElement>('[data-filter-trigger]');
+        if (button) {
+          button.click();
+        }
       }
     };
     
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, []);
 
   const isAllSelected = users.length > 0 && users.every(user => 
