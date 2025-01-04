@@ -83,6 +83,7 @@ export function StarredUsersFilter({
           <DropdownMenuCheckboxItem
             checked={selectAllTriggered}
             onCheckedChange={toggleAll}
+            className="pl-2 pr-8"
           >
             View all Stars
           </DropdownMenuCheckboxItem>
@@ -92,13 +93,15 @@ export function StarredUsersFilter({
               key={user.userId}
               checked={selectedUsers.includes(user.userId)}
               onCheckedChange={() => toggleUser(user.userId)}
-              className="flex items-center gap-2"
+              className="flex items-center justify-between gap-2 pl-2 pr-8"
             >
-              <Avatar className="h-6 w-6">
-                {user.imageUrl && <AvatarImage src={user.imageUrl} />}
-                <AvatarFallback>{getInitials(user)}</AvatarFallback>
-              </Avatar>
-              <span>{user.firstName} {user.lastName}</span>
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  {user.imageUrl && <AvatarImage src={user.imageUrl} />}
+                  <AvatarFallback>{getInitials(user)}</AvatarFallback>
+                </Avatar>
+                <span>{user.firstName} {user.lastName}</span>
+              </div>
             </DropdownMenuCheckboxItem>
           ))}
           {users.length > 0 && (
