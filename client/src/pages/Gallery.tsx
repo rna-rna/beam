@@ -380,6 +380,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       if (context?.previousGallery) {
         queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
       }
+      // Revert selectedImage state
+      if (selectedImage?.id === variables.imageId) {
+        setSelectedImage((prev) =>
+          prev ? { ...prev, starred: variables.isStarred } : prev
+        );
+      }
       toast({
         title: "Error",
         description: err instanceof Error ? err.message : "Failed to toggle star",
