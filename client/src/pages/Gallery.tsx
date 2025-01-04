@@ -1700,7 +1700,7 @@ const renderGalleryControls = useCallback(() => {
         }}>
           <LightboxDialogContent 
             aria-describedby="gallery-lightbox-description"
-            selectedImage={selectedImageIndex >= 0 ? images[selectedImageIndex] : undefined}
+            selectedImage={selectedImageIndex >= 0 ? gallery?.images[selectedImageIndex] : undefined}
             onOpenChange={(open) => {
               if (!open) {
                 setSelectedImageIndex(-1);
