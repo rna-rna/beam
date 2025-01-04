@@ -1765,11 +1765,9 @@ const renderGalleryControls = useCallback(() => {
 
               <div className="flex gap-2">
                 <Button
-                  variant="secondary"
+                  variant="ghost"
                   size="icon"
-                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
-                    isAnnotationMode ? "bg-primary/20" : ""
-                  }`}
+                  className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200", isAnnotationMode && "bg-primary/20")}
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsAnnotationMode(!isAnnotationMode);
@@ -1778,19 +1776,13 @@ const renderGalleryControls = useCallback(() => {
                   }}
                   title="Toggle Drawing Mode"
                 >
-                  <Paintbrush
-                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                      isAnnotationMode ? "text-primary" : ""
-                    }`}
-                  />
+                  <Paintbrush className="h-4 w-4" />
                 </Button>
                 <SignedIn>
                   <Button
-                    variant="secondary"
+                    variant="ghost"
                     size="icon"
-                    className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
-                      isCommentPlacementMode ? "bg-primary/20" : ""
-                    }`}
+                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200", isCommentPlacementMode && "bg-primary/20")}
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsCommentPlacementMode(!isCommentPlacementMode);
@@ -1799,22 +1791,18 @@ const renderGalleryControls = useCallback(() => {
                     }}
                     title="Add Comment"
                   >
-                    <MessageSquare
-                      className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                        isCommentPlacementMode ? "text-primary" : ""
-                      }`}
-                    />
+                    <MessageSquare className="h-4 w-4" />
                   </Button>
                 </SignedIn>
                 <SignedOut>
                   <Button
-                    variant="secondary"
+                    variant="ghost"
                     size="icon"
-                    className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white"
+                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
                     onClick={() => setShowLoginModal(true)}
                     title="Sign in to comment"
                   >
-                    <MessageSquare className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+                    <MessageSquare className="h-4 w-4" />
                   </Button>
                   <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
                 </SignedOut>
