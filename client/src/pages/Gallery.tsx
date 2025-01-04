@@ -1702,7 +1702,7 @@ const renderGalleryControls = useCallback(() => {
           }
         }}>
           <DialogContent
-            className="w-screen h-screen p-0 bg-background/95 backdrop-blur border-none overflow-hidden dark:bg-black/95"
+            className="fixed inset-0 w-screen h-screen p-0 bg-background/95 backdrop-blur-sm border-none overflow-hidden dark:bg-black/95"
             aria-describedby="gallery-lightbox-description"
           >
             {/* Close button */}
@@ -1843,7 +1843,7 @@ const renderGalleryControls = useCallback(() => {
 
             {selectedImage && (
               <motion.div
-                className={`relative w-full h-full flex items-center justify-center ${
+                className={`fixed inset-0 w-screen h-screen flex items-center justify-center ${
                   isCommentPlacementMode ? "cursor-crosshair" : ""
                 }`}
                 {...(isMobile && {
@@ -1874,7 +1874,7 @@ const renderGalleryControls = useCallback(() => {
                   <motion.img
                     src={selectedImage.url}
                     alt=""
-                    className="w-screen h-screen object-contain"
+                    className="max-w-screen max-h-screen w-auto h-auto object-contain"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
