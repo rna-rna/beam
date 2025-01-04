@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
 
 interface StarredUser {
   userId: string;
@@ -29,20 +30,31 @@ export function StarredUsersFilter({
   selectedUsers, 
   onSelectionChange 
 }: StarredUsersFilterProps) {
+  const [selectAllTriggered, setSelectAllTriggered] = useState(false);
+
   const isAllSelected = users.length > 0 && users.every(user => 
     selectedUsers.includes(user.userId)
   );
-  
+
   const toggleUser = (userId: string) => {
     const isCurrentlySelected = selectedUsers.includes(userId);
     const newSelection = isCurrentlySelected
       ? selectedUsers.filter(id => id !== userId)
       : [...selectedUsers, userId];
+
+    if (selectAllTriggered) {
+      setSelectAllTriggered(false);
+    }
+
     onSelectionChange(newSelection);
   };
 
   const toggleAll = () => {
-    onSelectionChange(isAllSelected ? [] : users.map(u => u.userId));
+    const allSelected = users.length > 0 && users.every(user => selectedUsers.includes(user.userId));
+    const newSelection = allSelected ? [] : users.map(u => u.userId);
+    
+    setSelectAllTriggered(!allSelected);
+    onSelectionChange(newSelection);
   };
 
   return (
@@ -57,7 +69,7 @@ export function StarredUsersFilter({
         <DropdownMenuSeparator />
         <ScrollArea className="h-[300px]">
           <DropdownMenuCheckboxItem
-            checked={isAllSelected}
+            checked={selectAllTriggered}
             onCheckedChange={toggleAll}
           >
             Show Everyone
