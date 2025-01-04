@@ -1384,10 +1384,6 @@ const renderGalleryControls = useCallback(() => {
             imageId: selectedImage.id,
             isStarred: selectedImage.userStarred
           });
-          if (setShowStarIndicator) {
-            setShowStarIndicator(true);
-            setTimeout(() => setShowStarIndicator(false), 1000);
-          }
         }
       };
 
