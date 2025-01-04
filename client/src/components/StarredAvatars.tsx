@@ -26,14 +26,21 @@ interface StarResponse {
 export function StarredAvatars({ imageId }: StarredAvatarsProps) {
   const { data: response, isLoading } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
-    staleTime: 0,
-    cacheTime: 0
+    staleTime: 5000,
+    cacheTime: 10000,
+    select: (data) => ({
+      ...data,
+      data: Array.from(
+        new Map(
+          (data?.data || []).map(star => [star.userId, star])
+        ).values()
+      )
+    })
   });
 
   const stars = response?.data || [];
-  const uniqueStars = Array.from(new Map(stars.map(star => [star.userId, star])).values());
-  const visibleStars = uniqueStars.slice(0, 3);
-  const remainingCount = uniqueStars.length - visibleStars.length;
+  const visibleStars = stars.slice(0, 3);
+  const remainingCount = Math.max(0, stars.length - visibleStars.length);
 
   if (stars.length === 0) return null;
 
