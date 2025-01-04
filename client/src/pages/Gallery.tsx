@@ -350,10 +350,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       console.log('Star API Response:', result);
 
       if (!res.ok || result?.success === false) {
-        throw new Error(result?.message || 'Failed to update star status');
+        throw new Error(result.message || 'Failed to update star status');
       }
 
-      return result;
+      return { ...result, imageId };
     },
     onMutate: async ({ imageId, isStarred }) => {
       // Cancel any outgoing refetches to avoid race conditions
@@ -399,18 +399,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       return { previousGallery, previousStars };
     },
     onError: (err, variables, context) => {
-      console.log('Mutation Error Triggered:', err);
-      // Revert all optimistic updates on error
       if (context?.previousGallery) {
         queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
-      }
-      if (context?.previousStars) {
-        queryClient.setQueryData([`/api/images/${variables.imageId}/stars`], context.previousStars);
-      }
-      if (selectedImage?.id === variables.imageId) {
-        setSelectedImage((prev) =>
-          prev ? { ...prev, starred: variables.isStarred } : prev
-        );
       }
       toast({
         title: "Error",
@@ -418,9 +408,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         variant: "destructive",
       });
     },
-    onSettled: (_, variables) => {
-      // Only invalidate the stars query to prevent full gallery refetch
-      queryClient.invalidateQueries({ queryKey: [`/api/images/${variables.imageId}/stars`] });
+    onSettled: (result, error, variables) => {
+      if (variables && variables.imageId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/images/${variables.imageId}/stars`] });
+      }
     },
   });
 
