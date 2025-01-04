@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface StarredUser {
   userId: string;
@@ -58,17 +57,6 @@ export function StarredUsersFilter({
     onSelectionChange(newSelection);
   };
 
-  const clearAll = () => {
-    setSelectAllTriggered(false);
-    onSelectionChange([]);
-  };
-
-  const getInitials = (user: StarredUser) => {
-    const first = user.firstName?.charAt(0) || '';
-    const last = user.lastName?.charAt(0) || '';
-    return (first + last).toUpperCase() || '?';
-  };
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -79,13 +67,12 @@ export function StarredUsersFilter({
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Filter by Stars</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <div className="max-h-[300px] overflow-auto">
+        <ScrollArea className="h-[300px]">
           <DropdownMenuCheckboxItem
             checked={selectAllTriggered}
             onCheckedChange={toggleAll}
-            className="pl-2 pr-8"
           >
-            View all Stars
+            Show Everyone
           </DropdownMenuCheckboxItem>
           <DropdownMenuSeparator />
           {users.map((user) => (
@@ -93,33 +80,13 @@ export function StarredUsersFilter({
               key={user.userId}
               checked={selectedUsers.includes(user.userId)}
               onCheckedChange={() => toggleUser(user.userId)}
-              className="flex items-center justify-between gap-2 pl-2 pr-8"
             >
-              <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  {user.imageUrl && <AvatarImage src={user.imageUrl} />}
-                  <AvatarFallback>{getInitials(user)}</AvatarFallback>
-                </Avatar>
-                <span>{user.firstName} {user.lastName}</span>
-              </div>
+              <span className="flex items-center gap-2">
+                {user.firstName} {user.lastName}
+              </span>
             </DropdownMenuCheckboxItem>
           ))}
-          {users.length > 0 && (
-            <>
-              <DropdownMenuSeparator />
-              <div className="p-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={clearAll}
-                  className="w-full text-muted-foreground hover:text-foreground"
-                >
-                  Clear All
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
+        </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
   );
