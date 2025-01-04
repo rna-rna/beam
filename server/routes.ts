@@ -670,16 +670,21 @@ export function registerRoutes(app: Express): Server {
       }
 
       // If access is allowed, get the gallery images
-      const galleryImages = await db.query.images.findMany({
+      const imagesWithStars = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
         orderBy: (images, { asc }) => [
           asc(images.position),
           asc(images.createdAt)
-        ]
+        ],
+        with: {
+          stars: {
+            where: req.auth?.userId ? eq(stars.userId, req.auth.userId) : undefined
+          }
+        }
       });
 
       const commentCounts = await Promise.all(
-        galleryImages.map(async (img) => {
+        imagesWithStars.map(async (img) => {
           const result = await db.execute(
             sql`SELECT COUNT(*) as count FROM comments WHERE image_id = ${img.id}`
           );
@@ -687,13 +692,13 @@ export function registerRoutes(app: Express): Server {
         })
       );
 
-      const processedImages = galleryImages.map(img => ({
+      const processedImages = imagesWithStars.map(img => ({
         id: img.id,
         url: img.url,
         width: img.width,
         height: img.height,
         aspectRatio: img.width / img.height,
-        starred: img.starred,
+        userStarred: img.stars.length > 0,
         originalFilename: img.originalFilename,
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
