@@ -953,9 +953,15 @@ export function registerRoutes(app: Express): Server {
             eq(stars.imageId, imageId)
           ));
         
+        // Update image starred status
+        await db.update(images)
+          .set({ starred: false })
+          .where(eq(images.id, imageId));
+
         return res.json({ 
           success: true, 
-          message: "Star removed"
+          message: "Star removed",
+          isStarred: false
         });
       }
 
@@ -967,10 +973,16 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
+      // Update image starred status
+      await db.update(images)
+        .set({ starred: true })
+        .where(eq(images.id, imageId));
+
       res.json({ 
         success: true, 
         data: star,
-        message: "Star added"
+        message: "Star added",
+        isStarred: true
       });
     } catch (error) {
       console.error('Error starring image:', error);
