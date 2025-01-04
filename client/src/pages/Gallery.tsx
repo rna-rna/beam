@@ -350,11 +350,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         },
         credentials: 'include'
       });
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error || "Failed to toggle star");
+
+      const result = await res.json();
+      
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Failed to update star status');
       }
-      return res.json();
+
+      return result;
     },
     onMutate: async ({ imageId, isStarred }) => {
       // Cancel any outgoing refetches to avoid race conditions
