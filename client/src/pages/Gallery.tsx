@@ -1126,20 +1126,40 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               onClick={(e) => {
                 e.stopPropagation();
                 const currentStarred = image.starred;
-                // Optimistic update
+
+                // Optimistic local update for selected image
+                setSelectedImageIndex((prevIndex) => {
+                  if (prevIndex >= 0) {
+                    setSelectedImage((prev) =>
+                      prev ? { ...prev, starred: !currentStarred } : prev
+                    );
+                  }
+                  return prevIndex;
+                });
+
+                // Optimistic update for gallery data
                 queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
                   ...old,
                   images: old.images.map((img: Image) =>
                     img.id === image.id ? { ...img, starred: !currentStarred } : img
                   )
                 }));
-                
+
                 toggleStarMutation.mutate({ imageId: image.id, isStarred: currentStarred }, {
                   onSuccess: () => {
                     queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
                   },
                   onError: () => {
-                    // Revert optimistic update on error
+                    // Revert optimistic updates on error
+                    setSelectedImageIndex((prevIndex) => {
+                      if (prevIndex >= 0) {
+                        setSelectedImage((prev) =>
+                          prev ? { ...prev, starred: currentStarred } : prev
+                        );
+                      }
+                      return prevIndex;
+                    });
+                    
                     queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
                       ...old,
                       images: old.images.map((img: Image) =>
