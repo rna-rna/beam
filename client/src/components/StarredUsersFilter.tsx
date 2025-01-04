@@ -65,7 +65,10 @@ export function StarredUsersFilter({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Filter by Stars</DropdownMenuLabel>
+        <DropdownMenuLabel className="flex items-center gap-2">
+          <Star className="h-4 w-4" />
+          Filter by Stars
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <div className="max-h-fit">
           <DropdownMenuCheckboxItem
