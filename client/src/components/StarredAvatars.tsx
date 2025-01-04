@@ -59,7 +59,7 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
           {visibleStars.map((star, index) => (
             <Avatar
               key={star.userId}
-              className={`w-6 h-6 shadow-sm ${index > 0 ? '-ml-2' : ''}`}
+              className={`w-5 h-5 shadow-sm ${index > 0 ? '-ml-2' : ''}`}
             >
               {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
               <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
@@ -76,7 +76,7 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
         <HoverCardContent className="w-64 p-4 shadow-lg">
         <h4 className="text-sm font-medium text-zinc-700 mb-2 flex items-center gap-1">
           <Star className="w-3 h-3" />
-          Favorited by:
+          Favorited by
         </h4>
         <div className="space-y-2">
           {stars.map((star) => (
