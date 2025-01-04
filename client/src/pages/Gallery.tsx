@@ -1140,7 +1140,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 e.stopPropagation();
                 const currentStarred = image.starred;
 
-                // Optimistic local update for selected image
+                // Optimistic UI update for selected image
                 setSelectedImageIndex((prevIndex) => {
                   if (prevIndex >= 0) {
                     setSelectedImage((prev) =>
@@ -1150,7 +1150,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   return prevIndex;
                 });
 
-                // Optimistic update for gallery data
+                // Update gallery data optimistically
                 queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
                   ...old,
                   images: old.images.map((img: Image) =>
@@ -1158,47 +1158,71 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   )
                 }));
 
-                // Optimistic update for avatar list
+                // Update star list optimistically
                 queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
                   if (!old) return { success: true, data: [] };
                   const updatedData = currentStarred
                     ? old.data.filter((star: any) => star.userId !== user?.id)
-                    : [...old.data, { 
-                        userId: user?.id, 
-                        imageId: image.id,
-                        user: {
-                          firstName: user?.firstName,
-                          lastName: user?.lastName,
-                          imageUrl: user?.imageUrl
-                        }
-                      }];
+                    : [...old.data, {
+                      userId: user?.id,
+                      imageId: image.id,
+                      user: {
+                        firstName: user?.firstName,
+                        lastName: user?.lastName,
+                        imageUrl: user?.imageUrl
+                      }
+                    }];
                   return { ...old, data: updatedData };
                 });
 
-                toggleStarMutation.mutate({ imageId: image.id, isStarred: currentStarred }, {
-                  onSuccess: () => {
-                    queryClient.invalidateQueries({ queryKey: [`/api/images/${image.id}/stars`] });
-                    queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-                  },
-                  onError: () => {
-                    // Revert optimistic updates on error
-                    setSelectedImageIndex((prevIndex) => {
-                      if (prevIndex >= 0) {
-                        setSelectedImage((prev) =>
-                          prev ? { ...prev, starred: currentStarred } : prev
-                        );
-                      }
-                      return prevIndex;
-                    });
-                    
-                    queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
-                      ...old,
-                      images: old.images.map((img: Image) =>
-                        img.id === image.id ? { ...img, starred: currentStarred } : img
-                      )
-                    }));
+                // Perform mutation to sync with backend
+                toggleStarMutation.mutate(
+                  { imageId: image.id, isStarred: currentStarred },
+                  {
+                    onError: () => {
+                      // Revert optimistic updates if mutation fails
+                      setSelectedImageIndex((prevIndex) => {
+                        if (prevIndex >= 0) {
+                          setSelectedImage((prev) =>
+                            prev ? { ...prev, starred: currentStarred } : prev
+                          );
+                        }
+                        return prevIndex;
+                      });
+
+                      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
+                        ...old,
+                        images: old.images.map((img: Image) =>
+                          img.id === image.id ? { ...img, starred: currentStarred } : img
+                        )
+                      }));
+
+                      queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
+                        if (!old) return { success: true, data: [] };
+                        return {
+                          ...old,
+                          data: currentStarred
+                            ? [...old.data, {
+                              userId: user?.id,
+                              imageId: image.id,
+                              user: {
+                                firstName: user?.firstName,
+                                lastName: user?.lastName,
+                                imageUrl: user?.imageUrl
+                              }
+                            }]
+                            : old.data.filter((star: any) => star.userId !== user?.id)
+                        };
+                      });
+
+                      toast({
+                        title: "Error",
+                        description: "Failed to update star status. Please try again.",
+                        variant: "destructive",
+                      });
+                    }
                   }
-                });
+                );
               }}
             >
               <motion.div
