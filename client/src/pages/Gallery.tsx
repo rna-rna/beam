@@ -71,6 +71,7 @@ import { ShareModal } from "@/components/ShareModal";
 import { FloatingToolbar } from "@/components/FloatingToolbar";
 import { Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Toggle } from "@/components/ui/toggle";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
 import { useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
@@ -1042,14 +1043,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
-                onClick={toggleSelectMode}
+              <Toggle
+                size="sm"
+                pressed={selectMode}
+                onPressedChange={toggleSelectMode}
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10 data-[state=on]:bg-white/20" : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-gray-200")}
               >
                 <PencilRuler className="h-4 w-4" />
-              </Button>
+              </Toggle>
             </TooltipTrigger>
             <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
           </Tooltip>
