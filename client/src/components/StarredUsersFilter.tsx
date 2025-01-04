@@ -38,8 +38,10 @@ export function StarredUsersFilter({
     onSelectionChange(newSelection);
   };
 
+  const isAllSelected = selectedUsers.length === users.length && users.length > 0;
+  
   const toggleAll = () => {
-    onSelectionChange(selectedUsers.length === users.length ? [] : users.map(u => u.userId));
+    onSelectionChange(isAllSelected ? [] : users.map(u => u.userId));
   };
 
   return (
@@ -54,7 +56,7 @@ export function StarredUsersFilter({
         <DropdownMenuSeparator />
         <ScrollArea className="h-[300px]">
           <DropdownMenuCheckboxItem
-            checked={selectedUsers.length === users.length}
+            checked={isAllSelected}
             onCheckedChange={toggleAll}
           >
             Show Everyone
