@@ -1380,14 +1380,17 @@ const renderGalleryControls = useCallback(() => {
         } else if (e.key === "ArrowRight") {
           setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
         } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
-          toggleStarMutation.mutate(selectedImage.id);
+          toggleStarMutation.mutate({
+            imageId: selectedImage.id,
+            isStarred: selectedImage.userStarred
+          });
         }
       };
 
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
+  }, [selectedImageIndex, gallery?.images?.length, selectedImage, toggleStarMutation]);
 
   useEffect(() => {
     const controls = renderGalleryControls();
