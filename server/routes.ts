@@ -978,25 +978,42 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Adding new star');
       // Add star if it doesn't exist
-      const [star] = await db.insert(stars)
-        .values({
-          userId,
-          imageId: Number(imageId)
-        })
-        .returning();
+      try {
+        const [star] = await db.insert(stars)
+          .values({
+            userId,
+            imageId: Number(imageId)
+          })
+          .onConflictDoNothing()
+          .returning();
 
-      // Update image starred status
-      await db.update(images)
-        .set({ starred: true })
-        .where(eq(images.id, imageId));
+        if (star) {
+          // Update image starred status only if star was actually inserted
+          await db.update(images)
+            .set({ starred: true })
+            .where(eq(images.id, imageId));
 
-      console.log('Star added successfully');
-      res.json({ 
-        success: true, 
-        data: star,
-        message: "Star added",
-        isStarred: true
-      });
+          console.log('Star added successfully');
+          res.json({ 
+            success: true, 
+            data: star,
+            message: "Star added",
+            isStarred: true
+          });
+        } else {
+          console.log('Star already exists');
+          res.json({
+            success: false,
+            message: "Star already exists"
+          });
+        }
+      } catch (error) {
+        console.error("Star toggle error:", error);
+        res.status(500).json({
+          success: false,
+          message: "Failed to star image. Please try again."
+        });
+      }
     } catch (error) {
       console.error('Error starring image:', error);
       res.status(500).json({
