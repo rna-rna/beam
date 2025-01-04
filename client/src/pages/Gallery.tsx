@@ -1744,7 +1744,7 @@ const renderGalleryControls = useCallback(() => {
             </Button>
 
             {/* Controls */}
-            <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
+            <div className="absolute right-16 top-4 flex items-center gap-2 z-50">
               {selectedImage && (
                 <Button
                   variant="secondary"
