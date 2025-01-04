@@ -14,6 +14,10 @@ const LightboxDialogContent = React.forwardRef<
   const lightboxRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
+    lightboxRef.current?.focus();
+  }, []);
+
+  React.useEffect(() => {
     const handleEscKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && props.onOpenChange) {
         e.preventDefault();
@@ -22,10 +26,13 @@ const LightboxDialogContent = React.forwardRef<
       }
     };
 
-    window.addEventListener("keydown", handleEscKey, { capture: true });
-    
+    const currentElement = lightboxRef.current;
+    if (currentElement) {
+      currentElement.addEventListener("keydown", handleEscKey);
+    }
+
     return () => {
-      window.removeEventListener("keydown", handleEscKey, { capture: true });
+      currentElement?.removeEventListener("keydown", handleEscKey);
     };
   }, [props.onOpenChange]);
 
