@@ -75,9 +75,8 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
       <HoverCardPortal>
         <HoverCardContent className="w-64 p-4 shadow-lg">
         <h4 className="text-sm font-medium text-zinc-700 mb-2 flex items-center gap-1">
-          Favorited by
           <Star className="w-3 h-3" />
-          :
+          Favorited by:
         </h4>
         <div className="space-y-2">
           {stars.map((star) => (
