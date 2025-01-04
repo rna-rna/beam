@@ -914,7 +914,13 @@ export function registerRoutes(app: Express): Server {
   // Star or unstar an image
   app.post('/api/images/:imageId/star', async (req, res) => {
     try {
+      console.log('Star request received:', {
+        imageId: req.params.imageId,
+        auth: req.auth ? 'present' : 'missing'
+      });
+
       if (!req.auth?.userId) {
+        console.log('Authentication missing');
         return res.status(401).json({ 
           success: false,
           message: 'Authentication required',
@@ -924,6 +930,7 @@ export function registerRoutes(app: Express): Server {
 
       const imageId = parseInt(req.params.imageId);
       const userId = req.auth.userId;
+      console.log(`Processing star request - Image: ${imageId}, User: ${userId}`);
 
       // Verify image exists
       const image = await db.query.images.findFirst({
@@ -931,11 +938,13 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!image) {
+        console.error(`Image not found: ${imageId}`);
         return res.status(404).json({
           success: false,
           message: 'Image not found'
         });
       }
+      console.log('Image found:', { imageId, currentStarred: image.starred });
 
       // Check for existing star
       const existingStar = await db.query.stars.findFirst({
@@ -946,6 +955,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (existingStar) {
+        console.log('Removing existing star');
         // Remove star if it exists
         await db.delete(stars)
           .where(and(
@@ -958,6 +968,7 @@ export function registerRoutes(app: Express): Server {
           .set({ starred: false })
           .where(eq(images.id, imageId));
 
+        console.log('Star removed successfully');
         return res.json({ 
           success: true, 
           message: "Star removed",
@@ -965,6 +976,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
+      console.log('Adding new star');
       // Add star if it doesn't exist
       const [star] = await db.insert(stars)
         .values({
@@ -978,6 +990,7 @@ export function registerRoutes(app: Express): Server {
         .set({ starred: true })
         .where(eq(images.id, imageId));
 
+      console.log('Star added successfully');
       res.json({ 
         success: true, 
         data: star,
