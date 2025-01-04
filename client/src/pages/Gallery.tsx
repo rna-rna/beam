@@ -1384,13 +1384,17 @@ const renderGalleryControls = useCallback(() => {
             imageId: selectedImage.id,
             isStarred: selectedImage.userStarred
           });
+          if (setShowStarIndicator) {
+            setShowStarIndicator(true);
+            setTimeout(() => setShowStarIndicator(false), 1000);
+          }
         }
       };
 
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [selectedImageIndex, gallery?.images?.length, selectedImage, toggleStarMutation]);
+  }, [selectedImageIndex, gallery?.images?.length, selectedImage, toggleStarMutation, setShowStarIndicator]);
 
   useEffect(() => {
     const controls = renderGalleryControls();

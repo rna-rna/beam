@@ -18,6 +18,7 @@ const LightboxDialogContent = React.forwardRef<
   LightboxDialogContentProps
 >(({ className, children, onOpenChange, selectedImage, setSelectedImage, ...props }, ref) => {
   const lightboxRef = React.useRef<HTMLDivElement>(null);
+  const [showStarIndicator, setShowStarIndicator] = React.useState(false);
 
   React.useEffect(() => {
     if (lightboxRef.current) {
