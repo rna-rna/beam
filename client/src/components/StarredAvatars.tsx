@@ -24,8 +24,10 @@ interface StarResponse {
 }
 
 export function StarredAvatars({ imageId }: StarredAvatarsProps) {
-  const { data: response } = useQuery<StarResponse>({
+  const { data: response, isLoading } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
+    staleTime: 0,
+    cacheTime: 0
   });
 
   const stars = response?.data || [];
@@ -45,7 +47,7 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
     <div className="relative flex items-center">
       {visibleStars.map((star, index) => (
         <Avatar
-          key={star.id}
+          key={star.userId}
           className={`w-6 h-6 border border-background shadow-sm ${index > 0 ? '-ml-2' : ''}`}
         >
           {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
