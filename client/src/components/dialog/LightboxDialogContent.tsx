@@ -14,12 +14,12 @@ const LightboxDialogContent = React.forwardRef<
   React.useEffect(() => {
     const handleEscKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && props.onOpenChange) {
-        e.stopPropagation();
+        e.stopPropagation();  // Prevent bubbling
         props.onOpenChange(false);
       }
     };
-    window.addEventListener("keydown", handleEscKey);
-    return () => window.removeEventListener("keydown", handleEscKey);
+    window.addEventListener("keydown", handleEscKey, { capture: true });  // Capture phase
+    return () => window.removeEventListener("keydown", handleEscKey, { capture: true });
   }, [props.onOpenChange]);
 
   return (
