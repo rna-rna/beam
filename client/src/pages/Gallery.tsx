@@ -315,7 +315,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   });
 
-  const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
+  const [selectedImage, setSelectedImage] = useState<Image | null>(null);
+  useEffect(() => {
+    setSelectedImage(gallery?.images?.[selectedImageIndex] ?? null);
+  }, [selectedImageIndex, gallery?.images]);
 
   
 
