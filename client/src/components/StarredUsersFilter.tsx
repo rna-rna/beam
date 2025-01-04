@@ -1,6 +1,5 @@
 
-import { Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -10,7 +9,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Users } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface StarredUser {
@@ -31,6 +29,10 @@ export function StarredUsersFilter({
   selectedUsers, 
   onSelectionChange 
 }: StarredUsersFilterProps) {
+  const isAllSelected = users.length > 0 && users.every(user => 
+    selectedUsers.includes(user.userId)
+  );
+  
   const toggleUser = (userId: string) => {
     const isCurrentlySelected = selectedUsers.includes(userId);
     const newSelection = isCurrentlySelected
@@ -39,10 +41,6 @@ export function StarredUsersFilter({
     onSelectionChange(newSelection);
   };
 
-  const isAllSelected = users.length > 0 && users.every(user => 
-    selectedUsers.includes(user.userId)
-  );
-  
   const toggleAll = () => {
     onSelectionChange(isAllSelected ? [] : users.map(u => u.userId));
   };
