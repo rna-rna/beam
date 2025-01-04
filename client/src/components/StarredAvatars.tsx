@@ -73,7 +73,7 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
         </div>
       </HoverCardTrigger>
       <HoverCardPortal>
-        <HoverCardContent className="w-64 p-4 shadow-lg">
+        <HoverCardContent className="w-56 p-4 shadow-lg">
         <h4 className="text-sm font-medium text-zinc-700 mb-2 flex items-center gap-1">
           <Star className="w-3 h-3" />
           Favorited by
