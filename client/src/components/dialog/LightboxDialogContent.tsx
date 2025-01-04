@@ -52,6 +52,21 @@ const LightboxDialogContent = React.forwardRef<
         className
       )}
     >
+      {showStarIndicator && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1.2 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="absolute inset-0 flex items-center justify-center z-50"
+        >
+          {selectedImage?.userStarred ? (
+            <Star className="h-24 w-24 fill-black dark:fill-white" />
+          ) : (
+            <Star className="h-24 w-24 stroke-black dark:stroke-white fill-transparent" />
+          )}
+        </motion.div>
+      )}
       {children}
       <DialogClose asChild>
         <Button 
