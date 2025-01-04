@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
+import { HoverCard, HoverCardTrigger, HoverCardContent, HoverCardPortal } from "@/components/ui/hover-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface StarData {
@@ -72,7 +72,8 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
           )}
         </div>
       </HoverCardTrigger>
-      <HoverCardContent className="w-64 p-4">
+      <HoverCardPortal>
+        <HoverCardContent className="w-64 p-4 shadow-lg">
         <h4 className="text-sm font-semibold mb-2">Favorited by:</h4>
         <div className="space-y-2">
           {stars.map((star) => (
@@ -88,6 +89,7 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
           ))}
         </div>
       </HoverCardContent>
+      </HoverCardPortal>
     </HoverCard>
   );
 }
