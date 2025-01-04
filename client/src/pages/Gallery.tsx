@@ -1132,7 +1132,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
         {/* Starred avatars in bottom left corner */}
         {!selectMode && (
-          <div className="absolute bottom-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="absolute bottom-2 left-2 z-10">
             <StarredAvatars imageId={image.id} />
           </div>
         )}
