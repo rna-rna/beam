@@ -1394,7 +1394,7 @@ const renderGalleryControls = useCallback(() => {
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [selectedImageIndex, gallery?.images?.length, selectedImage, toggleStarMutation, setShowStarIndicator]);
+  }, [selectedImageIndex, gallery?.images?.length, selectedImage, toggleStarMutation]);
 
   useEffect(() => {
     const controls = renderGalleryControls();
