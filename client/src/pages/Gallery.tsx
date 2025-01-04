@@ -1874,7 +1874,7 @@ const renderGalleryControls = useCallback(() => {
                   <motion.img
                     src={selectedImage.url}
                     alt=""
-                    className="max-h-screen max-w-screen w-auto h-auto object-contain px-4"
+                    className="w-screen h-screen object-contain"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
