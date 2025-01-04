@@ -1,5 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface StarData {
@@ -24,7 +25,7 @@ interface StarResponse {
 }
 
 export function StarredAvatars({ imageId }: StarredAvatarsProps) {
-  const { data: response, isLoading } = useQuery<StarResponse>({
+  const { data: response } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
     staleTime: 5000,
     cacheTime: 10000,
@@ -52,21 +53,41 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
   };
 
   return (
-    <div className="relative flex items-center">
-      {visibleStars.map((star, index) => (
-        <Avatar
-          key={star.userId}
-          className={`w-6 h-6 shadow-sm ${index > 0 ? '-ml-2' : ''}`}
-        >
-          {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
-          <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
-        </Avatar>
-      ))}
-      {remainingCount > 0 && (
-        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium -ml-2">
-          +{remainingCount}
+    <HoverCard>
+      <HoverCardTrigger asChild>
+        <div className="relative flex items-center cursor-pointer">
+          {visibleStars.map((star, index) => (
+            <Avatar
+              key={star.userId}
+              className={`w-6 h-6 shadow-sm ${index > 0 ? '-ml-2' : ''}`}
+            >
+              {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
+              <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
+            </Avatar>
+          ))}
+          {remainingCount > 0 && (
+            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium -ml-2">
+              +{remainingCount}
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-64 p-4">
+        <h4 className="text-sm font-semibold mb-2">Favorited by:</h4>
+        <div className="space-y-2">
+          {stars.map((star) => (
+            <div key={star.userId} className="flex items-center space-x-3">
+              <Avatar className="h-8 w-8">
+                {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
+                <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
+              </Avatar>
+              <div className="text-sm font-medium">
+                {star.user?.firstName} {star.user?.lastName}
+              </div>
+            </div>
+          ))}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
