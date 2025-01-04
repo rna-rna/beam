@@ -16,20 +16,16 @@ const LightboxDialogContent = React.forwardRef<
   React.useEffect(() => {
     const handleEscKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && props.onOpenChange) {
+        e.preventDefault();
         e.stopPropagation();
         props.onOpenChange(false);
       }
     };
 
-    // Attach listener only when lightbox is open and focused
-    const currentElement = lightboxRef.current;
-    if (currentElement) {
-      currentElement.focus();
-      currentElement.addEventListener("keydown", handleEscKey);
-    }
-
+    window.addEventListener("keydown", handleEscKey, { capture: true });
+    
     return () => {
-      currentElement?.removeEventListener("keydown", handleEscKey);
+      window.removeEventListener("keydown", handleEscKey, { capture: true });
     };
   }, [props.onOpenChange]);
 
