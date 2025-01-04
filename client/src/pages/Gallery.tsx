@@ -1151,15 +1151,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               onClick={(e) => {
                 e.stopPropagation();
                 
-                // Get current stars for the image
-                const currentStars = queryClient.getQueryData([`/api/images/${image.id}/stars`]) as any;
-                const hasUserStarred = currentStars?.data?.some((star: any) => star.userId === user?.id) || false;
+                // Use image.userStarred for optimistic updates
+                const hasUserStarred = image.userStarred;
 
                 // Optimistic UI update for selected image
                 setSelectedImageIndex((prevIndex) => {
                   if (prevIndex >= 0) {
                     setSelectedImage((prev) =>
-                      prev ? { ...prev, starred: !hasUserStarred } : prev
+                      prev ? { ...prev, userStarred: !hasUserStarred } : prev
                     );
                   }
                   return prevIndex;
@@ -1169,7 +1168,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
                   ...old,
                   images: old.images.map((img: Image) =>
-                    img.id === image.id ? { ...img, starred: !hasUserStarred } : img
+                    img.id === image.id ? { ...img, userStarred: !hasUserStarred } : img
                   )
                 }));
 
@@ -1251,7 +1250,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 }}
                 transition={{ duration: 0.2 }}
               >
-                {image.starred ? (
+                {image.userStarred ? (
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                 ) : (
                   <Star className="h-4 w-4" />
