@@ -669,7 +669,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // If access is allowed, get the gallery images
+      // If access is allowed, get the gallery images with star data
       const imagesWithStars = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
         orderBy: (images, { asc }) => [
@@ -681,6 +681,37 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
+      // Fetch user data for all stars
+      const imagesWithUserData = await Promise.all(
+        imagesWithStars.map(async (img) => {
+          const starsWithUserData = await Promise.all(
+            img.stars.map(async (star) => {
+              try {
+                const user = await clerkClient.users.getUser(star.userId);
+                return {
+                  ...star,
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  imageUrl: user.imageUrl
+                };
+              } catch (error) {
+                console.error(`Failed to fetch user data for userId: ${star.userId}`, error);
+                return {
+                  ...star,
+                  firstName: null,
+                  lastName: null,
+                  imageUrl: null
+                };
+              }
+            })
+          );
+          return {
+            ...img,
+            stars: starsWithUserData
+          };
+        })
+      );
+
       const commentCounts = await Promise.all(
         imagesWithStars.map(async (img) => {
           const result = await db.execute(
@@ -690,13 +721,14 @@ export function registerRoutes(app: Express): Server {
         })
       );
 
-      const processedImages = imagesWithStars.map(img => ({
+      const processedImages = imagesWithUserData.map(img => ({
         id: img.id,
         url: img.url,
         width: img.width,
         height: img.height,
         aspectRatio: img.width / img.height,
-        userStarred: img.stars.length > 0,
+        userStarred: img.stars.some(star => star.userId === req.auth?.userId),
+        stars: img.stars,
         originalFilename: img.originalFilename,
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
