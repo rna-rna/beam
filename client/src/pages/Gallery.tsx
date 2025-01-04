@@ -1702,9 +1702,10 @@ const renderGalleryControls = useCallback(() => {
           }
         }}>
           <DialogContent
-            className="fixed inset-0 w-screen h-screen p-0 bg-background/95 backdrop-blur-sm border-none overflow-hidden dark:bg-black/95"
+            className="fixed inset-0 z-50 bg-black/90 p-0 border-none overflow-hidden"
             aria-describedby="gallery-lightbox-description"
           >
+            <div className="absolute inset-0 w-screen h-screen flex items-center justify-center">
             {/* Close button */}
             <Button 
               variant="ghost" 
@@ -1843,7 +1844,7 @@ const renderGalleryControls = useCallback(() => {
 
             {selectedImage && (
               <motion.div
-                className={`fixed inset-0 w-screen h-screen flex items-center justify-center ${
+                className={`relative w-full h-full ${
                   isCommentPlacementMode ? "cursor-crosshair" : ""
                 }`}
                 {...(isMobile && {
