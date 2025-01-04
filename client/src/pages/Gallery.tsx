@@ -354,12 +354,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const result = await res.json();
       console.log('Star API Response:', result);
 
-      // Only throw error if success is explicitly false
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to update star status');
+      // Handle both HTTP errors and explicit failure responses
+      if (!res.ok || result?.success === false) {
+        throw new Error(result?.message || 'Failed to update star status');
       }
 
-      return result;
+      // Ensure we always return a consistent success response
+      return {
+        success: true,
+        data: result?.data || null,
+        message: result?.message || 'Star status updated successfully'
+      };
     },
     onMutate: async ({ imageId, isStarred }) => {
       // Cancel any outgoing refetches to avoid race conditions
