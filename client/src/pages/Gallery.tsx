@@ -357,30 +357,56 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       return res.json();
     },
     onMutate: async ({ imageId, isStarred }) => {
+      // Cancel any outgoing refetches to avoid race conditions
       await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
-      const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
+      await queryClient.cancelQueries({ queryKey: [`/api/images/${imageId}/stars`] });
 
+      // Snapshot previous values
+      const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
+      const previousStars = queryClient.getQueryData([`/api/images/${imageId}/stars`]);
+
+      // Optimistically update gallery data
       queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
         ...old,
-        images: old.images.map((img: Image) =>
+        images: old?.images.map((img: Image) =>
           img.id === imageId ? { ...img, starred: !isStarred } : img
         )
       }));
 
-      // Optimistically update selectedImage if it matches
+      // Optimistically update stars data
+      queryClient.setQueryData([`/api/images/${imageId}/stars`], (old: any) => {
+        if (!old) return { success: true, data: [] };
+        const updatedData = isStarred
+          ? old.data.filter((star: any) => star.userId !== user?.id)
+          : [...old.data, {
+              userId: user?.id,
+              imageId,
+              user: {
+                firstName: user?.firstName,
+                lastName: user?.lastName,
+                imageUrl: user?.imageUrl
+              }
+            }];
+        return { ...old, data: updatedData };
+      });
+
+      // Update selected image if necessary
       if (selectedImage?.id === imageId) {
         setSelectedImage((prev) =>
           prev ? { ...prev, starred: !isStarred } : prev
         );
       }
 
-      return { previousGallery };
+      return { previousGallery, previousStars };
     },
     onError: (err, variables, context) => {
+      // Revert all optimistic updates on error
       if (context?.previousGallery) {
         queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
       }
-      // Revert selectedImage state
+      if (context?.previousStars) {
+        queryClient.setQueryData([`/api/images/${variables.imageId}/stars`], context.previousStars);
+      }
       if (selectedImage?.id === variables.imageId) {
         setSelectedImage((prev) =>
           prev ? { ...prev, starred: variables.isStarred } : prev
@@ -392,8 +418,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         variant: "destructive",
       });
     },
-    onSettled: () => {
+    onSettled: (_, variables) => {
+      // Invalidate and refetch after successful mutation
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/images/${variables.imageId}/stars`] });
     },
   });
 
