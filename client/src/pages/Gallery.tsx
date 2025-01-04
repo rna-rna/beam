@@ -305,12 +305,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
 
-  console.log("Fetched gallery:", {
-    hasGallery: !!gallery,
-    imageCount: gallery?.images?.length,
-    selectedImageIndex,
-    selectedImage
-  });
+  
 
   const { data: annotations = [] } = useQuery<Annotation[]>({
     queryKey: [`/api/images/${selectedImage?.id}/annotations`],
