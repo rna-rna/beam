@@ -399,6 +399,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       return { previousGallery, previousStars };
     },
     onError: (err, variables, context) => {
+      console.log('Mutation Error Triggered:', err);
       // Revert all optimistic updates on error
       if (context?.previousGallery) {
         queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
@@ -413,7 +414,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       }
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to toggle star",
+        description: err.message || "Failed to update star status. Please try again.",
         variant: "destructive",
       });
     },
