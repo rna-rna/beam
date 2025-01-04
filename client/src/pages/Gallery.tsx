@@ -959,7 +959,7 @@ const renderGalleryControls = useCallback(() => {
                 size="icon"
                 variant="ghost"
                 onClick={toggleGridView}
-                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200", !isMasonry && "bg-primary/20")}
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200", !isMasonry && "bg-primary/20")}
               >
                 {isMasonry ? (
                   <Grid className="h-4 w-4" />
@@ -979,7 +979,7 @@ const renderGalleryControls = useCallback(() => {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200")}
                   >
                     <Filter className="h-4 w-4" />
                   </Button>
@@ -991,7 +991,7 @@ const renderGalleryControls = useCallback(() => {
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       <div className="flex items-center flex-1">
-                        <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-gray-800")} />
+                        <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-zinc-800")} />
                         Show Starred
                         <div className="ml-auto inline-flex items-center gap-1">
                           <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
@@ -1009,7 +1009,7 @@ const renderGalleryControls = useCallback(() => {
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       <div className="flex items-center flex-1">
-                        <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-gray-800")} />
+                        <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-zinc-800")} />
                         Show Comments
                         <div className="ml-auto inline-flex items-center gap-1">
                           <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
@@ -1751,9 +1751,9 @@ const renderGalleryControls = useCallback(() => {
             <div className="absolute right-16 top-4 flex items-center gap-2 z-50">
               {selectedImage && (
                 <Button
-                  variant="secondary"
+                  variant="ghost"
                   size="icon"
-                  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg dark:text-white"
+                  className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleStarMutation.mutate(selectedImage.id);
@@ -1801,7 +1801,7 @@ const renderGalleryControls = useCallback(() => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200", isCommentPlacementMode && "bg-primary/20")}
+                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200", isCommentPlacementMode && "bg-primary/20")}
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsCommentPlacementMode(!isCommentPlacementMode);
@@ -1817,7 +1817,7 @@ const renderGalleryControls = useCallback(() => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200")}
                     onClick={() => setShowLoginModal(true)}
                     title="Sign in to comment"
                   >
