@@ -1047,7 +1047,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 size="sm"
                 pressed={selectMode}
                 onPressedChange={toggleSelectMode}
-                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10 data-[state=on]:bg-white/20" : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-gray-200")}
+                className={cn(
+                  "h-9 w-9",
+                  isDark 
+                    ? "text-white hover:bg-white/10 data-[state=on]:bg-white/20 data-[state=on]:text-white" 
+                    : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+                )}
               >
                 <PencilRuler className="h-4 w-4" />
               </Toggle>
