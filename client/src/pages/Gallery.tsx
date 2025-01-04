@@ -1050,8 +1050,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 className={cn(
                   "h-9 w-9",
                   isDark 
-                    ? "text-white hover:bg-white/10 data-[state=on]:bg-white/20 data-[state=on]:text-white" 
-                    : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+                    ? "text-white hover:bg-white/10 data-[state=on]:bg-white/20 data-[state=on]:text-white data-[state=on]:ring-2 data-[state=on]:ring-white/20" 
+                    : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent/30 data-[state=on]:text-accent-foreground data-[state=on]:ring-2 data-[state=on]:ring-accent"
                 )}
               >
                 <PencilRuler className="h-4 w-4" />
