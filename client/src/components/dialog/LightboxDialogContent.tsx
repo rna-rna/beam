@@ -11,23 +11,35 @@ const LightboxDialogContent = React.forwardRef<
   HTMLDivElement,
   LightboxDialogContentProps
 >(({ className, children, ...props }, ref) => {
+  const lightboxRef = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     const handleEscKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && props.onOpenChange) {
-        e.stopPropagation();  // Prevent bubbling
+        e.stopPropagation();
         props.onOpenChange(false);
       }
     };
-    window.addEventListener("keydown", handleEscKey, { capture: true });  // Capture phase
-    return () => window.removeEventListener("keydown", handleEscKey, { capture: true });
+
+    // Attach listener only when lightbox is open and focused
+    const currentElement = lightboxRef.current;
+    if (currentElement) {
+      currentElement.focus();
+      currentElement.addEventListener("keydown", handleEscKey);
+    }
+
+    return () => {
+      currentElement?.removeEventListener("keydown", handleEscKey);
+    };
   }, [props.onOpenChange]);
 
   return (
     <div
-      ref={ref}
+      ref={lightboxRef}
+      tabIndex={-1}
       {...props}
       className={cn(
-        "fixed inset-0 w-screen h-screen z-50 flex items-center justify-center bg-black/100 p-0",
+        "fixed inset-0 w-screen h-screen z-50 flex items-center justify-center bg-black/100 p-0 outline-none",
         className
       )}
     >
