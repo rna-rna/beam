@@ -27,8 +27,7 @@ import {
   ChevronRight,
   Paintbrush,
   MessageCircle,
-  PencilRuler,
-  X
+  PencilRuler
 } from "lucide-react";
 
 // UI Components
@@ -1696,25 +1695,12 @@ const renderGalleryControls = useCallback(() => {
           if (!open) {
             setSelectedImageIndex(-1);
             setNewCommentPos(null);
-            document.body.style.overflow = 'auto';
-          } else {
-            document.body.style.overflow = 'hidden';
           }
         }}>
           <DialogContent
-            className="fixed inset-0 z-50 bg-black/90 p-0 border-none overflow-hidden w-screen h-screen max-w-none m-0 rounded-none"
+            className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden dark:bg-black/90"
             aria-describedby="gallery-lightbox-description"
           >
-            <div className="absolute inset-0 flex items-center justify-center">
-              {/* Close button */}
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setSelectedImageIndex(-1)}
-              className="absolute top-4 right-4 z-[60] bg-background/20 hover:bg-background/40"
-            >
-              <X className="h-4 w-4" />
-            </Button>
             <div id="gallery-lightbox-description" className="sr-only">
               Image viewer with annotation and commenting capabilities
             </div>
@@ -1844,7 +1830,7 @@ const renderGalleryControls = useCallback(() => {
 
             {selectedImage && (
               <motion.div
-                className={`relative w-full h-full ${
+                className={`relative w-full h-full flex items-center justify-center ${
                   isCommentPlacementMode ? "cursor-crosshair" : ""
                 }`}
                 {...(isMobile && {
@@ -1875,7 +1861,7 @@ const renderGalleryControls = useCallback(() => {
                   <motion.img
                     src={selectedImage.url}
                     alt=""
-                    className="max-w-screen max-h-screen w-auto h-auto object-contain"
+                    className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
@@ -1953,7 +1939,6 @@ const renderGalleryControls = useCallback(() => {
                 </div>
               </motion.div>
             )}
-            </div>
           </DialogContent>
         </Dialog>
       )}

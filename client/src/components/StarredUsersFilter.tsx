@@ -40,6 +40,13 @@ export function StarredUsersFilter({
         e.stopPropagation();
         setOpen(prev => !prev);
       }
+      if (e.shiftKey && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        if (selectedUsers.length > 0 || selectAllTriggered) {
+          setSelectAllTriggered(false);
+          onSelectionChange([]);
+        }
+      }
     };
     
     document.addEventListener('keydown', handleKeyDown, true);
@@ -75,7 +82,7 @@ export function StarredUsersFilter({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="h-9 w-9" data-filter-trigger>
-          <Users className="h-5 w-5" /> {/* Changed icon size here */}
+          <Users className="h-7 w-7" /> {/* Changed icon size here */}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
@@ -125,7 +132,17 @@ export function StarredUsersFilter({
                   disabled={selectedUsers.length === 0 && !selectAllTriggered}
                   className="w-full text-muted-foreground hover:text-foreground disabled:opacity-50"
                 >
-                  Reset Filters
+                  <span className="flex items-center justify-center gap-2">
+                    Reset Filters
+                    <div className="ml-auto inline-flex items-center gap-1">
+                      <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                        ⇧
+                      </kbd>
+                      <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                        R
+                      </kbd>
+                    </div>
+                  </span>
                 </Button>
               </div>
             </>
