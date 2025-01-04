@@ -13,7 +13,7 @@ const LightboxDialogContent = React.forwardRef<
     ref={ref}
     {...props}
     className={cn(
-      "fixed inset-0 w-screen h-screen z-50 flex items-center justify-center bg-black/90 p-0",
+      "fixed inset-0 w-screen h-screen z-50 flex items-center justify-center bg-black/100 p-0",
       className
     )}
   >
