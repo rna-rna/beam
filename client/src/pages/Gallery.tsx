@@ -27,7 +27,8 @@ import {
   ChevronRight,
   Paintbrush,
   MessageCircle,
-  PencilRuler
+  PencilRuler,
+  X
 } from "lucide-react";
 
 // UI Components
