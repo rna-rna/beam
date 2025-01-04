@@ -57,7 +57,7 @@ const LightboxDialogContent = React.forwardRef<
         <Button 
           variant="ghost" 
           size="icon" 
-          className="absolute right-4 top-4 h-9 w-9 z-50"
+          className="absolute right-4 top-4 h-9 w-9 z-50 hover:bg-accent hover:text-accent-foreground"
         >
           <X className="h-4 w-4" />
         </Button>
