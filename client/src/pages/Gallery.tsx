@@ -1706,7 +1706,7 @@ const renderGalleryControls = useCallback(() => {
             aria-describedby="gallery-lightbox-description"
           >
             <div className="absolute inset-0 w-screen h-screen flex items-center justify-center">
-            {/* Close button */}
+              {/* Close button */}
             <Button 
               variant="ghost" 
               size="icon"
@@ -1953,6 +1953,7 @@ const renderGalleryControls = useCallback(() => {
                 </div>
               </motion.div>
             )}
+            </div>
           </DialogContent>
         </Dialog>
       )}
