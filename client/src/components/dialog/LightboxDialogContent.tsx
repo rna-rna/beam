@@ -3,8 +3,10 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Star } from "lucide-react";
 import { Image } from "@/types/gallery";
+import { StarredAvatars } from "@/components/StarredAvatars";
+import { motion } from "framer-motion";
 
 interface LightboxDialogContentProps
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -82,6 +84,13 @@ const LightboxDialogContent = React.forwardRef<
           <X className="h-4 w-4" />
         </Button>
       </DialogClose>
+      
+      {/* Starred avatars */}
+      {selectedImage && (
+        <div className="absolute bottom-4 right-4 z-50">
+          <StarredAvatars imageId={selectedImage.id} />
+        </div>
+      )}
     </div>
   );
 });
