@@ -1208,16 +1208,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   { imageId: image.id, isStarred: currentStarred },
                   {
                     onError: () => {
-                      // Revert optimistic updates if mutation fails
-                      setSelectedImageIndex((prevIndex) => {
-                        if (prevIndex >= 0) {
-                          setSelectedImage((prev) =>
-                            prev ? { ...prev, starred: currentStarred } : prev
-                          );
-                        }
-                        return prevIndex;
-                      });
-
+                      // Revert optimistic UI
                       queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
                         ...old,
                         images: old.images.map((img: Image) =>
@@ -1225,6 +1216,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                         )
                       }));
 
+                      // Revert star list
                       queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
                         if (!old) return { success: true, data: [] };
                         return {
@@ -1242,6 +1234,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                             : old.data.filter((star: any) => star.userId !== user?.id)
                         };
                       });
+
+                      // Revert selected image if in lightbox
+                      if (selectedImage?.id === image.id) {
+                        setSelectedImage((prev) =>
+                          prev ? { ...prev, starred: currentStarred } : prev
+                        );
+                      }
 
                       toast({
                         title: "Error",
