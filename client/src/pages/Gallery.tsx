@@ -35,6 +35,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { StarredUsersFilter } from "@/components/StarredUsersFilter";
 import { Progress } from "@/components/ui/progress";
 import { Switch as SwitchComponent } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
