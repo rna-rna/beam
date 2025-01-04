@@ -32,15 +32,14 @@ export function StarredUsersFilter({
 }: StarredUsersFilterProps) {
   const [selectAllTriggered, setSelectAllTriggered] = useState(false);
   
+  const [open, setOpen] = useState(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         e.stopPropagation();
-        const button = document.querySelector<HTMLButtonElement>('[data-filter-trigger]');
-        if (button) {
-          button.click();
-        }
+        setOpen(prev => !prev);
       }
     };
     
@@ -74,7 +73,7 @@ export function StarredUsersFilter({
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="h-9 w-9" data-filter-trigger>
           <Users className="h-4 w-4" />
