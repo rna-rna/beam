@@ -67,12 +67,12 @@ export function StarredUsersFilter({
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Filter by Stars</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <ScrollArea className="h-[300px]">
+        <div className="max-h-fit">
           <DropdownMenuCheckboxItem
             checked={selectAllTriggered}
             onCheckedChange={toggleAll}
           >
-            Show Everyone
+            View all Stars
           </DropdownMenuCheckboxItem>
           <DropdownMenuSeparator />
           {users.map((user) => (
@@ -86,7 +86,25 @@ export function StarredUsersFilter({
               </span>
             </DropdownMenuCheckboxItem>
           ))}
-        </ScrollArea>
+          {users.length > 0 && (
+            <>
+              <DropdownMenuSeparator />
+              <div className="p-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setSelectAllTriggered(false);
+                    onSelectionChange([]);
+                  }}
+                  className="w-full text-muted-foreground hover:text-foreground"
+                >
+                  Reset Filters
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
