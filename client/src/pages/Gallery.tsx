@@ -1158,6 +1158,23 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   )
                 }));
 
+                // Optimistic update for avatar list
+                queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
+                  if (!old) return { success: true, data: [] };
+                  const updatedData = currentStarred
+                    ? old.data.filter((star: any) => star.userId !== user?.id)
+                    : [...old.data, { 
+                        userId: user?.id, 
+                        imageId: image.id,
+                        user: {
+                          firstName: user?.firstName,
+                          lastName: user?.lastName,
+                          imageUrl: user?.imageUrl
+                        }
+                      }];
+                  return { ...old, data: updatedData };
+                });
+
                 toggleStarMutation.mutate({ imageId: image.id, isStarred: currentStarred }, {
                   onSuccess: () => {
                     queryClient.invalidateQueries({ queryKey: [`/api/images/${image.id}/stars`] });
