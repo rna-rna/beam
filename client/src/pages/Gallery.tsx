@@ -1160,6 +1160,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
                 toggleStarMutation.mutate({ imageId: image.id, isStarred: currentStarred }, {
                   onSuccess: () => {
+                    queryClient.invalidateQueries({ queryKey: [`/api/images/${image.id}/stars`] });
                     queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
                   },
                   onError: () => {
