@@ -921,19 +921,17 @@ const getUniqueStarredUsers = useMemo(() => {
   const users: { userId: string; firstName: string | null; lastName: string | null; imageUrl: string | null; }[] = [];
   
   gallery.images.forEach(image => {
-    if (image.stars) {
-      image.stars.forEach(star => {
-        if (!usersSet.has(star.userId)) {
-          usersSet.add(star.userId);
-          users.push({
-            userId: star.userId,
-            firstName: star.firstName,
-            lastName: star.lastName,
-            imageUrl: star.imageUrl
-          });
-        }
-      });
-    }
+    image.stars?.forEach(star => {
+      if (!usersSet.has(star.userId)) {
+        usersSet.add(star.userId);
+        users.push({
+          userId: star.userId,
+          firstName: star.firstName || null,
+          lastName: star.lastName || null,
+          imageUrl: star.imageUrl || null
+        });
+      }
+    });
   });
   
   return users;
