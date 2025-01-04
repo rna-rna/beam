@@ -1937,7 +1937,7 @@ const renderGalleryControls = useCallback(() => {
                 </div>
               </motion.div>
             )}
-          </DialogContent>
+          </LightboxDialogContent>
         </Dialog>
       )}
 
