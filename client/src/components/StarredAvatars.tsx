@@ -25,7 +25,7 @@ interface StarResponse {
   data: StarData[];
 }
 
-export function StarredAvatars({ imageId }: StarredAvatarsProps) {
+export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProps) {
   const { data: response } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
     staleTime: 5000,
