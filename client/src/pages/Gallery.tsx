@@ -905,12 +905,43 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     // Add your dark mode logic here, e.g., toggle a class on the body element
   };
 
-  const renderGalleryControls = useCallback(() => {
+  const [selectedStarredUsers, setSelectedStarredUsers] = useState<string[]>([]);
+
+const getUniqueStarredUsers = useMemo(() => {
+  if (!gallery?.images) return [];
+  const usersSet = new Set<string>();
+  const users: { userId: string; firstName: string | null; lastName: string | null; imageUrl: string | null; }[] = [];
+  
+  gallery.images.forEach(image => {
+    if (image.stars) {
+      image.stars.forEach(star => {
+        if (!usersSet.has(star.userId)) {
+          usersSet.add(star.userId);
+          users.push({
+            userId: star.userId,
+            firstName: star.firstName,
+            lastName: star.lastName,
+            imageUrl: star.imageUrl
+          });
+        }
+      });
+    }
+  });
+  
+  return users;
+}, [gallery?.images]);
+
+const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
 
     return (
       <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
         <TooltipProvider>
+          <StarredUsersFilter
+            users={getUniqueStarredUsers}
+            selectedUsers={selectedStarredUsers}
+            onSelectionChange={setSelectedStarredUsers}
+          />
         
           {/* Grid View Toggle */}
           <Tooltip>
@@ -1549,6 +1580,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   .filter((image: Image) => {
                     if (showStarredOnly && !image.starred) return false;
                     if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                    if (selectedStarredUsers.length > 0) {
+                      const imageStarUserIds = image.stars?.map(star => star.userId) || [];
+                      return selectedStarredUsers.some(userId => imageStarUserIds.includes(userId));
+                    }
                     return true;
                   })
                   .map((image: Image, index: number) => renderImage(image, index))}
