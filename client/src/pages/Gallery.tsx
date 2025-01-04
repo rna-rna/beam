@@ -1156,13 +1156,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
                 e.stopPropagation();
-                const currentStarred = image.starred;
+                
+                // Get current stars for the image
+                const currentStars = queryClient.getQueryData([`/api/images/${image.id}/stars`]) as any;
+                const hasUserStarred = currentStars?.data?.some((star: any) => star.userId === user?.id) || false;
 
                 // Optimistic UI update for selected image
                 setSelectedImageIndex((prevIndex) => {
                   if (prevIndex >= 0) {
                     setSelectedImage((prev) =>
-                      prev ? { ...prev, starred: !currentStarred } : prev
+                      prev ? { ...prev, starred: !hasUserStarred } : prev
                     );
                   }
                   return prevIndex;
@@ -1172,14 +1175,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
                   ...old,
                   images: old.images.map((img: Image) =>
-                    img.id === image.id ? { ...img, starred: !currentStarred } : img
+                    img.id === image.id ? { ...img, starred: !hasUserStarred } : img
                   )
                 }));
 
                 // Update star list optimistically
                 queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
                   if (!old) return { success: true, data: [] };
-                  const updatedData = currentStarred
+                  const updatedData = hasUserStarred
                     ? old.data.filter((star: any) => star.userId !== user?.id)
                     : [...old.data, {
                       userId: user?.id,
@@ -1195,14 +1198,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
                 // Perform mutation to sync with backend
                 toggleStarMutation.mutate(
-                  { imageId: image.id, isStarred: currentStarred },
+                  { imageId: image.id, isStarred: hasUserStarred },
                   {
                     onError: () => {
                       // Revert optimistic UI
                       queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
                         ...old,
                         images: old.images.map((img: Image) =>
-                          img.id === image.id ? { ...img, starred: currentStarred } : img
+                          img.id === image.id ? { ...img, starred: hasUserStarred } : img
                         )
                       }));
 
@@ -1211,7 +1214,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                         if (!old) return { success: true, data: [] };
                         return {
                           ...old,
-                          data: currentStarred
+                          data: hasUserStarred
                             ? [...old.data, {
                               userId: user?.id,
                               imageId: image.id,
@@ -1228,7 +1231,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       // Revert selected image if in lightbox
                       if (selectedImage?.id === image.id) {
                         setSelectedImage((prev) =>
-                          prev ? { ...prev, starred: currentStarred } : prev
+                          prev ? { ...prev, starred: hasUserStarred } : prev
                         );
                       }
 
