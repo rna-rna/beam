@@ -234,6 +234,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   // Queries
   const { data: gallery, isLoading, error } = useQuery<GalleryType>({
+    onSuccess: (data) => {
+      console.log('Gallery Data:', {
+        galleryId: data?.id,
+        imageCount: data?.images?.length,
+        sampleStars: data?.images?.[0]?.stars,
+      });
+    },
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
       console.log('Starting gallery fetch for slug:', slug, {

@@ -677,9 +677,7 @@ export function registerRoutes(app: Express): Server {
           asc(images.createdAt)
         ],
         with: {
-          stars: {
-            where: req.auth?.userId ? eq(stars.userId, req.auth.userId) : undefined
-          }
+          stars: true
         }
       });
 
