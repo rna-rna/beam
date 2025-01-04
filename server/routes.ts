@@ -914,13 +914,7 @@ export function registerRoutes(app: Express): Server {
   // Star or unstar an image
   app.post('/api/images/:imageId/star', async (req, res) => {
     try {
-      console.log('Star request received:', {
-        imageId: req.params.imageId,
-        auth: req.auth ? 'present' : 'missing'
-      });
-
       if (!req.auth?.userId) {
-        console.log('Authentication missing');
         return res.status(401).json({ 
           success: false,
           message: 'Authentication required',
@@ -930,23 +924,8 @@ export function registerRoutes(app: Express): Server {
 
       const imageId = parseInt(req.params.imageId);
       const userId = req.auth.userId;
-      console.log(`Processing star request - Image: ${imageId}, User: ${userId}`);
 
-      // Verify image exists
-      const image = await db.query.images.findFirst({
-        where: eq(images.id, imageId)
-      });
-
-      if (!image) {
-        console.error(`Image not found: ${imageId}`);
-        return res.status(404).json({
-          success: false,
-          message: 'Image not found'
-        });
-      }
-      console.log('Image found:', { imageId, currentStarred: image.starred });
-
-      // Check for existing star
+      // Check if the user already starred this image
       const existingStar = await db.query.stars.findFirst({
         where: and(
           eq(stars.userId, userId),
@@ -955,71 +934,35 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (existingStar) {
-        console.log('Removing existing star');
-        // Remove star if it exists
+        // Remove the star if it exists
         await db.delete(stars)
           .where(and(
             eq(stars.userId, userId),
             eq(stars.imageId, imageId)
           ));
-        
-        // Update image starred status
-        await db.update(images)
-          .set({ starred: false })
-          .where(eq(images.id, imageId));
-
-        console.log('Star removed successfully');
-        return res.json({ 
-          success: true, 
+        return res.json({
+          success: true,
           message: "Star removed",
           isStarred: false
         });
       }
 
-      console.log('Adding new star');
-      // Add star if it doesn't exist
-      try {
-        const [star] = await db.insert(stars)
-          .values({
-            userId,
-            imageId: Number(imageId)
-          })
-          .onConflictDoNothing()
-          .returning();
+      // Add a new star if not starred
+      const [star] = await db.insert(stars)
+        .values({ userId, imageId })
+        .returning();
 
-        if (star) {
-          // Update image starred status only if star was actually inserted
-          await db.update(images)
-            .set({ starred: true })
-            .where(eq(images.id, imageId));
-
-          console.log('Star added successfully');
-          res.json({ 
-            success: true, 
-            data: star,
-            message: "Star added",
-            isStarred: true
-          });
-        } else {
-          console.log('Star already exists');
-          res.json({
-            success: false,
-            message: "Star already exists"
-          });
-        }
-      } catch (error) {
-        console.error("Star toggle error:", error);
-        res.status(500).json({
-          success: false,
-          message: "Failed to star image. Please try again."
-        });
-      }
+      res.json({
+        success: true,
+        data: star,
+        message: "Star added",
+        isStarred: true
+      });
     } catch (error) {
       console.error('Error starring image:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to star image',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Failed to star image'
       });
     }
   });
