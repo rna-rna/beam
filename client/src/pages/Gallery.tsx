@@ -1584,11 +1584,13 @@ const renderGalleryControls = useCallback(() => {
                 {renderUploadPlaceholders()}
                 {gallery?.images
                   .filter((image: Image) => {
+                    // Apply starred filter
                     if (showStarredOnly && !image.starred) return false;
+                    // Apply comments filter
                     if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                    // Apply user filter
                     if (selectedStarredUsers.length > 0) {
-                      const imageStarUserIds = image.stars?.map(star => star.userId) || [];
-                      return selectedStarredUsers.some(userId => imageStarUserIds.includes(userId));
+                      return image.stars?.some(star => selectedStarredUsers.includes(star.userId)) || false;
                     }
                     return true;
                   })
