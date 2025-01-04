@@ -26,13 +26,10 @@ const LightboxDialogContent = React.forwardRef<
       }
     };
 
-    const currentElement = lightboxRef.current;
-    if (currentElement) {
-      currentElement.addEventListener("keydown", handleEscKey);
-    }
-
+    window.addEventListener("keydown", handleEscKey);
+    
     return () => {
-      currentElement?.removeEventListener("keydown", handleEscKey);
+      window.removeEventListener("keydown", handleEscKey);
     };
   }, [props.onOpenChange]);
 
