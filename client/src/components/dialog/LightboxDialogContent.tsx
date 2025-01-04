@@ -4,6 +4,10 @@ import { cn } from "@/lib/utils";
 interface LightboxDialogContentProps
   extends React.HTMLAttributes<HTMLDivElement> {
   onOpenChange?: (open: boolean) => void;
+  selectedImage?: {
+    id: number;
+    starred?: boolean;
+  };
 }
 
 const LightboxDialogContent = React.forwardRef<
