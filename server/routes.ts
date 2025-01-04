@@ -937,13 +937,27 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
+      // Check for existing star
+      const existingStar = await db.query.stars.findFirst({
+        where: and(
+          eq(stars.userId, userId),
+          eq(stars.imageId, imageId)
+        )
+      });
+
+      if (existingStar) {
+        return res.status(400).json({
+          success: false,
+          message: "Image already starred"
+        });
+      }
+
       // Add star
       const [star] = await db.insert(stars)
         .values({
           userId,
           imageId: Number(imageId)
         })
-        .onConflictDoNothing()
         .returning();
 
       res.json({ 
