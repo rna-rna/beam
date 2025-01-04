@@ -1842,8 +1842,8 @@ const renderGalleryControls = useCallback(() => {
             </div>
 
             {selectedImage && (
-              <motion.div
-                className={`relative w-full h-full flex items-center justify-center ${
+              <motion.div 
+                className={`fixed inset-0 w-screen h-screen flex items-center justify-center ${
                   isCommentPlacementMode ? "cursor-crosshair" : ""
                 }`}
                 {...(isMobile && {
