@@ -1059,11 +1059,14 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/images/:imageId/stars', async (req, res) => {
     try {
       const imageId = parseInt(req.params.imageId);
+      const userId = req.auth?.userId;
 
       const starData = await db.query.stars.findMany({
         where: eq(stars.imageId, imageId),
         orderBy: (stars, { desc }) => [desc(stars.createdAt)]
       });
+
+      const userStarred = userId ? starData.some(star => star.userId === userId) : false;
 
       // Fetch user data from Clerk for each star
       const starsWithUserData = await Promise.all(
@@ -1094,7 +1097,8 @@ export function registerRoutes(app: Express): Server {
 
       res.json({
         success: true,
-        data: starsWithUserData
+        data: starsWithUserData,
+        userStarred
       });
     } catch (error) {
       console.error('Error fetching stars:', error);
