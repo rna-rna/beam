@@ -349,15 +349,31 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       if (!res.ok) throw new Error("Failed to toggle star");
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+    onMutate: async ({ imageId, isStarred }) => {
+      await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
+      const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
+      
+      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
+        ...old,
+        images: old.images.map((img: Image) =>
+          img.id === imageId ? { ...img, starred: !isStarred } : img
+        )
+      }));
+
+      return { previousGallery };
     },
-    onError: () => {
+    onError: (err, variables, context) => {
+      if (context?.previousGallery) {
+        queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
+      }
       toast({
         title: "Error",
         description: "Failed to toggle star. Please try again.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
     },
   });
 
