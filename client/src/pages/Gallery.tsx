@@ -1702,7 +1702,7 @@ const renderGalleryControls = useCallback(() => {
           }
         }}>
           <DialogContent
-            className="w-screen h-screen p-0 bg-background/95 backdrop-blur border-none overflow-hidden dark:bg-black/95"
+            className="fixed inset-0 w-screen h-screen p-0 bg-background/95 backdrop-blur-sm border-none overflow-hidden dark:bg-black/95"
             aria-describedby="gallery-lightbox-description"
           >
             {/* Close button */}
