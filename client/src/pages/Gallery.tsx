@@ -1698,7 +1698,7 @@ const renderGalleryControls = useCallback(() => {
           }
         }}>
           <DialogContent
-            className="fixed inset-0 w-screen h-screen p-0 border-none overflow-hidden bg-background/95 dark:bg-black/95 backdrop-blur-sm"
+            className="fixed inset-0 w-screen h-screen p-0 border-none overflow-hidden bg-background/95 dark:bg-black/95 backdrop-blur-sm z-50"
             aria-describedby="gallery-lightbox-description"
           >
             <div id="gallery-lightbox-description" className="sr-only">
@@ -1856,12 +1856,12 @@ const renderGalleryControls = useCallback(() => {
                   setIsCommentPlacementMode(false);
                 }}
               >
-                <div className="relative">
+                <div className="w-full h-full flex items-center justify-center">
                   {/* Image with onLoad handler */}
                   <motion.img
                     src={selectedImage.url}
                     alt=""
-                    className="max-w-[100vw] max-h-[100vh] w-auto h-auto object-contain"
+                    className="max-w-full max-h-full w-auto h-auto object-contain"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
