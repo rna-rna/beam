@@ -359,6 +359,25 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     onMutate: async ({ imageId, isStarred }) => {
       await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
       const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
+
+      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
+        ...old,
+        images: old.images.map((img: Image) =>
+          img.id === imageId ? { ...img, starred: !isStarred } : img
+        )
+      }));
+
+      // Optimistically update selectedImage if it matches
+      if (selectedImage?.id === imageId) {
+        setSelectedImage((prev) =>
+          prev ? { ...prev, starred: !isStarred } : prev
+        );
+      }
+
+      return { previousGallery };
+    },
+      await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
+      const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
       
       queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
         ...old,
