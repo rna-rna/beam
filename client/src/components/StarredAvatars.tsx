@@ -31,8 +31,9 @@ export function StarredAvatars({ imageId }: StarredAvatarsProps) {
   });
 
   const stars = response?.data || [];
-  const visibleStars = stars.slice(0, 3);
-  const remainingCount = stars.length - visibleStars.length;
+  const uniqueStars = Array.from(new Map(stars.map(star => [star.userId, star])).values());
+  const visibleStars = uniqueStars.slice(0, 3);
+  const remainingCount = uniqueStars.length - visibleStars.length;
 
   if (stars.length === 0) return null;
 
