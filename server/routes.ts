@@ -911,7 +911,7 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-  // Star an image
+  // Star or unstar an image
   app.post('/api/images/:imageId/star', async (req, res) => {
     try {
       if (!req.auth?.userId) {
@@ -946,13 +946,20 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (existingStar) {
-        return res.status(400).json({
-          success: false,
-          message: "Image already starred"
+        // Remove star if it exists
+        await db.delete(stars)
+          .where(and(
+            eq(stars.userId, userId),
+            eq(stars.imageId, imageId)
+          ));
+        
+        return res.json({ 
+          success: true, 
+          message: "Star removed"
         });
       }
 
-      // Add star
+      // Add star if it doesn't exist
       const [star] = await db.insert(stars)
         .values({
           userId,
@@ -962,7 +969,8 @@ export function registerRoutes(app: Express): Server {
 
       res.json({ 
         success: true, 
-        data: star
+        data: star,
+        message: "Star added"
       });
     } catch (error) {
       console.error('Error starring image:', error);
