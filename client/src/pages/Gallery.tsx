@@ -340,9 +340,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   // Define all mutations first
   const toggleStarMutation = useMutation({
-    mutationFn: async (imageId: number) => {
+    mutationFn: async ({ imageId, isStarred }: { imageId: number, isStarred: boolean }) => {
+      const method = isStarred ? "DELETE" : "POST";
       const res = await fetch(`/api/images/${imageId}/star`, {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
       });
       if (!res.ok) throw new Error("Failed to toggle star");
