@@ -376,18 +376,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       return { previousGallery };
     },
-      await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
-      const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
-      
-      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
-        ...old,
-        images: old.images.map((img: Image) =>
-          img.id === imageId ? { ...img, starred: !isStarred } : img
-        )
-      }));
-
-      return { previousGallery };
-    },
     onError: (err, variables, context) => {
       if (context?.previousGallery) {
         queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
