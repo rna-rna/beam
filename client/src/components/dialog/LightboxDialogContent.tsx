@@ -14,7 +14,9 @@ const LightboxDialogContent = React.forwardRef<
   const lightboxRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    lightboxRef.current?.focus();
+    if (lightboxRef.current) {
+      lightboxRef.current.focus({ preventScroll: true });
+    }
   }, []);
 
   React.useEffect(() => {
