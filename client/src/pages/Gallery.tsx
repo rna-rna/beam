@@ -1182,18 +1182,23 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 // Update star list optimistically
                 queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
                   if (!old) return { success: true, data: [] };
-                  const updatedData = hasUserStarred
+                  
+                  const updatedStars = hasUserStarred
                     ? old.data.filter((star: any) => star.userId !== user?.id)
-                    : [...old.data, {
-                      userId: user?.id,
-                      imageId: image.id,
-                      user: {
-                        firstName: user?.firstName,
-                        lastName: user?.lastName,
-                        imageUrl: user?.imageUrl
-                      }
-                    }];
-                  return { ...old, data: updatedData };
+                    : [
+                        ...old.data,
+                        {
+                          userId: user?.id,
+                          imageId: image.id,
+                          user: {
+                            firstName: user?.firstName,
+                            lastName: user?.lastName,
+                            imageUrl: user?.imageUrl
+                          }
+                        }
+                      ];
+
+                  return { ...old, data: updatedStars };
                 });
 
                 // Perform mutation to sync with backend
