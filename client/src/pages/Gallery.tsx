@@ -34,7 +34,8 @@ import {
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
+import LightboxDialogContent from "@/components/dialog/LightboxDialogContent";
 import { StarredUsersFilter } from "@/components/StarredUsersFilter";
 import { Progress } from "@/components/ui/progress";
 import { Switch as SwitchComponent } from "@/components/ui/switch";
@@ -1697,10 +1698,7 @@ const renderGalleryControls = useCallback(() => {
             setNewCommentPos(null);
           }
         }}>
-          <DialogContent
-            className="fixed inset-0 w-screen h-screen p-0 border-none overflow-hidden bg-background/95 dark:bg-black/95 backdrop-blur-sm z-50"
-            aria-describedby="gallery-lightbox-description"
-          >
+          <LightboxDialogContent aria-describedby="gallery-lightbox-description">
             <div id="gallery-lightbox-description" className="sr-only">
               Image viewer with annotation and commenting capabilities
             </div>
