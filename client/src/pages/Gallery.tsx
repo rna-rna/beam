@@ -364,13 +364,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
       const previousStars = queryClient.getQueryData([`/api/images/${imageId}/stars`]);
 
-      // Optimistically update gallery data
-      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
-        ...old,
-        images: old?.images.map((img: Image) =>
-          img.id === imageId ? { ...img, starred: !isStarred } : img
-        )
-      }));
+      // No need to update gallery data since starred state comes from stars query
 
       // Optimistically update stars data
       queryClient.setQueryData([`/api/images/${imageId}/stars`], (old: any) => {

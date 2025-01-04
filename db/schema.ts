@@ -26,7 +26,6 @@ export const images = pgTable('images', {
   approved: boolean('approved').default(false).notNull(),
   commentCount: integer('comment_count').default(0).notNull(),
   position: integer('position').default(0),
-  starred: boolean('starred').default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 });
 
