@@ -10,7 +10,7 @@ export function SignUpButton() {
     <>
       <Button 
         variant="ghost" 
-        className="hover:underline"
+        className="hover:bg-[#96C53E] bg-[#BEF853] text-black"
         onClick={() => setShowSignUpModal(true)}
       >
         Sign Up
