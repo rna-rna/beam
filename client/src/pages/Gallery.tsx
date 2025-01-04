@@ -1753,13 +1753,16 @@ const renderGalleryControls = useCallback(() => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                  className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleStarMutation.mutate(selectedImage.id);
+                    toggleStarMutation.mutate({
+                      imageId: selectedImage.id,
+                      isStarred: selectedImage.userStarred
+                    });
                   }}
                 >
-                  {selectedImage.starred ? (
+                  {selectedImage.userStarred ? (
                     <Star className="h-5 w-5 fill-black dark:fill-white transition-all duration-300 scale-110" />
                   ) : (
                     <Star className="h-5 w-5 stroke-black dark:stroke-white fill-transparent transition-all duration-300 hover:scale-110" />
