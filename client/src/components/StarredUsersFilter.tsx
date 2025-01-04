@@ -32,13 +32,16 @@ export function StarredUsersFilter({
   onSelectionChange 
 }: StarredUsersFilterProps) {
   const toggleUser = (userId: string) => {
-    const newSelection = selectedUsers.includes(userId)
+    const isCurrentlySelected = selectedUsers.includes(userId);
+    const newSelection = isCurrentlySelected
       ? selectedUsers.filter(id => id !== userId)
       : [...selectedUsers, userId];
     onSelectionChange(newSelection);
   };
 
-  const isAllSelected = selectedUsers.length === users.length && users.length > 0;
+  const isAllSelected = users.length > 0 && users.every(user => 
+    selectedUsers.includes(user.userId)
+  );
   
   const toggleAll = () => {
     onSelectionChange(isAllSelected ? [] : users.map(u => u.userId));
