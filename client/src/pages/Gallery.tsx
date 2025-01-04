@@ -341,12 +341,19 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // Define all mutations first
   const toggleStarMutation = useMutation({
     mutationFn: async ({ imageId, isStarred }: { imageId: number, isStarred: boolean }) => {
-      const method = isStarred ? "DELETE" : "POST";
+      const token = await getToken();
       const res = await fetch(`/api/images/${imageId}/star`, {
-        method,
-        headers: { "Content-Type": "application/json" },
+        method: isStarred ? "DELETE" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        credentials: 'include'
       });
-      if (!res.ok) throw new Error("Failed to toggle star");
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || "Failed to toggle star");
+      }
       return res.json();
     },
     onMutate: async ({ imageId, isStarred }) => {
@@ -368,7 +375,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       }
       toast({
         title: "Error",
-        description: "Failed to toggle star. Please try again.",
+        description: err instanceof Error ? err.message : "Failed to toggle star",
         variant: "destructive",
       });
     },
