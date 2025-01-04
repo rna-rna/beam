@@ -352,8 +352,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       });
 
       const result = await res.json();
-      
-      if (!res.ok || !result.success) {
+      console.log('Star API Response:', result);
+
+      // Only throw error if success is explicitly false
+      if (!result.success) {
         throw new Error(result.message || 'Failed to update star status');
       }
 
