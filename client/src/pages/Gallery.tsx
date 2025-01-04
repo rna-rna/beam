@@ -1725,24 +1725,26 @@ const renderGalleryControls = useCallback(() => {
             <Button
               variant="ghost"
               size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 dark:text-white"
+              className={cn("absolute left-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9", 
+                isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
               onClick={() => {
                 if (!gallery?.images?.length) return;
                 setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
               }}
             >
-              <ChevronLeft className="h-8 w-8" />
+              <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 dark:text-white"
+              className={cn("absolute right-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9",
+                isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
               onClick={() => {
                 if (!gallery?.images?.length) return;
                 setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
               }}
             >
-              <ChevronRight className="h-8 w-8" />
+              <ChevronRight className="h-4 w-4" />
             </Button>
 
             {/* Controls */}
