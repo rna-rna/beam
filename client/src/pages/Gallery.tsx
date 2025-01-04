@@ -1297,9 +1297,9 @@ const renderGalleryControls = useCallback(() => {
                 transition={{ duration: 0.2 }}
               >
                 {image.userStarred ? (
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <Star className="h-4 w-4 fill-black dark:fill-white transition-all duration-300" />
                 ) : (
-                  <Star className="h-4 w-4" />
+                  <Star className="h-4 w-4 stroke-black dark:stroke-white fill-transparent transition-all duration-300" />
                 )}
               </motion.div>
             </Button>
@@ -1760,9 +1760,9 @@ const renderGalleryControls = useCallback(() => {
                   }}
                 >
                   {selectedImage.starred ? (
-                    <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                    <Star className="h-5 w-5 fill-black dark:fill-white transition-all duration-300 scale-110" />
                   ) : (
-                    <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+                    <Star className="h-5 w-5 stroke-black dark:stroke-white fill-transparent transition-all duration-300 hover:scale-110" />
                   )}
                 </Button>
               )}
