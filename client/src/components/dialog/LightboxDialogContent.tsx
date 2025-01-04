@@ -14,6 +14,7 @@ const LightboxDialogContent = React.forwardRef<
   React.useEffect(() => {
     const handleEscKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && props.onOpenChange) {
+        e.stopPropagation();
         props.onOpenChange(false);
       }
     };
