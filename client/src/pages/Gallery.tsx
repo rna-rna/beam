@@ -1760,6 +1760,13 @@ const renderGalleryControls = useCallback(() => {
                   className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   onClick={(e) => {
                     e.stopPropagation();
+                    
+                    // Optimistic UI update for selected image
+                    setSelectedImage((prev) =>
+                      prev ? { ...prev, userStarred: !prev.userStarred } : prev
+                    );
+
+                    // Perform mutation to sync with backend
                     toggleStarMutation.mutate({
                       imageId: selectedImage.id,
                       isStarred: selectedImage.userStarred
