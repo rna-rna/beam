@@ -1,4 +1,3 @@
-
 import { Users, Star } from "lucide-react";
 import {
   DropdownMenu,
@@ -123,7 +122,8 @@ export function StarredUsersFilter({
                     setSelectAllTriggered(false);
                     onSelectionChange([]);
                   }}
-                  className="w-full text-muted-foreground hover:text-foreground"
+                  disabled={selectedUsers.length === 0 && !selectAllTriggered}
+                  className="w-full text-muted-foreground hover:text-foreground disabled:opacity-50"
                 >
                   Reset Filters
                 </Button>
