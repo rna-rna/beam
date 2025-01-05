@@ -28,6 +28,17 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (isUploading) return;
+
+    // Prevent empty upload
+    if (acceptedFiles.length === 0) {
+      toast({
+        title: "Invalid Upload",
+        description: "No valid image files were selected. Please upload JPG, PNG, GIF, or WEBP.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgress(0);
 
