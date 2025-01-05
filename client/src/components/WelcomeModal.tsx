@@ -28,7 +28,7 @@ export function WelcomeModal({ isOpen, onOpenChange }: WelcomeModalProps) {
         <div className="space-y-6">
           <div className="w-full h-40 relative overflow-hidden rounded-md flex items-center justify-center">
             <img 
-              src="/welcome3.jpg" 
+              src={welcomeImage}
               alt="Welcome to Beam" 
               className="w-full h-full object-cover"
             />
