@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import { pusher } from "../pusherConfig";
 import { nanoid } from "nanoid";
@@ -55,24 +54,42 @@ router.post("/pusher/auth", async (req, res) => {
     };
 
     // Use authorizeChannel instead of authenticate
-    const auth = pusher.authorizeChannel(socketId, channel, presenceData);
-    
-    console.log("Pusher Auth Response:", {
-      auth_payload: auth,
-      request_details: {
-        socketId,
-        channel,
-        presenceData
-      },
-      user_context: {
-        userId,
-        userName,
-        userImageUrl
-      },
-      timestamp: new Date().toISOString()
-    });
-    
-    res.send(auth);
+    try {
+      const auth = pusher.authorizeChannel(socketId, channel, presenceData);
+      
+      console.log("Pusher Auth Response:", {
+        raw_auth: auth,
+        auth_signature: auth?.auth,
+        channel_data: auth?.channel_data,
+        request_details: {
+          socketId,
+          channel,
+          presenceData
+        },
+        user_context: {
+          userId,
+          userName,
+          userImageUrl
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+      res.json(auth);
+    } catch (error) {
+      console.error("Pusher Auth Error:", {
+        error: error.message,
+        stack: error.stack,
+        context: {
+          socketId,
+          channel,
+          userId
+        }
+      });
+      res.status(403).json({ 
+        error: 'Authorization failed',
+        details: error.message
+      });
+    }
   } catch (error) {
     console.error('Pusher auth error:', error);
     res.status(403).json({ 
