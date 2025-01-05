@@ -1,6 +1,7 @@
 import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo, KeyboardEvent } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import UploadDropzone from "@/components/UploadDropzone";
 import {
   Upload,
@@ -1501,7 +1502,7 @@ const renderGalleryControls = useCallback(() => {
   );
 
   useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+    const handleGlobalKeyDown = (e: ReactKeyboardEvent) => {
       if (e.key === 'Escape' && selectMode) {
         e.preventDefault();
         setSelectedImages([]);
