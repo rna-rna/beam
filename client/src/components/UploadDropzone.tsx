@@ -147,7 +147,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
               </ul>
               <button 
                 onClick={() => setShowSignUpModal(true)} 
-                className="text-sm font-medium text-primary hover:underline cursor-pointer"
+                className="text-sm font-medium text-primary hover:underline cursor-pointer dark:text-primary-foreground"
               >
                 Unlock full features – Sign up for free
               </button>
