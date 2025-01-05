@@ -210,13 +210,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         channelData: member
       });
 
-      const userInfo = member.info?.fullUser || member.info;
-      setActiveUsers(prev => [...prev, {
-        userId: member.id,
-        name: userInfo?.name || "Anonymous",
-        avatar: userInfo?.avatar || "/fallback-avatar.png",
-        lastActive: new Date().toISOString()
-      }]);
+      setActiveUsers(prev => {
+        const isAlreadyPresent = prev.some(user => user.userId === member.id);
+        if (isAlreadyPresent) return prev;
+
+        const userInfo = member.info?.fullUser || member.info;
+        return [...prev, {
+          userId: member.id,
+          name: userInfo?.name || "Anonymous",
+          avatar: userInfo?.avatar || "/fallback-avatar.png",
+          lastActive: new Date().toISOString()
+        }];
+      });
     });
 
     channel.bind('pusher:member_removed', (member: any) => {
