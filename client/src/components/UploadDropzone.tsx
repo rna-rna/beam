@@ -1,9 +1,9 @@
+
 import { useCallback, useState, useMemo } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useDropzone } from "react-dropzone";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowUpFromLine, Globe } from "lucide-react";
+import { ArrowUpFromLine } from "lucide-react";
 import { SignUpModal } from "@/components/SignUpModal";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -121,7 +121,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
   return (
     <>
       <SignUpModal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)} />
-      <Card
+      <div
         {...getRootProps()}
         className={cn(
           "w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer relative",
@@ -129,31 +129,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
           isUploading && (isDark ? "bg-black/50" : "bg-gray-100")
         )}
       >
-        <Card className="absolute bottom-6 right-6 w-96 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Give it a go!
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="font-geist-mono text-sm">Guest Upload – Limited access.</p>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Create a free account to:</p>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Enable comments and feedback</li>
-                <li>• Bulk download files</li>
-                <li>• Organize your projects</li>
-              </ul>
-              <button 
-                onClick={() => setShowSignUpModal(true)} 
-                className="text-sm font-medium text-primary hover:underline cursor-pointer dark:text-primary-foreground"
-              >
-                Unlock full features – Sign up for free
-              </button>
-            </div>
-          </CardContent>
-        </Card>
         <input {...getInputProps()} />
         <div className="flex flex-col items-center justify-center h-full gap-6">
           {isUploading ? (
@@ -177,7 +152,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
             </div>
           )}
         </div>
-      </Card>
+      </div>
     </>
   );
 }
