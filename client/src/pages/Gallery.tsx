@@ -205,23 +205,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     });
 
     channel.bind('pusher:member_added', (member: any) => {
-      const userInfo = member.info?.fullUser || member.info;
-      console.log('Member added:', {
-        id: member.id,
-        rawInfo: member.info,
-        processedInfo: userInfo,
-        channelData: member
-      });
-
+      console.log('Member added:', member);
+      
       setActiveUsers(prev => {
-        const isAlreadyPresent = prev.some(user => user.userId === member.id);
-        if (isAlreadyPresent) return prev;
+        const isPresent = prev.some(user => user.userId === member.id);
+        if (isPresent) return prev;
 
-        const userInfo = member.info?.fullUser || member.info;
         return [...prev, {
           userId: member.id,
-          name: userInfo?.name || "Anonymous",
-          avatar: userInfo?.avatar || "/fallback-avatar.png",
+          name: member.info?.name || "Anonymous", 
+          avatar: member.info?.avatar || "/fallback-avatar.png",
           lastActive: new Date().toISOString()
         }];
       });
