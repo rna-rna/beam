@@ -150,8 +150,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       console.error('Subscription error:', {
         status,
         channel: channel.name,
-        state: channel.state
+        state: channel.state,
+        responseStatus: status?.status,
+        responseText: status?.error,
+        timestamp: new Date().toISOString()
       });
+
+      if (status?.status === 200) {
+        console.log('Unexpected HTML Response from Auth:', status.error);
+      }
     });
 
     channel.bind('pusher:member_added', (member: any) => {
