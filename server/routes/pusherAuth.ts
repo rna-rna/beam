@@ -15,10 +15,27 @@ router.post("/pusher/auth", async (req, res) => {
     sessionStatus: req.auth?.sessionClaims?.status
   });
 
+  if (!req.auth?.sessionId) {
+    console.error("No valid Clerk session found");
+    return res.status(401).json({ 
+      error: "Authentication required",
+      code: "NO_SESSION"
+    });
+  }
+
   const socketId = req.body.socket_id;
   const channel = req.body.channel_name;
 
   try {
+    // Verify session is active
+    const session = await clerkClient.sessions.getSession(req.auth.sessionId);
+    if (session.status !== "active") {
+      console.error("Session not active:", session.status);
+      return res.status(401).json({ 
+        error: "Session expired",
+        code: "SESSION_EXPIRED"
+      });
+    }
     let userId, userName, userImageUrl;
 
     if (req.auth?.userId) {
