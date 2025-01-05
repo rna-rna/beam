@@ -1135,9 +1135,10 @@ const renderGalleryControls = useCallback(() => {
           </TooltipProvider>
 
           {/* Filter Menu */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenu>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     size="icon"
@@ -1211,6 +1212,7 @@ const renderGalleryControls = useCallback(() => {
             </TooltipTrigger>
             <TooltipContent>Filter Images</TooltipContent>
           </Tooltip>
+          </TooltipProvider>
 
           {isUploading && (
             <div className="flex items-center gap-4">
