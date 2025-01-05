@@ -116,6 +116,19 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
     noKeyboard: false,
     onDragEnter: () => setIsDragging(true),
     onDragLeave: () => setIsDragging(false),
+    onDropRejected: (rejectedFiles) => {
+      const unsupportedFiles = rejectedFiles.filter(file =>
+        !file.file.type.startsWith('image/')
+      );
+
+      if (unsupportedFiles.length > 0) {
+        toast({
+          title: "Invalid File Type",
+          description: `Some files were rejected. Only image files (JPG, PNG, GIF, WEBP) are allowed.`,
+          variant: "destructive",
+        });
+      }
+    }
   });
 
   return (
