@@ -1086,12 +1086,13 @@ const renderGalleryControls = useCallback(() => {
       <div className={cn("flex items-center justify-between gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
         <div className="flex items-center gap-4">
           {/* Presence Avatars */}
-          <div className="flex -space-x-2">
-            {activeUsers.map((member) => (
-              <Tooltip key={member.userId}>
-                <TooltipTrigger asChild>
-                  <div>
-                    <UserAvatar
+          <TooltipProvider>
+            <div className="flex -space-x-2">
+              {activeUsers.map((member) => (
+                <Tooltip key={member.userId}>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <UserAvatar
                       name={member.name}
                       imageUrl={member.avatar}
                       className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
@@ -1104,8 +1105,8 @@ const renderGalleryControls = useCallback(() => {
               </Tooltip>
             ))}
           </div>
+          </TooltipProvider>
         </div>
-        <TooltipProvider>
           <StarredUsersFilter
             users={getUniqueStarredUsers}
             selectedUsers={selectedStarredUsers}
