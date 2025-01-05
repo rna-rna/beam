@@ -125,11 +125,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   useEffect(() => {
     if (!slug) return;
 
-    const channel = pusherClient.subscribe(`presence-gallery-${slug}`);
+    const channelName = `presence-gallery-${slug}`;
+    console.log('Subscribing to channel:', channelName);
+    
+    const channel = pusherClient.subscribe(channelName);
+    console.log('Channel object:', channel);
 
     channel.bind('pusher:subscription_succeeded', (members: any) => {
+      console.log('Subscription succeeded, full members object:', members);
       const activeMembers = Object.values(members.members);
-      console.log('Subscription succeeded:', activeMembers);
+      console.log('Active members:', activeMembers);
       setActiveUsers(activeMembers);
     });
 
