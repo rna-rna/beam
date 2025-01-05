@@ -130,14 +130,15 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
       <div className="flex flex-col items-center gap-4">
         <Upload className={cn("w-12 h-12", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
         {isUploading ? (
-          <div className="w-full space-y-4">
-            <Progress value={uploadProgress} className="w-full" />
+          <div className="w-[80vw] max-w-xl space-y-4">
+            <Progress value={uploadProgress} className="w-full h-2" />
             <p className={cn("text-sm text-center", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
               Uploading... {uploadProgress}%
             </p>
           </div>
         ) : (
           <div className="text-center">
+            <Upload className={cn("w-12 h-12 mb-4", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
             <p className={cn("text-lg font-medium", isDark ? "text-foreground" : "text-foreground")}>
               {isDragActive ? "Drop images here" : "Drag & drop images here"}
             </p>
