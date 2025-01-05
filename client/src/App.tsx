@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { SignedIn, SignedOut, useAuth } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
@@ -13,7 +13,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import About from "@/pages/About"; // Added import for About page
-import { WelcomeModal } from "@/components/WelcomeModal";
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
@@ -70,7 +69,7 @@ function AppContent() {
     }
   }, [session, signOut, setLocation, queryClient, toast]);
   const [location] = useLocation();
-
+  
   // Get gallery slug from URL if we're on a gallery page
   const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
 
@@ -116,7 +115,7 @@ function AppContent() {
     } else {
       document.title = 'Beam';
     }
-
+    
     return () => {
       document.title = 'Beam';
     };
@@ -125,7 +124,7 @@ function AppContent() {
   // Title update mutation
   const handleTitleUpdate = async (newTitle: string) => {
     if (!gallerySlug) return;
-
+    
     try {
       const token = await getToken();
       const res = await fetch(`/api/galleries/${gallerySlug}/title`, {
@@ -251,12 +250,15 @@ function AppContent() {
 }
 
 export default function App() {
-  const { isSignedIn } = useAuth();
+  const { isLoaded } = useUser();
 
-  return (
-    <>
-      {!isSignedIn && <WelcomeModal />}
-      <AppContent />
-    </>
-  );
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return <AppContent />;
 }
