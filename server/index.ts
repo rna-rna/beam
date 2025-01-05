@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import pusherAuthRouter from "./routes/pusherAuth";
@@ -14,6 +15,15 @@ if (!process.env.CLERK_PUBLISHABLE_KEY) {
 }
 
 const app = express();
+
+// Enable CORS with specific options
+app.use(cors({
+  origin: process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use('/api/pusher', pusherAuthRouter);
