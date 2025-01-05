@@ -169,6 +169,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     channel.bind('pusher:subscription_succeeded', (members: any) => {
       const activeMembers = Object.entries(members.members).map(([id, member]: [string, any]) => {
         const userInfo = member.info?.fullUser || member.info;
+        console.log('Processing member:', {
+          id,
+          rawInfo: member.info,
+          processedInfo: userInfo
+        });
+        
         return {
           userId: id,
           name: userInfo?.name || "Anonymous",
@@ -181,7 +187,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         channelName: channel.name,
         totalMembers: members.count,
         currentUserId: members.myID,
-        activeMembers
+        activeMembers,
+        rawMembers: members.members
       });
 
       setPresenceMembers(members.members);
@@ -204,9 +211,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     });
 
     channel.bind('pusher:member_added', (member: any) => {
+      const userInfo = member.info?.fullUser || member.info;
       console.log('Member added:', {
         id: member.id,
-        info: member.info,
+        rawInfo: member.info,
+        processedInfo: userInfo,
         channelData: member
       });
 
