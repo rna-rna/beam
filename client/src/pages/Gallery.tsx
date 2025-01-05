@@ -90,6 +90,7 @@ import { StarredAvatars } from "@/components/StarredAvatars";
 import { LoginButton } from "@/components/LoginButton";
 import { Logo } from "@/components/Logo";
 import { UserAvatar } from "@/components/UserAvatar";
+import { SignUpModal } from "@/components/SignUpModal";
 import PusherClient from "pusher-js";
 
 // Initialize Pusher client
