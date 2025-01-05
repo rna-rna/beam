@@ -9,8 +9,7 @@ router.post("/pusher/auth", async (req, res) => {
   console.log("Pusher Auth Request:", {
     socketId: req.body.socket_id,
     channel: req.body.channel_name,
-    hasUser: !!req.auth?.userId,
-    sessionId: req.auth?.sessionId
+    hasUser: !!req.auth?.userId
   });
 
   if (!req.body.socket_id || !req.body.channel_name) {
@@ -23,7 +22,18 @@ router.post("/pusher/auth", async (req, res) => {
   try {
     let presenceData;
     
-    if (req.auth?.userId) {
+    if (!req.auth || !req.auth.userId) {
+      // Handle guest users
+      const guestId = `guest_${Math.random().toString(36).slice(2, 9)}`;
+      presenceData = {
+        user_id: guestId,
+        user_info: {
+          name: "Guest",
+          avatar: `/fallback-avatar.png`,
+          isGuest: true
+        },
+      };
+    } else {
       // Handle authenticated users
       const userInfo = await extractUserInfo(req);
       presenceData = {
@@ -34,36 +44,14 @@ router.post("/pusher/auth", async (req, res) => {
           isGuest: false
         },
       };
-    } else if (req.auth?.sessionId) {
-      // Handle anonymous but sessioned guests
-      const sessionInfo = await extractUserInfo(req);
-      presenceData = {
-        user_id: `guest_${req.auth.sessionId}`,
-        user_info: {
-          name: sessionInfo.userName || "Guest",
-          avatar: sessionInfo.userImageUrl || `/fallback-avatar.png`,
-          isGuest: true
-        },
-      };
-    } else {
-      // True anonymous users
-      const guestId = `guest_${Math.random().toString(36).slice(2, 9)}`;
-      presenceData = {
-        user_id: guestId,
-        user_info: {
-          name: "Guest",
-          avatar: `/fallback-avatar.png`,
-          isGuest: true
-        },
-      };
     }
 
     const auth = pusher.authorizeChannel(
-      req.body.socket_id, 
-      req.body.channel_name, 
+      req.body.socket_id,
+      req.body.channel_name,
       presenceData
     );
-    
+
     console.log("Auth Response Generated:", {
       userId: presenceData.user_id,
       channel: req.body.channel_name,
@@ -74,7 +62,7 @@ router.post("/pusher/auth", async (req, res) => {
     return res.json(auth);
   } catch (error) {
     console.error("Pusher auth error:", error);
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: 'Authorization failed',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
