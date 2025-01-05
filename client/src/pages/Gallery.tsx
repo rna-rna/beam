@@ -85,6 +85,13 @@ import { LoginModal } from "@/components/LoginModal";
 import { StarredAvatars } from "@/components/StarredAvatars";
 import { LoginButton } from "@/components/LoginButton";
 import { Logo } from "@/components/Logo";
+import PusherClient from "pusher-js";
+
+// Initialize Pusher client
+const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
+  cluster: import.meta.env.VITE_PUSHER_CLUSTER,
+  authEndpoint: "/api/pusher/auth"
+});
 
 interface GalleryProps {
   slug?: string;
@@ -101,6 +108,31 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
+  const [activeUsers, setActiveUsers] = useState<any[]>([]);
+
+  // Pusher presence channel subscription
+  useEffect(() => {
+    if (!slug) return;
+
+    const channel = pusherClient.subscribe(`presence-gallery-${slug}`);
+
+    channel.bind('pusher:subscription_succeeded', (members: any) => {
+      setActiveUsers(Object.values(members.members));
+    });
+
+    channel.bind('pusher:member_added', (member: any) => {
+      setActiveUsers(prev => [...prev, member.info]);
+    });
+
+    channel.bind('pusher:member_removed', (member: any) => {
+      setActiveUsers(prev => prev.filter(user => user.user_id !== member.id));
+    });
+
+    return () => {
+      channel.unbind_all();
+      channel.unsubscribe();
+    };
+  }, [slug]);
   const { toast } = useToast();
   const [guestGalleryCount, setGuestGalleryCount] = useState(
     Number(sessionStorage.getItem("guestGalleryCount")) || 0
