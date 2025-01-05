@@ -30,23 +30,23 @@ export async function extractUserInfo(req: any) {
   const user = req.auth?.user;
   const sessionId = req.auth?.sessionId;
 
-  // Log debug information
   console.log('Debug - Extracting user info:', {
     hasAuth: !!req.auth,
     hasUser: !!user,
+    userId: user?.id,
     sessionId,
     headers: req.headers['authorization'] ? 'present' : 'missing'
   });
 
   // Handle authenticated users
-  if (user) {
-    const userName = user.firstName ? 
-      `${user.firstName} ${user.lastName || ''}`.trim() : 
-      (user.username || 'Anonymous');
-
+  if (user?.id) {
+    const firstName = user.firstName || '';
+    const lastName = user.lastName || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    
     return {
       userId: user.id,
-      userName,
+      userName: fullName || user.username || 'Anonymous',
       userImageUrl: user.imageUrl || '/fallback-avatar.png'
     };
   }
