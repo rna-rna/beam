@@ -1359,10 +1359,15 @@ const renderGalleryControls = useCallback(() => {
               onClick={(e) => {
                 e.stopPropagation();
                 
+                if (!user) {
+                  setShowSignUpModal(true);
+                  return;
+                }
+
                 // Use image.userStarred for optimistic updates
                 const hasUserStarred = image.userStarred;
 
-                // Optimistic UI update for selected image
+                // Optimistic UI update for selected image  
                 setSelectedImageIndex((prevIndex) => {
                   if (prevIndex >= 0) {
                     setSelectedImage((prev) =>
