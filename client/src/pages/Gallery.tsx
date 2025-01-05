@@ -140,16 +140,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   // Log active users when they change
   useEffect(() => {
-    if (activeUsers.length > 0) {
-      console.log("Active Users:", activeUsers.map(user => {
-        const userInfo = user.user_info?.fullUser || user.user_info;
-        return {
-          userId: user.id || user.user_id,
-          name: userInfo?.name || "Anonymous",
-          avatar: userInfo?.avatar || "/fallback-avatar.png"
-        };
-      }));
-    }
+    console.log("Active Users:", activeUsers.map(user => ({
+      userId: user.userId,
+      name: user.name,
+      avatar: user.avatar,
+      lastActive: user.lastActive
+    })));
   }, [activeUsers]);
 
   // Pusher presence channel subscription
