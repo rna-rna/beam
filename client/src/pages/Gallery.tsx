@@ -166,23 +166,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const activeMembers: any[] = [];
       members.each((member: any) => {
         const userInfo = member.info || member.user_info || {};
-        // Generate consistent guest ID if no member ID exists
-        const userId = member.id || `guest_${Math.random().toString(36).slice(2, 9)}`;
-        const isGuest = !member.id;
         
-        console.log("Processing member:", { 
-          member, 
-          userId, 
-          userInfo,
-          isGuest 
-        });
+        console.log("Processing member:", member);
 
         activeMembers.push({
-          userId,
-          name: isGuest ? "Guest" : (userInfo.name || "Anonymous"),
+          userId: member.id,
+          name: userInfo.name || "Anonymous",
           avatar: userInfo.avatar || "/fallback-avatar.png",
-          lastActive: new Date().toISOString(),
-          isGuest
+          lastActive: new Date().toISOString()
         });
       });
 
@@ -1096,20 +1087,13 @@ const renderGalleryControls = useCallback(() => {
         <div className="flex items-center gap-4">
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
-            {activeUsers
-              .filter(member => {
-                // Filter out current user and ensure valid member data
-                return member.userId !== user?.id 
-                  && member.userId 
-                  && member.name;
-              })
-              .map((member) => (
-                <UserAvatar
-                  key={member.userId}
-                  name={member.name}
-                  imageUrl={member.avatar}
-                  className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
-                />
+            {activeUsers.map((member) => (
+              <UserAvatar
+                key={member.userId}
+                name={member.name}
+                imageUrl={member.avatar}
+                className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
+              />
             ))}
           </div>
         </div>

@@ -27,46 +27,39 @@ export function setupClerkAuth(app: Express) {
 
 // Helper to extract user information from Clerk session
 export async function extractUserInfo(req: any) {
-  const user = req.auth?.user;
-  const sessionId = req.auth?.sessionId;
-
   console.log('Debug - Extracting user info:', {
     hasAuth: !!req.auth,
-    hasUser: !!user,
-    userId: user?.id,
-    sessionId,
+    hasUser: !!req.auth?.user,
+    userId: req.auth?.userId,
+    session: !!req.session,
     headers: req.headers['authorization'] ? 'present' : 'missing'
   });
 
-  // Handle authenticated users
-  if (user?.id) {
-    const firstName = user.firstName || '';
-    const lastName = user.lastName || '';
-    const fullName = `${firstName} ${lastName}`.trim();
-    
-    return {
-      userId: user.id,
-      userName: fullName || user.username || 'Anonymous',
-      userImageUrl: user.imageUrl || '/fallback-avatar.png'
-    };
+  if (!req.auth) {
+    console.error('Debug - No auth object found:', {
+      headers: req.headers
+    });
+    throw new Error('Authentication required');
   }
 
-  // Handle guest users with session
-  if (sessionId) {
-    return {
-      userId: `guest_${sessionId}`,
-      userName: "Guest",
-      userImageUrl: '/fallback-avatar.png'
-    };
+  if (!req.auth.userId) {
+    throw new Error('User ID not found in session');
   }
 
-  // Handle anonymous users
-  const guestId = `guest_${Math.random().toString(36).slice(2, 9)}`;
-  return {
-    userId: guestId,
-    userName: "Guest",
-    userImageUrl: '/fallback-avatar.png'
-  };
+  // Fetch user details from Clerk if not available in auth
+  let user = req.auth.user;
+  if (!user) {
+    try {
+      user = await clerkClient.users.getUser(req.auth.userId);
+      console.log('Debug - Retrieved user from Clerk:', {
+        userId: user.id,
+        hasUser: !!user
+      });
+    } catch (error) {
+      console.error('Debug - Failed to fetch user from Clerk:', error);
+      throw new Error('Failed to retrieve user information');
+    }
+  }
 
   console.log('Debug - User object:', {
     userId: req.auth.userId,
