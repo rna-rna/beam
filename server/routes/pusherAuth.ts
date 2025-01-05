@@ -2,12 +2,10 @@
 import { Router } from "express";
 import { pusher } from "../pusherConfig";
 import { extractUserInfo } from "../auth";
-import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
 
 const router = Router();
 
-// Apply Clerk auth middleware specifically to this route
-router.post("/pusher/auth", ClerkExpressRequireAuth(), async (req, res) => {
+router.post("/pusher/auth", async (req, res) => {
   console.log("Pusher Auth Request:", {
     socketId: req.body.socket_id,
     channel: req.body.channel_name,
@@ -23,16 +21,31 @@ router.post("/pusher/auth", ClerkExpressRequireAuth(), async (req, res) => {
   }
 
   try {
-    // Get authenticated user info using our helper
-    const userInfo = await extractUserInfo(req);
+    let presenceData;
     
-    const presenceData = {
-      user_id: userInfo.userId,
-      user_info: {
-        name: userInfo.userName,
-        avatar: userInfo.userImageUrl || `https://clerk.dev/placeholder-avatar.png`,
-      },
-    };
+    if (req.auth?.userId) {
+      // Handle authenticated users
+      const userInfo = await extractUserInfo(req);
+      presenceData = {
+        user_id: userInfo.userId,
+        user_info: {
+          name: userInfo.userName,
+          avatar: userInfo.userImageUrl || `/fallback-avatar.png`,
+          isGuest: false
+        },
+      };
+    } else {
+      // Handle guest users
+      const guestId = `guest_${Math.random().toString(36).slice(2, 9)}`;
+      presenceData = {
+        user_id: guestId,
+        user_info: {
+          name: "Guest",
+          avatar: `/fallback-avatar.png`,
+          isGuest: true
+        },
+      };
+    }
 
     const auth = pusher.authorizeChannel(
       req.body.socket_id, 
@@ -41,7 +54,7 @@ router.post("/pusher/auth", ClerkExpressRequireAuth(), async (req, res) => {
     );
     
     console.log("Auth Response Generated:", {
-      userId: userInfo.userId,
+      userId: presenceData.user_id,
       channel: req.body.channel_name,
       timestamp: new Date().toISOString()
     });
