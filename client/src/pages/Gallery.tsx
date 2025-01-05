@@ -1097,7 +1097,12 @@ const renderGalleryControls = useCallback(() => {
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
             {activeUsers
-              .filter(member => member.userId !== user?.id)
+              .filter(member => {
+                // Filter out current user and ensure valid member data
+                return member.userId !== user?.id 
+                  && member.userId 
+                  && member.name;
+              })
               .map((member) => (
                 <UserAvatar
                   key={member.userId}
