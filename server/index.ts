@@ -30,7 +30,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use('/api/pusher', pusherAuthRouter);
+app.use('/pusher', pusherAuthRouter);
 
 // Request logging middleware
 app.use((req, res, next) => {

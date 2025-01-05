@@ -90,7 +90,7 @@ import PusherClient from "pusher-js";
 // Initialize Pusher client
 const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY || '', {
   cluster: import.meta.env.VITE_PUSHER_CLUSTER || '',
-  authEndpoint: "/api/pusher/auth",
+  authEndpoint: "/pusher/auth",
   forceTLS: true,
   encrypted: true,
   withCredentials: true,
