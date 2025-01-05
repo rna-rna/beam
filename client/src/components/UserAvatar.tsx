@@ -23,7 +23,7 @@ export function UserAvatar({ name: propName, imageUrl, className = "", isActive 
   }, [user?.publicMetadata?.avatarColor]);
 
   return (
-    <div className="relative">
+    <div className="relative group">
       <Avatar className={cn(className)}>
         {imageUrl && <AvatarImage src={imageUrl} alt={name || 'User'} />}
         <AvatarFallback style={{ backgroundColor, color: 'white' }}>
@@ -31,7 +31,7 @@ export function UserAvatar({ name: propName, imageUrl, className = "", isActive 
         </AvatarFallback>
       </Avatar>
       {isActive && (
-        <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-green-500" />
+        <span className="absolute bottom-[2px] right-[2px] block h-2 w-2 rounded-full bg-green-500 group-hover:translate-y-[-2px] transition-transform" />
       )}
     </div>
   );

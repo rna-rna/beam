@@ -1092,7 +1092,7 @@ const renderGalleryControls = useCallback(() => {
 
     return (
       <div className={cn("flex items-center justify-between gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
-        <div className="absolute left-4">
+        <div className="flex items-center gap-4">
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
             {activeUsers.map((member) => (
@@ -1106,7 +1106,6 @@ const renderGalleryControls = useCallback(() => {
             ))}
           </div>
         </div>
-        <div className="flex-1 flex items-center justify-end gap-2">
         <TooltipProvider>
           <StarredUsersFilter
             users={getUniqueStarredUsers}
