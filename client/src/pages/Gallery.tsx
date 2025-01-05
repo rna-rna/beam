@@ -1047,17 +1047,18 @@ const renderGalleryControls = useCallback(() => {
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
             {activeUsers.map((user, index) => {
+              const userInfo = user.user_info?.fullUser || user.user_info;
               console.log("Rendering Avatar:", {
                 userId: user.id || user.user_id,
-                name: user.user_info?.fullUser?.name || user.user_info?.name,
-                avatar: user.user_info?.fullUser?.avatar || user.user_info?.avatar,
+                name: userInfo?.name || "Anonymous",
+                avatar: userInfo?.avatar || "/fallback-avatar.png",
                 fullUser: user
               });
               return (
                 <UserAvatar
                   key={user.id || user.user_id || `presence-user-${index}`}
-                  name={user.user_info?.fullUser?.name || user.user_info?.name}
-                  imageUrl={user.user_info?.fullUser?.avatar || user.user_info?.avatar}
+                  name={userInfo?.name || "Anonymous"}
+                  imageUrl={userInfo?.avatar || "/fallback-avatar.png"}
                   className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
                 />
               );
