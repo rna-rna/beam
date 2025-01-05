@@ -1081,13 +1081,21 @@ const renderGalleryControls = useCallback(() => {
         <div className="flex items-center gap-4">
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
-            {Object.values(presenceMembers).map((member, index) => {
-              const userInfo = member.info;
+            {Object.entries(presenceMembers).map(([id, member]: [string, any]) => {
+              const getUserDetails = (userId: string) => {
+                const user = presenceMembers[userId];
+                return user?.info || user?.user_info || {
+                  name: "Anonymous",
+                  avatar: "/fallback-avatar.png",
+                };
+              };
+              
+              const userInfo = getUserDetails(id);
               return (
                 <UserAvatar
-                  key={member.id || `presence-user-${index}`}
-                  name={userInfo?.name || "Anonymous"}
-                  imageUrl={userInfo?.imageUrl || "/fallback-avatar.png"}
+                  key={id}
+                  name={userInfo.name}
+                  imageUrl={userInfo.avatar}
                   className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
                 />
               );
