@@ -63,6 +63,22 @@ import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 import { Textarea } from "@/components/ui/textarea";
+
+  // Log active users when they change
+  useEffect(() => {
+    if (activeUsers.length > 0) {
+      console.log("Active Users:", activeUsers.map(user => {
+        const userInfo = user.user_info?.fullUser || user.user_info;
+        return {
+          userId: user.id || user.user_id,
+          name: userInfo?.name || "Anonymous",
+          avatar: userInfo?.avatar || "/fallback-avatar.png"
+        };
+      }));
+    }
+  }, [activeUsers]);
+
+
 import { Label } from "@/components/ui/label";
 import { MobileGalleryView } from "@/components/MobileGalleryView";
 import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
@@ -1048,12 +1064,6 @@ const renderGalleryControls = useCallback(() => {
           <div className="flex -space-x-2">
             {activeUsers.map((user, index) => {
               const userInfo = user.user_info?.fullUser || user.user_info;
-              console.log("Rendering Avatar:", {
-                userId: user.id || user.user_id,
-                name: userInfo?.name || "Anonymous",
-                avatar: userInfo?.avatar || "/fallback-avatar.png",
-                fullUser: user
-              });
               return (
                 <UserAvatar
                   key={user.id || user.user_id || `presence-user-${index}`}
