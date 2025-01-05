@@ -31,34 +31,34 @@ export async function extractUserInfo(req: any) {
     hasAuth: !!req.auth,
     hasUser: !!req.auth?.user,
     userId: req.auth?.userId,
-    session: !!req.session,
+    sessionId: req.auth?.sessionId,
     headers: req.headers['authorization'] ? 'present' : 'missing'
   });
 
-  if (!req.auth) {
-    console.error('Debug - No auth object found:', {
-      headers: req.headers
-    });
-    throw new Error('Authentication required');
-  }
-
-  if (!req.auth.userId) {
-    throw new Error('User ID not found in session');
-  }
-
-  // Fetch user details from Clerk if not available in auth
-  let user = req.auth.user;
-  if (!user) {
-    try {
-      user = await clerkClient.users.getUser(req.auth.userId);
-      console.log('Debug - Retrieved user from Clerk:', {
-        userId: user.id,
-        hasUser: !!user
-      });
-    } catch (error) {
-      console.error('Debug - Failed to fetch user from Clerk:', error);
-      throw new Error('Failed to retrieve user information');
-    }
+  // Handle different authentication scenarios
+  if (req.auth?.userId && req.auth?.user) {
+    // Fully authenticated user
+    const user = req.auth.user;
+    return {
+      userId: user.id,
+      userName: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.username || 'Anonymous'),
+      userImageUrl: user.imageUrl || '/fallback-avatar.png'
+    };
+  } else if (req.auth?.sessionId) {
+    // Session exists but no full auth - treat as identified guest
+    return {
+      userId: `guest_${req.auth.sessionId}`,
+      userName: "Guest",
+      userImageUrl: '/fallback-avatar.png'
+    };
+  } else {
+    // Complete anonymous user
+    const guestId = `guest_${Math.random().toString(36).slice(2, 9)}`;
+    return {
+      userId: guestId,
+      userName: "Guest",
+      userImageUrl: '/fallback-avatar.png'
+    };
   }
 
   console.log('Debug - User object:', {
