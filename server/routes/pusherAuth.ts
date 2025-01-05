@@ -21,9 +21,8 @@ router.post("/pusher/auth", async (req, res) => {
 
   try {
     let presenceData;
-    
+
     if (!req.auth || !req.auth.userId) {
-      // Handle guest users
       const guestId = `guest_${Math.random().toString(36).slice(2, 9)}`;
       presenceData = {
         user_id: guestId,
@@ -34,14 +33,13 @@ router.post("/pusher/auth", async (req, res) => {
         },
       };
     } else {
-      // Handle authenticated users
       const userInfo = await extractUserInfo(req);
       presenceData = {
-        user_id: userInfo.userId,
+        user_id: userInfo.userId || `guest_${Math.random().toString(36).slice(2, 9)}`,
         user_info: {
-          name: userInfo.userName,
+          name: userInfo.userName || "Anonymous",
           avatar: userInfo.userImageUrl || `/fallback-avatar.png`,
-          isGuest: false
+          isGuest: !userInfo.userId
         },
       };
     }
