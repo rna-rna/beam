@@ -1081,12 +1081,12 @@ const renderGalleryControls = useCallback(() => {
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
             {Object.values(presenceMembers).map((member, index) => {
-              const userInfo = member.user_info?.fullUser || member.user_info;
+              const userInfo = member.info;
               return (
                 <UserAvatar
                   key={member.id || `presence-user-${index}`}
                   name={userInfo?.name || "Anonymous"}
-                  imageUrl={userInfo?.avatar || "/fallback-avatar.png"}
+                  imageUrl={userInfo?.imageUrl || "/fallback-avatar.png"}
                   className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
                 />
               );
