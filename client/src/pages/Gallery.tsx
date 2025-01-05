@@ -1048,16 +1048,16 @@ const renderGalleryControls = useCallback(() => {
           <div className="flex -space-x-2">
             {activeUsers.map((user, index) => {
               console.log("Rendering Avatar:", {
-                userId: user.user_id,
-                name: user.user_info?.name,
-                avatar: user.user_info?.avatar,
+                userId: user.id || user.user_id,
+                name: user.user_info?.fullUser?.name || user.user_info?.name,
+                avatar: user.user_info?.fullUser?.avatar || user.user_info?.avatar,
                 fullUser: user
               });
               return (
                 <UserAvatar
-                  key={user.user_id || `presence-user-${index}`}
-                  name={user.user_info?.name}
-                  imageUrl={user.user_info?.avatar}
+                  key={user.id || user.user_id || `presence-user-${index}`}
+                  name={user.user_info?.fullUser?.name || user.user_info?.name}
+                  imageUrl={user.user_info?.fullUser?.avatar || user.user_info?.avatar}
                   className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
                 />
               );
