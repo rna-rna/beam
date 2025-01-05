@@ -1,0 +1,73 @@
+[Error] Error: `Tooltip` must be used within `TooltipProvider`
+	useContext2 (chunk-GZH67F7E.js:50:91)
+	Tooltip (@radix-ui_react-tooltip.js:112)
+	renderWithHooks (chunk-XQLYTHWV.js:11548)
+	mountIndeterminateComponent (chunk-XQLYTHWV.js:14926)
+	callCallback2 (chunk-XQLYTHWV.js:3674)
+	dispatchEvent
+	invokeGuardedCallbackDev (chunk-XQLYTHWV.js:3699)
+	invokeGuardedCallback (chunk-XQLYTHWV.js:3733)
+	beginWork$1 (chunk-XQLYTHWV.js:19765)
+	performUnitOfWork (chunk-XQLYTHWV.js:19198)
+	workLoopSync (chunk-XQLYTHWV.js:19137)
+	renderRootSync (chunk-XQLYTHWV.js:19116)
+	performConcurrentWorkOnRoot (chunk-XQLYTHWV.js:18678:98)
+	workLoop (chunk-XQLYTHWV.js:197)
+	flushWork (chunk-XQLYTHWV.js:176)
+	performWorkUntilDeadline (chunk-XQLYTHWV.js:384)
+[Error] Error: `Tooltip` must be used within `TooltipProvider`
+	useContext2 (chunk-GZH67F7E.js:50:91)
+	Tooltip (@radix-ui_react-tooltip.js:112)
+	renderWithHooks (chunk-XQLYTHWV.js:11548)
+	mountIndeterminateComponent (chunk-XQLYTHWV.js:14926)
+	callCallback2 (chunk-XQLYTHWV.js:3674)
+	dispatchEvent
+	invokeGuardedCallbackDev (chunk-XQLYTHWV.js:3699)
+	invokeGuardedCallback (chunk-XQLYTHWV.js:3733)
+	beginWork$1 (chunk-XQLYTHWV.js:19765)
+	performUnitOfWork (chunk-XQLYTHWV.js:19198)
+	workLoopSync (chunk-XQLYTHWV.js:19137)
+	renderRootSync (chunk-XQLYTHWV.js:19116)
+	recoverFromConcurrentError (chunk-XQLYTHWV.js:18736)
+	performConcurrentWorkOnRoot (chunk-XQLYTHWV.js:18684)
+	workLoop (chunk-XQLYTHWV.js:197)
+	flushWork (chunk-XQLYTHWV.js:176)
+	performWorkUntilDeadline (chunk-XQLYTHWV.js:384)
+[Error] The above error occurred in the <Tooltip> component:
+
+Tooltip@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/ImageGalleryHub-R6/node_modules/.vite/deps/@radix-ui_react-tooltip.js:111:12
+div
+div
+div
+div
+div
+Layout@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/components/Layout.tsx:27:11
+Route@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/ImageGalleryHub-R6/node_modules/.vite/deps/wouter.js:191:20
+Switch@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/ImageGalleryHub-R6/node_modules/.vite/deps/wouter.js:247:25
+AppContent@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/App.tsx:62:53
+App@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/App.tsx:366:31
+QueryClientProvider@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/ImageGalleryHub-R6/node_modules/.vite/deps/@tanstack_react-query.js:2805:9
+ThemeProvider@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/hooks/use-theme.tsx:20:41
+SWRConfig@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/ImageGalleryHub-R6/node_modules/.vite/deps/@clerk_clerk-react.js:719:26
+OrganizationProvider@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/ImageGalleryHub-R6/node_modules/.vite/deps/@clerk_clerk-react.js:1691:11
+ClerkContextProvider@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/ImageGalleryHub-R6/node_modules/.vite/deps/@clerk_clerk-react.js:5221:67
+ClerkProviderBase@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/ImageGalleryHub-R6/node_modules/.vite/deps/@clerk_clerk-react.js:5295:114
+ClerkProvider@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/ImageGalleryHub-R6/node_modules/.vite/deps/@clerk_clerk-react.js:3357:32
+ErrorBoundary@https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/components/ErrorBoundary.tsx:9:10
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+	logCapturedError (chunk-XQLYTHWV.js:14032)
+	(anonymous function) (chunk-XQLYTHWV.js:14069)
+	callCallback (chunk-XQLYTHWV.js:11248)
+	commitUpdateQueue (chunk-XQLYTHWV.js:11265)
+	commitLayoutEffectOnFiber (chunk-XQLYTHWV.js:17075)
+	commitLayoutMountEffects_complete (chunk-XQLYTHWV.js:17980)
+	commitLayoutEffects_begin (chunk-XQLYTHWV.js:17969)
+	commitLayoutEffects (chunk-XQLYTHWV.js:17920)
+	commitRootImpl (chunk-XQLYTHWV.js:19353)
+	commitRoot (chunk-XQLYTHWV.js:19277)
+	finishConcurrentRender (chunk-XQLYTHWV.js:18760)
+	performConcurrentWorkOnRoot (chunk-XQLYTHWV.js:18718)
+	workLoop (chunk-XQLYTHWV.js:197)
+	flushWork (chunk-XQLYTHWV.js:176)
+	performWorkUntilDeadline (chunk-XQLYTHWV.js:384)
