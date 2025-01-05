@@ -125,6 +125,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const params = useParams();
   const slug = propSlug || params?.slug;
   const [presenceMembers, setPresenceMembers] = useState<{[key: string]: any}>({});
+  const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const { session } = useClerk();
 
   // Refresh Clerk session if expired
