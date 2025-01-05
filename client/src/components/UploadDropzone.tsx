@@ -140,13 +140,27 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
             <div className="flex flex-col items-center">
               <ArrowUpFromLine className={cn("w-16 h-16 mb-4", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
               <p className={cn("text-lg font-medium", isDark ? "text-foreground" : "text-foreground")}>
-                {isDragActive ? "Drop them!" : "Drag & drop images here"}
+                {isDragActive ? "Drop them!" : "Upload Your Assets"}
+              </p>
+              <p className={cn("text-sm mt-2", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
+                Drag and drop any image file to start.
               </p>
             </div>
             {imageCount === 0 && (
-              <p className={cn("text-sm mt-1", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
-                or click to select files
-              </p>
+              <div className="mt-6 space-y-4 text-center">
+                <p className={cn("text-sm font-medium", isDark ? "text-foreground" : "text-foreground")}>
+                  Guest Upload – Limited access.
+                </p>
+                <div className={cn("text-sm space-y-2", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
+                  <p>Create a free account to:</p>
+                  <ul className="space-y-1">
+                    <li>• Enable comments and feedback</li>
+                    <li>• Bulk download files</li>
+                    <li>• Share projects</li>
+                  </ul>
+                  <p className="mt-4 font-medium">Unlock full features – Sign up for free.</p>
+                </div>
+              </div>
             )}
           </div>
         )}
