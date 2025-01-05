@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
 import { Logo } from "@/components/Logo";
 import { WelcomeModal } from "@/components/WelcomeModal"; // Added import
+import GuestUploadCard from "@/components/GuestUploadCard";
 
 export default function Home() {
   const { isDark } = useTheme();
@@ -51,10 +52,15 @@ export default function Home() {
 
       <div className="w-full h-[calc(100vh-4.1rem)] flex">
         <SignedOut>
-          <div className="flex flex-col items-center justify-center w-full h-full">
-            <UploadDropzone onUpload={handleGuestUpload} />
-          </div>
-        </SignedOut>
+            <div className="flex flex-col items-center justify-center w-full h-full relative">
+              <UploadDropzone onUpload={handleGuestUpload} />
+              
+              {/* Floating Guest Upload Card */}
+              <div className="absolute bottom-6 right-6 z-50">
+                <GuestUploadCard />
+              </div>
+            </div>
+          </SignedOut>
 
         <SignedIn>
           <div className="flex flex-col items-center justify-center min-h-[80vh]">
