@@ -5,7 +5,6 @@ import { useDropzone } from "react-dropzone";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ArrowUpFromLine, Globe } from "lucide-react";
-import { useState } from "react";
 import { SignUpModal } from "@/components/SignUpModal";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
