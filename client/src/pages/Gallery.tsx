@@ -1088,12 +1088,20 @@ const renderGalleryControls = useCallback(() => {
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
             {activeUsers.map((member) => (
-              <UserAvatar
-                key={member.userId}
-                name={member.name}
-                imageUrl={member.avatar}
-                className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
-              />
+              <Tooltip key={member.userId}>
+                <TooltipTrigger asChild>
+                  <div>
+                    <UserAvatar
+                      name={member.name}
+                      imageUrl={member.avatar}
+                      className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{member.name}</p>
+                </TooltipContent>
+              </Tooltip>
             ))}
           </div>
         </div>
