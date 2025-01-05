@@ -27,39 +27,46 @@ export function setupClerkAuth(app: Express) {
 
 // Helper to extract user information from Clerk session
 export async function extractUserInfo(req: any) {
+  const user = req.auth?.user;
+  const sessionId = req.auth?.sessionId;
+
+  // Log debug information
   console.log('Debug - Extracting user info:', {
     hasAuth: !!req.auth,
-    hasUser: !!req.auth?.user,
-    userId: req.auth?.userId,
-    sessionId: req.auth?.sessionId,
+    hasUser: !!user,
+    sessionId,
     headers: req.headers['authorization'] ? 'present' : 'missing'
   });
 
-  // Handle different authentication scenarios
-  if (req.auth?.userId && req.auth?.user) {
-    // Fully authenticated user
-    const user = req.auth.user;
+  // Handle authenticated users
+  if (user) {
+    const userName = user.firstName ? 
+      `${user.firstName} ${user.lastName || ''}`.trim() : 
+      (user.username || 'Anonymous');
+
     return {
       userId: user.id,
-      userName: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.username || 'Anonymous'),
+      userName,
       userImageUrl: user.imageUrl || '/fallback-avatar.png'
     };
-  } else if (req.auth?.sessionId) {
-    // Session exists but no full auth - treat as identified guest
+  }
+
+  // Handle guest users with session
+  if (sessionId) {
     return {
-      userId: `guest_${req.auth.sessionId}`,
-      userName: "Guest",
-      userImageUrl: '/fallback-avatar.png'
-    };
-  } else {
-    // Complete anonymous user
-    const guestId = `guest_${Math.random().toString(36).slice(2, 9)}`;
-    return {
-      userId: guestId,
+      userId: `guest_${sessionId}`,
       userName: "Guest",
       userImageUrl: '/fallback-avatar.png'
     };
   }
+
+  // Handle anonymous users
+  const guestId = `guest_${Math.random().toString(36).slice(2, 9)}`;
+  return {
+    userId: guestId,
+    userName: "Guest",
+    userImageUrl: '/fallback-avatar.png'
+  };
 
   console.log('Debug - User object:', {
     userId: req.auth.userId,
