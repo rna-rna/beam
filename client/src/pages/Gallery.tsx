@@ -1048,8 +1048,8 @@ const renderGalleryControls = useCallback(() => {
             {activeUsers.map((user) => (
               <img
                 key={user.user_id}
-                src={user.user_info.avatar}
-                alt={user.user_info.name}
+                src={user.user_info?.avatar || '/default-avatar.png'}
+                alt={user.user_info?.name || 'User'}
                 className="w-8 h-8 rounded-full border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
               />
             ))}
