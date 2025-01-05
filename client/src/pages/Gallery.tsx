@@ -205,10 +205,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         info: member.info,
         channelData: member
       });
+
+      const userInfo = member.info?.fullUser || member.info;
       setActiveUsers(prev => [...prev, {
-        userId: member.id || member.user_id,
-        name: member.info?.name || "Anonymous",
-        avatar: member.info?.avatar || "/fallback-avatar.png"
+        userId: member.id,
+        name: userInfo?.name || "Anonymous",
+        avatar: userInfo?.avatar || "/fallback-avatar.png",
+        lastActive: new Date().toISOString()
       }]);
     });
 
