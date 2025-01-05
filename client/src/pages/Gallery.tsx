@@ -207,10 +207,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         const isPresent = prev.some(user => user.userId === member.id);
         if (isPresent) return prev;
 
+        const userInfo = member.info || member.user_info;
         return [...prev, {
           userId: member.id,
-          name: member.info?.name || "Anonymous", 
-          avatar: member.info?.avatar || "/fallback-avatar.png",
+          name: userInfo?.name || "Anonymous",
+          avatar: userInfo?.imageUrl || "/fallback-avatar.png",
           lastActive: new Date().toISOString()
         }];
       });
