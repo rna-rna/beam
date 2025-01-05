@@ -78,7 +78,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Toggle } from "@/components/ui/toggle";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
-import { useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
+import { useUser, useClerk, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/LoginModal";
