@@ -23,7 +23,7 @@ router.post("/pusher/auth", async (req, res) => {
     let userId, userName, userImageUrl;
 
     if (req.auth?.userId) {
-      // Check session status
+      // Verify session status
       const session = await clerkClient.sessions.getSession(req.auth.sessionId);
       
       if (session.status === "expired") {
@@ -54,12 +54,16 @@ router.post("/pusher/auth", async (req, res) => {
       },
     };
 
+    // Use authorizeChannel instead of authenticate
     const auth = pusher.authorizeChannel(socketId, channel, presenceData);
+    
     console.log("Pusher Auth Response:", {
       userId,
       channel,
-      presenceData
+      presenceData,
+      authResponse: auth
     });
+    
     res.send(auth);
   } catch (error) {
     console.error('Pusher auth error:', error);
