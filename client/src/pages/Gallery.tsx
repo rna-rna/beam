@@ -211,7 +211,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         return [...prev, {
           userId: member.id,
           name: userInfo?.name || "Anonymous",
-          avatar: userInfo?.imageUrl || "/fallback-avatar.png",
+          avatar: userInfo?.avatar || userInfo?.imageUrl || "/fallback-avatar.png",
           lastActive: new Date().toISOString()
         }];
       });
