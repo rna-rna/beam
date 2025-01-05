@@ -118,18 +118,23 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     const channel = pusherClient.subscribe(`presence-gallery-${slug}`);
 
     channel.bind('pusher:subscription_succeeded', (members: any) => {
-      setActiveUsers(Object.values(members.members));
+      const activeMembers = Object.values(members.members);
+      console.log('Subscription succeeded:', activeMembers);
+      setActiveUsers(activeMembers);
     });
 
     channel.bind('pusher:member_added', (member: any) => {
+      console.log('Member added:', member.info);
       setActiveUsers(prev => [...prev, member.info]);
     });
 
     channel.bind('pusher:member_removed', (member: any) => {
+      console.log('Member removed:', member.id);
       setActiveUsers(prev => prev.filter(user => user.user_id !== member.id));
     });
 
     return () => {
+      console.log('Cleaning up Pusher subscription');
       channel.unbind_all();
       channel.unsubscribe();
     };
