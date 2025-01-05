@@ -74,12 +74,8 @@ router.post("/pusher/auth", async (req, res) => {
         timestamp: new Date().toISOString()
       });
       
-      if (req.accepts('json')) {
-        res.setHeader('Content-Type', 'application/json');
-        res.json(auth);
-      } else {
-        res.status(406).send('JSON response type required');
-      }
+      res.setHeader('Content-Type', 'application/json');
+      res.json(auth);
     } catch (error) {
       console.error("Pusher Auth Error:", {
         error: error.message,
