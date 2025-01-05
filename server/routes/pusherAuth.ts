@@ -1,6 +1,6 @@
 
 import { Router } from "express";
-import pusher from "../pusherConfig";
+import { pusher } from "../pusherConfig";
 import { nanoid } from "nanoid";
 import { extractUserInfo } from "../auth";
 
