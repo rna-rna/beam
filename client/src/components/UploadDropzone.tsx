@@ -14,10 +14,10 @@ import { cn } from "@/lib/utils";
 
 interface UploadDropzoneProps {
   onUpload: (files: File[]) => void;
-  imageCount: number;
+  imageCount?: number;
 }
 
-export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneProps) {
+export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropzoneProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useUser();
@@ -25,6 +25,7 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (isUploading) return;
@@ -118,84 +119,82 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
     onDragLeave: () => setIsDragging(false),
   });
 
-  const [showSignUpModal, setShowSignUpModal] = useState(false);
-
   return (
     <>
       <SignUpModal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)} />
-    <Card
-      {...getRootProps()}
-      className={cn(
-        "w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer relative",
-        isDark ? "bg-black/90" : "hover:bg-background",
-        isUploading && (isDark ? "bg-black/50" : "bg-gray-100")
-      )}
-    >
-      <Card className="absolute bottom-6 right-6 w-96 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            Give it a go!
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="font-medium text-sm">Guest Upload – Limited access.</p>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Create a free account to:</p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>• Enable comments and feedback</li>
-              <li>• Bulk download files</li>
-              <li>• Share projects</li>
-            </ul>
-            <button 
-              onClick={() => setShowSignUpModal(true)} 
-              className="text-sm font-medium text-primary hover:underline cursor-pointer"
-            >
-              Unlock full features – Sign up for free
-            </button>
-          </div>
-          </div>
-        </CardContent>
-      </Card>
-      <input {...getInputProps()} />
-      <div className="flex flex-col items-center justify-center h-full gap-6">
-        {isUploading ? (
-          <div className="w-[80vw] max-w-xl space-y-4">
-            <Progress value={uploadProgress} className="w-full h-2" />
-            <p className={cn("text-sm text-center", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
-              Uploading... {uploadProgress}%
-            </p>
-          </div>
-        ) : (
-          <div className="text-center space-y-4">
-            <div className="flex flex-col items-center">
-              <ArrowUpFromLine className={cn("w-16 h-16 mb-4", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
-              <p className={cn("text-lg font-medium mb-2", isDark ? "text-foreground" : "text-foreground")}>
-                {isDragActive ? "Drop them!" : "Upload Your Assets"}
-              </p>
-              <p className={cn("text-sm mb-6", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
-                Drag and drop any image file to start.
+      <Card
+        {...getRootProps()}
+        className={cn(
+          "w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer relative",
+          isDark ? "bg-black/90" : "hover:bg-background",
+          isUploading && (isDark ? "bg-black/50" : "bg-gray-100")
+        )}
+      >
+        <Card className="absolute bottom-6 right-6 w-96 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Give it a go!
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="font-medium text-sm">Guest Upload – Limited access.</p>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Create a free account to:</p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Enable comments and feedback</li>
+                <li>• Bulk download files</li>
+                <li>• Share projects</li>
+              </ul>
+              <button 
+                onClick={() => setShowSignUpModal(true)} 
+                className="text-sm font-medium text-primary hover:underline cursor-pointer"
+              >
+                Unlock full features – Sign up for free
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+        <input {...getInputProps()} />
+        <div className="flex flex-col items-center justify-center h-full gap-6">
+          {isUploading ? (
+            <div className="w-[80vw] max-w-xl space-y-4">
+              <Progress value={uploadProgress} className="w-full h-2" />
+              <p className={cn("text-sm text-center", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
+                Uploading... {uploadProgress}%
               </p>
             </div>
-            {imageCount === 0 && (
-              <div className="space-y-4 text-center max-w-md mx-auto">
-                <p className={cn("text-sm font-medium", isDark ? "text-foreground" : "text-foreground")}>
-                  Guest Upload – Limited access.
+          ) : (
+            <div className="text-center space-y-4">
+              <div className="flex flex-col items-center">
+                <ArrowUpFromLine className={cn("w-16 h-16 mb-4", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
+                <p className={cn("text-lg font-medium mb-2", isDark ? "text-foreground" : "text-foreground")}>
+                  {isDragActive ? "Drop them!" : "Upload Your Assets"}
                 </p>
-                <div className={cn("text-sm space-y-3", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
-                  <p>Create a free account to:</p>
-                  <ul className="space-y-2">
-                    <li>• Enable comments and feedback</li>
-                    <li>• Bulk download files</li>
-                    <li>• Share projects</li>
-                  </ul>
-                  <p className="mt-4 font-medium">Unlock full features – Sign up for free.</p>
-                </div>
+                <p className={cn("text-sm mb-6", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
+                  Drag and drop any image file to start.
+                </p>
               </div>
-            )}
-          </div>
-        )}
-      </div>
-    </Card>
+              {imageCount === 0 && (
+                <div className="space-y-4 text-center max-w-md mx-auto">
+                  <p className={cn("text-sm font-medium", isDark ? "text-foreground" : "text-foreground")}>
+                    Guest Upload – Limited access.
+                  </p>
+                  <div className={cn("text-sm space-y-3", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
+                    <p>Create a free account to:</p>
+                    <ul className="space-y-2">
+                      <li>• Enable comments and feedback</li>
+                      <li>• Bulk download files</li>
+                      <li>• Share projects</li>
+                    </ul>
+                    <p className="mt-4 font-medium">Unlock full features – Sign up for free.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
+    </>
   );
 }
