@@ -1086,27 +1086,18 @@ const renderGalleryControls = useCallback(() => {
       <div className={cn("flex items-center justify-between gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
         <div className="flex items-center gap-4">
           {/* Presence Avatars */}
-          <TooltipProvider>
-            <div className="flex -space-x-2">
-              {activeUsers.map((member) => (
-                <Tooltip key={member.userId}>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <UserAvatar
-                      name={member.name}
-                      imageUrl={member.avatar}
-                      className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
-                    />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{member.name}</p>
-                </TooltipContent>
-              </Tooltip>
+          <div className="flex -space-x-2">
+            {activeUsers.map((member) => (
+              <UserAvatar
+                key={member.userId}
+                name={member.name}
+                imageUrl={member.avatar}
+                className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
+              />
             ))}
           </div>
-          </TooltipProvider>
         </div>
+        <TooltipProvider>
           <StarredUsersFilter
             users={getUniqueStarredUsers}
             selectedUsers={selectedStarredUsers}
@@ -1114,31 +1105,28 @@ const renderGalleryControls = useCallback(() => {
           />
         
           {/* Grid View Toggle */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={toggleGridView}
-                  className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200", !isMasonry && "bg-primary/20")}
-                >
-                  {isMasonry ? (
-                    <Grid className="h-4 w-4" />
-                  ) : (
-                    <LayoutGrid className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={toggleGridView}
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200", !isMasonry && "bg-primary/20")}
+              >
+                {isMasonry ? (
+                  <Grid className="h-4 w-4" />
+                ) : (
+                  <LayoutGrid className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
+          </Tooltip>
 
           {/* Filter Menu */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     size="icon"
@@ -1212,7 +1200,6 @@ const renderGalleryControls = useCallback(() => {
             </TooltipTrigger>
             <TooltipContent>Filter Images</TooltipContent>
           </Tooltip>
-          </TooltipProvider>
 
           {isUploading && (
             <div className="flex items-center gap-4">
@@ -1231,21 +1218,19 @@ const renderGalleryControls = useCallback(() => {
 
 
           {/* Share Button */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
-                  onClick={() => setIsOpenShareModal(true)}
-                >
-                  <Share className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Share Gallery</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                onClick={() => setIsOpenShareModal(true)}
+              >
+                <Share className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Share Gallery</TooltipContent>
+          </Tooltip>
 
           
           <Tooltip>
@@ -1266,6 +1251,7 @@ const renderGalleryControls = useCallback(() => {
             </TooltipTrigger>
             <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
           </Tooltip>
+        </TooltipProvider>
       </div>
     );
   }, [
