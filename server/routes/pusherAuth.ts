@@ -58,10 +58,18 @@ router.post("/pusher/auth", async (req, res) => {
     const auth = pusher.authorizeChannel(socketId, channel, presenceData);
     
     console.log("Pusher Auth Response:", {
-      userId,
-      channel,
-      presenceData,
-      authResponse: auth
+      auth_payload: auth,
+      request_details: {
+        socketId,
+        channel,
+        presenceData
+      },
+      user_context: {
+        userId,
+        userName,
+        userImageUrl
+      },
+      timestamp: new Date().toISOString()
     });
     
     res.send(auth);
