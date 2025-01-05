@@ -8,13 +8,25 @@ import { clerkClient } from "@clerk/clerk-sdk-node";
 const router = Router();
 
 router.post("/pusher/auth", async (req, res) => {
-  console.log("Pusher Auth Request:", {
+  console.log("Pusher Auth Details:", {
     socketId: req.body.socket_id,
     channel: req.body.channel_name,
-    headers: req.headers,
-    hasAuth: !!req.auth,
-    sessionStatus: req.auth?.sessionClaims?.status
+    auth: {
+      sessionId: req.auth?.sessionId,
+      userId: req.auth?.userId,
+      status: req.auth?.sessionClaims?.status
+    },
+    headers: {
+      authorization: req.headers.authorization ? 'present' : 'missing',
+      contentType: req.headers['content-type'],
+      host: req.headers.host
+    }
   });
+
+  // Log session token data if available
+  if (req.headers.authorization) {
+    console.log("Authorization header present");
+  }
 
   if (!req.body.socket_id || !req.body.channel_name) {
     return res.status(400).json({
