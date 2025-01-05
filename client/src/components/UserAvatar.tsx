@@ -1,4 +1,3 @@
-
 import { useUser } from "@clerk/clerk-react";
 import { useMemo } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -25,7 +24,7 @@ export function UserAvatar({ name: propName, imageUrl, className = "", isActive 
 
   return (
     <div className="relative">
-      <Avatar className={cn(className, isActive && "ring-2 ring-primary ring-offset-2 ring-offset-background")}>
+      <Avatar className={cn(className)}>
         {imageUrl && <AvatarImage src={imageUrl} alt={name || 'User'} />}
         <AvatarFallback style={{ backgroundColor, color: 'white' }}>
           {initial}
