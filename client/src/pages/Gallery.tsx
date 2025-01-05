@@ -1087,7 +1087,7 @@ const renderGalleryControls = useCallback(() => {
         <div className="flex items-center gap-4">
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
-            {activeMembers.map((member) => (
+            {activeUsers.map((member) => (
               <UserAvatar
                 key={member.userId}
                 name={member.name}
