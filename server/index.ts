@@ -16,7 +16,7 @@ if (!process.env.CLERK_PUBLISHABLE_KEY) {
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use('/api', pusherAuthRouter);
+app.use('/api/pusher', pusherAuthRouter);
 
 // Request logging middleware
 app.use((req, res, next) => {
