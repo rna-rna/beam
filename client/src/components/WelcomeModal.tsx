@@ -25,7 +25,7 @@ export function WelcomeModal({ isOpen, onOpenChange }: WelcomeModalProps) {
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
-          <div className="w-full h-40 relative overflow-hidden rounded-md">
+          <div className="w-full h-40 relative overflow-hidden rounded-md flex items-center justify-center">
             <img 
               src="/src/assets/welcome3.jpg" 
               alt="Welcome to Beam" 
