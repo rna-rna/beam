@@ -22,7 +22,7 @@ export function WelcomeModal({ isOpen, onOpenChange }: WelcomeModalProps) {
       <DialogContent className="sm:max-w-[425px] bg-background text-foreground">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold text-center">
-            Welcome to Beam – Early Access
+            Beam – Early Access
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
