@@ -8,12 +8,14 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
 import { Logo } from "@/components/Logo";
+import { WelcomeModal } from "@/components/WelcomeModal"; // Added import
 
 export default function Home() {
   const { isDark } = useTheme();
   const [guestGalleryCount, setGuestGalleryCount] = useState(
     Number(sessionStorage.getItem("guestGalleryCount")) || 0
   );
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(true); // Added state for modal
 
   const handleGuestUpload = async (files: File[]) => {
     if (guestGalleryCount >= 1) {
@@ -62,6 +64,7 @@ export default function Home() {
             </p>
           </div>
         </SignedIn>
+        <WelcomeModal isOpen={isWelcomeOpen} onOpenChange={setIsWelcomeOpen} /> {/*Added WelcomeModal*/}
       </div>
     </div>
   );
