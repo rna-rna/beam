@@ -8,6 +8,8 @@ import { Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
+import { useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/utils";
 
 interface UploadDropzoneProps {
   onUpload: (files: File[]) => void;
@@ -18,6 +20,7 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useUser();
+  const { isDark } = useTheme();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -117,27 +120,29 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
   return (
     <Card
       {...getRootProps()}
-      className={`w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer border-2 border-dashed ${
-        isUploading ? 'bg-gray-100' : 'hover:border-primary/50'
-      }`}
+      className={cn(
+        "w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer border-2 border-dashed",
+        isDark ? "hover:border-primary/50 bg-background" : "hover:border-primary/50 bg-background",
+        isUploading && (isDark ? "bg-background/50" : "bg-gray-100")
+      )}
     >
       <input {...getInputProps()} />
       <div className="flex flex-col items-center gap-4">
-        <Upload className="w-12 h-12 text-muted-foreground" />
+        <Upload className={cn("w-12 h-12", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
         {isUploading ? (
           <div className="w-full space-y-4">
             <Progress value={uploadProgress} className="w-full" />
-            <p className="text-sm text-center text-muted-foreground">
+            <p className={cn("text-sm text-center", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
               Uploading... {uploadProgress}%
             </p>
           </div>
         ) : (
           <div className="text-center">
-            <p className="text-lg font-medium">
+            <p className={cn("text-lg font-medium", isDark ? "text-foreground" : "text-foreground")}>
               {isDragActive ? "Drop images here" : "Drag & drop images here"}
             </p>
             {imageCount === 0 && (
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className={cn("text-sm mt-1", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
                 or click to select files
               </p>
             )}
