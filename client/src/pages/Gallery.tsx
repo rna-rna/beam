@@ -164,7 +164,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     channel.bind('pusher:subscription_succeeded', (members: any) => {
       const activeMembers = Object.entries(members.members).map(([id, member]: [string, any]) => {
-        const userInfo = member.user_info;
+        const userInfo = member.info || member.user_info;
         return {
           userId: id,
           name: userInfo?.name || "Anonymous",
