@@ -1087,26 +1087,14 @@ const renderGalleryControls = useCallback(() => {
         <div className="flex items-center gap-4">
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
-            {Object.entries(presenceMembers).map(([id, member]: [string, any]) => {
-              const getUserDetails = (userId: string) => {
-                const user = presenceMembers[userId];
-                // Extract name and avatar directly from the info object if available
-                return {
-                  name: user?.info?.name || "Anonymous",
-                  avatar: user?.info?.avatar || "/fallback-avatar.png",
-                };
-              };
-              
-              const userInfo = getUserDetails(id);
-              return (
-                <UserAvatar
-                  key={id}
-                  name={userInfo.name}
-                  imageUrl={userInfo.avatar}
-                  className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
-                />
-              );
-            })}
+            {activeMembers.map((member) => (
+              <UserAvatar
+                key={member.userId}
+                name={member.name}
+                imageUrl={member.avatar}
+                className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
+              />
+            ))}
           </div>
         </div>
         <TooltipProvider>
