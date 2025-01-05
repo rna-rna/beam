@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -48,7 +47,7 @@ export function WelcomeModal({ isOpen, onOpenChange }: WelcomeModalProps) {
             </p>
           </div>
           <p className="font-medium text-foreground">Thank you for being part of this journey!</p>
-          <Button className="w-full" onClick={() => onOpenChange(false)}>
+          <Button className="w-full border-0" onClick={() => onOpenChange(false)}>
             Got it, let's go!
           </Button>
         </div>
