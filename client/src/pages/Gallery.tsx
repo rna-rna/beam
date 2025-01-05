@@ -1101,7 +1101,7 @@ const renderGalleryControls = useCallback(() => {
                 name={member.name}
                 imageUrl={member.avatar}
                 isActive={true}
-                className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
+                className="w-8 h-8 border-2 border-white/40 dark:border-black hover:translate-y-[-2px] transition-transform"
               />
             ))}
           </div>
