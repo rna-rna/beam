@@ -89,7 +89,7 @@ export async function extractUserInfo(req: any) {
     'Unknown User';
 
   // Get user's profile image if available
-  const userImageUrl = user.imageUrl || user.profileImageUrl;
+  const userImageUrl = user.imageUrl || user.profileImageUrl || user.hasImage ? user.imageUrl : null;
 
   console.log('Debug - Extracted user info:', {
     userId: req.auth.userId,
