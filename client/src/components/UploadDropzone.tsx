@@ -2,7 +2,7 @@
 import { useCallback, useState, useMemo } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useDropzone } from "react-dropzone";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ArrowUpFromLine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -121,11 +121,28 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
     <Card
       {...getRootProps()}
       className={cn(
-        "w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer",
+        "w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer relative",
         isDark ? "bg-black/90" : "hover:bg-background",
         isUploading && (isDark ? "bg-black/50" : "bg-gray-100")
       )}
     >
+      <Card className="absolute bottom-6 right-6 w-80 shadow-lg">
+        <CardHeader>
+          <CardTitle>Give it a go!</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="font-medium text-sm">Guest Upload – Limited access.</p>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Create a free account to:</p>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>• Enable comments and feedback</li>
+              <li>• Bulk download files</li>
+              <li>• Share projects</li>
+            </ul>
+            <p className="text-sm font-medium">Unlock full features – Sign up for free.</p>
+          </div>
+        </CardContent>
+      </Card>
       <input {...getInputProps()} />
       <div className="flex flex-col items-center justify-center h-full gap-6">
         {isUploading ? (
