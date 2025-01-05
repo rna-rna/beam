@@ -93,7 +93,9 @@ const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY || '', {
   authEndpoint: "/api/pusher/auth",
   forceTLS: true,
   encrypted: true,
-  withCredentials: true
+  withCredentials: true,
+  enabledTransports: ["ws", "wss", "xhr_streaming", "xhr_polling"],
+  disabledTransports: []
 });
 
 interface GalleryProps {

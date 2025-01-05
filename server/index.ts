@@ -19,9 +19,10 @@ const app = express();
 // Enable CORS with specific options
 app.use(cors({
   origin: process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Pusher-Library'],
+  credentials: true,
+  maxAge: 86400
 }));
 
 app.use(express.json());
