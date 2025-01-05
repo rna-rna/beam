@@ -166,16 +166,23 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const activeMembers: any[] = [];
       members.each((member: any) => {
         const userInfo = member.info || member.user_info || {};
+        // Generate consistent guest ID if no member ID exists
         const userId = member.id || `guest_${Math.random().toString(36).slice(2, 9)}`;
+        const isGuest = !member.id;
         
-        console.log("Processing member:", { member, userId, userInfo });
+        console.log("Processing member:", { 
+          member, 
+          userId, 
+          userInfo,
+          isGuest 
+        });
 
         activeMembers.push({
           userId,
-          name: userInfo.name || "Guest",
+          name: isGuest ? "Guest" : (userInfo.name || "Anonymous"),
           avatar: userInfo.avatar || "/fallback-avatar.png",
           lastActive: new Date().toISOString(),
-          isGuest: !member.id
+          isGuest
         });
       });
 
