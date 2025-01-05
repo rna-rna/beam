@@ -3,6 +3,7 @@ import { Router } from "express";
 import { pusher } from "../pusherConfig";
 import { nanoid } from "nanoid";
 import { extractUserInfo } from "../auth";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 const router = Router();
 
@@ -11,7 +12,8 @@ router.post("/pusher/auth", async (req, res) => {
     socketId: req.body.socket_id,
     channel: req.body.channel_name,
     headers: req.headers,
-    hasAuth: !!req.auth
+    hasAuth: !!req.auth,
+    sessionStatus: req.auth?.sessionClaims?.status
   });
 
   const socketId = req.body.socket_id;
@@ -21,6 +23,17 @@ router.post("/pusher/auth", async (req, res) => {
     let userId, userName, userImageUrl;
 
     if (req.auth?.userId) {
+      // Check session status
+      const session = await clerkClient.sessions.getSession(req.auth.sessionId);
+      
+      if (session.status === "expired") {
+        console.log("Session expired, returning 401");
+        return res.status(401).json({ 
+          error: "Session expired",
+          code: "SESSION_EXPIRED"
+        });
+      }
+
       // Get authenticated user info
       const userInfo = await extractUserInfo(req);
       userId = userInfo.userId;
@@ -50,7 +63,10 @@ router.post("/pusher/auth", async (req, res) => {
     res.send(auth);
   } catch (error) {
     console.error('Pusher auth error:', error);
-    res.status(403).json({ error: 'Unauthorized' });
+    res.status(403).json({ 
+      error: 'Unauthorized',
+      details: error.message
+    });
   }
 });
 
