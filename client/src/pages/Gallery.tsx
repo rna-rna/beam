@@ -1084,9 +1084,10 @@ const renderGalleryControls = useCallback(() => {
             {Object.entries(presenceMembers).map(([id, member]: [string, any]) => {
               const getUserDetails = (userId: string) => {
                 const user = presenceMembers[userId];
+                // Extract name and avatar directly from the info object if available
                 return {
                   name: user?.info?.name || "Anonymous",
-                  avatar: user?.info?.avatar || user?.info?.imageUrl || "/fallback-avatar.png",
+                  avatar: user?.info?.avatar || "/fallback-avatar.png",
                 };
               };
               
