@@ -120,6 +120,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const params = useParams();
   const slug = propSlug || params?.slug;
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
+  const { session } = useClerk();
+
+  // Refresh Clerk session if expired
+  useEffect(() => {
+    if (session?.status === 'expired') {
+      session
+        .refresh()
+        .then(() => console.log('Clerk session refreshed successfully'))
+        .catch((error) => console.error('Failed to refresh Clerk session:', error));
+    }
+  }, [session]);
 
   // Pusher presence channel subscription
   useEffect(() => {
