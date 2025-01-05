@@ -34,8 +34,19 @@ router.post("/pusher/auth", async (req, res) => {
           isGuest: false
         },
       };
+    } else if (req.auth?.sessionId) {
+      // Handle anonymous but sessioned guests
+      const sessionInfo = await extractUserInfo(req);
+      presenceData = {
+        user_id: `guest_${req.auth.sessionId}`,
+        user_info: {
+          name: sessionInfo.userName || "Guest",
+          avatar: sessionInfo.userImageUrl || `/fallback-avatar.png`,
+          isGuest: true
+        },
+      };
     } else {
-      // Handle guest users
+      // True anonymous users
       const guestId = `guest_${Math.random().toString(36).slice(2, 9)}`;
       presenceData = {
         user_id: guestId,
