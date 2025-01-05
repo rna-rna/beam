@@ -1231,19 +1231,21 @@ const renderGalleryControls = useCallback(() => {
 
 
           {/* Share Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
-                onClick={() => setIsOpenShareModal(true)}
-              >
-                <Share className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Share Gallery</TooltipContent>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                  onClick={() => setIsOpenShareModal(true)}
+                >
+                  <Share className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Share Gallery</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           
           <Tooltip>
