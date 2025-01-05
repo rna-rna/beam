@@ -170,7 +170,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
                 <p className={cn("text-lg font-medium mb-2", isDark ? "text-foreground" : "text-foreground")}>
                   {isDragActive ? "Drop them!" : "Upload Your Assets"}
                 </p>
-                <p className={cn("text-sm mb-6", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
+                <p className={cn("text-sm mb-6 font-geist-mono", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
                   Drag and drop any image file to start.
                 </p>
               </div>
