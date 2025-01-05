@@ -1508,21 +1508,6 @@ const renderGalleryControls = useCallback(() => {
         e.preventDefault();
         setSelectedImages([]);
         setSelectMode(false);
-        return;
-      }
-      
-      if (e.shiftKey) {
-        if (e.key.toLowerCase() === 's') {
-          e.preventDefault();
-          setShowStarredOnly(prev => !prev);
-        } else if (e.key.toLowerCase() === 'c') {
-          e.preventDefault();
-          setShowWithComments(prev => !prev);
-        } else if (e.key.toLowerCase() === 'r') {
-          e.preventDefault();
-          setShowStarredOnly(false);
-          setShowWithComments(false);
-        }
       }
     };
 
