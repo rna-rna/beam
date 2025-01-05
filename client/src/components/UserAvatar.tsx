@@ -23,7 +23,7 @@ export function UserAvatar({ name: propName, imageUrl, className = "" }: UserAva
 
   return (
     <Avatar className={className}>
-      {imageUrl && <AvatarImage src={imageUrl} alt={name} />}
+      {imageUrl && <AvatarImage src={imageUrl} alt={name || 'User'} />}
       <AvatarFallback style={{ backgroundColor, color: 'white' }}>
         {initial}
       </AvatarFallback>
