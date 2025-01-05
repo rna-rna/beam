@@ -1091,8 +1091,8 @@ const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
 
     return (
-      <div className={cn("flex items-center justify-between gap-6 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
-        <div className="flex items-center gap-6">
+      <div className={cn("flex items-center justify-between gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
+        <div className="flex items-center gap-4">
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
             {activeUsers.map((member) => (
