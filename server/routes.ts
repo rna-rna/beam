@@ -165,9 +165,14 @@ export function registerRoutes(app: Express): Server {
           publicId: file.filename,
           originalFilename: file.originalname,
           width: 800, // placeholder
-          height: 600 // placeholder
+          height: 600, // placeholder
+          position: 0, // default position
+          createdAt: new Date()
         }));
-        await db.insert(images).values(imageInserts);
+        
+        if (imageInserts.length > 0) {
+          await db.insert(images).values(imageInserts);
+        }
       }
 
       console.log('Created gallery:', gallery);
