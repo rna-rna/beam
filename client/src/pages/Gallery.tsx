@@ -163,22 +163,25 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     });
 
     channel.bind('pusher:subscription_succeeded', (members: any) => {
-      const activeMembers = Object.entries(members.members).map(([id, member]: [string, any]) => {
-        const userInfo = member.info || member.user_info;
-        return {
-          userId: id,
-          name: userInfo?.name || "Anonymous",
-          avatar: userInfo?.avatar || "/fallback-avatar.png",
+      const activeMembers: any[] = [];
+      members.each((member: any) => {
+        const userInfo = member.info || member.user_info || {};
+        
+        console.log("Processing member:", member);
+
+        activeMembers.push({
+          userId: member.id,
+          name: userInfo.name || "Anonymous",
+          avatar: userInfo.avatar || "/fallback-avatar.png",
           lastActive: new Date().toISOString()
-        };
+        });
       });
 
       console.log('Subscription succeeded:', {
         channelName: channel.name,
         totalMembers: members.count,
         currentUserId: members.myID,
-        activeMembers,
-        rawMembers: members.members
+        activeMembers
       });
 
       setPresenceMembers(members.members);
