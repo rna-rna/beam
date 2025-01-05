@@ -164,9 +164,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     channel.bind('pusher:subscription_succeeded', (members: any) => {
       const activeMembers: any[] = [];
+      const currentUserId = user?.id;
+
       members.each((member: any) => {
         const userInfo = member.info || member.user_info || {};
         
+        // Skip if this is the current user
+        if (member.id === currentUserId) return;
+
         console.log("Processing member:", member);
 
         activeMembers.push({
@@ -205,6 +210,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     channel.bind('pusher:member_added', (member: any) => {
       console.log('Member added:', member);
+      
+      // Skip if this is the current user
+      if (member.id === user?.id) return;
       
       setActiveUsers(prev => {
         const isPresent = prev.some(user => user.userId === member.id);
