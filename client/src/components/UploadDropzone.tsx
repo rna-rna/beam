@@ -4,7 +4,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Upload } from "lucide-react";
+import { ArrowUpFromLine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
@@ -128,7 +128,6 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
     >
       <input {...getInputProps()} />
       <div className="flex flex-col items-center gap-4">
-        <Upload className={cn("w-12 h-12", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
         {isUploading ? (
           <div className="w-[80vw] max-w-xl space-y-4">
             <Progress value={uploadProgress} className="w-full h-2" />
@@ -138,7 +137,7 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
           </div>
         ) : (
           <div className="text-center">
-            <Upload className={cn("w-12 h-12 mb-4", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
+            <ArrowUpFromLine className={cn("w-12 h-12 mb-4", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
             <p className={cn("text-lg font-medium", isDark ? "text-foreground" : "text-foreground")}>
               {isDragActive ? "Drop them!" : "Drag & drop images here"}
             </p>
