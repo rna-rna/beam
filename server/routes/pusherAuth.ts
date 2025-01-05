@@ -7,6 +7,13 @@ import { extractUserInfo } from "../auth";
 const router = Router();
 
 router.post("/pusher/auth", async (req, res) => {
+  console.log("Pusher Auth Request:", {
+    socketId: req.body.socket_id,
+    channel: req.body.channel_name,
+    headers: req.headers,
+    hasAuth: !!req.auth
+  });
+
   const socketId = req.body.socket_id;
   const channel = req.body.channel_name;
 
@@ -35,6 +42,11 @@ router.post("/pusher/auth", async (req, res) => {
     };
 
     const auth = pusher.authorizeChannel(socketId, channel, presenceData);
+    console.log("Pusher Auth Response:", {
+      userId,
+      channel,
+      presenceData
+    });
     res.send(auth);
   } catch (error) {
     console.error('Pusher auth error:', error);
