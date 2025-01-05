@@ -1089,13 +1089,15 @@ const renderGalleryControls = useCallback(() => {
         <div className="flex items-center gap-4">
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
-            {activeUsers.map((member) => (
-              <UserAvatar
-                key={member.userId}
-                name={member.name}
-                imageUrl={member.avatar}
-                className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
-              />
+            {activeUsers
+              .filter(member => member.userId !== user?.id)
+              .map((member) => (
+                <UserAvatar
+                  key={member.userId}
+                  name={member.name}
+                  imageUrl={member.avatar}
+                  className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
+                />
             ))}
           </div>
         </div>
