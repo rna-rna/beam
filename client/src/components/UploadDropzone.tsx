@@ -4,7 +4,9 @@ import { useUser } from "@clerk/clerk-react";
 import { useDropzone } from "react-dropzone";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowUpFromLine } from "lucide-react";
+import { ArrowUpFromLine, Globe } from "lucide-react";
+import { useState } from "react";
+import { SignUpModal } from "@/components/SignUpModal";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
@@ -117,7 +119,11 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
     onDragLeave: () => setIsDragging(false),
   });
 
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
+
   return (
+    <>
+      <SignUpModal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)} />
     <Card
       {...getRootProps()}
       className={cn(
@@ -126,9 +132,12 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
         isUploading && (isDark ? "bg-black/50" : "bg-gray-100")
       )}
     >
-      <Card className="absolute bottom-6 right-6 w-80 shadow-lg">
+      <Card className="absolute bottom-6 right-6 w-96 shadow-lg">
         <CardHeader>
-          <CardTitle>Give it a go!</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            Give it a go!
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="font-medium text-sm">Guest Upload – Limited access.</p>
@@ -139,7 +148,13 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
               <li>• Bulk download files</li>
               <li>• Share projects</li>
             </ul>
-            <p className="text-sm font-medium">Unlock full features – Sign up for free.</p>
+            <button 
+              onClick={() => setShowSignUpModal(true)} 
+              className="text-sm font-medium text-primary hover:underline cursor-pointer"
+            >
+              Unlock full features – Sign up for free
+            </button>
+          </div>
           </div>
         </CardContent>
       </Card>
