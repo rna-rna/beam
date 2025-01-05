@@ -1732,7 +1732,7 @@ const renderGalleryControls = useCallback(() => {
               <Masonry
                 breakpointCols={breakpointCols}
                 className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
-                columnClassName="pl-4 bg-background"
+                columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
                 {renderUploadPlaceholders()}
                 {gallery?.images
