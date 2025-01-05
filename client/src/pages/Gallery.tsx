@@ -1132,7 +1132,7 @@ const renderGalleryControls = useCallback(() => {
             <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
           </Tooltip>
 
-          {/* Filter Menu */}
+          {/* Filter Menu - Temporarily commented out
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenu>
@@ -1209,6 +1209,7 @@ const renderGalleryControls = useCallback(() => {
             </TooltipTrigger>
             <TooltipContent>Filter Images</TooltipContent>
           </Tooltip>
+          */}
 
           {isUploading && (
             <div className="flex items-center gap-4">
