@@ -88,8 +88,8 @@ import { Logo } from "@/components/Logo";
 import PusherClient from "pusher-js";
 
 // Initialize Pusher client
-const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY || '', {
-  cluster: import.meta.env.VITE_PUSHER_CLUSTER || '',
+const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
+  cluster: import.meta.env.VITE_PUSHER_CLUSTER,
   appId: import.meta.env.VITE_PUSHER_APP_ID,
   authEndpoint: "/pusher/auth",
   forceTLS: true,
@@ -98,6 +98,11 @@ const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY || '', {
   enabledTransports: ["ws", "wss", "xhr_streaming", "xhr_polling"],
   disabledTransports: []
 });
+
+// Validate required environment variables
+if (!import.meta.env.VITE_PUSHER_KEY || !import.meta.env.VITE_PUSHER_CLUSTER || !import.meta.env.VITE_PUSHER_APP_ID) {
+  console.error('Missing required Pusher environment variables');
+}
 
 interface GalleryProps {
   slug?: string;
