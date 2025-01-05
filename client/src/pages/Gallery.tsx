@@ -987,13 +987,14 @@ const renderGalleryControls = useCallback(() => {
     return (
       <div className={cn("flex items-center justify-between gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
         <div className="flex items-center gap-4">
+          {/* Presence Avatars */}
           <div className="flex -space-x-2">
             {activeUsers.map((user) => (
               <img
                 key={user.user_id}
                 src={user.user_info.avatar}
                 alt={user.user_info.name}
-                className="w-8 h-8 rounded-full border-2 border-white dark:border-black"
+                className="w-8 h-8 rounded-full border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
               />
             ))}
           </div>
