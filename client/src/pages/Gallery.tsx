@@ -303,6 +303,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
 
   // Title update mutation
   const titleUpdateMutation = useMutation({
@@ -2152,6 +2153,7 @@ const renderGalleryControls = useCallback(() => {
         )}
       </AnimatePresence>
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+      <SignUpModal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)} />
     </div>
   );
 }
