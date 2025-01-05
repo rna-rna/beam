@@ -329,22 +329,18 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Update gallery title (protected)
-  protectedRouter.patch('/galleries/:slug/title', async (req: any, res) => {
+  // Update gallery title (supports both guest and authenticated galleries)
+  app.patch('/api/galleries/:slug/title', async (req: any, res) => {
     try {
       const { title } = req.body;
-      const userId = req.auth.userId;
 
       if (!title || typeof title !== 'string') {
         return res.status(400).json({ message: 'Invalid title' });
       }
 
-      // Find the gallery by slug and verify ownership
+      // Find the gallery by slug
       const gallery = await db.query.galleries.findFirst({
-        where: and(
-          eq(galleries.slug, req.params.slug),
-          eq(galleries.userId, userId)
-        ),
+        where: eq(galleries.slug, req.params.slug)
       });
 
       if (!gallery) {
