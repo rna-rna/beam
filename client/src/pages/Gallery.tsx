@@ -124,7 +124,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
-  const [activeUsers, setActiveUsers] = useState<any[]>([]);
+  const [presenceMembers, setPresenceMembers] = useState<{[key: string]: any}>({});
   const { session } = useClerk();
 
   // Refresh Clerk session if expired
@@ -187,8 +187,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         });
       });
 
-      const activeMembers = Object.values(members.members);
-      setActiveUsers(activeMembers);
+      setPresenceMembers(members.members);
     });
 
     channel.bind('pusher:subscription_error', (status: any) => {
@@ -1079,11 +1078,11 @@ const renderGalleryControls = useCallback(() => {
         <div className="flex items-center gap-4">
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
-            {activeUsers.map((user, index) => {
-              const userInfo = user.user_info?.fullUser || user.user_info;
+            {Object.values(presenceMembers).map((member, index) => {
+              const userInfo = member.user_info?.fullUser || member.user_info;
               return (
                 <UserAvatar
-                  key={user.id || user.user_id || `presence-user-${index}`}
+                  key={member.id || `presence-user-${index}`}
                   name={userInfo?.name || "Anonymous"}
                   imageUrl={userInfo?.avatar || "/fallback-avatar.png"}
                   className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
