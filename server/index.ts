@@ -30,7 +30,9 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use('/pusher', pusherAuthRouter);
+
+// Ensure Pusher auth route is handled before static files
+app.use(pusherAuthRouter);
 
 // Request logging middleware
 app.use((req, res, next) => {
