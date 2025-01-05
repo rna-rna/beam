@@ -126,25 +126,48 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (!slug) return;
 
     const channelName = `presence-gallery-${slug}`;
-    console.log('Subscribing to channel:', channelName);
+    console.log('Attempting to subscribe to channel:', channelName);
     
     const channel = pusherClient.subscribe(channelName);
-    console.log('Channel object:', channel);
+    console.log('Channel details:', {
+      name: channel.name,
+      state: channel.state,
+      subscribed: channel.subscribed,
+    });
 
     channel.bind('pusher:subscription_succeeded', (members: any) => {
-      console.log('Subscription succeeded, full members object:', members);
+      console.log('Subscription succeeded:', {
+        count: members.count,
+        myID: members.myID,
+        me: members.me,
+        members: members.members
+      });
       const activeMembers = Object.values(members.members);
-      console.log('Active members:', activeMembers);
       setActiveUsers(activeMembers);
     });
 
+    channel.bind('pusher:subscription_error', (status: any) => {
+      console.error('Subscription error:', {
+        status,
+        channel: channel.name,
+        state: channel.state
+      });
+    });
+
     channel.bind('pusher:member_added', (member: any) => {
-      console.log('Member added:', member.info);
+      console.log('Member added:', {
+        id: member.id,
+        info: member.info,
+        channelData: member
+      });
       setActiveUsers(prev => [...prev, member.info]);
     });
 
     channel.bind('pusher:member_removed', (member: any) => {
-      console.log('Member removed:', member.id);
+      console.log('Member removed:', {
+        id: member.id,
+        channelData: member
+      });
       setActiveUsers(prev => prev.filter(user => user.user_id !== member.id));
     });
 
