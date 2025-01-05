@@ -47,6 +47,27 @@ function AppContent() {
   const [, setLocation] = useLocation();
   const { isSignedIn, user } = useUser();
   const { getToken } = useAuth();
+  const { signOut, session } = useClerk();
+
+  useEffect(() => {
+    if (session?.status === "expired") {
+      session.refresh()
+        .then(() => {
+          console.log("Session refreshed successfully");
+          queryClient.invalidateQueries();
+        })
+        .catch((error) => {
+          console.error("Session refresh failed:", error);
+          toast({
+            title: "Session Expired",
+            description: "Please sign in again",
+            variant: "destructive"
+          });
+          signOut();
+          setLocation("/");
+        });
+    }
+  }, [session, signOut, setLocation, queryClient, toast]);
   const [location] = useLocation();
   
   // Get gallery slug from URL if we're on a gallery page
