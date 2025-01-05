@@ -1260,7 +1260,6 @@ const renderGalleryControls = useCallback(() => {
             </TooltipTrigger>
             <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
           </Tooltip>
-        </TooltipProvider>
       </div>
     );
   }, [
