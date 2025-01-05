@@ -122,7 +122,7 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
       {...getRootProps()}
       className={cn(
         "w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer",
-        isDark ? "hover:border-primary/50 bg-black/90" : "hover:bg-background",
+        isDark ? "bg-black/90" : "hover:bg-background",
         isUploading && (isDark ? "bg-black/50" : "bg-gray-100")
       )}
     >
