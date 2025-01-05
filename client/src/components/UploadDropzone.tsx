@@ -137,7 +137,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="font-medium text-sm">Guest Upload – Limited access.</p>
+            <p className="font-geist-mono text-sm">Guest Upload – Limited access.</p>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Create a free account to:</p>
               <ul className="space-y-2 text-sm text-muted-foreground">
