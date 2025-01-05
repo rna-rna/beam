@@ -3,6 +3,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useDropzone } from "react-dropzone";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import { ArrowUpFromLine, Globe } from "lucide-react";
 import { SignUpModal } from "@/components/SignUpModal";
 import { useToast } from "@/hooks/use-toast";
@@ -167,9 +168,10 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
             <div className="text-center">
               <div className="flex flex-col items-center">
                 <ArrowUpFromLine className={cn("w-16 h-16 mb-4", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
-                <p className={cn("text-lg font-medium mb-2", isDark ? "text-foreground" : "text-foreground")}>
+                <p className={cn("text-lg font-medium mb-3", isDark ? "text-foreground" : "text-foreground")}>
                   {isDragActive ? "Drop them!" : "Upload Your Assets"}
                 </p>
+                <Separator className="mb-3" />
                 <p className={cn("text-sm mb-6", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
                   Drag and drop any image file to start.
                 </p>
