@@ -136,11 +136,13 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
             </p>
           </div>
         ) : (
-          <div className="text-center">
-            <ArrowUpFromLine className={cn("w-16 h-16 mb-6", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
-            <p className={cn("text-lg font-medium", isDark ? "text-foreground" : "text-foreground")}>
-              {isDragActive ? "Drop them!" : "Drag & drop images here"}
-            </p>
+          <div className="text-center space-y-4">
+            <div className="flex flex-col items-center">
+              <ArrowUpFromLine className={cn("w-16 h-16 mb-4", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
+              <p className={cn("text-lg font-medium", isDark ? "text-foreground" : "text-foreground")}>
+                {isDragActive ? "Drop them!" : "Drag & drop images here"}
+              </p>
+            </div>
             {imageCount === 0 && (
               <p className={cn("text-sm mt-1", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
                 or click to select files
