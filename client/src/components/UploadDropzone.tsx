@@ -144,7 +144,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>• Enable comments and feedback</li>
                 <li>• Bulk download files</li>
-                <li>• Share projects</li>
+                <li>• Organize your projects</li>
               </ul>
               <button 
                 onClick={() => setShowSignUpModal(true)} 
