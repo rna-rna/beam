@@ -25,8 +25,12 @@ export function WelcomeModal({ isOpen, onOpenChange }: WelcomeModalProps) {
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
-          <div className="w-full h-40 relative overflow-hidden rounded-md bg-muted">
-            <Logo size="lg" className="absolute inset-0 m-auto" />
+          <div className="w-full h-40 relative overflow-hidden rounded-md">
+            <img 
+              src="/src/assets/welcome.jpg" 
+              alt="Welcome to Beam" 
+              className="w-full h-full object-cover"
+            />
           </div>
           <DialogDescription className="text-muted-foreground text-base">
             Thank you for trying out Beam – a platform designed to make sharing and reviewing photos faster and easier.
