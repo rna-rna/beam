@@ -1637,12 +1637,13 @@ const renderGalleryControls = useCallback(() => {
                   uploadMutation.mutate(files);
                 }}
                 imageCount={gallery?.images?.length || 0}
+                showGuestCard={false}
               />
             </div>
           </SignedIn>
           <SignedOut>
             <div className="absolute inset-0">
-              <UploadDropzone onUpload={handleGuestUpload} />
+              <UploadDropzone onUpload={handleGuestUpload} showGuestCard={false} />
             </div>
           </SignedOut>
         </div>
