@@ -30,7 +30,7 @@ router.post("/pusher/auth", ClerkExpressRequireAuth(), async (req, res) => {
       user_id: userInfo.userId,
       user_info: {
         name: userInfo.userName,
-        avatar: userInfo.userImageUrl || "/default-avatar.png",
+        avatar: userInfo.userImageUrl,
       },
     };
 

@@ -85,6 +85,7 @@ import { LoginModal } from "@/components/LoginModal";
 import { StarredAvatars } from "@/components/StarredAvatars";
 import { LoginButton } from "@/components/LoginButton";
 import { Logo } from "@/components/Logo";
+import { UserAvatar } from "@/components/UserAvatar";
 import PusherClient from "pusher-js";
 
 // Initialize Pusher client
@@ -1046,11 +1047,11 @@ const renderGalleryControls = useCallback(() => {
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
             {activeUsers.map((user) => (
-              <img
+              <UserAvatar
                 key={user.user_id}
-                src={user.user_info?.avatar || '/default-avatar.png'}
-                alt={user.user_info?.name || 'User'}
-                className="w-8 h-8 rounded-full border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
+                name={user.user_info?.name}
+                imageUrl={user.user_info?.avatar}
+                className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
               />
             ))}
           </div>
