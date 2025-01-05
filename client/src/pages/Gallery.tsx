@@ -167,28 +167,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     });
 
     channel.bind('pusher:subscription_succeeded', (members: any) => {
+      const allMembers = Object.entries(members.members).map(([id, member]) => ({
+        userId: id,
+        name: member.info?.name || "Anonymous",
+        avatar: member.info?.avatar || "/fallback-avatar.png"
+      }));
+
       console.log('Subscription succeeded:', {
         channelName: channel.name,
         totalMembers: members.count,
         currentUserId: members.myID,
-        currentUserInfo: members.me,
-        allMembers: Object.entries(members.members).map(([id, info]) => ({
-          id,
-          info,
-          connectionTime: new Date().toISOString()
-        }))
-      });
-      
-      // Log each member separately for better visibility
-      Object.entries(members.members).forEach(([id, info]) => {
-        console.log('Active member:', {
-          userId: id,
-          userInfo: info,
-          timestamp: new Date().toISOString()
-        });
+        activeMembers: allMembers
       });
 
       setPresenceMembers(members.members);
+      setActiveUsers(allMembers);
     });
 
     channel.bind('pusher:subscription_error', (status: any) => {
