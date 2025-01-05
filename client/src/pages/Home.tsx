@@ -52,7 +52,7 @@ export default function Home() {
       <div className="w-full h-[calc(100vh-4.1rem)] flex">
         <SignedOut>
           <div className="flex flex-col items-center justify-center w-full h-full">
-            <UploadDropzone onUpload={handleGuestUpload} showGuestCard={true} />
+            <UploadDropzone onUpload={handleGuestUpload} />
           </div>
         </SignedOut>
 

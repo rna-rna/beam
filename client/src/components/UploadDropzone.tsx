@@ -14,10 +14,9 @@ import { cn } from "@/lib/utils";
 interface UploadDropzoneProps {
   onUpload: (files: File[]) => void;
   imageCount?: number;
-  showGuestCard?: boolean;
 }
 
-export default function UploadDropzone({ onUpload, imageCount = 0, showGuestCard = false }: UploadDropzoneProps) {
+export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropzoneProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useUser();
