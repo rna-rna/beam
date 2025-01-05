@@ -33,7 +33,7 @@ export function WelcomeModal({ isOpen, onOpenChange }: WelcomeModalProps) {
             />
           </div>
           <DialogDescription className="text-muted-foreground text-base">
-            Thank you for trying out Beam – a platform designed to make sharing and reviewing photos faster and easier.
+            Thank you for trying out Beam – a platform designed to make sharing and reviewing creative content faster, easier, and more collaborative.
           </DialogDescription>
           <Separator className="bg-border" />
           <div className="space-y-3">

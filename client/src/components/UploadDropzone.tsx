@@ -121,8 +121,8 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
     <Card
       {...getRootProps()}
       className={cn(
-        "w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer border-2 border-dashed",
-        isDark ? "hover:border-primary/50 bg-background" : "hover:border-primary/50 bg-background",
+        "w-full min-h-[calc(100vh-4rem)] flex items-center justify-center cursor-pointer",
+        isDark ? "hover:border-primary/50 bg-background" : "hover:border-primary/80 bg-background",
         isUploading && (isDark ? "bg-background/50" : "bg-gray-100")
       )}
     >
@@ -140,7 +140,7 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
           <div className="text-center">
             <Upload className={cn("w-12 h-12 mb-4", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
             <p className={cn("text-lg font-medium", isDark ? "text-foreground" : "text-foreground")}>
-              {isDragActive ? "Drop images here" : "Drag & drop images here"}
+              {isDragActive ? "Drop them!" : "Drag & drop images here"}
             </p>
             {imageCount === 0 && (
               <p className={cn("text-sm mt-1", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
