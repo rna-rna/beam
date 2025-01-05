@@ -212,7 +212,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         info: member.info,
         channelData: member
       });
-      setActiveUsers(prev => [...prev, member.info]);
+      setActiveUsers(prev => [...prev, {
+        userId: member.id || member.user_id,
+        name: member.info?.name || "Anonymous",
+        avatar: member.info?.avatar || "/fallback-avatar.png"
+      }]);
     });
 
     channel.bind('pusher:member_removed', (member: any) => {
