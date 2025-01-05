@@ -7,13 +7,23 @@ import { clerkClient } from "@clerk/clerk-sdk-node";
 const router = Router();
 
 router.post("/pusher/auth", async (req, res) => {
+  const socketId = req.body.socket_id;
+  const channel = req.body.channel_name;
+
   console.log("Pusher Auth Request:", {
-    socketId: req.body.socket_id,
-    channel: req.body.channel_name,
+    socketId,
+    channel,
     headers: req.headers,
     hasAuth: !!req.auth,
     sessionStatus: req.auth?.sessionClaims?.status
   });
+
+  if (!socketId || !channel) {
+    return res.status(400).json({
+      error: "Missing socket_id or channel_name",
+      code: "INVALID_PARAMS"
+    });
+  }
 
   if (!req.auth?.sessionId) {
     console.error("No valid Clerk session found");
