@@ -139,21 +139,21 @@ export default function UploadDropzone({ onUpload, imageCount }: UploadDropzoneP
           <div className="text-center space-y-4">
             <div className="flex flex-col items-center">
               <ArrowUpFromLine className={cn("w-16 h-16 mb-4", isDark ? "text-muted-foreground" : "text-muted-foreground")} />
-              <p className={cn("text-lg font-medium", isDark ? "text-foreground" : "text-foreground")}>
+              <p className={cn("text-lg font-medium mb-2", isDark ? "text-foreground" : "text-foreground")}>
                 {isDragActive ? "Drop them!" : "Upload Your Assets"}
               </p>
-              <p className={cn("text-sm mt-2", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
+              <p className={cn("text-sm mb-6", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
                 Drag and drop any image file to start.
               </p>
             </div>
             {imageCount === 0 && (
-              <div className="mt-6 space-y-4 text-center">
+              <div className="space-y-4 text-center max-w-md mx-auto">
                 <p className={cn("text-sm font-medium", isDark ? "text-foreground" : "text-foreground")}>
                   Guest Upload – Limited access.
                 </p>
-                <div className={cn("text-sm space-y-2", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
+                <div className={cn("text-sm space-y-3", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
                   <p>Create a free account to:</p>
-                  <ul className="space-y-1">
+                  <ul className="space-y-2">
                     <li>• Enable comments and feedback</li>
                     <li>• Bulk download files</li>
                     <li>• Share projects</li>
