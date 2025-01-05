@@ -1091,21 +1091,20 @@ const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
 
     return (
-      <div className={cn("flex items-center justify-between gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
-        <div className="flex items-center gap-4">
-          {/* Presence Avatars */}
-          <div className="flex -space-x-2">
-            {activeUsers.map((member) => (
-              <UserAvatar
-                key={member.userId}
-                name={member.name}
-                imageUrl={member.avatar}
-                isActive={true}
-                className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
-              />
-            ))}
-          </div>
+      <div className="flex items-center gap-4">
+        {/* Presence Avatars */}
+        <div className="flex -space-x-2">
+          {activeUsers.map((member) => (
+            <UserAvatar
+              key={member.userId}
+              name={member.name}
+              imageUrl={member.avatar}
+              isActive={true}
+              className="w-8 h-8 border-2 border-white dark:border-black hover:translate-y-[-2px] transition-transform"
+            />
+          ))}
         </div>
+        <div className={cn("flex items-center justify-end gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
         <TooltipProvider>
           <StarredUsersFilter
             users={getUniqueStarredUsers}
