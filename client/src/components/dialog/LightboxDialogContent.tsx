@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { DialogClose } from "@/components/ui/dialog";
@@ -13,12 +12,13 @@ interface LightboxDialogContentProps
   onOpenChange?: (open: boolean) => void;
   selectedImage?: Image;
   setSelectedImage?: (image: Image | null) => void;
+  setImageDimensions?: (dimensions: {width: number; height: number}) => void; // Added for type safety
 }
 
 const LightboxDialogContent = React.forwardRef<
   HTMLDivElement,
   LightboxDialogContentProps
->(({ className, children, onOpenChange, selectedImage, setSelectedImage, ...props }, ref) => {
+>(({ className, children, onOpenChange, selectedImage, setSelectedImage, setImageDimensions, ...props }, ref) => {
   const lightboxRef = React.useRef<HTMLDivElement>(null);
   const [showStarIndicator, setShowStarIndicator] = React.useState(false);
 
@@ -98,3 +98,12 @@ const LightboxDialogContent = React.forwardRef<
 LightboxDialogContent.displayName = "LightboxDialogContent";
 
 export default LightboxDialogContent;
+
+//Added CSS for blur-up effect
+.blur-up {
+  filter: blur(20px);
+  transition: filter 0.5s ease-in-out;
+}
+.blur-up.loaded {
+  filter: blur(0);
+}
