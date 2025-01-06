@@ -2085,7 +2085,11 @@ const handleImageClick = (index: number) => {
                 <div className="w-full h-full flex items-center justify-center">
                   {/* Image with onLoad handler */}
                   <motion.img
-                    src={getCloudinaryUrl(selectedImage.publicId, 'w_50,q_10,e_blur:200')}
+                    src={
+                      preloadedImages.has(selectedImage.id)
+                        ? getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')  // Show full-res if preloaded
+                        : getCloudinaryUrl(selectedImage.publicId, 'w_50,q_10,e_blur:200')   // Show low-res if not
+                    }
                     data-src={getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')}
                     alt={selectedImage.originalFilename || ''}
                     className="max-w-full max-h-full w-auto h-auto object-contain lightbox-img blur-up"
