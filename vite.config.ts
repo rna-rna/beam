@@ -32,8 +32,8 @@ export default defineConfig({
         }
         return html.replace(
           '</head>',
-          `<meta property="og:title" content="Beam Gallery" />
-          <meta property="og:description" content="Explore stunning galleries!" />
+          `<meta property="og:title" content="Project" />
+          <meta property="og:description" content="Powered By Beam" />
           <meta property="og:image" content="/images/placeholder.jpg" />
           <meta property="og:image:width" content="800" />
           <meta property="og:image:height" content="600" />
