@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useMemo } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useDropzone } from "react-dropzone";
@@ -22,7 +21,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
   const { user } = useUser();
   const { isDark } = useTheme();
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState({}); // Changed to object for per-file progress
   const [isDragging, setIsDragging] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
 
@@ -40,14 +39,51 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
     }
 
     setIsUploading(true);
-    setUploadProgress(0);
+    setUploadProgress({}); // Clear progress on new upload
+
+    const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB chunks
+
+    const uploadChunks = async (file: File) => {
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      let offset = 0;
+
+      for (let i = 0; i < totalChunks; i++) {
+        const chunk = file.slice(offset, offset + CHUNK_SIZE);
+        const formData = new FormData();
+        formData.append('chunk', chunk);
+        formData.append('chunkIndex', i.toString());
+        formData.append('totalChunks', totalChunks.toString());
+        formData.append('filename', file.name);
+
+        try {
+          const uploadRes = await fetch(`/api/upload/chunk`, {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!uploadRes.ok) {
+            throw new Error(`Chunk upload failed: ${uploadRes.statusText}`);
+          }
+
+          // Update progress based on chunks
+          const progress = Math.round(((i + 1) / totalChunks) * 100);
+          setUploadProgress(prev => ({
+            ...prev,
+            [file.name]: progress
+          }));
+        } catch (error) {
+          console.error(`Failed to upload chunk ${i + 1}/${totalChunks}:`, error);
+          throw error;
+        }
+
+        offset += CHUNK_SIZE;
+      }
+    };
 
     try {
-      const formData = new FormData();
-      acceptedFiles.forEach(file => {
-        formData.append('images', file);
-      });
-
+      for (const file of acceptedFiles) {
+        await uploadChunks(file);
+      }
       const currentPath = window.location.pathname;
       let gallerySlug = currentPath.split('/').pop();
 
@@ -55,7 +91,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
         const createRes = await fetch('/api/galleries/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             title: 'Untitled Project',
             userId: user?.id || 'guest'
           })
@@ -66,38 +102,11 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
         gallerySlug = galleryData.slug;
       }
 
-      await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `/api/galleries/${gallerySlug}/images`);
-
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            setUploadProgress(progress);
-          }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const response = JSON.parse(xhr.response);
-            console.log("Upload successful:", response);
-            toast({
-              title: "Success",
-              description: "Images uploaded successfully!",
-            });
-            queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-            resolve(response);
-          } else {
-            reject(new Error('Upload failed'));
-          }
-        };
-
-        xhr.onerror = () => {
-          reject(new Error('Network error during upload'));
-        };
-
-        xhr.send(formData);
+      toast({
+        title: "Success",
+        description: "Images uploaded successfully!",
       });
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
 
       if (!currentPath.includes('/g/')) {
         setLocation(`/g/${gallerySlug}`);
@@ -111,7 +120,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
       });
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
+      setUploadProgress({});
     }
   }, [isUploading, user, setLocation, toast, onUpload]);
 
@@ -157,9 +166,9 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
         <div className="flex flex-col items-center justify-center h-full gap-6">
           {isUploading ? (
             <div className="w-[80vw] max-w-xl space-y-4">
-              <Progress value={uploadProgress} className="w-full h-2" />
+              <Progress value={uploadProgress} className="w-full h-2" /> {/* Progress bar now handles object */}
               <p className={cn("text-sm text-center", isDark ? "text-muted-foreground" : "text-muted-foreground")}>
-                Uploading... {uploadProgress}%
+                Uploading...
               </p>
             </div>
           ) : (
