@@ -1727,9 +1727,9 @@ const renderGalleryControls = useCallback(() => {
     <>
       {gallery && (
         <Helmet>
-          <meta property="og:title" content={gallery.title} />
-          <meta property="og:description" content="Explore this gallery!" />
-          <meta property="og:image" content={gallery.ogImageUrl || '/images/placeholder.jpg'} />
+          <meta property="og:title" content={gallery.title || "Beam Gallery"} />
+          <meta property="og:description" content="Explore stunning galleries!" />
+          <meta property="og:image" content={gallery.ogImageUrl ? gallery.ogImageUrl : getCloudinaryUrl('12_crhopz', `w_1200,h_630,c_limit,q_auto,f_auto,l_beam-bar_q6desn,g_center,x_0,y_0`)} />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="630" />
           <meta property="og:type" content="website" />
