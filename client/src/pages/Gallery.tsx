@@ -1730,10 +1730,12 @@ const renderGalleryControls = useCallback(() => {
           <meta property="og:title" content={gallery.title} />
           <meta property="og:description" content="Explore this gallery!" />
           <meta property="og:image" content={
-            gallery.thumbnailUrl
+            gallery.thumbnailUrl 
               ? getCloudinaryUrl(gallery.thumbnailUrl, `w_800,c_limit,q_auto,f_auto,${beamOverlayTransform}`)
               : '/images/placeholder.jpg'
           } />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={window.location.href} />
         </Helmet>
       )}
       <div className={cn("min-h-screen relative", isDark ? "bg-black/90" : "bg-background")} {...getRootProps()}>
