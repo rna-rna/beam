@@ -1734,6 +1734,8 @@ const renderGalleryControls = useCallback(() => {
               ? getCloudinaryUrl(gallery.thumbnailUrl, `w_800,c_limit,q_auto,f_auto,${beamOverlayTransform}`)
               : '/images/placeholder.jpg'
           } />
+          <meta property="og:image:width" content="800" />
+          <meta property="og:image:height" content="600" />
           <meta property="og:type" content="website" />
           <meta property="og:url" content={window.location.href} />
         </Helmet>
