@@ -745,6 +745,7 @@ export function registerRoutes(app: Express): Server {
         width: img.width,
         height: img.height,
         aspectRatio: img.width / img.height,
+        publicId: img.publicId,
         userStarred: img.stars.some(star => star.userId === req.auth?.userId),
         stars: img.stars,
         originalFilename: img.originalFilename,
