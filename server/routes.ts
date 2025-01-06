@@ -1266,10 +1266,13 @@ async function generateOgImage(galleryId: string, imagePath: string) {
           if (fs.existsSync(chunkDir)) {
             fs.rmSync(chunkDir, { recursive: true });
           }
+
+          res.json({
+            success: true,
+            url: result.secure_url,
+            publicId: result.public_id
+          });
         }
-          url: result.secure_url,
-          publicId: result.public_id
-        });
       } else {
         res.json({ success: true, chunkIndex });
       }
