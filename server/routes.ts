@@ -316,7 +316,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: 'No images uploaded' });
       }
 
-      const imageInserts = req.files.map(file => {
+      const imageInserts = await Promise.all(req.files.map(async file => {
         console.log('Processing file:', {
           filename: file.filename,
           path: file.path,
@@ -324,15 +324,20 @@ export function registerRoutes(app: Express): Server {
           originalName: file.originalname
         });
         
+        // Fetch metadata from Cloudinary
+        const cloudinaryResult = await cloudinary.api.resource(file.filename);
+        console.log('Cloudinary metadata:', cloudinaryResult);
+
         return {
           galleryId: gallery.id,
           url: file.path || `/uploads/${file.filename}`,
           publicId: file.filename,
           originalFilename: file.originalname,
-          width: file.width || 800,
-          height: file.height || 600
+          width: cloudinaryResult.width,
+          height: cloudinaryResult.height,
+          createdAt: new Date()
         };
-      });
+      }));
 
       console.log('Inserting images:', JSON.stringify(imageInserts, null, 2));
       await db.insert(images).values(imageInserts);
