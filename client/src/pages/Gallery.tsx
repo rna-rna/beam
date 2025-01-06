@@ -1330,7 +1330,7 @@ const renderGalleryControls = useCallback(() => {
         {preloadedImages.has(image.id) && (
           <>
             <img
-              src={image.publicId ? getCloudinaryUrl(image.publicId, 'w_600,h_400,c_fill,q_auto,f_auto') : image.url}
+              src={image.publicId ? getCloudinaryUrl(image.publicId, 'w_600,c_limit,q_auto,f_auto') : image.url}
               alt={image.originalFilename || ''}
               className={`w-full h-auto object-cover rounded-lg ${
                 selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
