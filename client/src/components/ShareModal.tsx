@@ -24,6 +24,7 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
 
   const beamOverlayTransform = 'l_beam-bar_q6desn,g_center,x_0,y_0';
   const getShareableLink = (thumbnailUrl: string) => {
+    if (!isPublic || !thumbnailUrl) return galleryUrl;
     return `${galleryUrl}?ogImage=${encodeURIComponent(getCloudinaryUrl(thumbnailUrl, `w_800,c_limit,q_auto,f_auto,${beamOverlayTransform}`))}`;
   };
 
@@ -79,7 +80,7 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
               <div className="flex space-x-2">
                 <Input
                   id="share-link"
-                  value={isPublic ? getShareableLink(thumbnailUrl) : galleryUrl}
+                  value={getShareableLink(thumbnailUrl)}
                   readOnly
                   className="flex-1"
                 />
