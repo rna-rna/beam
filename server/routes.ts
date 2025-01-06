@@ -1250,17 +1250,23 @@ async function generateOgImage(galleryId: string, imagePath: string) {
             folder: 'galleries',
             resource_type: 'auto'
           });
-          
+
+          res.json({
+            success: true,
+            url: result.secure_url,
+            publicId: result.public_id
+          });
+        } finally {
           // Clean up assembled file
-          fs.unlinkSync(finalPath);
+          if (finalPath && fs.existsSync(finalPath)) {
+            fs.unlinkSync(finalPath);
+          }
           
           // Clean up chunk directory
           if (fs.existsSync(chunkDir)) {
             fs.rmSync(chunkDir, { recursive: true });
           }
-        
-        res.json({
-          success: true,
+        }
           url: result.secure_url,
           publicId: result.public_id
         });
