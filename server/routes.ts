@@ -1206,15 +1206,11 @@ async function generateOgImage(galleryId: string, imagePath: string) {
 
       console.log(`Received chunk ${chunkIndex} of ${totalChunks} for ${filename}`);
       
-      // Store chunk temporarily
+      // Create chunks directory if it doesn't exist
       const chunkDir = path.join(__dirname, '../uploads/chunks', filename);
       if (!fs.existsSync(chunkDir)) {
         fs.mkdirSync(chunkDir, { recursive: true });
       }
-      
-      // Create chunks directory if it doesn't exist
-      const chunkDir = path.join(__dirname, '../uploads/chunks', filename);
-      fs.mkdirSync(chunkDir, { recursive: true });
 
       // Save the chunk
       const chunkPath = path.join(chunkDir, `${filename}-chunk-${chunkIndex}`);
@@ -1288,6 +1284,13 @@ async function generateOgImage(galleryId: string, imagePath: string) {
             url: result.secure_url,
             publicId: result.public_id
           });
+        } catch (error) {
+          throw error;
+        } finally {
+          // Clean up chunks
+          if (fs.existsSync(chunkDir)) {
+            fs.rmSync(chunkDir, { recursive: true });
+          }
         }
       } else {
         res.json({ success: true, chunkIndex });
