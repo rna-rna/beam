@@ -1690,27 +1690,14 @@ const renderGalleryControls = useCallback(() => {
         }
       });
     }
-  }, [gallery?.images, getCloudinaryUrl]);
+  }, [gallery?.images]);
 
   // Preload adjacent images when lightbox opens
   useEffect(() => {
     if (selectedImageIndex >= 0 && gallery?.images) {
-      const preloadCount = 2;
-      const images = gallery.images;
-      
-      for (let i = 1; i <= preloadCount; i++) {
-        const nextIndex = (selectedImageIndex + i) % images.length;
-        const prevIndex = (selectedImageIndex - i + images.length) % images.length;
-        
-        [nextIndex, prevIndex].forEach((idx) => {
-          if (images[idx]?.publicId) {
-            const img = new Image();
-            img.src = getCloudinaryUrl(images[idx].publicId, 'w_1600,q_auto,f_auto');
-          }
-        });
-      }
+      preloadAdjacentImages(selectedImageIndex);
     }
-  }, [selectedImageIndex, gallery?.images]);
+  }, [selectedImageIndex, gallery?.images, preloadAdjacentImages]);
 
 const handleImageClick = (index: number) => {
     console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
