@@ -164,12 +164,12 @@ export function registerRoutes(app: Express): Server {
       if (isGuestUpload && files && files.length > 0) {
         const imageInserts = files.map(file => ({
           galleryId: gallery.id,
-          url: `/uploads/${file.filename}`,
-          publicId: file.filename,
+          url: file.path || `/uploads/${file.filename}`,
+          publicId: file.public_id || file.filename,
           originalFilename: file.originalname,
-          width: 800, // placeholder
-          height: 600, // placeholder
-          position: 0, // default position
+          width: file.width || 800,
+          height: file.height || 600,
+          position: 0,
           createdAt: new Date()
         }));
         
@@ -314,11 +314,11 @@ export function registerRoutes(app: Express): Server {
 
       const imageInserts = req.files.map(file => ({
         galleryId: gallery.id,
-        url: `/uploads/${file.filename}`,
-        publicId: file.filename,
+        url: file.path || `/uploads/${file.filename}`,
+        publicId: file.public_id || file.filename,
         originalFilename: file.originalname,
-        width: 800,
-        height: 600
+        width: file.width || 800,
+        height: file.height || 600
       }));
 
       await db.insert(images).values(imageInserts);
