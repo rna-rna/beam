@@ -122,10 +122,14 @@ interface ImageDimensions {
   height: number;
 }
 
+import { Helmet } from 'react-helmet';
+
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
+
+  const beamOverlayTransform = 'l_beam-bar_q6desn,g_center,x_0,y_0';
   const [presenceMembers, setPresenceMembers] = useState<{[key: string]: any}>({});
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const { session } = useClerk();
@@ -1720,7 +1724,19 @@ const renderGalleryControls = useCallback(() => {
   };
 
   return (
-    <div className={cn("min-h-screen relative", isDark ? "bg-black/90" : "bg-background")} {...getRootProps()}>
+    <>
+      {gallery && (
+        <Helmet>
+          <meta property="og:title" content={gallery.title} />
+          <meta property="og:description" content="Explore this gallery!" />
+          <meta property="og:image" content={
+            gallery.thumbnailUrl
+              ? getCloudinaryUrl(gallery.thumbnailUrl, `w_800,c_limit,q_auto,f_auto,${beamOverlayTransform}`)
+              : '/images/placeholder.jpg'
+          } />
+        </Helmet>
+      )}
+      <div className={cn("min-h-screen relative", isDark ? "bg-black/90" : "bg-background")} {...getRootProps()}>
       <input {...getInputProps()} />
       {isDragActive && !selectMode && (
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -2161,5 +2177,6 @@ const renderGalleryControls = useCallback(() => {
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
       <SignUpModal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)} />
     </div>
+    </>
   );
 }
