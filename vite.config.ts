@@ -21,8 +21,8 @@ export default defineConfig({
           const slug = path.split('/g/')[1];
           return html.replace(
             '</head>',
-            `<meta property="og:title" content="Beam Gallery" />
-            <meta property="og:description" content="Explore stunning galleries!" />
+            `<meta property="og:title" content="Project" />
+            <meta property="og:description" content="Powered by Beam" />
             <meta property="og:image" content="https://res.cloudinary.com/dq7m5z3zf/image/upload/w_800,c_limit,q_auto,f_auto/l_beam-bar_q6desn,g_center,x_0,y_0/galleries/${slug}.jpg" />
             <meta property="og:image:width" content="800" />
             <meta property="og:image:height" content="600" />
