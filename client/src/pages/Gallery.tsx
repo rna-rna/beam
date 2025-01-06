@@ -292,6 +292,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
   const [showFilename, setShowFilename] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLowResLoading, setIsLowResLoading] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileView, setShowMobileView] = useState(false);
@@ -2101,26 +2103,28 @@ const handleImageClick = (index: number) => {
               >
                 <div className="w-full h-full flex items-center justify-center">
                   {/* Image with onLoad handler */}
+                  {isLowResLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  )}
                   <motion.img
-                    src={
-                      preloadedImages.has(selectedImage.id)
-                        ? getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')  // Show full-res if preloaded
-                        : getCloudinaryUrl(selectedImage.publicId, 'w_50,q_10,e_blur:200')   // Show low-res if not
-                    }
-                    data-src={getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')}
+                    src={getCloudinaryUrl(selectedImage.publicId, 'w_50,q_10,e_blur:200')}
                     alt={selectedImage.originalFilename || ''}
                     className="max-w-full max-h-full w-auto h-auto object-contain lightbox-img blur-up"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    onLoad={(e) => {
-                      const img = e.currentTarget;
-                      img.src = img.dataset.src || img.src;
-                      img.classList.add('loaded');
-                      setImageDimensions({
-                        width: img.clientWidth,
-                        height: img.clientHeight,
-                      });
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: isLowResLoading ? 0 : 1 }}
+                    onLoad={() => {
+                      setIsLowResLoading(false);
+                      const img = new Image();
+                      img.src = getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto');
+                      img.onload = () => {
+                        setIsLoading(false);
+                        setImageDimensions({
+                          width: img.width,
+                          height: img.height,
+                        });
+                      };
                     }}
                   />
 
