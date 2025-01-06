@@ -2,6 +2,10 @@ import express, { type Express, type Request } from "express";
 import { createServer, type Server } from "http";
 import multer from 'multer';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments, stars } from '@db/schema';
