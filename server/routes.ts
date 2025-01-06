@@ -1189,6 +1189,62 @@ async function generateOgImage(galleryId: string, imagePath: string) {
     }
   });
 
+  // Chunk upload endpoint
+  app.post('/api/upload/chunk', upload.single('chunk'), async (req: any, res) => {
+    try {
+      const chunkIndex = parseInt(req.body.chunkIndex);
+      const totalChunks = parseInt(req.body.totalChunks);
+      const filename = req.body.filename;
+      
+      // Store chunk temporarily
+      const chunkDir = path.join(__dirname, '../uploads/chunks', filename);
+      if (!fs.existsSync(chunkDir)) {
+        fs.mkdirSync(chunkDir, { recursive: true });
+      }
+      
+      // Save this chunk
+      fs.writeFileSync(
+        path.join(chunkDir, `${chunkIndex}`),
+        fs.readFileSync(req.file.path)
+      );
+      
+      // If this was the last chunk, combine them
+      if (chunkIndex === totalChunks - 1) {
+        const completeFilePath = path.join(__dirname, '../uploads', filename);
+        const writeStream = fs.createWriteStream(completeFilePath);
+        
+        // Combine all chunks
+        for (let i = 0; i < totalChunks; i++) {
+          const chunkPath = path.join(chunkDir, `${i}`);
+          const chunkBuffer = fs.readFileSync(chunkPath);
+          writeStream.write(chunkBuffer);
+        }
+        
+        writeStream.end();
+        
+        // Clean up chunks
+        fs.rmSync(chunkDir, { recursive: true });
+        
+        // Upload complete file to Cloudinary
+        const result = await cloudinary.uploader.upload(completeFilePath);
+        
+        res.json({
+          success: true,
+          url: result.secure_url,
+          publicId: result.public_id
+        });
+      } else {
+        res.json({ success: true, chunkIndex });
+      }
+    } catch (error) {
+      console.error('Chunk upload error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  });
+
   // Mount protected routes
   app.use('/api', protectedRouter);
 
@@ -1201,8 +1257,6 @@ function generateSlug(): string {
   // Using a shorter length (10) for more readable URLs while maintaining uniqueness
   return nanoid(10);
 }
-// Chunk upload endpoint
-app.post('/api/upload/chunk', upload.single('chunk'), async (req: any, res) => {
   try {
     const chunkIndex = parseInt(req.body.chunkIndex);
     const totalChunks = parseInt(req.body.totalChunks);
