@@ -1334,12 +1334,22 @@ const renderGalleryControls = useCallback(() => {
         {preloadedImages.has(image.id) && (
           <>
             <img
-              src={image.publicId ? getCloudinaryUrl(image.publicId, 'w_600,c_limit,q_auto,f_auto') : image.url}
+              src={
+                preloadedImages.has(image.id)
+                  ? getCloudinaryUrl(image.publicId, 'w_600,c_limit,q_auto,f_auto')  // Full-res if preloaded
+                  : getCloudinaryUrl(image.publicId, 'w_50,q_10,e_blur:200')         // Low-res if not
+              }
+              data-src={getCloudinaryUrl(image.publicId, 'w_600,c_limit,q_auto,f_auto')}
               alt={image.originalFilename || ''}
-              className={`w-full h-auto object-cover rounded-lg ${
+              className={`w-full h-auto object-cover rounded-lg blur-up ${
                 selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
               } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
               loading="lazy"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                img.src = img.dataset.src || img.src;
+                img.classList.add('loaded');
+              }}
               onError={(e) => {
                 console.error('Image load failed:', image);
                 e.currentTarget.src = image.url;
