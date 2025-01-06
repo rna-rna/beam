@@ -241,16 +241,17 @@ export default function Dashboard() {
                 onClick={() => setLocation(`/g/${gallery.slug}`)}
               >
                 <div className="aspect-[4/3] relative overflow-hidden">
-                  {gallery.publicId ? (
+                  {gallery.thumbnailUrl ? (
                     <img
-                      src={getCloudinaryUrl(gallery.publicId, 'w_400,h_300,c_fill,q_auto,f_auto')}
+                      src={gallery.thumbnailUrl}
                       alt={gallery.title}
                       className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <div className="w-full h-full bg-muted flex items-center justify-center flex-col gap-2">
                       <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+                      <span className="text-sm text-muted-foreground">No image available</span>
                     </div>
                   )}
                 </div>
