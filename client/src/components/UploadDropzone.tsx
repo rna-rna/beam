@@ -25,6 +25,41 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
   const [isDragging, setIsDragging] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
 
+  const uploadLargeFile = async (file: File) => {
+    const CHUNK_SIZE = 6 * 1024 * 1024;  // 6MB per chunk
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    let offset = 0;
+
+    for (let i = 0; i < totalChunks; i++) {
+      const chunk = file.slice(offset, offset + CHUNK_SIZE);
+      const formData = new FormData();
+      formData.append('chunk', chunk);
+      formData.append('chunkIndex', i.toString());
+      formData.append('totalChunks', totalChunks.toString());
+      formData.append('filename', file.name);
+
+      try {
+        const res = await fetch('/api/upload/chunk', {
+          method: 'POST',
+          body: formData,
+        });
+        if (!res.ok) {
+          throw new Error('Chunk upload failed');
+        }
+        
+        // Update progress for this file
+        setUploadProgress(prev => ({
+          ...prev,
+          [file.name]: Math.round(((i + 1) / totalChunks) * 100)
+        }));
+      } catch (error) {
+        throw new Error(`Failed to upload chunk ${i + 1} of ${totalChunks}: ${error.message}`);
+      }
+
+      offset += CHUNK_SIZE;
+    }
+  };
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (isUploading) return;
 
@@ -40,6 +75,30 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
 
     setIsUploading(true);
     setUploadProgress({}); // Clear progress on new upload
+
+    try {
+      for (const file of acceptedFiles) {
+        if (file.size > 10 * 1024 * 1024) { // For files larger than 10MB
+          await uploadLargeFile(file);
+        } else {
+          // Regular upload for smaller files
+          const formData = new FormData();
+          formData.append('file', file);
+          // Update progress immediately for small files
+          setUploadProgress(prev => ({
+            ...prev,
+            [file.name]: 0
+          }));
+          await fetch('/api/galleries/create', {
+            method: 'POST',
+            body: formData
+          });
+          setUploadProgress(prev => ({
+            ...prev,
+            [file.name]: 100
+          }));
+        }
+      }
 
     const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB chunks
 
