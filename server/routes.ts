@@ -34,22 +34,21 @@ declare global {
   }
 }
 
-// Configure multer with Cloudinary storage
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import { cloudinary } from './lib/cloudinary';
-
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'galleries',
-    format: async (req, file) => 'jpg',
-    public_id: (req, file) => `${Date.now()}-${file.originalname.split('.')[0]}`,
-    transformation: [{ width: 1600, crop: "limit" }]
+// Configure multer for local chunk storage
+const chunkStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const chunkDir = path.join(__dirname, '../uploads/chunks');
+    fs.mkdirSync(chunkDir, { recursive: true });
+    cb(null, chunkDir);
+  },
+  filename: (req, file, cb) => {
+    const { chunkIndex, filename } = req.body;
+    cb(null, `${filename}-chunk-${chunkIndex}`);
   },
 });
 
 const upload = multer({
-  storage,
+  storage: chunkStorage,
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
   }
