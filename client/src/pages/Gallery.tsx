@@ -1660,8 +1660,8 @@ const renderGalleryControls = useCallback(() => {
   }
 
   // Modify the image click handler in the gallery grid
-  const preloadAdjacentImages = (index: number) => {
-    const preloadCount = 5;
+  const preloadAdjacentImages = useCallback((index: number) => {
+    const preloadCount = 2;
     const images = gallery?.images || [];
     
     for (let i = 1; i <= preloadCount; i++) {
@@ -1675,7 +1675,13 @@ const renderGalleryControls = useCallback(() => {
         }
       });
     }
-  };
+  }, [gallery?.images]);
+
+  useEffect(() => {
+    if (selectedImageIndex >= 0 && gallery?.images) {
+      preloadAdjacentImages(selectedImageIndex);
+    }
+  }, [selectedImageIndex, preloadAdjacentImages]);
 
 const handleImageClick = (index: number) => {
     console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
