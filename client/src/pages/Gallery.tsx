@@ -1660,7 +1660,24 @@ const renderGalleryControls = useCallback(() => {
   }
 
   // Modify the image click handler in the gallery grid
-  const handleImageClick = (index: number) => {
+  const preloadAdjacentImages = (index: number) => {
+    const preloadCount = 5;
+    const images = gallery?.images || [];
+    
+    for (let i = 1; i <= preloadCount; i++) {
+      const nextIndex = (index + i) % images.length;
+      const prevIndex = (index - i + images.length) % images.length;
+      
+      [nextIndex, prevIndex].forEach((idx) => {
+        if (images[idx]?.publicId) {
+          const img = new Image();
+          img.src = getCloudinaryUrl(images[idx].publicId, 'w_1600,q_auto,f_auto');
+        }
+      });
+    }
+  };
+
+const handleImageClick = (index: number) => {
     console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
 
     if (isMobile) {
@@ -1670,6 +1687,7 @@ const renderGalleryControls = useCallback(() => {
     }
 
     setSelectedImageIndex(index);
+    preloadAdjacentImages(index);
   };
 
   
@@ -1909,7 +1927,11 @@ const renderGalleryControls = useCallback(() => {
                 isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
               onClick={() => {
                 if (!gallery?.images?.length) return;
-                setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+                setSelectedImageIndex((prev) => {
+                  const newIndex = prev <= 0 ? gallery.images.length - 1 : prev - 1;
+                  preloadAdjacentImages(newIndex);
+                  return newIndex;
+                });
               }}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -1921,7 +1943,11 @@ const renderGalleryControls = useCallback(() => {
                 isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
               onClick={() => {
                 if (!gallery?.images?.length) return;
-                setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+                setSelectedImageIndex((prev) => {
+                  const newIndex = prev >= gallery.images.length - 1 ? 0 : prev + 1;
+                  preloadAdjacentImages(newIndex);
+                  return newIndex;
+                });
               }}
             >
               <ChevronRight className="h-4 w-4" />
