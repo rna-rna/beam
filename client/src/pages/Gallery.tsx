@@ -1692,7 +1692,9 @@ const renderGalleryControls = useCallback(() => {
   }
 
   useEffect(() => {
-    if (selectedImageIndex >= 0 && gallery?.images) {
+    // Always run the effect, but handle logic inside
+    const shouldPreload = selectedImageIndex >= 0 && gallery?.images;
+    if (shouldPreload) {
       preloadAdjacentImages(selectedImageIndex);
     }
   }, [selectedImageIndex, gallery?.images, preloadAdjacentImages]);
