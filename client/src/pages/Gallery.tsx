@@ -877,7 +877,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (gallery?.images) {
       gallery.images.forEach(image => {
         if (!preloadedImages.has(image.id)) {
-          preloadImage(image.url, image.id);
+          preloadImage(
+            getCloudinaryUrl(image.publicId, 'w_600,c_limit,q_auto,f_auto'),
+            image.id
+          );
         }
       });
     }
