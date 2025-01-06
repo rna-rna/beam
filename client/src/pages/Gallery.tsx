@@ -2085,14 +2085,17 @@ const handleImageClick = (index: number) => {
                 <div className="w-full h-full flex items-center justify-center">
                   {/* Image with onLoad handler */}
                   <motion.img
-                    src={getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')}
+                    src={getCloudinaryUrl(selectedImage.publicId, 'w_50,q_10,e_blur:200')}
+                    data-src={getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')}
                     alt={selectedImage.originalFilename || ''}
-                    className="max-w-full max-h-full w-auto h-auto object-contain"
+                    className="max-w-full max-h-full w-auto h-auto object-contain lightbox-img blur-up"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
                     onLoad={(e) => {
                       const img = e.currentTarget;
+                      img.src = img.dataset.src || img.src;
+                      img.classList.add('loaded');
                       setImageDimensions({
                         width: img.clientWidth,
                         height: img.clientHeight,
