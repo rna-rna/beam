@@ -1672,7 +1672,6 @@ const renderGalleryControls = useCallback(() => {
     );
   }
 
-  // Image preloading logic
   const preloadAdjacentImages = useCallback((index: number) => {
     if (!gallery?.images) return;
     
@@ -1692,14 +1691,13 @@ const renderGalleryControls = useCallback(() => {
     }
   }, [gallery?.images]);
 
-  // Preload adjacent images when lightbox opens
   useEffect(() => {
     if (selectedImageIndex >= 0 && gallery?.images) {
       preloadAdjacentImages(selectedImageIndex);
     }
   }, [selectedImageIndex, gallery?.images, preloadAdjacentImages]);
 
-const handleImageClick = (index: number) => {
+  const handleImageClick = (index: number) => {
     console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
 
     if (isMobile) {
