@@ -22,10 +22,8 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const beamOverlayTransform = 'l_beam-bar_q6desn,g_center,x_0,y_0';
   const getShareableLink = (thumbnailUrl: string) => {
-    if (!isPublic || !thumbnailUrl) return galleryUrl;
-    return `${galleryUrl}?ogImage=${encodeURIComponent(getCloudinaryUrl(thumbnailUrl, `w_800,c_limit,q_auto,f_auto,${beamOverlayTransform}`))}`;
+    return `${galleryUrl}?ogImage=${encodeURIComponent(getCloudinaryUrl(thumbnailUrl, 'w_1200,h_630,c_limit,q_auto,f_auto,l_beam-bar_q6desn,g_center,x_0,y_0'))}`;
   };
 
   const handleCopyLink = async () => {
