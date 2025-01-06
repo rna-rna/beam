@@ -1676,7 +1676,7 @@ const renderGalleryControls = useCallback(() => {
   const preloadAdjacentImages = useCallback((index: number) => {
     if (!gallery?.images) return;
     
-    const preloadCount = 2;
+    const preloadCount = 5;
     const images = gallery.images;
     
     for (let i = 1; i <= preloadCount; i++) {
