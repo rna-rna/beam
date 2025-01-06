@@ -228,11 +228,12 @@ export default function Dashboard() {
                 onClick={() => setLocation(`/g/${gallery.slug}`)}
               >
                 <div className="aspect-[4/3] relative overflow-hidden">
-                  {gallery.thumbnailUrl ? (
+                  {gallery.publicId ? (
                     <img
-                      src={gallery.thumbnailUrl}
+                      src={getCloudinaryUrl(gallery.publicId, 'w_400,h_300,c_fill,q_auto,f_auto')}
                       alt={gallery.title}
                       className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="w-full h-full bg-muted flex items-center justify-center">
