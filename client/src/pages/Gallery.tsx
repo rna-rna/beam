@@ -1730,10 +1730,11 @@ const renderGalleryControls = useCallback(() => {
           <meta property="og:title" content={gallery.title} />
           <meta property="og:description" content="Explore this gallery!" />
           <meta property="og:image" content={gallery.ogImageUrl || '/images/placeholder.jpg'} />
-          <meta property="og:image:width" content="800" />
-          <meta property="og:image:height" content="600" />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
           <meta property="og:type" content="website" />
           <meta property="og:url" content={window.location.href} />
+          <meta name="twitter:card" content="summary_large_image" />
         </Helmet>
       )}
       <div className={cn("min-h-screen relative", isDark ? "bg-black/90" : "bg-background")} {...getRootProps()}>
