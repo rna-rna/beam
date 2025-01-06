@@ -389,7 +389,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   // Queries
-  const { data: gallery, isLoading, error } = useQuery<GalleryType>({
+  const { data: gallery, isLoading: isGalleryLoading, error } = useQuery<GalleryType>({
     onSuccess: (data) => {
       console.log('Gallery Data:', {
         galleryId: data?.id,
