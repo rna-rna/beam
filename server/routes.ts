@@ -1196,6 +1196,20 @@ async function generateOgImage(galleryId: string, imagePath: string) {
   // Chunk upload endpoint
   app.post('/api/upload/chunk', upload.single('chunk'), async (req: any, res) => {
     try {
+      console.log('Chunk upload triggered');
+      console.log('Request body:', req.body);
+      console.log('Request file:', {
+        fieldname: req?.file?.fieldname,
+        originalname: req?.file?.originalname,
+        size: req?.file?.size,
+        path: req?.file?.path
+      });
+
+      if (!req.file) {
+        console.error('No chunk file received');
+        return res.status(400).json({ success: false, error: 'No chunk received' });
+      }
+
       const chunkIndex = parseInt(req.body.chunkIndex);
       const totalChunks = parseInt(req.body.totalChunks);
       const filename = req.body.filename;
