@@ -109,7 +109,28 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Create gallery (supports both authenticated and guest users)
+  // Function to generate OG image
+async function generateOgImage(galleryId: string, imagePath: string) {
+  const overlay = 'beam-bar_q6desn';
+
+  const uploadResponse = await cloudinary.uploader.upload(imagePath, {
+    eager: [{
+      width: 1200,
+      height: 630,
+      crop: 'limit',
+      overlay: overlay,
+      gravity: 'center',
+      fetch_format: 'auto',
+      quality: 'auto',
+    }],
+    public_id: `og_gallery_${galleryId}`,
+    overwrite: true,
+  });
+
+  return uploadResponse.eager[0].secure_url;
+}
+
+// Create gallery (supports both authenticated and guest users)
   app.post('/api/galleries/create', upload.array('images', 50), async (req: any, res) => {
     try {
       const { title = "Untitled Project" } = req.body;
@@ -140,8 +161,21 @@ export function registerRoutes(app: Express): Server {
         guestUpload: isGuestUpload,
         isPublic: isGuestUpload ? true : false,
         createdAt: new Date(),
-        ogImageUrl: null // Add this field
+        ogImageUrl: null
       }).returning();
+
+      // Generate OG image from first uploaded file if available
+      if (files && files.length > 0) {
+        try {
+          const ogImageUrl = await generateOgImage(gallery.id.toString(), files[0].path);
+          await db.update(galleries)
+            .set({ ogImageUrl })
+            .where(eq(galleries.id, gallery.id));
+          gallery.ogImageUrl = ogImageUrl;
+        } catch (error) {
+          console.error('Failed to generate OG image:', error);
+        }
+      }
 
       // If we have files, generate OG image from first image
       if (files && files.length > 0) {
