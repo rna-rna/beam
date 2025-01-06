@@ -1218,9 +1218,10 @@ async function generateOgImage(galleryId: string, imagePath: string) {
 
       // If this is the last chunk, assemble and upload
       if (chunkIndex === totalChunks - 1) {
+        let finalPath;
         try {
           // Assemble chunks into final file
-          const finalPath = path.join(__dirname, '../uploads', filename);
+          finalPath = path.join(__dirname, '../uploads', filename);
           const writeStream = fs.createWriteStream(finalPath);
 
           // Combine all chunks in order
@@ -1245,6 +1246,12 @@ async function generateOgImage(galleryId: string, imagePath: string) {
             url: result.secure_url,
             publicId: result.public_id
           });
+        } catch (error) {
+          console.error('Error processing chunks:', error);
+          res.status(500).json({ 
+            success: false, 
+            error: error.message 
+          });
         } finally {
           // Clean up assembled file
           if (finalPath && fs.existsSync(finalPath)) {
@@ -1252,19 +1259,6 @@ async function generateOgImage(galleryId: string, imagePath: string) {
           }
           
           // Clean up chunk directory
-          if (fs.existsSync(chunkDir)) {
-            fs.rmSync(chunkDir, { recursive: true });
-          }
-
-          res.json({
-            success: true,
-            url: result.secure_url,
-            publicId: result.public_id
-          });
-        } catch (error) {
-          throw error;
-        } finally {
-          // Clean up chunks
           if (fs.existsSync(chunkDir)) {
             fs.rmSync(chunkDir, { recursive: true });
           }
