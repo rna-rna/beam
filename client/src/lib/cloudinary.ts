@@ -5,9 +5,9 @@ export const getCloudinaryUrl = (publicId: string | null | undefined, transforma
     return null;
   }
   
-  // Check if image is PNG to force WebP
+  // Check if image requires transparency preservation
   const isPNG = publicId.toLowerCase().endsWith('.png');
-  const format = isPNG ? 'f_webp' : 'f_auto';
+  const format = isPNG ? 'f_png' : 'f_auto';
   
   // Ensure quality auto is added if not present
   const baseTransforms = transformations || 'w_1600';
