@@ -72,7 +72,7 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
               <div className="flex space-x-2">
                 <Input
                   id="share-link"
-                  value={isPublic ? `${galleryUrl}?ogImage=${encodeURIComponent(getCloudinaryUrl('beam_logo', 'w_800,c_limit,q_auto,f_auto,l_beam_logo,g_center,x_0,y_0'))}` : galleryUrl}
+                  value={isPublic ? `${galleryUrl}?ogImage=${encodeURIComponent(getCloudinaryUrl('beam-bar_q6desn', 'w_800,c_limit,q_auto,f_auto,l_beam-bar_q6desn,g_center,x_0,y_0'))}` : galleryUrl}
                   readOnly
                   className="flex-1"
                 />
