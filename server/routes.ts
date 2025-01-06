@@ -1239,29 +1239,6 @@ async function generateOgImage(galleryId: string, imagePath: string) {
             folder: 'galleries',
             resource_type: 'auto'
           });
-        try {
-          const finalPath = path.join(__dirname, '../uploads', filename);
-          const writeStream = fs.createWriteStream(finalPath);
-          
-          // Combine chunks
-          for (let i = 0; i < totalChunks; i++) {
-            const chunkPath = path.join(chunkDir, `${filename}-chunk-${i}`);
-            if (fs.existsSync(chunkPath)) {
-              const chunkData = fs.readFileSync(chunkPath);
-              writeStream.write(chunkData);
-              fs.unlinkSync(chunkPath); // Clean up chunk
-            } else {
-              throw new Error(`Chunk ${i} is missing`);
-            }
-          }
-          
-          writeStream.end();
-          
-          // Upload to Cloudinary
-          const result = await cloudinary.uploader.upload(finalPath, {
-            folder: 'galleries',
-            resource_type: 'auto'
-          });
 
           res.json({
             success: true,
