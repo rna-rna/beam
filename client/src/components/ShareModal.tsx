@@ -21,6 +21,11 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
+  const beamOverlayTransform = 'l_beam-bar_q6desn,g_center,x_0,y_0';
+  const getShareableLink = (url: string) => {
+    return `${url}?ogImage=${encodeURIComponent(getCloudinaryUrl('beam-bar_q6desn', `w_800,c_limit,q_auto,f_auto,${beamOverlayTransform}`))}`;
+  };
+
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(galleryUrl);
@@ -70,15 +75,10 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
           {isPublic && (
             <div className="space-y-2">
               <Label htmlFor="share-link">Shareable link</Label>
-              const beamOverlayTransform = 'l_beam-bar_q6desn,g_center,x_0,y_0';
-              const getShareableLink = (url: string) => {
-                return `${url}?ogImage=${encodeURIComponent(getCloudinaryUrl('beam-bar_q6desn', `w_800,c_limit,q_auto,f_auto,${beamOverlayTransform}`))}`;
-              };
-
               <div className="flex space-x-2">
                 <Input
                   id="share-link"
-                  value={isPublic && galleryUrl ? getShareableLink(galleryUrl) : galleryUrl}
+                  value={isPublic ? getShareableLink(galleryUrl) : galleryUrl}
                   readOnly
                   className="flex-1"
                 />
