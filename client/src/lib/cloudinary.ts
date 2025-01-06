@@ -4,5 +4,10 @@ export const getCloudinaryUrl = (publicId: string | null | undefined, transforma
     console.warn('Missing publicId or cloud name:', { publicId });
     return null;
   }
-  return `https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload/${transformations}/${publicId}`;
+  
+  // Ensure f_auto and q_auto are added if not present
+  const baseTransforms = transformations || 'w_1600';
+  const transforms = baseTransforms.includes('f_auto') ? baseTransforms : `${baseTransforms},f_auto,q_auto`;
+  
+  return `https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload/${transforms}/${publicId}`;
 };
