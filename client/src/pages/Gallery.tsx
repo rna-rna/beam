@@ -1531,25 +1531,6 @@ const renderGalleryControls = useCallback(() => {
     </motion.div>
   );
 
-  const preloadAdjacentImages = (index: number) => {
-    if (!gallery?.images) return;
-
-    const preloadCount = 5;
-    const images = gallery.images;
-
-    for (let i = 1; i <= preloadCount; i++) {
-      const nextIndex = (index + i) % images.length;
-      const prevIndex = (index - i + images.length) % images.length;
-
-      [nextIndex, prevIndex].forEach((idx) => {
-        if (images[idx]?.publicId) {
-          const img = new Image();
-          img.src = getCloudinaryUrl(images[idx].publicId, 'w_1600,q_auto,f_auto');
-        }
-      });
-    }
-  };
-
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && selectMode) {
@@ -1691,15 +1672,47 @@ const renderGalleryControls = useCallback(() => {
     );
   }
 
-  useEffect(() => {
-    // Always run the effect, but handle logic inside
-    const shouldPreload = selectedImageIndex >= 0 && gallery?.images;
-    if (shouldPreload) {
-      preloadAdjacentImages(selectedImageIndex);
+  // Image preloading logic
+  const preloadAdjacentImages = useCallback((index: number) => {
+    if (!gallery?.images) return;
+    
+    const preloadCount = 2;
+    const images = gallery.images;
+    
+    for (let i = 1; i <= preloadCount; i++) {
+      const nextIndex = (index + i) % images.length;
+      const prevIndex = (index - i + images.length) % images.length;
+      
+      [nextIndex, prevIndex].forEach((idx) => {
+        if (images[idx]?.publicId) {
+          const img = new Image();
+          img.src = getCloudinaryUrl(images[idx].publicId, 'w_1600,q_auto,f_auto');
+        }
+      });
     }
-  }, [selectedImageIndex, gallery?.images, preloadAdjacentImages]);
+  }, [gallery?.images, getCloudinaryUrl]);
 
-  const handleImageClick = (index: number) => {
+  // Preload adjacent images when lightbox opens
+  useEffect(() => {
+    if (selectedImageIndex >= 0 && gallery?.images) {
+      const preloadCount = 2;
+      const images = gallery.images;
+      
+      for (let i = 1; i <= preloadCount; i++) {
+        const nextIndex = (selectedImageIndex + i) % images.length;
+        const prevIndex = (selectedImageIndex - i + images.length) % images.length;
+        
+        [nextIndex, prevIndex].forEach((idx) => {
+          if (images[idx]?.publicId) {
+            const img = new Image();
+            img.src = getCloudinaryUrl(images[idx].publicId, 'w_1600,q_auto,f_auto');
+          }
+        });
+      }
+    }
+  }, [selectedImageIndex, gallery?.images]);
+
+const handleImageClick = (index: number) => {
     console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
 
     if (isMobile) {
@@ -2101,14 +2114,12 @@ const renderGalleryControls = useCallback(() => {
                   <motion.img
                     src={
                       preloadedImages.has(selectedImage.id)
-                        ? getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')  // Full-res if preloaded
-                        : getCloudinaryUrl(selectedImage.publicId, 'w_50,q_10,e_blur:200')   // Low-res if not
+                        ? getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')  // Show full-res if preloaded
+                        : getCloudinaryUrl(selectedImage.publicId, 'w_50,q_10,e_blur:200')   // Show low-res if not
                     }
                     data-src={getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')}
                     alt={selectedImage.originalFilename || ''}
-                    className={`max-w-full max-h-full w-auto h-auto object-contain lightbox-img ${
-                      preloadedImages.has(selectedImage.id) ? 'loaded' : 'blur-up'
-                    }`}
+                    className="max-w-full max-h-full w-auto h-auto object-contain lightbox-img blur-up"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
