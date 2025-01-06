@@ -82,7 +82,6 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { ShareModal } from "@/components/ShareModal";
 import { FloatingToolbar } from "@/components/FloatingToolbar";
-import { Lock } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
