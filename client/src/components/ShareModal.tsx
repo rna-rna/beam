@@ -14,16 +14,18 @@ interface ShareModalProps {
   isPublic: boolean;
   onVisibilityChange: (checked: boolean) => void;
   galleryUrl: string;
+  thumbnailUrl?: string;
 }
 
-export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisibilityChange, galleryUrl }: ShareModalProps) {
+export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisibilityChange, galleryUrl, thumbnailUrl }: ShareModalProps) {
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   const beamOverlayTransform = 'l_beam-bar_q6desn,g_center,x_0,y_0';
-  const getShareableLink = (url: string) => {
-    return `${url}?ogImage=${encodeURIComponent(getCloudinaryUrl('beam-bar_q6desn', `w_800,c_limit,q_auto,f_auto,${beamOverlayTransform}`))}`;
+  const getShareableLink = (imageUrl: string) => {
+    const baseImage = imageUrl || 'beam-bar_q6desn';
+    return `${galleryUrl}?ogImage=${encodeURIComponent(getCloudinaryUrl(baseImage, `w_800,c_limit,q_auto,f_auto,${beamOverlayTransform}`))}`;
   };
 
   const handleCopyLink = async () => {
@@ -78,7 +80,7 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
               <div className="flex space-x-2">
                 <Input
                   id="share-link"
-                  value={isPublic ? getShareableLink(galleryUrl) : galleryUrl}
+                  value={isPublic ? getShareableLink(thumbnailUrl || '') : galleryUrl}
                   readOnly
                   className="flex-1"
                 />
