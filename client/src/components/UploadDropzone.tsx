@@ -100,6 +100,22 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
         }
       }
 
+      toast({
+        title: "Success",
+        description: "Files uploaded successfully",
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload files",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress({});
+    }
+
     const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB chunks
 
     const uploadChunks = async (file: File) => {
