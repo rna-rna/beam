@@ -829,6 +829,10 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
 
+      // Get OG image URL from first image or use fallback
+      const ogImageUrl = processedImages[0]?.url || 
+        'https://res.cloudinary.com/dq7m5z3zf/image/upload/v1700000000/12_crhopz.jpg';
+
       res.json({
         id: gallery.id,
         slug: gallery.slug,
@@ -836,7 +840,8 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         isPublic: gallery.isPublic,
         images: processedImages,
         isOwner,
-        createdAt: gallery.createdAt
+        createdAt: gallery.createdAt,
+        ogImageUrl
       });
     } catch (error) {
       console.error('Gallery fetch error:', error);
