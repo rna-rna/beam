@@ -98,12 +98,3 @@ const LightboxDialogContent = React.forwardRef<
 LightboxDialogContent.displayName = "LightboxDialogContent";
 
 export default LightboxDialogContent;
-
-//Added CSS for blur-up effect
-.blur-up {
-  filter: blur(20px);
-  transition: filter 0.5s ease-in-out;
-}
-.blur-up.loaded {
-  filter: blur(0);
-}
