@@ -1659,10 +1659,12 @@ const renderGalleryControls = useCallback(() => {
     );
   }
 
-  // Modify the image click handler in the gallery grid
+  // Image preloading logic
   const preloadAdjacentImages = useCallback((index: number) => {
+    if (!gallery?.images) return;
+    
     const preloadCount = 2;
-    const images = gallery?.images || [];
+    const images = gallery.images;
     
     for (let i = 1; i <= preloadCount; i++) {
       const nextIndex = (index + i) % images.length;
@@ -1675,7 +1677,7 @@ const renderGalleryControls = useCallback(() => {
         }
       });
     }
-  }, [gallery?.images]);
+  }, [gallery?.images, getCloudinaryUrl]);
 
   useEffect(() => {
     if (selectedImageIndex >= 0 && gallery?.images) {
