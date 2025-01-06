@@ -1531,6 +1531,25 @@ const renderGalleryControls = useCallback(() => {
     </motion.div>
   );
 
+  const preloadAdjacentImages = useCallback((index: number) => {
+    if (!gallery?.images) return;
+    
+    const preloadCount = 5;
+    const images = gallery.images;
+    
+    for (let i = 1; i <= preloadCount; i++) {
+      const nextIndex = (index + i) % images.length;
+      const prevIndex = (index - i + images.length) % images.length;
+      
+      [nextIndex, prevIndex].forEach((idx) => {
+        if (images[idx]?.publicId) {
+          const img = new Image();
+          img.src = getCloudinaryUrl(images[idx].publicId, 'w_1600,q_auto,f_auto');
+        }
+      });
+    }
+  }, [gallery?.images]);
+
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && selectMode) {
