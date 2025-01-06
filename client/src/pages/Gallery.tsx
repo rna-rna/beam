@@ -2114,12 +2114,14 @@ const handleImageClick = (index: number) => {
                   <motion.img
                     src={
                       preloadedImages.has(selectedImage.id)
-                        ? getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')  // Show full-res if preloaded
-                        : getCloudinaryUrl(selectedImage.publicId, 'w_50,q_10,e_blur:200')   // Show low-res if not
+                        ? getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')  // Full-res if preloaded
+                        : getCloudinaryUrl(selectedImage.publicId, 'w_50,q_10,e_blur:200')   // Low-res if not
                     }
                     data-src={getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')}
                     alt={selectedImage.originalFilename || ''}
-                    className="max-w-full max-h-full w-auto h-auto object-contain lightbox-img blur-up"
+                    className={`max-w-full max-h-full w-auto h-auto object-contain lightbox-img ${
+                      preloadedImages.has(selectedImage.id) ? 'loaded' : 'blur-up'
+                    }`}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
