@@ -250,7 +250,7 @@ export default function Dashboard() {
                     />
                   ) : (
                     <div className="w-full h-full bg-muted flex items-center justify-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
                     </div>
                   )}
                 </div>
