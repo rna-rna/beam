@@ -691,9 +691,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         xhr.send(formData);
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
       queryClient.refetchQueries({ queryKey: [`/api/galleries/${slug}`] });
+
+      // Trigger preloading immediately after upload
+      if (data?.images?.length) {
+        const lastIndex = data.images.length - 1;
+        preloadAdjacentImages(lastIndex);
+      }
+
       setIsUploading(false);
       setUploadProgress({});
       toast({
