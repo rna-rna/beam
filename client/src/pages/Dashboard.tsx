@@ -63,6 +63,7 @@ export default function Dashboard() {
     queryKey: ['/api/galleries'],
     queryFn: async () => {
       const token = await getToken();
+      console.log('Fetching galleries with token:', token ? 'Present' : 'Missing');
       const res = await fetch('/api/galleries', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -72,9 +73,21 @@ export default function Dashboard() {
       });
       if (!res.ok) {
         const error = await res.text();
+        console.error('Gallery fetch failed:', { status: res.status, error });
         throw new Error(error || 'Failed to fetch galleries');
       }
-      return res.json();
+      const data = await res.json();
+      console.log('Dashboard Galleries:', {
+        count: data.length,
+        galleries: data.map(g => ({
+          id: g.id,
+          slug: g.slug,
+          title: g.title,
+          imageCount: g.imageCount,
+          hasThumb: !!g.thumbnailUrl
+        }))
+      });
+      return data;
     },
     enabled: !!user,
   });
