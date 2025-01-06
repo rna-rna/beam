@@ -1330,16 +1330,16 @@ const renderGalleryControls = useCallback(() => {
         {preloadedImages.has(image.id) && (
           <>
             <img
-              src={(()=>{
-                const url = getCloudinaryUrl(image.publicId, 'w_600,h_400,c_fill,q_auto,f_auto');
-                console.log('Thumbnail URL for image', image.id, ':', url);
-                return url;
-              })()}
+              src={image.publicId ? getCloudinaryUrl(image.publicId, 'w_600,h_400,c_fill,q_auto,f_auto') : image.url}
               alt={image.originalFilename || ''}
               className={`w-full h-auto object-cover rounded-lg ${
                 selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
               } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
               loading="lazy"
+              onError={(e) => {
+                console.error('Image load failed:', image);
+                e.currentTarget.src = image.url;
+              }}
               draggable={false}
             />
           </>
