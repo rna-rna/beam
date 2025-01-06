@@ -1195,15 +1195,6 @@ async function generateOgImage(galleryId: string, imagePath: string) {
   // Chunk upload endpoint
   app.post('/api/upload/chunk', upload.single('chunk'), async (req: any, res) => {
     try {
-      console.log('Chunk upload triggered');
-      console.log('Request body:', req.body);
-      console.log('Request file:', {
-        fieldname: req?.file?.fieldname,
-        originalname: req?.file?.originalname,
-        size: req?.file?.size,
-        path: req?.file?.path
-      });
-
       if (!req.file) {
         console.error('No chunk file received');
         return res.status(400).json({ success: false, error: 'No chunk received' });
@@ -1212,6 +1203,8 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       const chunkIndex = parseInt(req.body.chunkIndex);
       const totalChunks = parseInt(req.body.totalChunks);
       const filename = req.body.filename;
+
+      console.log(`Received chunk ${chunkIndex} of ${totalChunks} for ${filename}`);
       
       // Store chunk temporarily
       const chunkDir = path.join(__dirname, '../uploads/chunks', filename);
@@ -1219,14 +1212,37 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         fs.mkdirSync(chunkDir, { recursive: true });
       }
       
-      // Save this chunk with proper naming
-      fs.writeFileSync(
-        path.join(chunkDir, `${filename}-chunk-${chunkIndex}`),
-        fs.readFileSync(req.file.path)
-      );
-      
-      // If this was the last chunk, assemble and upload
+      // Create chunks directory if it doesn't exist
+      const chunkDir = path.join(__dirname, '../uploads/chunks', filename);
+      fs.mkdirSync(chunkDir, { recursive: true });
+
+      // Save the chunk
+      const chunkPath = path.join(chunkDir, `${filename}-chunk-${chunkIndex}`);
+      fs.writeFileSync(chunkPath, fs.readFileSync(req.file.path));
+
+      // If this is the last chunk, assemble and upload
       if (chunkIndex === totalChunks - 1) {
+        try {
+          // Assemble chunks into final file
+          const finalPath = path.join(__dirname, '../uploads', filename);
+          const writeStream = fs.createWriteStream(finalPath);
+
+          // Combine all chunks in order
+          for (let i = 0; i < totalChunks; i++) {
+            const currentChunkPath = path.join(chunkDir, `${filename}-chunk-${i}`);
+            if (!fs.existsSync(currentChunkPath)) {
+              throw new Error(`Missing chunk ${i}`);
+            }
+            const chunkData = fs.readFileSync(currentChunkPath);
+            writeStream.write(chunkData);
+          }
+          writeStream.end();
+
+          // Upload to Cloudinary
+          const result = await cloudinary.uploader.upload(finalPath, {
+            folder: 'galleries',
+            resource_type: 'auto'
+          });
         try {
           const finalPath = path.join(__dirname, '../uploads', filename);
           const writeStream = fs.createWriteStream(finalPath);
