@@ -154,17 +154,19 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       const slug = nanoid(10);
 
       // Create gallery first
-      // First upload the first image to Cloudinary if available
+      // Get the first image and use it for OG
       let ogImageUrl = null;
       if (files && files.length > 0) {
         try {
+          // Upload first image with OG optimization
           const uploadResponse = await cloudinary.uploader.upload(files[0].path, {
             transformation: [{
               width: 1200,
               height: 630,
-              crop: 'limit',
+              crop: 'fill',
+              gravity: "auto",
               overlay: 'beam-bar_q6desn',
-              gravity: 'center',
+              color: 'rgb:151515',
               fetch_format: 'auto',
               quality: 'auto'
             }],
