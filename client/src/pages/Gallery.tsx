@@ -1329,8 +1329,8 @@ const renderGalleryControls = useCallback(() => {
         {preloadedImages.has(image.id) && (
           <>
             <img
-              src={image.url}
-              alt=""
+              src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload/q_auto,f_auto/${image.publicId}`}
+              alt={image.originalFilename || ''}
               className={`w-full h-auto object-cover rounded-lg ${
                 selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
               } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
