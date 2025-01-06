@@ -249,9 +249,8 @@ export default function Dashboard() {
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center flex-col gap-2">
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
                       <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
-                      <span className="text-sm text-muted-foreground">No image available</span>
                     </div>
                   )}
                 </div>
