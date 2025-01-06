@@ -22,8 +22,8 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const getShareableLink = (thumbnailUrl: string) => {
-    return `${galleryUrl}?ogImage=${encodeURIComponent(getCloudinaryUrl(thumbnailUrl, 'w_1200,h_630,c_limit,q_auto,f_auto,l_beam-bar_q6desn,g_center,x_0,y_0'))}`;
+  const getShareableLink = () => {
+    return galleryUrl;
   };
 
   const handleCopyLink = async () => {
@@ -78,7 +78,7 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
               <div className="flex space-x-2">
                 <Input
                   id="share-link"
-                  value={getShareableLink(thumbnailUrl)}
+                  value={getShareableLink()}
                   readOnly
                   className="flex-1"
                 />
