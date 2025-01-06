@@ -1531,16 +1531,16 @@ const renderGalleryControls = useCallback(() => {
     </motion.div>
   );
 
-  const preloadAdjacentImages = useCallback((index: number) => {
+  const preloadAdjacentImages = (index: number) => {
     if (!gallery?.images) return;
-    
+
     const preloadCount = 5;
     const images = gallery.images;
-    
+
     for (let i = 1; i <= preloadCount; i++) {
       const nextIndex = (index + i) % images.length;
       const prevIndex = (index - i + images.length) % images.length;
-      
+
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
@@ -1548,7 +1548,7 @@ const renderGalleryControls = useCallback(() => {
         }
       });
     }
-  }, [gallery?.images]);
+  };
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
