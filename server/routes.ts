@@ -165,7 +165,7 @@ export function registerRoutes(app: Express): Server {
         const imageInserts = files.map(file => ({
           galleryId: gallery.id,
           url: file.path || `/uploads/${file.filename}`,
-          publicId: file.public_id || file.filename,
+          publicId: file.filename,
           originalFilename: file.originalname,
           width: file.width || 800,
           height: file.height || 600,
@@ -327,7 +327,7 @@ export function registerRoutes(app: Express): Server {
         return {
           galleryId: gallery.id,
           url: file.path || `/uploads/${file.filename}`,
-          publicId: file.public_id || file.filename,
+          publicId: file.filename,
           originalFilename: file.originalname,
           width: file.width || 800,
           height: file.height || 600
