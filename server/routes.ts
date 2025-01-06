@@ -1219,31 +1219,45 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         fs.mkdirSync(chunkDir, { recursive: true });
       }
       
-      // Save this chunk
+      // Save this chunk with proper naming
       fs.writeFileSync(
-        path.join(chunkDir, `${chunkIndex}`),
+        path.join(chunkDir, `${filename}-chunk-${chunkIndex}`),
         fs.readFileSync(req.file.path)
       );
       
-      // If this was the last chunk, combine them
+      // If this was the last chunk, assemble and upload
       if (chunkIndex === totalChunks - 1) {
-        const completeFilePath = path.join(__dirname, '../uploads', filename);
-        const writeStream = fs.createWriteStream(completeFilePath);
-        
-        // Combine all chunks
-        for (let i = 0; i < totalChunks; i++) {
-          const chunkPath = path.join(chunkDir, `${i}`);
-          const chunkBuffer = fs.readFileSync(chunkPath);
-          writeStream.write(chunkBuffer);
-        }
-        
-        writeStream.end();
-        
-        // Clean up chunks
-        fs.rmSync(chunkDir, { recursive: true });
-        
-        // Upload complete file to Cloudinary
-        const result = await cloudinary.uploader.upload(completeFilePath);
+        try {
+          const finalPath = path.join(__dirname, '../uploads', filename);
+          const writeStream = fs.createWriteStream(finalPath);
+          
+          // Combine chunks
+          for (let i = 0; i < totalChunks; i++) {
+            const chunkPath = path.join(chunkDir, `${filename}-chunk-${i}`);
+            if (fs.existsSync(chunkPath)) {
+              const chunkData = fs.readFileSync(chunkPath);
+              writeStream.write(chunkData);
+              fs.unlinkSync(chunkPath); // Clean up chunk
+            } else {
+              throw new Error(`Chunk ${i} is missing`);
+            }
+          }
+          
+          writeStream.end();
+          
+          // Upload to Cloudinary
+          const result = await cloudinary.uploader.upload(finalPath, {
+            folder: 'galleries',
+            resource_type: 'auto'
+          });
+          
+          // Clean up assembled file
+          fs.unlinkSync(finalPath);
+          
+          // Clean up chunk directory
+          if (fs.existsSync(chunkDir)) {
+            fs.rmSync(chunkDir, { recursive: true });
+          }
         
         res.json({
           success: true,
