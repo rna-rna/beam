@@ -154,6 +154,30 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       const slug = nanoid(10);
 
       // Create gallery first
+      // First upload the first image to Cloudinary if available
+      let ogImageUrl = null;
+      if (files && files.length > 0) {
+        try {
+          const uploadResponse = await cloudinary.uploader.upload(files[0].path, {
+            transformation: [{
+              width: 1200,
+              height: 630,
+              crop: 'limit',
+              overlay: 'beam-bar_q6desn',
+              gravity: 'center',
+              fetch_format: 'auto',
+              quality: 'auto'
+            }],
+            public_id: `og_gallery_${slug}`,
+            folder: 'galleries/og'
+          });
+          ogImageUrl = uploadResponse.secure_url;
+        } catch (error) {
+          console.error('Failed to generate OG image:', error);
+        }
+      }
+
+      // Create gallery with OG image URL if available
       const [gallery] = await db.insert(galleries).values({
         slug,
         title,
@@ -161,23 +185,10 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         guestUpload: isGuestUpload,
         isPublic: isGuestUpload ? true : false,
         createdAt: new Date(),
-        ogImageUrl: null
+        ogImageUrl
       }).returning();
 
-      // Generate OG image from first uploaded file if available
-      if (files && files.length > 0) {
-        try {
-          const ogImageUrl = await generateOgImage(gallery.id.toString(), files[0].path);
-          await db.update(galleries)
-            .set({ ogImageUrl })
-            .where(eq(galleries.id, gallery.id));
-          gallery.ogImageUrl = ogImageUrl;
-        } catch (error) {
-          console.error('Failed to generate OG image:', error);
-        }
-      }
-
-      // If we have files, generate OG image from first image
+      // If we have files, process them for the gallery
       if (files && files.length > 0) {
         try {
           const firstImage = files[0];
