@@ -1329,7 +1329,7 @@ const renderGalleryControls = useCallback(() => {
         {preloadedImages.has(image.id) && (
           <>
             <img
-              src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload/q_auto,f_auto/${image.publicId}`}
+              src={getCloudinaryUrl(image.publicId, 'w_600,h_400,c_fill,q_auto,f_auto')}
               alt={image.originalFilename || ''}
               className={`w-full h-auto object-cover rounded-lg ${
                 selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
@@ -2029,8 +2029,8 @@ const renderGalleryControls = useCallback(() => {
                 <div className="w-full h-full flex items-center justify-center">
                   {/* Image with onLoad handler */}
                   <motion.img
-                    src={selectedImage.url}
-                    alt=""
+                    src={getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')}
+                    alt={selectedImage.originalFilename || ''}
                     className="max-w-full max-h-full w-auto h-auto object-contain"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
