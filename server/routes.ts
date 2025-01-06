@@ -289,6 +289,9 @@ export function registerRoutes(app: Express): Server {
   // Add images to gallery (supports both guest and authenticated uploads)
   app.post('/api/galleries/:slug/images', upload.array('images', 50), async (req: any, res) => {
     try {
+      console.log('Upload request received for gallery:', req.params.slug);
+      console.log('Uploaded Files:', JSON.stringify(req.files, null, 2));
+
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug)
       });
@@ -309,18 +312,29 @@ export function registerRoutes(app: Express): Server {
       }
 
       if (!req.files || !Array.isArray(req.files)) {
+        console.error('No files found in request');
         return res.status(400).json({ message: 'No images uploaded' });
       }
 
-      const imageInserts = req.files.map(file => ({
-        galleryId: gallery.id,
-        url: file.path || `/uploads/${file.filename}`,
-        publicId: file.public_id || file.filename,
-        originalFilename: file.originalname,
-        width: file.width || 800,
-        height: file.height || 600
-      }));
+      const imageInserts = req.files.map(file => {
+        console.log('Processing file:', {
+          filename: file.filename,
+          path: file.path,
+          publicId: file.public_id,
+          originalName: file.originalname
+        });
+        
+        return {
+          galleryId: gallery.id,
+          url: file.path || `/uploads/${file.filename}`,
+          publicId: file.public_id || file.filename,
+          originalFilename: file.originalname,
+          width: file.width || 800,
+          height: file.height || 600
+        };
+      });
 
+      console.log('Inserting images:', JSON.stringify(imageInserts, null, 2));
       await db.insert(images).values(imageInserts);
       res.json({ success: true });
     } catch (error) {
