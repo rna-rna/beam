@@ -1581,18 +1581,14 @@ const renderGalleryControls = useCallback(() => {
 
   if (isPrivateGallery) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <Lock className="h-12 w-12 text-muted-foreground" />
-              <h1 className="text-2xl font-semibold">Private Gallery</h1>
-              <p className="text-muted-foreground">
-                This gallery is private and can only be accessed by its owner.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Alert variant="destructive" className="w-full max-w-md border-destructive">
+          <Lock className="h-12 w-12 mb-2" />
+          <AlertTitle className="text-2xl mb-2">Sorry, This Beam Project is private!</AlertTitle>
+          <AlertDescription className="text-base">
+            This gallery can only be accessed by its owner.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
