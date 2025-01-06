@@ -31,8 +31,11 @@ import {
   MessageCircle,
   PencilRuler,
   Eye,
-  EyeOff
+  EyeOff,
+  Lock
 } from "lucide-react";
+
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
