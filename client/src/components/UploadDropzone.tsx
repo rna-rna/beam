@@ -202,7 +202,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
   const isClickDisabled = useMemo(() => imageCount > 0, [imageCount]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
+    onDrop: handleLargeFileUpload,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
