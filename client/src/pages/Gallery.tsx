@@ -2101,30 +2101,39 @@ const handleImageClick = (index: number) => {
                   setIsCommentPlacementMode(false);
                 }}
               >
-                <div className="w-full h-full flex items-center justify-center">
-                  {/* Image with onLoad handler */}
+                <div className="w-full h-full flex items-center justify-center relative">
                   {isLowResLoading && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <Loader2 className="h-12 w-12 animate-spin text-zinc-400" />
                     </div>
                   )}
+
                   <motion.img
                     src={getCloudinaryUrl(selectedImage.publicId, 'w_50,q_10,e_blur:200')}
+                    data-src={getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')}
                     alt={selectedImage.originalFilename || ''}
-                    className="max-w-full max-h-full w-auto h-auto object-contain lightbox-img blur-up"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: isLowResLoading ? 0 : 1 }}
-                    onLoad={() => {
+                    className={`max-w-full max-h-full w-auto h-auto object-contain lightbox-img blur-up ${
+                      isLowResLoading ? 'opacity-0' : 'opacity-100'
+                    }`}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    onLoad={(e) => {
                       setIsLowResLoading(false);
-                      const img = new Image();
-                      img.src = getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto');
-                      img.onload = () => {
-                        setIsLoading(false);
-                        setImageDimensions({
-                          width: img.width,
-                          height: img.height,
-                        });
-                      };
+                      setIsLoading(false);
+                      
+                      const img = e.currentTarget;
+                      img.src = img.dataset.src || img.src;
+                      img.classList.add('loaded');
+                      
+                      setImageDimensions({
+                        width: img.clientWidth,
+                        height: img.clientHeight,
+                      });
+                    }}
+                    onError={() => {
+                      setIsLoading(false);
+                      setIsLowResLoading(false);
                     }}
                   />
 
