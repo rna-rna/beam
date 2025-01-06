@@ -132,14 +132,42 @@ export function registerRoutes(app: Express): Server {
       // Generate unique slug for every new gallery
       const slug = nanoid(10);
 
+      // Create gallery first
       const [gallery] = await db.insert(galleries).values({
         slug,
         title,
         userId: userId || 'guest',
         guestUpload: isGuestUpload,
         isPublic: isGuestUpload ? true : false,
-        createdAt: new Date()
+        createdAt: new Date(),
+        ogImageUrl: null // Add this field
       }).returning();
+
+      // If we have files, generate OG image from first image
+      if (files && files.length > 0) {
+        try {
+          const firstImage = files[0];
+          const uploadResponse = await cloudinary.uploader.upload(firstImage.path, {
+            eager: [{
+              width: 1200,
+              height: 630,
+              crop: "limit",
+              overlay: "beam-bar_q6desn",
+              gravity: "center"
+            }],
+            public_id: `og_gallery_${gallery.slug}`
+          });
+
+          // Update gallery with OG image URL
+          await db.update(galleries)
+            .set({ ogImageUrl: uploadResponse.secure_url })
+            .where(eq(galleries.id, gallery.id));
+
+          gallery.ogImageUrl = uploadResponse.secure_url;
+        } catch (error) {
+          console.error('Failed to generate OG image:', error);
+        }
+      }
 
       console.log('Gallery created, waiting for propagation...');
 

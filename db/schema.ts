@@ -1,4 +1,3 @@
-
 import { pgTable, text, serial, timestamp, integer, boolean, real, index, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from 'drizzle-orm';
@@ -10,7 +9,8 @@ export const galleries = pgTable('galleries', {
   userId: text('user_id').default('guest'), // Clerk user ID
   isPublic: boolean('is_public').default(false).notNull(),
   guestUpload: boolean('guest_upload').default(false).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull()
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  ogImageUrl: text('og_image_url'),
 }, (table) => ({
   userIdIdx: index('galleries_user_id_idx').on(table.userId)
 }));

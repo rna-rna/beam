@@ -1729,11 +1729,7 @@ const renderGalleryControls = useCallback(() => {
         <Helmet>
           <meta property="og:title" content={gallery.title} />
           <meta property="og:description" content="Explore this gallery!" />
-          <meta property="og:image" content={
-            gallery.thumbnailUrl 
-              ? getCloudinaryUrl(gallery.thumbnailUrl, `w_800,c_limit,q_auto,f_auto,${beamOverlayTransform}`)
-              : '/images/placeholder.jpg'
-          } />
+          <meta property="og:image" content={gallery.ogImageUrl || '/images/placeholder.jpg'} />
           <meta property="og:image:width" content="800" />
           <meta property="og:image:height" content="600" />
           <meta property="og:type" content="website" />
