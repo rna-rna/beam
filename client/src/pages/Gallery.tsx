@@ -1692,8 +1692,9 @@ const renderGalleryControls = useCallback(() => {
   }
 
   useEffect(() => {
-    if (selectedImageIndex < 0 || !gallery?.images) return;
-    preloadAdjacentImages(selectedImageIndex);
+    if (selectedImageIndex >= 0 && gallery?.images) {
+      preloadAdjacentImages(selectedImageIndex);
+    }
   }, [selectedImageIndex, gallery?.images, preloadAdjacentImages]);
 
   const handleImageClick = (index: number) => {
