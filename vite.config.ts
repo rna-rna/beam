@@ -30,10 +30,10 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     resolve: {
-      alias: {
-        "@db": path.resolve(__dirname, "db"),
-        "@": path.resolve(__dirname, "client", "src"),
-      },
+      alias: [
+        { find: "@db", replacement: path.resolve(__dirname, "db") },
+        { find: "@", replacement: path.resolve(__dirname, "./client/src") }
+      ]
     },
     root: path.resolve(__dirname, "./client"),
     build: {
