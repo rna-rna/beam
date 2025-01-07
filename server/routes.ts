@@ -1216,7 +1216,8 @@ async function generateOgImage(galleryId: string, imagePath: string) {
 
   // Invite users to a gallery
   protectedRouter.post('/galleries/:slug/invite', async (req, res) => {
-    const { email, role } = req.body;
+    const { role } = req.body;
+    const email = req.body.email.toLowerCase();
     const { slug } = req.params;
     const userId = req.auth.userId;
 
