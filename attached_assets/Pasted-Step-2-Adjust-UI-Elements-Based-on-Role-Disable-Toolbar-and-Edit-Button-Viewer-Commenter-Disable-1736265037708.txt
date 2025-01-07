@@ -1,0 +1,77 @@
+Step 2: Adjust UI Elements Based on Role
+Disable Toolbar and Edit Button (Viewer, Commenter)
+Disable Upload/Deletion (Viewer, Commenter)
+Remove Share Modal for Non-Editors (Viewer, Commenter)
+tsx
+Copy code
+const renderGalleryControls = useCallback(() => {
+  if (!gallery) return null;
+
+  return (
+    <div className="flex items-center justify-between gap-2 p-2 rounded-lg">
+      <div className="flex items-center gap-4">
+        {/* Presence Avatars */}
+        <div className="flex -space-x-2">
+          {activeUsers.map((member) => (
+            <UserAvatar
+              key={member.userId}
+              name={member.name}
+              imageUrl={member.avatar}
+              isActive={true}
+            />
+          ))}
+        </div>
+      </div>
+
+      <TooltipProvider>
+        {/* Toolbar and Edit Disabled for Viewer/Commenter */}
+        {userRole === "Editor" && (
+          <>
+            <Button
+              size="icon"
+              onClick={toggleGridView}
+              className="h-9 w-9"
+            >
+              {isMasonry ? <Grid /> : <LayoutGrid />}
+            </Button>
+
+            <Button
+              size="icon"
+              onClick={toggleSelectMode}
+              className="h-9 w-9"
+            >
+              <PencilRuler />
+            </Button>
+          </>
+        )}
+
+        {/* Share Button - Limited to Copy Link for Viewer/Commenter */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              className="h-9 w-9"
+              onClick={() =>
+                userRole === "Editor"
+                  ? setIsOpenShareModal(true)
+                  : handleCopyLink()
+              }
+            >
+              <Share />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {userRole === "Editor" ? "Share" : "Copy Link"}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
+}, [
+  gallery,
+  activeUsers,
+  toggleGridView,
+  userRole,
+  isMasonry,
+  handleCopyLink,
+]);
