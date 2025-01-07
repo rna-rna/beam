@@ -4,108 +4,133 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Copy, CheckCircle } from "lucide-react";
+import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Copy, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
-import { debounce } from "lodash";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
-  isPublic: boolean;
-  onVisibilityChange: (checked: boolean) => void;
   galleryUrl: string;
   slug: string;
+  isPublic: boolean;
+  onVisibilityChange: (checked: boolean) => void;
 }
 
 interface User {
   id: string;
   email: string;
   fullName: string;
-  avatarUrl: string | null;
+  avatarUrl?: string | null;
+  role: string;
 }
 
-export function ShareModal({ 
-  isOpen, 
-  onClose, 
-  isPublic: initialIsPublic, 
-  onVisibilityChange, 
-  galleryUrl,
-  slug 
-}: ShareModalProps) {
-  const [isPublic, setIsPublic] = useState(initialIsPublic);
-  const [copied, setCopied] = useState(false);
+export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisibilityChange }: ShareModalProps) {
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("View");
   const [userSuggestions, setUserSuggestions] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
+  const [linkPermission, setLinkPermission] = useState(isPublic ? "view" : "none");
+  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const lookupUser = debounce(async (query: string) => {
-    if (!query || query.length < 3) {
-      setUserSuggestions([]);
-      return;
-    }
-    setLoading(true);
-
-    try {
-      const res = await fetch(`/api/users/search?email=${query}`);
-      const data = await res.json();
-      setUserSuggestions(data.users || []);
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, 300);
-
+  // Update link permission when public status changes
   useEffect(() => {
-    lookupUser(email);
+    setLinkPermission(isPublic ? "view" : "none");
+  }, [isPublic]);
+
+  // User lookup with debounce
+  useEffect(() => {
+    const timeout = setTimeout(async () => {
+      if (email.length < 3) {
+        setUserSuggestions([]);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/users/search?email=${email}`);
+        const data = await res.json();
+        if (data.success) {
+          setUserSuggestions(data.users || []);
+        }
+      } catch (error) {
+        console.error("User lookup failed:", error);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeout);
   }, [email]);
 
+  // Handle link permission change
+  const handleLinkPermissionChange = (value: string) => {
+    setLinkPermission(value);
+    onVisibilityChange(value !== "none");
+  };
+
+  // Handle user selection
   const handleSelectUser = (user: User) => {
-    setSelectedUser(user);
-    setEmail(user.email);
+    setSelectedUsers((prev) => [...prev, { ...user, role: "View" }]);
+    setEmail("");
     setUserSuggestions([]);
   };
 
-  const inviteMutation = useMutation({
-    mutationFn: async () => {
+  // Handle role change
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    try {
       const res = await fetch(`/api/galleries/${slug}/invite`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, role }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: selectedUsers.find(u => u.id === userId)?.email,
+          role: newRole
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update role");
+
+      setSelectedUsers((prev) =>
+        prev.map((user) =>
+          user.id === userId ? { ...user, role: newRole } : user
+        )
+      );
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update role. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle send invites
+  const handleSendInvite = async () => {
+    if (!email) return;
+
+    try {
+      const res = await fetch(`/api/galleries/${slug}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          role: "View"
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to send invite");
-      return res.json();
-    },
-    onSuccess: () => {
+
       toast({
-        title: "Invite sent",
-        description: `Invitation sent to ${email}`,
+        title: "Success",
+        description: "Invite sent successfully",
       });
+
       setEmail("");
-      setSelectedUser(null);
-    },
-    onError: (error) => {
+    } catch (error) {
       toast({
-        title: "Failed to send invite",
-        description: error instanceof Error ? error.message : "Please try again",
+        title: "Error",
+        description: "Failed to send invite. Please try again.",
         variant: "destructive",
       });
-    },
-  });
-
-  const handleInvite = (e: React.FormEvent) => {
-    e.preventDefault();
-    inviteMutation.mutate();
+    }
   };
 
   const handleCopyLink = () => {
@@ -113,14 +138,9 @@ export function ShareModal({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     toast({
-      title: "Link copied",
-      description: "Gallery link copied to clipboard",
+      title: "Success",
+      description: "Link copied to clipboard",
     });
-  };
-
-  const handleVisibilityChange = (checked: boolean) => {
-    setIsPublic(checked);
-    onVisibilityChange(checked);
   };
 
   return (
@@ -130,109 +150,96 @@ export function ShareModal({
           <DialogTitle>Share Gallery</DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={isPublic}
-              onCheckedChange={handleVisibilityChange}
-              aria-label="Toggle gallery visibility"
-            />
-            <Label>Make gallery public</Label>
+          {/* Link Permission */}
+          <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
+            <p>Anyone with the link</p>
+            <Select
+              value={linkPermission}
+              onValueChange={handleLinkPermissionChange}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="view">Can view</SelectItem>
+                <SelectItem value="none">Restricted</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {isPublic && (
-            <div className="space-y-2">
-              <Label>Share link</Label>
-              <div className="flex space-x-2">
-                <Input
-                  value={galleryUrl}
-                  readOnly
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleCopyLink}
-                >
-                  {copied ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleInvite} className="space-y-4">
-            <div className="relative">
-              <Label htmlFor="email-input">Invite by email</Label>
+          {/* Email Input */}
+          <div className="space-y-2">
+            <Label>Add people</Label>
+            <div className="flex gap-2">
               <Input
-                id="email-input"
                 type="email"
                 placeholder="Enter email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
               />
-              {loading && <p className="text-sm text-muted-foreground mt-2">Searching...</p>}
-
-              {userSuggestions.length > 0 && (
-                <div className="absolute z-10 bg-background border rounded-md shadow-md mt-2 w-full">
-                  {userSuggestions.map((user) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center space-x-3 p-2 hover:bg-muted cursor-pointer"
-                      onClick={() => handleSelectUser(user)}
-                    >
-                      <Avatar>
-                        {user.avatarUrl ? (
-                          <AvatarImage src={user.avatarUrl} />
-                        ) : (
-                          <AvatarFallback>{user.fullName[0]}</AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">{user.fullName}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {email && !selectedUser && !loading && (
-                <div className="flex items-center space-x-3 mt-4">
-                  <Avatar>
-                    <AvatarFallback>?</AvatarFallback>
-                  </Avatar>
-                  <p className="text-sm">Invite as new user</p>
-                </div>
-              )}
+              <Button onClick={handleSendInvite}>Send</Button>
             </div>
+            
+            {/* User Suggestions */}
+            {userSuggestions.length > 0 && (
+              <div className="mt-1 p-1 bg-background border rounded-lg shadow-sm">
+                {userSuggestions.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center gap-2 p-2 hover:bg-secondary/50 rounded-md cursor-pointer"
+                    onClick={() => handleSelectUser(user)}
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>{user.fullName[0]}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">{user.fullName}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="role-select">Permission level</Label>
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger>
+          {/* Selected Users */}
+          {selectedUsers.map((user) => (
+            <div
+              key={user.id}
+              className="flex items-center justify-between p-2 bg-secondary/20 rounded-lg"
+            >
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>{user.fullName[0]}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-medium">{user.fullName}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                </div>
+              </div>
+              <Select
+                value={user.role}
+                onValueChange={(role) => handleRoleChange(user.id, role)}
+              >
+                <SelectTrigger className="w-28">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Edit">Can edit</SelectItem>
-                  <SelectItem value="Comment">Can comment</SelectItem>
-                  <SelectItem value="View">Can view</SelectItem>
+                  <SelectItem value="View">Viewer</SelectItem>
+                  <SelectItem value="Comment">Commenter</SelectItem>
+                  <SelectItem value="Edit">Editor</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          ))}
 
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={inviteMutation.isPending}
-            >
-              {inviteMutation.isPending ? "Sending..." : "Send Invite"}
+          {/* Copy Link Button */}
+          <div className="flex justify-end">
+            <Button onClick={handleCopyLink} variant="outline">
+              <Copy className="mr-2 h-4 w-4" />
+              {copied ? "Copied!" : "Copy link"}
             </Button>
-          </form>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
