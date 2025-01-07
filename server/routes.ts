@@ -1375,6 +1375,43 @@ async function generateOgImage(galleryId: string, imagePath: string) {
     }
   });
 
+  // User search endpoint
+  app.get('/api/users/search', async (req, res) => {
+    try {
+      const email = req.query.email?.toString().toLowerCase();
+      
+      if (!email) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Email query parameter is required' 
+        });
+      }
+
+      const usersResponse = await clerkClient.users.getUserList({
+        email_address_query: email,
+      });
+
+      const users = usersResponse?.data.map((user) => ({
+        id: user.id,
+        email: user.emailAddresses[0]?.emailAddress,
+        fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        avatarUrl: user.imageUrl,
+      })) || [];
+
+      res.json({
+        success: true,
+        users
+      });
+    } catch (error) {
+      console.error('User search error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to search users',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Mount protected routes
   app.use('/api', protectedRouter);
 
