@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,7 @@ export function ShareModal({
   const inviteMutation = useMutation({
     mutationFn: async () => {
       if (!email) throw new Error("Email is required");
-      
+
       const res = await fetch(`/api/galleries/${slug}/invite`, {
         method: "POST",
         headers: {
@@ -45,8 +44,16 @@ export function ShareModal({
         body: JSON.stringify({ email, role }),
       });
 
-      if (!res.ok) throw new Error("Failed to send invite");
-      return res.json();
+      const result = await res.json();
+      console.log('Invite API Response:', {
+        status: res.status,
+        ok: res.ok,
+        data: result,
+        timestamp: new Date().toISOString()
+      });
+
+      if (!res.ok) throw new Error(result.message || "Failed to send invite");
+      return result;
     },
     onSuccess: () => {
       toast({
