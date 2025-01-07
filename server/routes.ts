@@ -2,10 +2,6 @@ import express, { type Express, type Request } from "express";
 import { createServer, type Server } from "http";
 import multer from 'multer';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments, stars } from '@db/schema';
@@ -34,21 +30,22 @@ declare global {
   }
 }
 
-// Configure multer for local chunk storage
-const chunkStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const chunkDir = path.join(__dirname, '../uploads/chunks');
-    fs.mkdirSync(chunkDir, { recursive: true });
-    cb(null, chunkDir);
-  },
-  filename: (req, file, cb) => {
-    const { chunkIndex, filename } = req.body;
-    cb(null, `${filename}-chunk-${chunkIndex}`);
+// Configure multer with Cloudinary storage
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import { cloudinary } from './lib/cloudinary';
+
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'galleries',
+    format: async (req, file) => 'jpg',
+    public_id: (req, file) => `${Date.now()}-${file.originalname.split('.')[0]}`,
+    transformation: [{ width: 1600, crop: "limit" }]
   },
 });
 
 const upload = multer({
-  storage: chunkStorage,
+  storage,
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
   }
@@ -1192,89 +1189,6 @@ async function generateOgImage(galleryId: string, imagePath: string) {
     }
   });
 
-  // Chunk upload endpoint
-  app.post('/api/upload/chunk', upload.single('chunk'), async (req: any, res) => {
-    try {
-      if (!req.file) {
-        console.error('No chunk file received');
-        return res.status(400).json({ success: false, error: 'No chunk received' });
-      }
-
-      const chunkIndex = parseInt(req.body.chunkIndex);
-      const totalChunks = parseInt(req.body.totalChunks);
-      const filename = req.body.filename;
-
-      console.log(`Received chunk ${chunkIndex} of ${totalChunks} for ${filename}`);
-      
-      // Create chunks directory if it doesn't exist
-      const chunkDir = path.join(__dirname, '../uploads/chunks', filename);
-      if (!fs.existsSync(chunkDir)) {
-        fs.mkdirSync(chunkDir, { recursive: true });
-      }
-
-      // Save the chunk
-      const chunkPath = path.join(chunkDir, `${filename}-chunk-${chunkIndex}`);
-      fs.writeFileSync(chunkPath, fs.readFileSync(req.file.path));
-
-      // If this is the last chunk, assemble and upload
-      if (chunkIndex === totalChunks - 1) {
-        let finalPath;
-        try {
-          // Assemble chunks into final file
-          finalPath = path.join(__dirname, '../uploads', filename);
-          const writeStream = fs.createWriteStream(finalPath);
-
-          // Combine all chunks in order
-          for (let i = 0; i < totalChunks; i++) {
-            const currentChunkPath = path.join(chunkDir, `${filename}-chunk-${i}`);
-            if (!fs.existsSync(currentChunkPath)) {
-              throw new Error(`Missing chunk ${i}`);
-            }
-            const chunkData = fs.readFileSync(currentChunkPath);
-            writeStream.write(chunkData);
-          }
-          writeStream.end();
-
-          // Upload to Cloudinary
-          const result = await cloudinary.uploader.upload(finalPath, {
-            folder: 'galleries',
-            resource_type: 'auto'
-          });
-
-          res.json({
-            success: true,
-            url: result.secure_url,
-            publicId: result.public_id
-          });
-        } catch (error) {
-          console.error('Error processing chunks:', error);
-          res.status(500).json({ 
-            success: false, 
-            error: error.message 
-          });
-        } finally {
-          // Clean up assembled file
-          if (finalPath && fs.existsSync(finalPath)) {
-            fs.unlinkSync(finalPath);
-          }
-          
-          // Clean up chunk directory
-          if (fs.existsSync(chunkDir)) {
-            fs.rmSync(chunkDir, { recursive: true });
-          }
-        }
-      } else {
-        res.json({ success: true, chunkIndex });
-      }
-    } catch (error) {
-      console.error('Chunk upload error:', error);
-      res.status(500).json({ 
-        success: false, 
-        error: error.message 
-      });
-    }
-  });
-
   // Mount protected routes
   app.use('/api', protectedRouter);
 
@@ -1287,4 +1201,3 @@ function generateSlug(): string {
   // Using a shorter length (10) for more readable URLs while maintaining uniqueness
   return nanoid(10);
 }
-  
