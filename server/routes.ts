@@ -1214,6 +1214,64 @@ async function generateOgImage(galleryId: string, imagePath: string) {
     }
   });
 
+  // Get gallery permissions
+  app.get('/api/galleries/:slug/permissions', async (req, res) => {
+    try {
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, req.params.slug)
+      });
+
+      if (!gallery) {
+        return res.status(404).json({
+          success: false,
+          message: 'Gallery not found'
+        });
+      }
+
+      const permissions = await db.query.invites.findMany({
+        where: eq(invites.galleryId, gallery.id)
+      });
+
+      // Get user details from Clerk for each invite
+      const usersWithDetails = await Promise.all(
+        permissions.map(async (invite) => {
+          if (invite.userId) {
+            try {
+              const user = await clerkClient.users.getUser(invite.userId);
+              return {
+                id: invite.id,
+                email: invite.email,
+                fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+                role: invite.role,
+                avatarUrl: user.imageUrl
+              };
+            } catch (error) {
+              console.error('Failed to fetch user details:', error);
+            }
+          }
+          return {
+            id: invite.id,
+            email: invite.email,
+            fullName: null,
+            role: invite.role,
+            avatarUrl: null
+          };
+        })
+      );
+
+      res.json({
+        success: true,
+        users: usersWithDetails
+      });
+    } catch (error) {
+      console.error('Failed to fetch permissions:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to fetch permissions'
+      });
+    }
+  });
+
   // Invite users to a gallery
   protectedRouter.post('/galleries/:slug/invite', async (req, res) => {
     const { role } = req.body;
