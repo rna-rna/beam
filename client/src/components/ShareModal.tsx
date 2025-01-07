@@ -9,6 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Copy, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+const isValidEmail = (email: string) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -185,7 +189,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                 )}
                 <Button 
                   onClick={handleSendInvite} 
-                  disabled={!selectedUser && !email.includes('@')}
+                  disabled={!selectedUser && !isValidEmail(email)}
                 >
                   Invite
                 </Button>
