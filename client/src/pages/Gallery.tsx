@@ -316,10 +316,29 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       fetch(`/api/galleries/${slug}/permissions`)
         .then((res) => res.json())
         .then((data) => {
-          const currentUserRole = data.users.find((u) => u.email === user?.primaryEmailAddress?.emailAddress)?.role || "Viewer";
+          console.log("Permissions API Response:", {
+            data,
+            currentUserEmail: user?.primaryEmailAddress?.emailAddress,
+            foundUser: data.users.find(u => u.email === user?.primaryEmailAddress?.emailAddress),
+            allEmails: data.users.map(u => u.email)
+          });
+          
+          const currentUserRole = data.users.find(
+            (u) => u.email === user?.primaryEmailAddress?.emailAddress
+          )?.role || "Viewer";
+          
+          console.log("Role Assignment:", {
+            assignedRole: currentUserRole,
+            userEmail: user?.primaryEmailAddress?.emailAddress,
+            isOwner: data.users.some(u => 
+              u.email === user?.primaryEmailAddress?.emailAddress && 
+              u.role === "Editor"
+            )
+          });
+
           setUserRole(currentUserRole);
         })
-        .catch(() => console.error("Failed to load permissions"));
+        .catch((error) => console.error("Failed to load permissions:", error));
     }
   }, [slug, user]);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
