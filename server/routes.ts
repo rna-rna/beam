@@ -378,10 +378,22 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         });
       }
 
-      // Allow uploads for guest galleries or authenticated owners
       const userId = req.auth?.userId;
-      if (!gallery.guestUpload && (!userId || userId !== gallery.userId)) {
-        return res.status(401).json({ message: 'Unauthorized' });
+      
+      // Check if user is owner or has editor permissions
+      const isOwner = userId === gallery.userId;
+      if (!isOwner && !gallery.guestUpload) {
+        const invite = await db.query.invites.findFirst({
+          where: and(
+            eq(invites.galleryId, gallery.id),
+            eq(invites.userId, userId),
+            eq(invites.role, 'Editor')
+          )
+        });
+
+        if (!invite) {
+          return res.status(403).json({ message: 'Only editors can upload images' });
+        }
       }
 
       if (!req.files || !Array.isArray(req.files)) {
@@ -1022,10 +1034,31 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         return res.status(400).json({ message: 'Invalid request: imageIds must be an array' });
       }
 
+      const userId = req.auth?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
       // Find the gallery first
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
+
+      // Check if user is owner or has editor permissions
+      const isOwner = userId === gallery?.userId;
+      if (!isOwner) {
+        const invite = await db.query.invites.findFirst({
+          where: and(
+            eq(invites.galleryId, gallery?.id || 0),
+            eq(invites.userId, userId),
+            eq(invites.role, 'Editor')
+          )
+        });
+
+        if (!invite) {
+          return res.status(403).json({ message: 'Only editors can delete images' });
+        }
+      }
 
       if (!gallery) {
         console.error(`Gallery not found for slug: ${req.params.slug}`);
