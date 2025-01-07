@@ -5,9 +5,10 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments, stars } from '@db/schema';
-import { eq, and, sql, inArray, or } from 'drizzle-orm';
+import { eq, and, sql, inArray, or, desc } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { clerkClient } from '@clerk/clerk-sdk-node';
+import { invites } from '@db/schema';
 import { nanoid } from 'nanoid';
 
 // Add Clerk types to Express Request
@@ -1184,6 +1185,65 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch stars',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Invite users to a gallery
+  protectedRouter.post('/galleries/:slug/invite', async (req, res) => {
+    const { email, role } = req.body;
+    const { slug } = req.params;
+    const userId = req.auth.userId;
+
+    try {
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, slug),
+      });
+
+      if (!gallery || gallery.userId !== userId) {
+        return res.status(403).json({ message: 'Unauthorized' });
+      }
+
+      // Lookup user by email in Clerk
+      const [user] = await clerkClient.users.getUserList({ emailAddress: [email] });
+
+      // Check for existing invite
+      const existingInvite = await db.query.invites.findFirst({
+        where: and(
+          eq(invites.galleryId, gallery.id),
+          eq(invites.email, email)
+        )
+      });
+
+      if (existingInvite) {
+        // Update existing invite
+        await db.update(invites)
+          .set({ role })
+          .where(and(
+            eq(invites.galleryId, gallery.id),
+            eq(invites.email, email)
+          ));
+      } else {
+        // Create new invite
+        await db.insert(invites).values({
+          galleryId: gallery.id,
+          email,
+          userId: user?.id,
+          role
+        });
+      }
+
+      // TODO: Implement email sending functionality
+      if (!user) {
+        console.log(`Email invite would be sent to ${email} for gallery ${gallery.slug}`);
+      }
+
+      res.json({ message: 'Invite sent successfully' });
+    } catch (error) {
+      console.error('Failed to invite user:', error);
+      res.status(500).json({ 
+        message: 'Failed to invite user',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
