@@ -5,7 +5,7 @@ DO $$ BEGIN
         gallery_id INTEGER REFERENCES galleries(id) ON DELETE CASCADE,
         email VARCHAR(255) NOT NULL,
         user_id TEXT,
-        role VARCHAR(20) CHECK(role IN ('Edit', 'Comment', 'View')),
+        role VARCHAR(20) CHECK(role IN ('Editor', 'Comment', 'View')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT invites_gallery_email_unique UNIQUE(gallery_id, email)
     );
