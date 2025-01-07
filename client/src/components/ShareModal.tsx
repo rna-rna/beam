@@ -161,7 +161,11 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
         <div className="space-y-6">
           {loading ? (
             <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <div className="flex items-center justify-center mt-4">
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce"></span>
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.2s] mx-1"></span>
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.4s]"></span>
+              </div>
             </div>
           ) : (
             <>
