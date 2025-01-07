@@ -127,7 +127,9 @@ export const invites = pgTable('invites', {
   role: text('role', { enum: ['Edit', 'Comment', 'View'] }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 }, (table) => ({
-  galleryEmailIdx: index('invites_gallery_email_idx').on(table.galleryId, table.email).unique(),
+  galleryEmailIdx: index('invites_gallery_email_idx', {
+    unique: true
+  }).on(table.galleryId, table.email),
   userIdIdx: index('invites_user_id_idx').on(table.userId)
 }));
 
