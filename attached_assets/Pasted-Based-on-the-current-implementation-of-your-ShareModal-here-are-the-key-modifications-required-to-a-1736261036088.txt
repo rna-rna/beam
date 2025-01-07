@@ -1,0 +1,217 @@
+Based on the current implementation of your ShareModal, here are the key modifications required to achieve the desired functionality:
+
+Modifications to Implement:
+Add "Notify People" Checkbox – This checkbox will default to checked and can be toggled to disable email notifications.
+User Selection (Pills/Manifest Section) – As users are selected, display them as pills below the input field, allowing multiple users to be invited at once.
+Link Permission Control – Add a dropdown allowing for:
+"Anyone with the link can view"
+"Anyone with the link can comment"
+"Restricted (invite-only)"
+Implementation Plan:
+Step 1: Add Notify People Checkbox and Selected User Manifest (Frontend Update)
+Here’s how we can extend the existing modal to include user pills and notify options:
+
+tsx
+Copy code
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Copy, CheckCircle, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { debounce } from "lodash";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+
+interface ShareModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  isPublic: boolean;
+  onVisibilityChange: (checked: boolean) => void;
+  galleryUrl: string;
+  slug: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  avatarUrl: string | null;
+}
+
+export function ShareModal({ 
+  isOpen, 
+  onClose, 
+  isPublic: initialIsPublic, 
+  onVisibilityChange, 
+  galleryUrl,
+  slug 
+}: ShareModalProps) {
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
+  const [copied, setCopied] = useState(false);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("View");
+  const [userSuggestions, setUserSuggestions] = useState<User[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [notifyPeople, setNotifyPeople] = useState(true);
+  const { toast } = useToast();
+
+  const lookupUser = debounce(async (query: string) => {
+    if (!query || query.length < 3) {
+      setUserSuggestions([]);
+      return;
+    }
+    setLoading(true);
+
+    try {
+      const res = await fetch(`/api/users/search?email=${query}`);
+      const data = await res.json();
+      setUserSuggestions(data.users || []);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, 300);
+
+  useEffect(() => {
+    lookupUser(email);
+  }, [email]);
+
+  const handleSelectUser = (user: User) => {
+    setSelectedUsers((prev) => [...prev, user]);
+    setEmail("");
+    setUserSuggestions([]);
+  };
+
+  const handleRemoveUser = (userId: string) => {
+    setSelectedUsers((prev) => prev.filter((user) => user.id !== userId));
+  };
+
+  const inviteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/galleries/${slug}/invite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          users: selectedUsers.map((user) => ({
+            email: user.email,
+            role,
+            notifyByEmail: notifyPeople,
+          })),
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to send invite");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invite sent",
+        description: "Invitations have been sent",
+      });
+      setSelectedUsers([]);
+      setNotifyPeople(true);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to send invite",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleInvite = (e: React.FormEvent) => {
+    e.preventDefault();
+    inviteMutation.mutate();
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(galleryUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({
+      title: "Link copied",
+      description: "Gallery link copied to clipboard",
+    });
+  };
+
+  const handleVisibilityChange = (checked: boolean) => {
+    setIsPublic(checked);
+    onVisibilityChange(checked);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Share Gallery</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={isPublic}
+              onCheckedChange={handleVisibilityChange}
+              aria-label="Toggle gallery visibility"
+            />
+            <Label>Make gallery public</Label>
+          </div>
+
+          {/* Link Permission Section */}
+          {isPublic && (
+            <div className="space-y-2">
+              <Label>Link Access</Label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="View">Anyone with link can view</SelectItem>
+                  <SelectItem value="Comment">Anyone with link can comment</SelectItem>
+                  <SelectItem value="none">Restricted (invite-only)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <form onSubmit={handleInvite} className="space-y-4">
+            <Label>Invite by email</Label>
+            <Input
+              type="email"
+              placeholder="Enter email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            {/* Selected User Pills */}
+            <div className="flex flex-wrap gap-2">
+              {selectedUsers.map((user) => (
+                <Badge key={user.id} variant="outline">
+                  {user.email}
+                  <X onClick={() => handleRemoveUser(user.id)} className="h-4 w-4 ml-2 cursor-pointer" />
+                </Badge>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label>Notify people</Label>
+              <Switch checked={notifyPeople} onCheckedChange={setNotifyPeople} />
+            </div>
+
+            <Button type="submit" className="w-full">
+              Send Invite
+            </Button>
+          </form>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
