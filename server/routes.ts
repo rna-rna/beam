@@ -1230,7 +1230,6 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       const { slug } = req.params;
       const userId = req.auth.userId;
 
-    try {
       console.log('Invite attempt:', {
         slug,
         email,
