@@ -277,29 +277,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const { getToken } = useAuth();
   const { user } = useUser();
   const { isDark } = useTheme();
-  const [userRole, setUserRole] = useState<"View" | "Comment" | "Edit">("View");
-
-  // Fetch user role when gallery loads
-  useEffect(() => {
-    if (slug && user) {
-      fetch(`/api/galleries/${slug}/permissions`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            const currentUserRole = data.users.find(
-              (u: any) => u.email === user?.primaryEmailAddress?.emailAddress
-            )?.role || "View";
-            setUserRole(currentUserRole);
-          }
-        })
-        .catch(() => console.error("Failed to load permissions"));
-    }
-  }, [slug, user]);
-
-  // Permission check helpers
-  const canEdit = userRole === "Edit";
-  const canComment = ["Edit", "Comment"].includes(userRole);
-  const canStar = ["Edit", "Comment"].includes(userRole);
 
   const toggleGridView = () => {
     setIsMasonry(!isMasonry);
@@ -1278,35 +1255,13 @@ const renderGalleryControls = useCallback(() => {
                 size="icon"
                 variant="ghost"
                 className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
-                onClick={() => canEdit ? setIsOpenShareModal(true) : handleCopyLink()}
+                onClick={() => setIsOpenShareModal(true)}
               >
-                {canEdit ? <Share className="h-4 w-4" /> : <Link className="h-4 w-4" />}
+                <Share className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{canEdit ? "Share Gallery" : "Copy Link"}</TooltipContent>
+            <TooltipContent>Share Gallery</TooltipContent>
           </Tooltip>
-
-          {/* Edit Mode Toggle - Only for editors */}
-          {canEdit && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Toggle
-                  size="sm"
-                  pressed={selectMode}
-                  onPressedChange={toggleSelectMode}
-                  className={cn(
-                    "h-9 w-9",
-                    isDark 
-                      ? "text-white hover:bg-white/10 data-[state=on]:bg-white/20" 
-                      : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent/30"
-                  )}
-                >
-                  <PencilRuler className="h-4 w-4" />
-                </Toggle>
-              </TooltipTrigger>
-              <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
-            </Tooltip>
-          )}
 
           
           <Tooltip>
@@ -2263,17 +2218,9 @@ const handleImageClick = (index: number) => {
           isOpen={isOpenShareModal}
           onClose={() => setIsOpenShareModal(false)}
           isPublic={gallery?.isPublic || false}
-          onVisibilityChange={(checked) => {
-            if (canEdit) {
-              toggleVisibilityMutation.mutate(checked);
-            } else {
-              handleCopyLink();
-              setIsOpenShareModal(false);
-            }
-          }}
+          onVisibilityChange={(checked) => toggleVisibilityMutation.mutate(checked)}
           galleryUrl={window.location.href}
           slug={slug}
-          readOnly={!canEdit}
         />
       )}
       {renderCommentDialog()}
