@@ -270,58 +270,62 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </div>
-              <Select
-                value={user.role}
-                onValueChange={async (newRole) => {
-                  // Store previous state for potential rollback
-                  const previousUsers = [...invitedUsers];
+              {user.id === 'owner' ? (
+                <p className="text-sm font-medium text-muted-foreground">Owner</p>
+              ) : (
+                <Select
+                  value={user.role}
+                  onValueChange={async (newRole) => {
+                    // Store previous state for potential rollback
+                    const previousUsers = [...invitedUsers];
 
-                  // Optimistically update UI
-                  setInvitedUsers(prev =>
-                    prev.map(u => u.id === user.id ? { ...u, role: newRole } : u)
-                  );
+                    // Optimistically update UI
+                    setInvitedUsers(prev =>
+                      prev.map(u => u.id === user.id ? { ...u, role: newRole } : u)
+                    );
 
-                  try {
-                    const res = await fetch(`/api/galleries/${slug}/invite`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        email: user.email,
-                        role: newRole,
-                      }),
-                    });
+                    try {
+                      const res = await fetch(`/api/galleries/${slug}/invite`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          email: user.email,
+                          role: newRole,
+                        }),
+                      });
 
-                    const data = await res.json();
+                      const data = await res.json();
 
-                    if (!res.ok || data.message !== "Invite sent successfully") {
-                      throw new Error(data.message || "Failed to update role");
+                      if (!res.ok || data.message !== "Invite sent successfully") {
+                        throw new Error(data.message || "Failed to update role");
+                      }
+
+                      toast({
+                        title: "Success",
+                        description: "Role updated successfully"
+                      });
+                    } catch (error) {
+                      // Rollback to previous state
+                      setInvitedUsers(previousUsers);
+                      
+                      toast({
+                        title: "Error",
+                        description: "Failed to update role. Changes were reverted.",
+                        variant: "destructive",
+                      });
                     }
-
-                    toast({
-                      title: "Success",
-                      description: "Role updated successfully"
-                    });
-                  } catch (error) {
-                    // Rollback to previous state
-                    setInvitedUsers(previousUsers);
-                    
-                    toast({
-                      title: "Error",
-                      description: "Failed to update role. Changes were reverted.",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-              >
-                <SelectTrigger className="w-28">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="View">Viewer</SelectItem>
-                  <SelectItem value="Comment">Commenter</SelectItem>
-                  <SelectItem value="Edit">Editor</SelectItem>
-                </SelectContent>
-              </Select>
+                  }}
+                >
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="View">Viewer</SelectItem>
+                    <SelectItem value="Comment">Commenter</SelectItem>
+                    <SelectItem value="Edit">Editor</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           ))}
 
