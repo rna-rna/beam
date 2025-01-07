@@ -259,8 +259,16 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                       }),
                     });
 
-                    if (!res.ok) throw new Error("Failed to update role");
+                    if (!res.ok) {
+                      throw new Error("Failed to update role");
+                    }
 
+                    const data = await res.json();
+                    if (!data.success) {
+                      throw new Error(data.message || "Failed to update role");
+                    }
+
+                    // Optimistic update
                     setInvitedUsers(prev =>
                       prev.map(u => u.id === user.id ? { ...u, role } : u)
                     );
@@ -270,6 +278,10 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                       description: "Permission updated successfully"
                     });
                   } catch (error) {
+                    // Revert on error
+                    setInvitedUsers(prev =>
+                      prev.map(u => u.id === user.id ? { ...u, role: user.role } : u)
+                    );
                     toast({
                       title: "Error",
                       description: "Failed to update role. Please try again.",
