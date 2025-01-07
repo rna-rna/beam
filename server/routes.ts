@@ -1250,11 +1250,14 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       }
 
       // Lookup user by email in Clerk
-      const [user] = await clerkClient.users.getUserList({ emailAddress: [email] });
+      const users = await clerkClient.users.getUserList({ emailAddress: [email] });
+      const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
+      
       console.log('Clerk user lookup:', {
         email,
         found: !!user,
-        userId: user?.id
+        userId: user?.id,
+        totalResults: users?.length || 0
       });
 
       // Check for existing invite
