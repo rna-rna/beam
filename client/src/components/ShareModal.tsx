@@ -1,13 +1,16 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, CheckCircle, Globe, Lock } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useMutation } from "@tanstack/react-query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Copy, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { debounce } from "lodash";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -16,6 +19,13 @@ interface ShareModalProps {
   onVisibilityChange: (checked: boolean) => void;
   galleryUrl: string;
   slug: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  avatarUrl: string | null;
 }
 
 export function ShareModal({ 
@@ -30,12 +40,41 @@ export function ShareModal({
   const [copied, setCopied] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("View");
+  const [userSuggestions, setUserSuggestions] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  const lookupUser = debounce(async (query: string) => {
+    if (!query || query.length < 3) {
+      setUserSuggestions([]);
+      return;
+    }
+    setLoading(true);
+
+    try {
+      const res = await fetch(`/api/users/search?email=${query}`);
+      const data = await res.json();
+      setUserSuggestions(data.users || []);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, 300);
+
+  useEffect(() => {
+    lookupUser(email);
+  }, [email]);
+
+  const handleSelectUser = (user: User) => {
+    setSelectedUser(user);
+    setEmail(user.email);
+    setUserSuggestions([]);
+  };
 
   const inviteMutation = useMutation({
     mutationFn: async () => {
-      if (!email) throw new Error("Email is required");
-
       const res = await fetch(`/api/galleries/${slug}/invite`, {
         method: "POST",
         headers: {
@@ -44,21 +83,8 @@ export function ShareModal({
         body: JSON.stringify({ email, role }),
       });
 
-      const result = await res.json();
-      console.log('Invite API Response:', {
-        status: res.status,
-        ok: res.ok,
-        data: result,
-        timestamp: new Date().toISOString()
-      });
-
-      if (!res.ok) {
-        throw new Error(result.message || "Failed to send invite");
-      }
-      if (!result.success) {
-        throw new Error(result.message || "Failed to process invite");
-      }
-      return result;
+      if (!res.ok) throw new Error("Failed to send invite");
+      return res.json();
     },
     onSuccess: () => {
       toast({
@@ -66,6 +92,7 @@ export function ShareModal({
         description: `Invitation sent to ${email}`,
       });
       setEmail("");
+      setSelectedUser(null);
     },
     onError: (error) => {
       toast({
@@ -76,32 +103,24 @@ export function ShareModal({
     },
   });
 
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(galleryUrl);
-      setCopied(true);
-      toast({
-        title: "Link copied",
-        description: "Gallery link copied to clipboard",
-      });
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to copy link to clipboard",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleToggleVisibility = (checked: boolean) => {
-    setIsPublic(checked);
-    onVisibilityChange(checked);
-  };
-
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
     inviteMutation.mutate();
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(galleryUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({
+      title: "Link copied",
+      description: "Gallery link copied to clipboard",
+    });
+  };
+
+  const handleVisibilityChange = (checked: boolean) => {
+    setIsPublic(checked);
+    onVisibilityChange(checked);
   };
 
   return (
@@ -111,20 +130,13 @@ export function ShareModal({
           <DialogTitle>Share Gallery</DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
-          <div className="flex items-center justify-between space-x-4">
-            <div className="flex items-center space-x-2">
-              {isPublic ? (
-                <Globe className="w-4 h-4 text-green-500" />
-              ) : (
-                <Lock className="w-4 h-4 text-yellow-500" />
-              )}
-              <Label htmlFor="public-toggle">Make gallery public</Label>
-            </div>
+          <div className="flex items-center space-x-2">
             <Switch
-              id="public-toggle"
               checked={isPublic}
-              onCheckedChange={handleToggleVisibility}
+              onCheckedChange={handleVisibilityChange}
+              aria-label="Toggle gallery visibility"
             />
+            <Label>Make gallery public</Label>
           </div>
 
           {isPublic && (
@@ -153,7 +165,7 @@ export function ShareModal({
           )}
 
           <form onSubmit={handleInvite} className="space-y-4">
-            <div className="space-y-2">
+            <div className="relative">
               <Label htmlFor="email-input">Invite by email</Label>
               <Input
                 id="email-input"
@@ -163,6 +175,40 @@ export function ShareModal({
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+              {loading && <p className="text-sm text-muted-foreground mt-2">Searching...</p>}
+
+              {userSuggestions.length > 0 && (
+                <div className="absolute z-10 bg-background border rounded-md shadow-md mt-2 w-full">
+                  {userSuggestions.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center space-x-3 p-2 hover:bg-muted cursor-pointer"
+                      onClick={() => handleSelectUser(user)}
+                    >
+                      <Avatar>
+                        {user.avatarUrl ? (
+                          <AvatarImage src={user.avatarUrl} />
+                        ) : (
+                          <AvatarFallback>{user.fullName[0]}</AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">{user.fullName}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {email && !selectedUser && !loading && (
+                <div className="flex items-center space-x-3 mt-4">
+                  <Avatar>
+                    <AvatarFallback>?</AvatarFallback>
+                  </Avatar>
+                  <p className="text-sm">Invite as new user</p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
