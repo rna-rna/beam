@@ -219,6 +219,15 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                 </Button>
               </div>
               
+              {!selectedUser && email.length >= 3 && !userSuggestions.length && (
+                <div className="absolute left-0 right-0 mt-1">
+                  <div className="flex items-center justify-center mt-4">
+                    <span className="w-2 h-2 bg-primary rounded-full animate-bounce"></span>
+                    <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.2s] mx-1"></span>
+                    <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.4s]"></span>
+                  </div>
+                </div>
+              )}
               {userSuggestions.length > 0 && !selectedUser && (
                 <div className="absolute left-0 right-0 mt-1 p-1 bg-background border rounded-lg shadow-lg z-50">
                   {userSuggestions.map((user) => (
