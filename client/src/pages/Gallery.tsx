@@ -277,6 +277,29 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const { getToken } = useAuth();
   const { user } = useUser();
   const { isDark } = useTheme();
+  const [userRole, setUserRole] = useState<"View" | "Comment" | "Edit">("View");
+
+  // Fetch user role when gallery loads
+  useEffect(() => {
+    if (slug && user) {
+      fetch(`/api/galleries/${slug}/permissions`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            const currentUserRole = data.users.find(
+              (u: any) => u.email === user?.primaryEmailAddress?.emailAddress
+            )?.role || "View";
+            setUserRole(currentUserRole);
+          }
+        })
+        .catch(() => console.error("Failed to load permissions"));
+    }
+  }, [slug, user]);
+
+  // Permission check helpers
+  const canEdit = userRole === "Edit";
+  const canComment = ["Edit", "Comment"].includes(userRole);
+  const canStar = ["Edit", "Comment"].includes(userRole);
 
   const toggleGridView = () => {
     setIsMasonry(!isMasonry);
