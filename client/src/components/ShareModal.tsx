@@ -248,43 +248,42 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
               </div>
               <Select
                 value={user.role}
-                onValueChange={async (role) => {
+                onValueChange={async (newRole) => {
+                  // Store previous state for potential rollback
+                  const previousUsers = [...invitedUsers];
+
+                  // Optimistically update UI
+                  setInvitedUsers(prev =>
+                    prev.map(u => u.id === user.id ? { ...u, role: newRole } : u)
+                  );
+
                   try {
                     const res = await fetch(`/api/galleries/${slug}/invite`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
                         email: user.email,
-                        role: role,
+                        role: newRole,
                       }),
                     });
 
-                    if (!res.ok) {
-                      throw new Error("Failed to update role");
-                    }
-
                     const data = await res.json();
-                    if (!data.success) {
+
+                    if (!res.ok || data.message !== "Invite sent successfully") {
                       throw new Error(data.message || "Failed to update role");
                     }
 
-                    // Optimistic update
-                    setInvitedUsers(prev =>
-                      prev.map(u => u.id === user.id ? { ...u, role } : u)
-                    );
-
                     toast({
                       title: "Success",
-                      description: "Permission updated successfully"
+                      description: "Role updated successfully"
                     });
                   } catch (error) {
-                    // Revert on error
-                    setInvitedUsers(prev =>
-                      prev.map(u => u.id === user.id ? { ...u, role: user.role } : u)
-                    );
+                    // Rollback to previous state
+                    setInvitedUsers(previousUsers);
+                    
                     toast({
                       title: "Error",
-                      description: "Failed to update role. Please try again.",
+                      description: "Failed to update role. Changes were reverted.",
                       variant: "destructive",
                     });
                   }
