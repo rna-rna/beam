@@ -38,9 +38,11 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
   const [linkPermission, setLinkPermission] = useState(isPublic ? "view" : "none");
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (isOpen) {
+      setLoading(true);
       fetch(`/api/galleries/${slug}/permissions`)
         .then((res) => res.json())
         .then((data) => {
@@ -61,6 +63,9 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
             description: "Could not load user permissions",
             variant: "destructive",
           });
+        })
+        .finally(() => {
+          setLoading(false);
         });
     }
   }, [isOpen, slug, toast]);
@@ -154,7 +159,13 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
           <DialogTitle>Share Gallery</DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
-          <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
+          {loading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
             <p>Anyone with the link</p>
             <Select
               value={linkPermission}
@@ -302,11 +313,13 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
           ))}
 
           <div className="flex justify-end">
-            <Button onClick={handleCopyLink} variant="outline" className="gap-2">
-              <Copy className="h-4 w-4" />
-              {copied ? "Copied!" : "Copy link"}
-            </Button>
-          </div>
+                <Button onClick={handleCopyLink} variant="outline" className="gap-2">
+                  <Copy className="h-4 w-4" />
+                  {copied ? "Copied!" : "Copy link"}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
