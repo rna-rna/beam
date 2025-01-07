@@ -1291,7 +1291,7 @@ const renderGalleryControls = useCallback(() => {
                   onClick={() =>
                     userRole === "Editor"
                       ? setIsOpenShareModal(true)
-                      : handleCopyLink()
+                      : setIsOpenCopyModal(true)
                   }
                 >
                   <Share className="h-4 w-4" />
@@ -1302,6 +1302,13 @@ const renderGalleryControls = useCallback(() => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+
+          {/* Copy Link Modal for non-Editor users */}
+          <CopyLinkModal
+            isOpen={isOpenCopyModal}
+            onClose={() => setIsOpenCopyModal(false)}
+            galleryUrl={window.location.href}
+          />
 
           
           {userRole === "Editor" && (
