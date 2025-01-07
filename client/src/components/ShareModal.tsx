@@ -79,14 +79,16 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
   };
 
   const handleSendInvite = async () => {
-    if (!selectedUser) return;
+    // Handle both selected user and direct email cases
+    const emailToInvite = selectedUser ? selectedUser.email : email;
+    if (!emailToInvite) return;
 
     try {
       const res = await fetch(`/api/galleries/${slug}/invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: selectedUser.email,
+          email: emailToInvite,
           role: "View",
         }),
       });
@@ -95,11 +97,20 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
 
       toast({
         title: "Success",
-        description: "Invite sent successfully",
+        description: `Invite sent to ${emailToInvite}`,
       });
 
-      setInvitedUsers((prev) => [...prev, { ...selectedUser, role: "View" }]);
+      // Create a new user object for direct email invites
+      const newUser = selectedUser || {
+        id: emailToInvite,
+        email: emailToInvite,
+        fullName: emailToInvite.split('@')[0],
+        role: "View"
+      };
+
+      setInvitedUsers((prev) => [...prev, { ...newUser, role: "View" }]);
       setSelectedUser(null);
+      setEmail("");
     } catch (error) {
       toast({
         title: "Error",
@@ -172,7 +183,10 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                     className="flex-1"
                   />
                 )}
-                <Button onClick={handleSendInvite} disabled={!selectedUser}>
+                <Button 
+                  onClick={handleSendInvite} 
+                  disabled={!selectedUser && !email.includes('@')}
+                >
                   Invite
                 </Button>
               </div>
