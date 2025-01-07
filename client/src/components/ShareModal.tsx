@@ -149,7 +149,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Share Gallery</DialogTitle>
         </DialogHeader>
