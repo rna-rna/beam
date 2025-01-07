@@ -45,12 +45,25 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
         .then((res) => res.json())
         .then((data) => {
           if (data.success) {
-            setInvitedUsers(data.users);
+            setInvitedUsers(data.users || []);
+          } else {
+            toast({
+              title: "Error",
+              description: "Failed to fetch permissions",
+              variant: "destructive",
+            });
           }
         })
-        .catch(() => console.error("Failed to load existing permissions"));
+        .catch(() => {
+          console.error("Failed to load existing permissions");
+          toast({
+            title: "Error", 
+            description: "Could not load user permissions",
+            variant: "destructive",
+          });
+        });
     }
-  }, [isOpen, slug]);
+  }, [isOpen, slug, toast]);
 
   useEffect(() => {
     setLinkPermission(isPublic ? "view" : "none");
