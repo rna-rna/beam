@@ -307,8 +307,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
+  const [userRole, setUserRole] = useState<string>("Viewer");
   
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    if (slug) {
+      fetch(`/api/galleries/${slug}/permissions`)
+        .then((res) => res.json())
+        .then((data) => {
+          const currentUserRole = data.users.find((u) => u.email === user?.primaryEmailAddress?.emailAddress)?.role || "Viewer";
+          setUserRole(currentUserRole);
+        })
+        .catch(() => console.error("Failed to load permissions"));
+    }
+  }, [slug, user]);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
