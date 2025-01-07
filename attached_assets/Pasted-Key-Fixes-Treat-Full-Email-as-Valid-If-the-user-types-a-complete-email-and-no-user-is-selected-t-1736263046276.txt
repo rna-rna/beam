@@ -1,0 +1,78 @@
+Key Fixes:
+Treat Full Email as Valid – If the user types a complete email and no user is selected, the invite should still proceed.
+Dynamic Button Behavior – Once an email is fully typed, the Invite button should activate, allowing invites to non-users.
+Fix Implementation:
+Modify the invite logic to fall back to email invites when no user is selected.
+
+Step 1: Update Send Invite Handler
+Adjust the handleSendInvite function to send invites by email when no existing user is selected.
+tsx
+Copy code
+const handleSendInvite = async () => {
+  if (!selectedUser && email) {
+    // Treat the email input as a new user
+    const newUser: User = {
+      id: email,  // Use email as fallback ID for non-users
+      email,
+      fullName: email,
+      role: "View",
+    };
+
+    try {
+      const res = await fetch(`/api/galleries/${slug}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          role: "View",
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to send invite");
+
+      toast({
+        title: "Success",
+        description: `Invite sent to ${email}`,
+      });
+
+      // Add to invited users list
+      setInvitedUsers((prev) => [...prev, newUser]);
+      setSelectedUser(null);
+      setEmail("");  // Reset input
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send invite. Please try again.",
+        variant: "destructive",
+      });
+    }
+  } else if (selectedUser) {
+    // Normal flow if user exists
+    try {
+      const res = await fetch(`/api/galleries/${slug}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: selectedUser.email,
+          role: "View",
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to send invite");
+
+      toast({
+        title: "Success",
+        description: "Invite sent successfully",
+      });
+
+      setInvitedUsers((prev) => [...prev, { ...selectedUser, role: "View" }]);
+      setSelectedUser(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send invite. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }
+};
