@@ -854,9 +854,19 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
+      
+      if (userRole !== "Editor") {
+        toast({
+          title: "Action Denied",
+          description: "Only editors can upload images",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       uploadMutation.mutate(acceptedFiles);
     },
-    [uploadMutation]
+    [uploadMutation, userRole, toast]
   );
 
   // Modify the useDropzone configuration to disable click
@@ -1003,6 +1013,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   const handleDeleteSelected = () => {
+    if (userRole !== "Editor") {
+      toast({
+        title: "Action Denied",
+        description: "Only editors can delete images",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     deleteImagesMutation.mutate(selectedImages);
   };
 
