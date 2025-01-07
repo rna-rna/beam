@@ -1,6 +1,7 @@
 import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { CopyLinkModal } from "@/components/CopyLinkModal";
 import { getCloudinaryUrl } from "@/lib/cloudinary";
 import UploadDropzone from "@/components/UploadDropzone";
 import { Card, CardContent } from "@/components/ui/card";
@@ -342,6 +343,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   }, [slug, user]);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
+  const [isOpenCopyModal, setIsOpenCopyModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
