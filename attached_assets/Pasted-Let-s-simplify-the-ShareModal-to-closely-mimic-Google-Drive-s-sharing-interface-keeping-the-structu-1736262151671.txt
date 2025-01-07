@@ -1,0 +1,210 @@
+Let's simplify the ShareModal to closely mimic Google Drive's sharing interface, keeping the structure clear and intuitive.
+
+Approach Overview (Google-Style Flow):
+Dynamic User Input (Autocomplete) – As you type, suggestions appear, and selecting a user adds them to the "Who has access" list.
+List of Users/Emails (Manifest) – Shows selected users below the input, with dropdowns to adjust roles (Viewer, Commenter, Editor).
+Link Permission Control – "Anyone with the link can view/comment" option at the top.
+Send Invites Button – Clicking Send invites applies changes and sends invites (emails by default).
+Copy Link – Copies the gallery link for easy sharing.
+Implementation (Simplified and Minimalistic):
+tsx
+Copy code
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Copy, X } from "lucide-react";
+import { debounce } from "lodash";
+import { useToast } from "@/hooks/use-toast";
+
+interface ShareModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  galleryUrl: string;
+  slug: string;
+  title: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  avatarUrl?: string | null;
+  role: string;
+  found: boolean;
+}
+
+export function ShareModal({ isOpen, onClose, galleryUrl, slug, title }: ShareModalProps) {
+  const [email, setEmail] = useState("");
+  const [userSuggestions, setUserSuggestions] = useState<User[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
+  const [linkPermission, setLinkPermission] = useState("view");
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
+  // Debounced user lookup
+  const lookupUser = debounce(async (query: string) => {
+    if (!query || query.length < 3) {
+      setUserSuggestions([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/users/search?email=${query}`);
+      const data = await res.json();
+      setUserSuggestions(data.users || []);
+    } catch (error) {
+      console.error("User lookup failed:", error);
+    }
+  }, 300);
+
+  useEffect(() => {
+    lookupUser(email);
+  }, [email]);
+
+  // Select user and add to list
+  const handleSelectUser = (user: User) => {
+    setSelectedUsers((prev) => [...prev, { ...user, role: "View" }]);
+    setEmail("");
+    setUserSuggestions([]);
+  };
+
+  // Remove user from the list
+  const handleRemoveUser = (userId: string) => {
+    setSelectedUsers((prev) => prev.filter((user) => user.id !== userId));
+  };
+
+  // Change role for a user
+  const handleRoleChange = (userId: string, newRole: string) => {
+    setSelectedUsers((prev) =>
+      prev.map((user) =>
+        user.id === userId ? { ...user, role: newRole } : user
+      )
+    );
+  };
+
+  // Invite users and send emails
+  const handleSendInvites = async () => {
+    try {
+      const res = await fetch(`/api/galleries/${slug}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ users: selectedUsers }),
+      });
+
+      if (!res.ok) throw new Error("Failed to send invites");
+
+      toast({ title: "Invites sent", description: "Users have been notified" });
+      setSelectedUsers([]);
+    } catch (error) {
+      toast({
+        title: "Invite failed",
+        description: error instanceof Error ? error.message : "Try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(galleryUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: "Link copied", description: "Gallery link copied" });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Share '{title}'</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          {/* Dynamic Input */}
+          <div>
+            <Label>Invite people</Label>
+            <Input
+              type="email"
+              placeholder="Enter email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {userSuggestions.length > 0 && (
+              <div className="mt-2 bg-white border rounded-md shadow-md">
+                {userSuggestions.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center space-x-3 p-2 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleSelectUser(user)}
+                  >
+                    <Avatar>
+                      <AvatarFallback>{user.fullName[0]}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p>{user.fullName}</p>
+                      <p className="text-sm text-gray-500">{user.email}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* User Manifest Section */}
+          <div className="space-y-3">
+            <p>Who has access</p>
+            {/* Link Permission */}
+            <div className="flex items-center justify-between">
+              <p>Anyone</p>
+              <Select
+                value={linkPermission}
+                onValueChange={setLinkPermission}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="view">Can view</SelectItem>
+                  <SelectItem value="comment">Can comment</SelectItem>
+                  <SelectItem value="none">Restricted</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Selected Users */}
+            {selectedUsers.map((user) => (
+              <div
+                key={user.id}
+                className="flex items-center justify-between"
+              >
+                <p>{user.fullName || user.email}</p>
+                <Select
+                  value={user.role}
+                  onValueChange={(role) => handleRoleChange(user.id, role)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="View">Viewer</SelectItem>
+                    <SelectItem value="Comment">Commenter</SelectItem>
+                    <SelectItem value="Edit">Editor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-between">
+            <Button onClick={handleCopyLink}>
+              {copied ? "Copied" : "Copy link"}
+            </Button>
+            <Button onClick={handleSendInvites}>Send invites</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
