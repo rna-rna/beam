@@ -1221,16 +1221,41 @@ async function generateOgImage(galleryId: string, imagePath: string) {
     const userId = req.auth.userId;
 
     try {
+      console.log('Invite attempt:', {
+        slug,
+        email,
+        role,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, slug),
       });
 
+      console.log('Gallery lookup result:', {
+        found: !!gallery,
+        galleryId: gallery?.id,
+        ownerId: gallery?.userId,
+        isAuthorized: gallery?.userId === userId
+      });
+
       if (!gallery || gallery.userId !== userId) {
+        console.log('Authorization failed:', {
+          hasGallery: !!gallery,
+          galleryOwnerId: gallery?.userId,
+          requesterId: userId
+        });
         return res.status(403).json({ message: 'Unauthorized' });
       }
 
       // Lookup user by email in Clerk
       const [user] = await clerkClient.users.getUserList({ emailAddress: [email] });
+      console.log('Clerk user lookup:', {
+        email,
+        found: !!user,
+        userId: user?.id
+      });
 
       // Check for existing invite
       const existingInvite = await db.query.invites.findFirst({
@@ -1241,7 +1266,13 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       });
 
       if (existingInvite) {
-        // Update existing invite
+        console.log('Updating existing invite:', {
+          inviteId: existingInvite.id,
+          email,
+          oldRole: existingInvite.role,
+          newRole: role
+        });
+        
         await db.update(invites)
           .set({ role })
           .where(and(
@@ -1249,7 +1280,13 @@ async function generateOgImage(galleryId: string, imagePath: string) {
             eq(invites.email, email)
           ));
       } else {
-        // Create new invite
+        console.log('Creating new invite:', {
+          galleryId: gallery.id,
+          email,
+          role,
+          clerkUserId: user?.id
+        });
+        
         await db.insert(invites).values({
           galleryId: gallery.id,
           email,
@@ -1258,14 +1295,24 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         });
       }
 
-      // TODO: Implement email sending functionality
       if (!user) {
-        console.log(`Email invite would be sent to ${email} for gallery ${gallery.slug}`);
+        console.log('Email invite would be sent:', {
+          email,
+          gallerySlug: gallery.slug,
+          role
+        });
       }
 
+      console.log('Invite operation successful');
       res.json({ message: 'Invite sent successfully' });
     } catch (error) {
-      console.error('Failed to invite user:', error);
+      console.error('Failed to invite user:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        email,
+        slug
+      });
+      
       res.status(500).json({ 
         message: 'Failed to invite user',
         details: error instanceof Error ? error.message : 'Unknown error'
