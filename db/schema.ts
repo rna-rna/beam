@@ -118,3 +118,23 @@ export type Star = typeof stars.$inferSelect;
 export type NewStar = typeof stars.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
+
+export const invites = pgTable('invites', {
+  id: serial('id').primaryKey(),
+  galleryId: integer('gallery_id').references(() => galleries.id).notNull(),
+  email: text('email').notNull(),
+  userId: text('user_id'), // Nullable for external invitees
+  role: text('role', { enum: ['Edit', 'Comment', 'View'] }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => ({
+  galleryEmailIdx: index('invites_gallery_email_idx').on(table.galleryId, table.email).unique(),
+  userIdIdx: index('invites_user_id_idx').on(table.userId)
+}));
+
+// Create schemas for validation
+export const insertInviteSchema = createInsertSchema(invites);
+export const selectInviteSchema = createSelectSchema(invites);
+
+// Export types
+export type Invite = typeof invites.$inferSelect;
+export type NewInvite = typeof invites.$inferInsert;
