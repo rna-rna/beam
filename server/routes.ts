@@ -1232,7 +1232,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         where: eq(invites.galleryId, gallery.id)
       });
 
-      // Get user details from Clerk for each invite
+      // Get user details from Clerk for each invite and the owner
       const usersWithDetails = await Promise.all(
         permissions.map(async (invite) => {
           if (invite.userId) {
@@ -1258,6 +1258,27 @@ async function generateOgImage(galleryId: string, imagePath: string) {
           };
         })
       );
+
+      // Add owner with Editor role if not already in permissions
+      if (gallery.userId !== 'guest') {
+        try {
+          const owner = await clerkClient.users.getUser(gallery.userId);
+          const ownerEmail = owner.emailAddresses[0]?.emailAddress;
+          const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerEmail);
+
+          if (!isOwnerInPermissions && ownerEmail) {
+            usersWithDetails.push({
+              id: 'owner',
+              email: ownerEmail,
+              fullName: `${owner.firstName || ''} ${owner.lastName || ''}`.trim(),
+              role: 'Editor',
+              avatarUrl: owner.imageUrl
+            });
+          }
+        } catch (error) {
+          console.error('Failed to fetch owner details:', error);
+        }
+      }
 
       res.json({
         success: true,
