@@ -2213,13 +2213,14 @@ const handleImageClick = (index: number) => {
         />
       )}
       {/* Share Modal */}
-      {isOpenShareModal && (
+      {isOpenShareModal && gallery && (
         <ShareModal
           isOpen={isOpenShareModal}
           onClose={() => setIsOpenShareModal(false)}
           isPublic={gallery?.isPublic || false}
           onVisibilityChange={(checked) => toggleVisibilityMutation.mutate(checked)}
           galleryUrl={window.location.href}
+          slug={slug}
         />
       )}
       {renderCommentDialog()}
