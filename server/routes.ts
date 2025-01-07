@@ -1216,20 +1216,12 @@ async function generateOgImage(galleryId: string, imagePath: string) {
 
   // Invite users to a gallery
   protectedRouter.post('/galleries/:slug/invite', async (req, res) => {
+    const { role } = req.body;
+    const email = req.body.email.toLowerCase();
+    const { slug } = req.params;
+    const userId = req.auth.userId;
+
     try {
-      const { email, role } = req.body;
-
-      if (!email || !role) {
-        return res.status(400).json({ 
-          success: false,
-          message: 'Email and role are required' 
-        });
-      }
-
-      const normalizedEmail = email.toLowerCase();
-      const { slug } = req.params;
-      const userId = req.auth.userId;
-
       console.log('Invite attempt:', {
         slug,
         email,
