@@ -1,11 +1,13 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getCloudinaryUrl } from "@/lib/cloudinary";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, CheckCircle, Globe, Lock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 interface ShareModalProps {
@@ -14,17 +16,53 @@ interface ShareModalProps {
   isPublic: boolean;
   onVisibilityChange: (checked: boolean) => void;
   galleryUrl: string;
-  thumbnailUrl: string;
+  slug: string;
 }
 
-export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisibilityChange, galleryUrl, thumbnailUrl }: ShareModalProps) {
+export function ShareModal({ 
+  isOpen, 
+  onClose, 
+  isPublic: initialIsPublic, 
+  onVisibilityChange, 
+  galleryUrl,
+  slug 
+}: ShareModalProps) {
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [copied, setCopied] = useState(false);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("View");
   const { toast } = useToast();
 
-  const getShareableLink = () => {
-    return galleryUrl;
-  };
+  const inviteMutation = useMutation({
+    mutationFn: async () => {
+      if (!email) throw new Error("Email is required");
+      
+      const res = await fetch(`/api/galleries/${slug}/invite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, role }),
+      });
+
+      if (!res.ok) throw new Error("Failed to send invite");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invite sent",
+        description: `Invitation sent to ${email}`,
+      });
+      setEmail("");
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to send invite",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleCopyLink = async () => {
     try {
@@ -49,13 +87,18 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
     onVisibilityChange(checked);
   };
 
+  const handleInvite = (e: React.FormEvent) => {
+    e.preventDefault();
+    inviteMutation.mutate();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Share Gallery</DialogTitle>
         </DialogHeader>
-        <div className="p-4 space-y-6">
+        <div className="space-y-6">
           <div className="flex items-center justify-between space-x-4">
             <div className="flex items-center space-x-2">
               {isPublic ? (
@@ -74,11 +117,10 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
 
           {isPublic && (
             <div className="space-y-2">
-              <Label htmlFor="share-link">Shareable link</Label>
+              <Label>Share link</Label>
               <div className="flex space-x-2">
                 <Input
-                  id="share-link"
-                  value={getShareableLink()}
+                  value={galleryUrl}
                   readOnly
                   className="flex-1"
                 />
@@ -98,11 +140,41 @@ export function ShareModal({ isOpen, onClose, isPublic: initialIsPublic, onVisib
             </div>
           )}
 
-          {!isPublic && (
-            <p className="text-sm text-muted-foreground">
-              Make this gallery public to share it with others
-            </p>
-          )}
+          <form onSubmit={handleInvite} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-input">Invite by email</Label>
+              <Input
+                id="email-input"
+                type="email"
+                placeholder="Enter email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role-select">Permission level</Label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Edit">Can edit</SelectItem>
+                  <SelectItem value="Comment">Can comment</SelectItem>
+                  <SelectItem value="View">Can view</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={inviteMutation.isPending}
+            >
+              {inviteMutation.isPending ? "Sending..." : "Send Invite"}
+            </Button>
+          </form>
         </div>
       </DialogContent>
     </Dialog>
