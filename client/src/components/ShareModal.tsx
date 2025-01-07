@@ -248,10 +248,34 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
               </div>
               <Select
                 value={user.role}
-                onValueChange={(role) => {
-                  setInvitedUsers(prev =>
-                    prev.map(u => u.id === user.id ? { ...u, role } : u)
-                  );
+                onValueChange={async (role) => {
+                  try {
+                    const res = await fetch(`/api/galleries/${slug}/invite`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        email: user.email,
+                        role: role,
+                      }),
+                    });
+
+                    if (!res.ok) throw new Error("Failed to update role");
+
+                    setInvitedUsers(prev =>
+                      prev.map(u => u.id === user.id ? { ...u, role } : u)
+                    );
+
+                    toast({
+                      title: "Success",
+                      description: "Permission updated successfully"
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Error",
+                      description: "Failed to update role. Please try again.",
+                      variant: "destructive",
+                    });
+                  }
                 }}
               >
                 <SelectTrigger className="w-28">
