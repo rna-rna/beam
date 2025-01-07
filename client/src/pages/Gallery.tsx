@@ -69,7 +69,7 @@ import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 import { Textarea } from "@/components/ui/textarea";
 
-
+  
 
 
 import { Label } from "@/components/ui/label";
@@ -162,7 +162,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     const channelName = `presence-gallery-${slug}`;
     console.log('Attempting to subscribe to channel:', channelName);
-
+    
     const channel = pusherClient.subscribe(channelName);
     console.log('Channel details:', {
       name: channel.name,
@@ -176,7 +176,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       members.each((member: any) => {
         const userInfo = member.info || member.user_info || {};
-
+        
         // Skip if this is the current user
         if (member.id === currentUserId) return;
 
@@ -218,10 +218,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     channel.bind('pusher:member_added', (member: any) => {
       console.log('Member added:', member);
-
+      
       // Skip if this is the current user
       if (member.id === user?.id) return;
-
+      
       setActiveUsers(prev => {
         const isPresent = prev.some(user => user.userId === member.id);
         if (isPresent) return prev;
@@ -272,7 +272,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   };
 
-
+  
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const { user } = useUser();
@@ -330,7 +330,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
-
+  
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
@@ -428,7 +428,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         hasToken: !!await getToken(),
         timestamp: new Date().toISOString()
       });
-
+      
       const token = await getToken();
       const headers: HeadersInit = {
         'Cache-Control': 'no-cache',
@@ -467,7 +467,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         hasImages: data?.images?.length > 0,
         timestamp: new Date().toISOString()
       });
-
+      
       if (!data) {
         throw new Error('Gallery returned null or undefined');
       }
@@ -498,7 +498,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     setSelectedImage(gallery?.images?.[selectedImageIndex] ?? null);
   }, [selectedImageIndex, gallery?.images]);
 
-
+  
 
   const { data: annotations = [] } = useQuery<Annotation[]>({
     queryKey: [`/api/images/${selectedImage?.id}/annotations`],
@@ -1006,7 +1006,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const imagePromises = selectedImages.map(async (imageId) => {
         const image = gallery!.images.find(img => img.id === imageId);
         if (!image) return;
-
+        
         const response = await fetch(image.url);
         const blob = await response.blob();
         const extension = image.url.split('.').pop() || 'jpg';
@@ -1113,7 +1113,7 @@ const getUniqueStarredUsers = useMemo(() => {
   if (!gallery?.images) return [];
   const usersSet = new Set<string>();
   const users: { userId: string; firstName: string | null; lastName: string | null; imageUrl: string | null; }[] = [];
-
+  
   gallery.images.forEach(image => {
     image.stars?.forEach(star => {
       if (!usersSet.has(star.userId)) {
@@ -1127,7 +1127,7 @@ const getUniqueStarredUsers = useMemo(() => {
       }
     });
   });
-
+  
   return users;
 }, [gallery?.images]);
 
@@ -1156,51 +1156,122 @@ const renderGalleryControls = useCallback(() => {
             selectedUsers={selectedStarredUsers}
             onSelectionChange={setSelectedStarredUsers}
           />
+        
+          {/* Grid View Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={toggleGridView}
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200", !isMasonry && "bg-primary/20")}
+              >
+                {isMasonry ? (
+                  <Grid className="h-4 w-4" />
+                ) : (
+                  <LayoutGrid className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
+          </Tooltip>
 
-          {/* Editor-only controls */}
-          {userRole === "Edit" && (
-            <>
-              {/* Grid View Toggle */}
-              <Tooltip>
-                <TooltipTrigger asChild>
+          {/* Filter Menu - Temporarily commented out
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={toggleGridView}
-                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200", !isMasonry && "bg-primary/20")}
+                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200")}
                   >
-                    {isMasonry ? (
-                      <Grid className="h-4 w-4" />
-                    ) : (
-                      <LayoutGrid className="h-4 w-4" />
-                    )}
+                    <Filter className="h-4 w-4" />
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Toggle
-                    size="sm"
-                    pressed={selectMode}
-                    onPressedChange={toggleSelectMode}
-                    className={cn(
-                      "h-9 w-9",
-                      isDark 
-                        ? "text-white hover:bg-white/10 data-[state=on]:bg-white/20 data-[state=on]:text-white data-[state=on]:ring-2 data-[state=on]:ring-white/20" 
-                        : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent/30 data-[state=on]:text-accent-foreground data-[state=on]:ring-2 data-[state=on]:ring-accent"
-                    )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      onClick={() => setShowStarredOnly(!showStarredOnly)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className="flex items-center flex-1">
+                        <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-zinc-800")} />
+                        Show Starred
+                        <div className="ml-auto inline-flex items-center gap-1">
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            <ArrowBigUp className="h-3 w-3" />
+                          </kbd>
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            S
+                          </kbd>
+                        </div>
+                      </div>
+                      {showStarredOnly && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setShowWithComments(!showWithComments)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className="flex items-center flex-1">
+                        <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-zinc-800")} />
+                        Show Comments
+                        <div className="ml-auto inline-flex items-center gap-1">
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            <ArrowBigUp className="h-3 w-3" />
+                          </kbd>
+                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                            C
+                          </kbd>
+                        </div>
+                      </div>
+                      {showWithComments && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setShowStarredOnly(false);
+                      setShowWithComments(false);
+                      }}
+                    className="flex items-center gap-2 cursor-pointer"
                   >
-                    <PencilRuler className="h-4 w-4" />
-                  </Toggle>
-                </TooltipTrigger>
-                <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
-              </Tooltip>
+                    <div className="flex items-center flex-1">
+                      Reset Filters
+                      <div className="ml-auto inline-flex items-center gap-1">
+                        <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                          <ArrowBigUp className="h-3 w-3" />
+                        </kbd>
+                        <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
+                          R
+                        </kbd>
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent>Filter Images</TooltipContent>
+          </Tooltip>
+          */}
+
+          {isUploading && (
+            <div className="flex items-center gap-4">
+              <Progress value={undefined} className="w-24" />
+              <span className={cn("text-sm", isDark ? "text-white/70" : "text-gray-600")}>Uploading...</span>
+            </div>
+          )}
+
+          {selectMode && (
+            <>
+              
+
+              
             </>
           )}
 
-          {/* Share Button - Available to all users */}
+
+          {/* Share Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -1213,6 +1284,26 @@ const renderGalleryControls = useCallback(() => {
               </Button>
             </TooltipTrigger>
             <TooltipContent>Share Gallery</TooltipContent>
+          </Tooltip>
+
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Toggle
+                size="sm"
+                pressed={selectMode}
+                onPressedChange={toggleSelectMode}
+                className={cn(
+                  "h-9 w-9",
+                  isDark 
+                    ? "text-white hover:bg-white/10 data-[state=on]:bg-white/20 data-[state=on]:text-white data-[state=on]:ring-2 data-[state=on]:ring-white/20" 
+                    : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent/30 data-[state=on]:text-accent-foreground data-[state=on]:ring-2 data-[state=on]:ring-accent"
+                )}
+              >
+                <PencilRuler className="h-4 w-4" />
+              </Toggle>
+            </TooltipTrigger>
+            <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
@@ -1228,11 +1319,7 @@ const renderGalleryControls = useCallback(() => {
     deleteImagesMutation,
     toggleReorderMode,
     toggleSelectMode,
-    setIsOpenShareModal,
-    userRole,
-    isDark,
-    isMasonry,
-    toggleGridView
+    setIsOpenShareModal
   ]);
 
   const renderImage = (image: Image, index: number) => (
@@ -1329,7 +1416,7 @@ const renderGalleryControls = useCallback(() => {
               className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
                 e.stopPropagation();
-
+                
                 if (!user) {
                   setShowSignUpModal(true);
                   return;
@@ -1359,7 +1446,7 @@ const renderGalleryControls = useCallback(() => {
                 // Update star list optimistically
                 queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
                   if (!old) return { success: true, data: [] };
-
+                  
                   const updatedStars = hasUserStarred
                     ? old.data.filter((star: any) => star.userId !== user?.id)
                     : [
@@ -1631,7 +1718,7 @@ const renderGalleryControls = useCallback(() => {
   };
 
   // Preload adjacent images when lightbox opens
-
+  
 
 const handleImageClick = (index: number) => {
     console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
@@ -1646,7 +1733,7 @@ const handleImageClick = (index: number) => {
     preloadAdjacentImages(index);
   };
 
-
+  
 
   // Add comment position handler
   const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -1808,7 +1895,7 @@ const handleImageClick = (index: number) => {
         </motion.div>
       )}
 
-
+      
 
       {/* Logo */}
       <div 
@@ -1841,7 +1928,8 @@ const handleImageClick = (index: number) => {
               setShowMobileView(false);
               setMobileViewIndex(-1);
             }}
-          />)}
+          />
+        )}
       </AnimatePresence>
 
       {/* Only render the desktop lightbox when not on mobile */}
@@ -1917,7 +2005,7 @@ const handleImageClick = (index: number) => {
                   className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   onClick={(e) => {
                     e.stopPropagation();
-
+                    
                     // Optimistic UI update for selected image
                     setSelectedImage((prev) =>
                       prev ? { ...prev, userStarred: !prev.userStarred } : prev
@@ -2049,11 +2137,11 @@ const handleImageClick = (index: number) => {
                     onLoad={(e) => {
                       setIsLowResLoading(false);
                       setIsLoading(false);
-
+                      
                       const img = e.currentTarget;
                       img.src = img.dataset.src || img.src;
                       img.classList.add('loaded');
-
+                      
                       setImageDimensions({
                         width: img.clientWidth,
                         height: img.clientHeight,
@@ -2159,7 +2247,7 @@ const handleImageClick = (index: number) => {
         />
       )}
       {renderCommentDialog()}
-
+      
       <AnimatePresence>
         {selectMode && selectedImages.length > 0 && (
           <FloatingToolbar
