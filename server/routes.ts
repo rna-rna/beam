@@ -834,6 +834,29 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       const ogImageUrl = processedImages[0]?.url || 
         'https://res.cloudinary.com/dq7m5z3zf/image/upload/v1700000000/12_crhopz.jpg';
 
+      // Check for invite and role if not owner
+      let role = 'View';
+      if (!isOwner) {
+        const invite = await db.query.invites.findFirst({
+          where: and(
+            eq(invites.galleryId, gallery.id),
+            eq(invites.email, req.auth?.userId ? (await clerkClient.users.getUser(req.auth.userId)).emailAddresses[0].emailAddress : '')
+          )
+        });
+        
+        if (!gallery.isPublic && !invite) {
+          return res.status(403).json({
+            message: 'Access denied',
+            isPrivate: true,
+            requiresAuth: !req.auth
+          });
+        }
+        
+        if (invite) {
+          role = invite.role;
+        }
+      }
+
       res.json({
         id: gallery.id,
         slug: gallery.slug,
@@ -841,6 +864,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         isPublic: gallery.isPublic,
         images: processedImages,
         isOwner,
+        role,
         createdAt: gallery.createdAt,
         ogImageUrl
       });
@@ -1246,6 +1270,47 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         message: 'Failed to invite user',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  });
+
+  // Handle access requests
+  protectedRouter.post('/galleries/:slug/request-access', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const userId = req.auth.userId;
+
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, slug)
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      // Check if invite already exists
+      const existingInvite = await db.query.invites.findFirst({
+        where: and(
+          eq(invites.galleryId, gallery.id),
+          eq(invites.userId, userId)
+        )
+      });
+
+      if (existingInvite) {
+        return res.status(400).json({ message: 'Access request already exists' });
+      }
+
+      // Create pending invite
+      await db.insert(invites).values({
+        galleryId: gallery.id,
+        userId,
+        role: 'View',
+        email: (await clerkClient.users.getUser(userId)).emailAddresses[0].emailAddress
+      });
+
+      res.json({ message: 'Access request sent' });
+    } catch (error) {
+      console.error('Failed to request access:', error);
+      res.status(500).json({ message: 'Failed to request access' });
     }
   });
 
