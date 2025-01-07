@@ -1250,16 +1250,23 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         return res.status(403).json({ message: 'Unauthorized' });
       }
 
-      // Lookup user by email in Clerk
-      const users = await clerkClient.users.getUserList({ emailAddress: [email] });
-      const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
-      
+      // Lookup user by email in Clerk (checking all email addresses)
+      const users = await clerkClient.users.getUserList();
+      const matchingUser = users.find((u) =>
+        u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email.toLowerCase())
+      );
+
       console.log('Clerk user lookup:', {
         email,
-        found: !!user,
-        userId: user?.id,
-        totalResults: users?.length || 0
+        found: !!matchingUser,
+        userId: matchingUser?.id,
+        primaryEmail: matchingUser?.emailAddresses.find(
+          (e) => e.id === matchingUser.primaryEmailAddressId
+        )?.emailAddress,
+        allEmails: matchingUser?.emailAddresses.map((e) => e.emailAddress)
       });
+
+      const user = matchingUser;
 
       // Check for existing invite
       const existingInvite = await db.query.invites.findFirst({
