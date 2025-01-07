@@ -1,0 +1,85 @@
+Based on Clerk's documentation, it seems the issue is with how the user lookup is performed. Specifically, getUserList may not be the right method for exact email lookups. Instead, you should use email_address_query to search for users by email.
+
+Solution: Use the Correct Clerk User Lookup Method
+Fix the Clerk Lookup with email_address_query:
+Instead of:
+
+ts
+Copy code
+const users = await clerkClient.users.getUserList({ emailAddress: [email] });
+Use:
+
+ts
+Copy code
+const usersResponse = await clerkClient.users.getUserList({
+  email_address_query: email,
+});
+const users = usersResponse?.data || [];
+Updated Invite Route (routes.ts):
+ts
+Copy code
+protectedRouter.post('/galleries/:slug/invite', async (req, res) => {
+  const { email, role } = req.body;
+  const { slug } = req.params;
+  const userId = req.auth.userId;
+
+  try {
+    console.log(`Invite attempt: slug=${slug}, email=${email}, role=${role}, by user=${userId}`);
+
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, slug),
+    });
+
+    if (!gallery || gallery.userId !== userId) {
+      console.log('Unauthorized or gallery not found');
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    // Correct user lookup with email_address_query
+    const usersResponse = await clerkClient.users.getUserList({
+      email_address_query: email,
+    });
+    const users = usersResponse?.data || [];
+
+    const matchingUser = users.find((u) =>
+      u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email.toLowerCase())
+    );
+
+    if (!matchingUser) {
+      console.log(`User with email ${email} not found in Clerk.`);
+    } else {
+      console.log('Clerk user found:', {
+        userId: matchingUser.id,
+        email: matchingUser.emailAddresses.map((e) => e.emailAddress),
+      });
+    }
+
+    // Proceed with creating or updating the invite
+    const existingInvite = await db.query.invites.findFirst({
+      where: and(eq(invites.galleryId, gallery.id), eq(invites.email, email)),
+    });
+
+    if (existingInvite) {
+      await db.update(invites)
+        .set({ role })
+        .where(and(eq(invites.galleryId, gallery.id), eq(invites.email, email)));
+    } else {
+      await db.insert(invites).values({
+        galleryId: gallery.id,
+        email,
+        userId: matchingUser?.id || null,
+        role,
+      });
+    }
+
+    res.json({ message: 'Invite sent successfully' });
+  } catch (error) {
+    console.error('Failed to invite user:', {
+      error: error.message || error,
+      stack: error.stack,
+      email,
+      slug,
+    });
+    res.status(500).json({ message: 'Failed to invite user' });
+  }
+});
