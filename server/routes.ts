@@ -1250,11 +1250,11 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         return res.status(403).json({ message: 'Unauthorized' });
       }
 
-      // Lookup user by email in Clerk (checking all email addresses)
-      const users = await clerkClient.users.getUserList();
-      const matchingUser = users.find((u) =>
-        u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email.toLowerCase())
-      );
+      // Lookup user by email directly using Clerk's filtered query
+      const users = await clerkClient.users.getUserList({
+        emailAddress: [email]
+      });
+      const matchingUser = users[0]; // Get first matching user if any
 
       console.log('Clerk user lookup:', {
         email,
