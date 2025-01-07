@@ -52,7 +52,12 @@ export function ShareModal({
         timestamp: new Date().toISOString()
       });
 
-      if (!res.ok) throw new Error(result.message || "Failed to send invite");
+      if (!res.ok) {
+        throw new Error(result.message || "Failed to send invite");
+      }
+      if (!result.success) {
+        throw new Error(result.message || "Failed to process invite");
+      }
       return result;
     },
     onSuccess: () => {
