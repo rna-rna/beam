@@ -741,11 +741,18 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         }
       }
 
-      // Check other access conditions
+      // Check if user is owner
       const isOwner = gallery.userId === req.auth?.userId;
-      const hasAccess = gallery.guestUpload || gallery.isPublic || isOwner;
+      if (isOwner) {
+        return res.json({
+          ...gallery,
+          role: 'Editor',
+          isOwner: true
+        });
+      }
 
-      if (!hasAccess) {
+      // Check if gallery is restricted
+      if (!gallery.isPublic && !gallery.guestUpload) {
         return res.status(403).json({
           message: 'This gallery is private',
           isPrivate: true,
