@@ -111,27 +111,27 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Function to generate OG image
-async function generateOgImage(galleryId: string, imagePath: string) {
-  const overlay = 'beam-bar_q6desn';
+  async function generateOgImage(galleryId: string, imagePath: string) {
+    const overlay = 'beam-bar_q6desn';
 
-  const uploadResponse = await cloudinary.uploader.upload(imagePath, {
-    eager: [{
-      width: 1200,
-      height: 630,
-      crop: 'limit',
-      overlay: overlay,
-      gravity: 'center',
-      fetch_format: 'auto',
-      quality: 'auto',
-    }],
-    public_id: `og_gallery_${galleryId}`,
-    overwrite: true,
-  });
+    const uploadResponse = await cloudinary.uploader.upload(imagePath, {
+      eager: [{
+        width: 1200,
+        height: 630,
+        crop: 'limit',
+        overlay: overlay,
+        gravity: 'center',
+        fetch_format: 'auto',
+        quality: 'auto',
+      }],
+      public_id: `og_gallery_${galleryId}`,
+      overwrite: true,
+    });
 
-  return uploadResponse.eager[0].secure_url;
-}
+    return uploadResponse.eager[0].secure_url;
+  }
 
-// Create gallery (supports both authenticated and guest users)
+  // Create gallery (supports both authenticated and guest users)
   app.post('/api/galleries/create', upload.array('images', 50), async (req: any, res) => {
     try {
       const { title = "Untitled Project" } = req.body;
@@ -212,13 +212,15 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         galleryImages = insertedImages;
       }
 
-      // Return gallery with empty images array or processed images
-      return res.json({
+      // Always initialize with empty images array
+      const galleryResponse = {
         ...gallery,
-        images: galleryImages,
+        images: [],
         isOwner: true,
         role: "Editor"
-      });
+      };
+
+      return res.json(galleryResponse);
 
       // Continue with any remaining processing
       if (files && files.length > 0) {
@@ -253,7 +255,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         const exists = await db.query.galleries.findFirst({
           where: eq(galleries.slug, slug)
         });
-        
+
         if (exists) {
           console.log('Gallery available after:', attempts + 1, 'attempts');
           break;
@@ -274,7 +276,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
           position: 0,
           createdAt: new Date()
         }));
-        
+
         if (imageInserts.length > 0) {
           await db.insert(images).values(imageInserts);
         }
@@ -408,7 +410,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       }
 
       const userId = req.auth?.userId;
-      
+
       // Check if user is owner or has editor permissions
       const isOwner = userId === gallery.userId;
       if (!isOwner && !gallery.guestUpload) {
@@ -437,7 +439,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
           publicId: file.public_id,
           originalName: file.originalname
         });
-        
+
         // Fetch metadata from Cloudinary
         const cloudinaryResult = await cloudinary.api.resource(file.filename);
         console.log('Cloudinary metadata:', cloudinaryResult);
@@ -649,7 +651,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         await tx.execute(
           sql`DELETE FROM recently_viewed_galleries WHERE gallery_id = ${gallery.id}`
         );
-        
+
         // Delete all images in the gallery
         await tx.delete(images)
           .where(eq(images.galleryId, gallery.id));
@@ -891,7 +893,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       }));
 
       // Get OG image URL from first image or use fallback
-      const ogImageUrl = processedImages[0]?.url || 
+      const ogImageUrl = processedImages[0]?.url ||
         'https://res.cloudinary.com/dq7m5z3zf/image/upload/v1700000000/12_crhopz.jpg';
 
       // Check for invite and role if not owner
@@ -902,7 +904,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
           eq(invites.email, req.auth?.userId ? (await clerkClient.users.getUser(req.auth.userId)).emailAddresses[0].emailAddress : '')
         )
       });
-      
+
       if (invite) {
         role = invite.role;
       }
@@ -933,7 +935,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
 
       // Early auth check
       if (!req.auth?.userId) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           success: false,
           message: 'Authentication required for commenting',
           requiresAuth: true
@@ -956,9 +958,9 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       });
 
       if (!image || !image.gallery) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           success: false,
-          message: 'Image not found' 
+          message: 'Image not found'
         });
       }
 
@@ -1147,7 +1149,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
   app.post('/api/images/:imageId/star', async (req, res) => {
     try {
       if (!req.auth?.userId) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           success: false,
           message: 'Authentication required',
           requiresAuth: true
@@ -1203,7 +1205,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
   app.delete('/api/images/:imageId/star', async (req, res) => {
     try {
       if (!req.auth?.userId) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           success: false,
           message: 'Authentication required',
           requiresAuth: true
@@ -1357,8 +1359,8 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       });
     } catch (error) {
       console.error('Failed to fetch permissions:', error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: 'Failed to fetch permissions'
       });
     }
@@ -1436,7 +1438,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
           oldRole: existingInvite.role,
           newRole: role
         });
-        
+
         await db.update(invites)
           .set({ role })
           .where(and(
@@ -1450,7 +1452,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
           role,
           clerkUserId: user?.id
         });
-        
+
         await db.insert(invites).values({
           galleryId: gallery.id,
           email,
@@ -1476,8 +1478,8 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         email,
         slug
       });
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         message: 'Failed to invite user',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -1529,11 +1531,11 @@ async function generateOgImage(galleryId: string, imagePath: string) {
   app.get('/api/users/search', async (req, res) => {
     try {
       const email = req.query.email?.toString().toLowerCase();
-      
+
       if (!email) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          message: 'Email query parameter is required' 
+          message: 'Email query parameter is required'
         });
       }
 
