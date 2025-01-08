@@ -191,6 +191,15 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         ogImageUrl
       }).returning();
 
+      // Initialize with empty images array
+      const galleryWithImages = {
+        ...gallery,
+        images: []
+      };
+
+      // Return initialized gallery
+      return res.json(galleryWithImages);
+
       // If we have files, process them for the gallery
       if (files && files.length > 0) {
         try {
