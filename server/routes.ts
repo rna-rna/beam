@@ -779,12 +779,6 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         });
       }
 
-      // Allow access if gallery is:
-      // 1. A guest upload (accessible to everyone)
-      // 2. Public
-      // 3. User is authenticated and owns the gallery
-      const isOwner = gallery.userId === 'guest' || req.auth?.userId === gallery.userId;
-      
       // Guest uploads are always accessible
       if (gallery.guestUpload) {
         const galleryImages = await db.query.images.findMany({
