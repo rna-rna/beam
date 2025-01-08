@@ -346,11 +346,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       fetch(`/api/galleries/${slug}/permissions`)
         .then((res) => res.json())
         .then((data) => {
+          console.log("Session/Auth State:", {
+            sessionStatus: session?.status,
+            userAuthenticated: !!session?.lastActiveAt,
+            currentTime: new Date().toISOString()
+          });
           console.log("Permissions API Response:", {
             data,
             currentUserEmail: user?.primaryEmailAddress?.emailAddress,
             foundUser: data.users.find(u => u.email === user?.primaryEmailAddress?.emailAddress),
-            allEmails: data.users.map(u => u.email)
+            allEmails: data.users.map(u => u.email),
+            permissions: data.users
           });
 
           const isOwner = gallery?.userId === user?.id;
@@ -457,6 +463,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // Queries
   const { data: gallery, isLoading: isGalleryLoading, error } = useQuery<GalleryType>({
     onSuccess: (data) => {
+      console.log('Session Status:', {
+        status: session?.status,
+        lastActiveAt: session?.lastActiveAt,
+        userId: session?.user?.id
+      });
       console.log('Gallery Data:', {
         galleryId: data?.id,
         imageCount: data?.images?.length,
