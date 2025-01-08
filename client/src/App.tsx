@@ -52,10 +52,14 @@ function AppContent() {
   const { signOut, session } = useClerk();
 
   useEffect(() => {
-    if (session?.status === "expired") {
-      session.refresh()
+    if (session?.status === "expired" || !session?.lastActiveAt) {
+      session?.refresh()
         .then(() => {
-          console.log("Session refreshed successfully");
+          console.log("Session refreshed successfully", {
+            status: session?.status,
+            lastActiveAt: session?.lastActiveAt,
+            userId: session?.user?.id
+          });
           queryClient.invalidateQueries();
         })
         .catch((error) => {

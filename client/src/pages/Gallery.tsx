@@ -338,6 +338,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
   const [userRole, setUserRole] = useState<string>("Viewer");
+  const [mounted, setMounted] = useState(false);
 
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -408,14 +409,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     },
     onMutate: async (newTitle) => {
       await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
-      
+
       const previousData = queryClient.getQueryData([`/api/galleries/${slug}`]);
-      
+
       queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
         ...old,
         title: newTitle.trim() || 'Untitled'
       }));
-      
+
       return { previousData };
     },
     onError: (err, newTitle, context) => {
@@ -471,7 +472,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const maxAttempts = 5;
       setFetchAttempts(0);
       setIsLoading(true);
-      
+
       console.time("Total Gallery Fetch Time");
       while (attempts < maxAttempts) {
         try {
@@ -1766,7 +1767,7 @@ const renderGalleryControls = useCallback(() => {
   if (!gallery || error) {
     console.error('Gallery fetch error:', error);
     setIsLoading(false);
-    
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Alert variant={error instanceof Error && (error.message === "This gallery is private" || isPrivateGallery) ? "destructive" : "default"} className="w-full max-w-md">
@@ -1855,7 +1856,7 @@ const renderGalleryControls = useCallback(() => {
     const images = gallery.images;
 
     for (let i = 1; i <= preloadCount; i++) {
-      const nextIndex = (index + i) % images.length;
+      const nextIndex = (index+ i) % images.length;
       const prevIndex = (index - i + images.length) % images.length;
 
       [nextIndex, prevIndex].forEach((idx) => {
@@ -1933,6 +1934,19 @@ const handleImageClick = (index: number) => {
       />
     );
   };
+
+  useEffect(() => {
+    setMounted(true);
+    if (session?.status === 'expired' || !session?.lastActiveAt) {
+      session?.refresh().then(() => {
+        console.log('Gallery session refreshed:', {
+          status: session?.status,
+          lastActiveAt: session?.lastActiveAt
+        });
+        queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      });
+    }
+  }, [session, slug, queryClient]);
 
   return (
     <>
