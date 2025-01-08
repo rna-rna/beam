@@ -508,13 +508,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           }
 
           const data = await res.json();
-          console.log('Gallery fetch response:', {
+          console.log('Gallery Fetch Debug:', {
+            attempts,
             status: res.status,
             ok: res.ok,
-            data,
-            hasImages: data?.images?.length > 0,
-            timestamp: new Date().toISOString(),
-            attempts: attempts + 1
+            galleryId: data?.id,
+            images: data?.images?.length,
+            auth: session?.status,
+            userRole,
+            hasToken: !!await getToken(),
+            timestamp: new Date().toISOString()
           });
 
           if (!data || !data.images || !Array.isArray(data.images)) {
