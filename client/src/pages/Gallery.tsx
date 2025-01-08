@@ -154,10 +154,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (session?.status === 'expired') {
       session
         .refresh()
-        .then(() => console.log('Clerk session refreshed successfully'))
-        .catch((error) => console.error('Failed to refresh Clerk session:', error));
+        .then(() => {
+          console.log('Clerk session refreshed successfully');
+          queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+          queryClient.refetchQueries({ queryKey: [`/api/galleries/${slug}`] });
+        })
+        .catch((error) => {
+          console.error('Failed to refresh Clerk session:', error);
+          toast({
+            title: "Session Expired",
+            description: "Please sign in again",
+            variant: "destructive",
+          });
+        });
     }
-  }, [session]);
+  }, [session, queryClient, slug, toast]);
 
   // Log active users when they change
   useEffect(() => {
