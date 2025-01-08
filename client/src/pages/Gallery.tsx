@@ -1695,6 +1695,20 @@ const renderGalleryControls = useCallback(() => {
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
+  if (isLoading && fetchAttempts >= 5) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Alert variant="destructive" className="w-full max-w-md">
+          <AlertCircle className="h-12 w-12 mb-2" />
+          <AlertTitle className="text-2xl mb-2">Failed to Load Gallery</AlertTitle>
+          <AlertDescription className="text-base">
+            Gallery could not be loaded after multiple attempts. Please refresh or try again later.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   if (!gallery || error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
