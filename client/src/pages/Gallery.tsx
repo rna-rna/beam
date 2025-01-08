@@ -309,6 +309,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [showFilename, setShowFilename] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isLowResLoading, setIsLowResLoading] = useState(true);
+  const [fetchAttempts, setFetchAttempts] = useState(0);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileView, setShowMobileView] = useState(false);
