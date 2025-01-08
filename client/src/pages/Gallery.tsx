@@ -479,12 +479,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         timestamp: new Date().toISOString()
       });
 
-      if (!data) {
-        throw new Error('Gallery returned null or undefined');
-      }
-
-      if (!data.images || !Array.isArray(data.images)) {
-        throw new Error('Invalid gallery data format');
+      if (!data || !data.images || !Array.isArray(data.images)) {
+        return {
+          id: null,
+          images: [],
+          title: 'Untitled',
+          isPublic: false,
+          userId: null,
+          slug: '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
       }
 
       return data;
