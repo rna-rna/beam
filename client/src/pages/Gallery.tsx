@@ -1651,70 +1651,42 @@ const renderGalleryControls = useCallback(() => {
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
-  if (isPrivateGallery) {
+  if (!gallery || error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Alert variant="destructive" className="w-full max-w-md border-destructive">
-          <Lock className="h-12 w-12 mb-2" />
-          <AlertTitle className="text-2xl mb-2">Sorry, This Beam Project is private!</AlertTitle>
-          <AlertDescription className="text-base">
-            This gallery can only be accessed by its owner.
-          </AlertDescription>
+        <Alert variant={isPrivateGallery ? "destructive" : "default"} className="w-full max-w-md">
+          {isPrivateGallery ? (
+            <>
+              <Lock className="h-12 w-12 mb-2" />
+              <AlertTitle className="text-2xl mb-2">Sorry, This Beam Project is private!</AlertTitle>
+              <AlertDescription className="text-base">
+                This gallery can only be accessed by its owner.
+              </AlertDescription>
+            </>
+          ) : (
+            <>
+              <AlertCircle className="h-12 w-12 mb-2" />
+              <AlertTitle className="text-2xl mb-2">Gallery Not Found</AlertTitle>
+              <AlertDescription className="text-base mb-4">
+                {error instanceof Error ? error.message : 'The gallery you are looking for does not exist or has been removed.'}
+              </AlertDescription>
+              <Button
+                variant="outline"
+                onClick={() => setLocation('/dashboard')}
+              >
+                Return to Dashboard
+              </Button>
+            </>
+          )}
         </Alert>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Alert variant="destructive" className="w-full max-w-md">
-          <AlertCircle className="h-12 w-12 mb-2" />
-          <AlertTitle className="text-2xl mb-2">Gallery Not Found</AlertTitle>
-          <AlertDescription className="text-base mb-4">
-            {error instanceof Error ? error.message : 'The gallery you are looking for does not exist or has been removed.'}
-          </AlertDescription>
-          <Button
-            variant="outline"
-            onClick={() => setLocation('/dashboard')}
-          >
-            Return to Dashboard
-          </Button>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (!gallery && isLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!gallery && !isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-xl">Gallery not found</p>
-      </div>
-    );
-  }
-
-  if (!gallery) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle className="h-12 w-12 text-destructive" />
-              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
-              <p className="text-muted-foreground">
-                The gallery you're looking for doesn't exist or has been removed.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
