@@ -279,7 +279,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       channel.unsubscribe();
     };
   }, [slug]);
-  const { toast } = useToast();
+
   const [guestGalleryCount, setGuestGalleryCount] = useState(
     Number(sessionStorage.getItem("guestGalleryCount")) || 0
   );
