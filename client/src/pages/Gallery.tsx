@@ -859,7 +859,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
-      
+
       if (userRole !== "Editor") {
         toast({
           title: "Action Denied",
@@ -868,7 +868,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         });
         return;
       }
-      
+
       uploadMutation.mutate(acceptedFiles);
     },
     [uploadMutation, userRole, toast]
@@ -1026,7 +1026,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       });
       return;
     }
-    
+
     deleteImagesMutation.mutate(selectedImages);
   };
 
@@ -1663,9 +1663,17 @@ const renderGalleryControls = useCallback(() => {
           {isPrivateGallery ? (
             <>
               <Lock className="h-12 w-12 mb-2" />
-              <AlertTitle className="text-2xl mb-2">Sorry, This Beam Project is private!</AlertTitle>
+              <AlertTitle className="text-2xl mb-2">This Gallery is Private</AlertTitle>
               <AlertDescription className="text-base">
-                This gallery can only be accessed by its owner.
+                You need to be invited to access this gallery. If you believe you should have access, please contact the gallery owner.
+              </AlertDescription>
+            </>
+          ) : error instanceof Error && error.message === "This gallery is private" ? (
+            <>
+              <Lock className="h-12 w-12 mb-2" />
+              <AlertTitle className="text-2xl mb-2">Private Gallery</AlertTitle>
+              <AlertDescription className="text-base">
+                This gallery requires an invitation to access. Please check with the owner for access.
               </AlertDescription>
             </>
           ) : (
@@ -1678,6 +1686,7 @@ const renderGalleryControls = useCallback(() => {
               <Button
                 variant="outline"
                 onClick={() => setLocation('/dashboard')}
+                className="w-full"
               >
                 Return to Dashboard
               </Button>
