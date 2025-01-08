@@ -191,16 +191,36 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         ogImageUrl
       }).returning();
 
-      // Initialize with empty images array
-      const galleryWithImages = {
+      let galleryImages = [];
+
+      // Process files if they exist
+      if (files?.length > 0) {
+        const imageInserts = await Promise.all(files.map(async file => {
+          const cloudinaryResult = await cloudinary.api.resource(file.filename);
+          return {
+            galleryId: gallery.id,
+            url: file.path,
+            publicId: file.filename,
+            originalFilename: file.originalname,
+            width: cloudinaryResult.width,
+            height: cloudinaryResult.height,
+            createdAt: new Date()
+          };
+        }));
+
+        const insertedImages = await db.insert(images).values(imageInserts).returning();
+        galleryImages = insertedImages;
+      }
+
+      // Return gallery with empty images array or processed images
+      return res.json({
         ...gallery,
-        images: []
-      };
+        images: galleryImages,
+        isOwner: true,
+        role: "Editor"
+      });
 
-      // Return initialized gallery
-      return res.json(galleryWithImages);
-
-      // If we have files, process them for the gallery
+      // Continue with any remaining processing
       if (files && files.length > 0) {
         try {
           const firstImage = files[0];
