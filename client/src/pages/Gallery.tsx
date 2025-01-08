@@ -819,9 +819,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         xhr.send(formData);
       });
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      queryClient.refetchQueries({ queryKey: [`/api/galleries/${slug}`] });
+    onSuccess: async (data) => {
+      // Force immediate cache invalidation
+      await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      await queryClient.refetchQueries({ 
+        queryKey: [`/api/galleries/${slug}`],
+        type: 'active',
+        exact: true 
+      });
 
       // Trigger preloading immediately after upload
       if (data?.images?.length) {
