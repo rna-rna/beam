@@ -1962,7 +1962,7 @@ const handleImageClick = (index: number) => {
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
                 {renderUploadPlaceholders()}
-                {gallery?.images
+                {gallery?.images?.length > 0 && gallery.images
                   .filter((image: Image) => {
                     // Apply starred filter
                     if (showStarredOnly && !image.starred) return false;
