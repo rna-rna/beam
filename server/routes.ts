@@ -802,15 +802,6 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         });
       }
 
-      // Check access for non-guest galleries
-      if (!gallery.isPublic && !isOwner && !gallery.guestUpload) {
-        return res.status(403).json({
-          message: 'This gallery is private',
-          isPrivate: true,
-          requiresAuth: !req.auth
-        });
-      }
-
       // If access is allowed, get the gallery images with star data
       const imagesWithStars = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
@@ -882,25 +873,15 @@ async function generateOgImage(galleryId: string, imagePath: string) {
 
       // Check for invite and role if not owner
       let role = 'View';
-      if (!isOwner) {
-        const invite = await db.query.invites.findFirst({
-          where: and(
-            eq(invites.galleryId, gallery.id),
-            eq(invites.email, req.auth?.userId ? (await clerkClient.users.getUser(req.auth.userId)).emailAddresses[0].emailAddress : '')
-          )
-        });
-        
-        if (!gallery.isPublic && !invite) {
-          return res.status(403).json({
-            message: 'Access denied',
-            isPrivate: true,
-            requiresAuth: !req.auth
-          });
-        }
-        
-        if (invite) {
-          role = invite.role;
-        }
+      const invite = await db.query.invites.findFirst({
+        where: and(
+          eq(invites.galleryId, gallery.id),
+          eq(invites.email, req.auth?.userId ? (await clerkClient.users.getUser(req.auth.userId)).emailAddresses[0].emailAddress : '')
+        )
+      });
+      
+      if (invite) {
+        role = invite.role;
       }
 
       res.json({
