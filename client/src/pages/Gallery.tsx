@@ -463,6 +463,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     queryFn: async ({ signal }) => {
       let attempts = 0;
       const maxAttempts = 5;
+      setFetchAttempts(0);
+      setIsLoading(true);
 
       while (attempts < maxAttempts) {
         try {
@@ -490,6 +492,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
           if (res.status === 404 && attempts < maxAttempts - 1) {
             attempts++;
+            setFetchAttempts(attempts);
             await new Promise(resolve => setTimeout(resolve, 1000));
             continue;
           }
@@ -500,15 +503,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               statusText: res.statusText
             });
             if (res.status === 403) {
+              setIsLoading(false);
               throw new Error('This gallery is private');
             }
             if (res.status === 404) {
+              setIsLoading(false);
               throw new Error('Gallery not found');
             }
             throw new Error('Failed to fetch gallery');
           }
 
           const data = await res.json();
+          setIsLoading(false);
           console.log('Gallery Fetch Debug:', {
             attempts,
             status: res.status,
@@ -547,6 +553,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         }
       }
 
+      setIsLoading(false);
+      setFetchAttempts(maxAttempts);
       throw new Error('Failed to fetch gallery after multiple attempts');
     },
     enabled: !!slug,
