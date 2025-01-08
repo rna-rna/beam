@@ -446,71 +446,98 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       });
     },
     queryKey: [`/api/galleries/${slug}`],
-    queryFn: async () => {
-      console.log('Starting gallery fetch for slug:', slug, {
-        hasToken: !!await getToken(),
-        timestamp: new Date().toISOString()
-      });
+    queryFn: async ({ signal }) => {
+      let attempts = 0;
+      const maxAttempts = 5;
 
-      const token = await getToken();
-      const headers: HeadersInit = {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      };
+      while (attempts < maxAttempts) {
+        try {
+          console.log(`Gallery fetch attempt ${attempts + 1} for slug:`, slug, {
+            hasToken: !!await getToken(),
+            timestamp: new Date().toISOString()
+          });
 
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+          const token = await getToken();
+          const headers: HeadersInit = {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          };
 
-      const res = await fetch(`/api/galleries/${slug}`, {
-        headers,
-        cache: 'no-store',
-        credentials: 'include'
-      });
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
 
-      if (!res.ok) {
-        console.error('Gallery fetch failed:', {
-          status: res.status,
-          statusText: res.statusText
-        });
-        if (res.status === 403) {
-          throw new Error('This gallery is private');
+          const res = await fetch(`/api/galleries/${slug}`, {
+            headers,
+            cache: 'no-store',
+            credentials: 'include',
+            signal
+          });
+
+          if (res.status === 404 && attempts < maxAttempts - 1) {
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+
+          if (!res.ok) {
+            console.error('Gallery fetch failed:', {
+              status: res.status,
+              statusText: res.statusText
+            });
+            if (res.status === 403) {
+              throw new Error('This gallery is private');
+            }
+            if (res.status === 404) {
+              throw new Error('Gallery not found');
+            }
+            throw new Error('Failed to fetch gallery');
+          }
+
+          const data = await res.json();
+          console.log('Gallery fetch response:', {
+            status: res.status,
+            ok: res.ok,
+            data,
+            hasImages: data?.images?.length > 0,
+            timestamp: new Date().toISOString(),
+            attempts: attempts + 1
+          });
+
+          if (!data || !data.images || !Array.isArray(data.images)) {
+            return {
+              id: null,
+              images: [],
+              title: 'Untitled',
+              isPublic: false,
+              userId: null,
+              slug: '',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+          }
+
+          return data;
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            throw error;
+          }
+          if (attempts === maxAttempts - 1) {
+            throw error;
+          }
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        if (res.status === 404) {
-          throw new Error('Gallery not found');
-        }
-        throw new Error('Failed to fetch gallery');
       }
 
-      const data = await res.json();
-      console.log('Gallery fetch response:', {
-        status: res.status,
-        ok: res.ok,
-        data,
-        hasImages: data?.images?.length > 0,
-        timestamp: new Date().toISOString()
-      });
-
-      if (!data || !data.images || !Array.isArray(data.images)) {
-        return {
-          id: null,
-          images: [],
-          title: 'Untitled',
-          isPublic: false,
-          userId: null,
-          slug: '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-      }
-
-      return data;
+      throw new Error('Failed to fetch gallery after multiple attempts');
     },
     enabled: !!slug,
     staleTime: 0,
     cacheTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    retry: false,
     onError: (err) => {
       console.error('Gallery query error:', err);
       toast({
