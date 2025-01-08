@@ -469,12 +469,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const maxAttempts = 5;
       setFetchAttempts(0);
       setIsLoading(true);
-
+      
+      console.time("Total Gallery Fetch Time");
       while (attempts < maxAttempts) {
         try {
-          console.log(`Gallery fetch attempt ${attempts + 1} for slug:`, slug, {
+          console.time(`Gallery Fetch Attempt ${attempts + 1}`);
+          console.log(`Gallery fetch attempt ${attempts + 1} started for slug:`, slug, {
             hasToken: !!await getToken(),
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            startTime: performance.now()
           });
 
           const token = await getToken();
@@ -519,6 +522,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
           const data = await res.json();
           setIsLoading(false);
+          console.timeEnd(`Gallery Fetch Attempt ${attempts + 1}`);
           console.log('Gallery Fetch Debug:', {
             attempts,
             status: res.status,
@@ -528,8 +532,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             auth: session?.status,
             userRole,
             hasToken: !!await getToken(),
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            endTime: performance.now()
           });
+          console.timeEnd("Total Gallery Fetch Time");
 
           if (!data || !data.images || !Array.isArray(data.images)) {
             return {
