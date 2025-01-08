@@ -1713,9 +1713,21 @@ const renderGalleryControls = useCallback(() => {
         <Alert variant="destructive" className="w-full max-w-md">
           <AlertCircle className="h-12 w-12 mb-2" />
           <AlertTitle className="text-2xl mb-2">Failed to Load Gallery</AlertTitle>
-          <AlertDescription className="text-base">
-            Gallery could not be loaded after multiple attempts. Please refresh or try again later.
+          <AlertDescription className="text-base mb-4">
+            Gallery could not be loaded after multiple attempts. Please try again.
           </AlertDescription>
+          <div className="flex justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setFetchAttempts(0);
+                setIsLoading(true);
+                queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+              }}
+            >
+              Retry
+            </Button>
+          </div>
         </Alert>
       </div>
     );
