@@ -1719,7 +1719,7 @@ const renderGalleryControls = useCallback(() => {
     );
   }
 
-  if (gallery && gallery.images.length === 0) {
+  if (gallery?.images?.length === 0) {
     return (
       <div className="flex flex-col min-h-screen max-h-screen overflow-hidden">
         <div className="flex-1 w-full overflow-hidden relative">
