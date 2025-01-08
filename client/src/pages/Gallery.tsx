@@ -298,7 +298,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
 
-  const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const { user } = useUser();
   const { isDark } = useTheme();
