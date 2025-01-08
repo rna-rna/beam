@@ -710,23 +710,48 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         'Expires': '0'
       });
 
-      // Find the gallery first
+      // Find the gallery
       const gallery = await db.query.galleries.findFirst({
-        where: or(
-          and(
-            eq(galleries.slug, req.params.slug),
-            eq(galleries.guestUpload, true)
-          ),
-          and(
-            eq(galleries.slug, req.params.slug),
-            eq(galleries.isPublic, true)
-          ),
-          and(
-            eq(galleries.slug, req.params.slug),
-            eq(galleries.userId, req.auth?.userId || '')
-          )
-        )
+        where: eq(galleries.slug, req.params.slug)
       });
+
+      if (!gallery) {
+        return res.status(404).json({
+          message: 'Gallery not found',
+          error: 'NOT_FOUND'
+        });
+      }
+
+      // Check if user is invited (if authenticated)
+      if (req.auth?.userId) {
+        const invite = await db.query.invites.findFirst({
+          where: and(
+            eq(invites.galleryId, gallery.id),
+            eq(invites.userId, req.auth.userId)
+          )
+        });
+
+        if (invite) {
+          // Allow access for invited users regardless of gallery visibility
+          return res.json({
+            ...gallery,
+            role: invite.role,
+            isOwner: false
+          });
+        }
+      }
+
+      // Check other access conditions
+      const isOwner = gallery.userId === req.auth?.userId;
+      const hasAccess = gallery.guestUpload || gallery.isPublic || isOwner;
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          message: 'This gallery is private',
+          isPrivate: true,
+          requiresAuth: !req.auth
+        });
+      }
 
       console.log('Gallery fetch result:', {
         found: !!gallery,
