@@ -132,6 +132,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const params = useParams();
   const slug = propSlug || params?.slug;
 
+  if (!slug) {
+    console.error("Missing slug for gallery fetch");
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>Gallery not found</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   const beamOverlayTransform = 'l_beam-bar_q6desn,g_center,x_0,y_0';
   const [presenceMembers, setPresenceMembers] = useState<{[key: string]: any}>({});
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
