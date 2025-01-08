@@ -11,7 +11,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useState, ReactNode, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import About from "@/pages/About"; // Added import for About page
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
