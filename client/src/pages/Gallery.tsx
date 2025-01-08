@@ -130,6 +130,7 @@ import { Helmet } from 'react-helmet';
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const params = useParams();
   const slug = propSlug || params?.slug;
 
