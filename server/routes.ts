@@ -722,7 +722,17 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         });
       }
 
-      // Check if user is invited (if authenticated)
+      // Check if user is owner
+      const isOwner = gallery.userId === req.auth?.userId;
+      if (isOwner) {
+        return res.json({
+          ...gallery,
+          role: 'Editor',
+          isOwner: true
+        });
+      }
+
+      // Check if user is invited
       if (req.auth?.userId) {
         const invite = await db.query.invites.findFirst({
           where: and(
@@ -732,23 +742,12 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         });
 
         if (invite) {
-          // Allow access for invited users regardless of gallery visibility
           return res.json({
             ...gallery,
             role: invite.role,
             isOwner: false
           });
         }
-      }
-
-      // Check if user is owner
-      const isOwner = gallery.userId === req.auth?.userId;
-      if (isOwner) {
-        return res.json({
-          ...gallery,
-          role: 'Editor',
-          isOwner: true
-        });
       }
 
       // Check if gallery is restricted
