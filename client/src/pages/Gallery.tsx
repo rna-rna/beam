@@ -348,17 +348,18 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             allEmails: data.users.map(u => u.email)
           });
 
-          const currentUserRole = data.users.find(
+          const isOwner = gallery?.userId === user?.id;
+          const assignedRole = data.users.find(
             (u) => u.email === user?.primaryEmailAddress?.emailAddress
-          )?.role || "Viewer";
+          )?.role;
+          const currentUserRole = assignedRole || (isOwner ? "Editor" : "Viewer");
 
           console.log("Role Assignment:", {
             assignedRole: currentUserRole,
             userEmail: user?.primaryEmailAddress?.emailAddress,
-            isOwner: data.users.some(u => 
-              u.email === user?.primaryEmailAddress?.emailAddress && 
-              u.role === "Editor"
-            )
+            isOwner,
+            galleryUserId: gallery?.userId,
+            currentUserId: user?.id
           });
 
           setUserRole(currentUserRole);
