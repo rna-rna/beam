@@ -1,5 +1,6 @@
 import { Switch, Route, useLocation } from "wouter";
 import { SignedIn, SignedOut, useUser, useAuth, useClerk } from "@clerk/clerk-react";
+import { Card, CardContent } from "@/components/ui/card";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
