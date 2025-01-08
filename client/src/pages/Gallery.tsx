@@ -1751,18 +1751,13 @@ const renderGalleryControls = useCallback(() => {
   }
 
   if (!gallery || error) {
+    console.error('Gallery fetch error:', error);
+    setIsLoading(false);
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Alert variant={isPrivateGallery ? "destructive" : "default"} className="w-full max-w-md">
-          {isPrivateGallery ? (
-            <>
-              <Lock className="h-12 w-12 mb-2" />
-              <AlertTitle className="text-2xl mb-2">This Gallery is Private</AlertTitle>
-              <AlertDescription className="text-base">
-                You need to be invited to access this gallery. If you believe you should have access, please contact the gallery owner.
-              </AlertDescription>
-            </>
-          ) : error instanceof Error && error.message === "This gallery is private" ? (
+        <Alert variant={error instanceof Error && (error.message === "This gallery is private" || isPrivateGallery) ? "destructive" : "default"} className="w-full max-w-md">
+          {error instanceof Error && error.message === "This gallery is private" ? (
             <>
               <Lock className="h-12 w-12 mb-2" />
               <AlertTitle className="text-2xl mb-2">Private Gallery</AlertTitle>
@@ -1770,12 +1765,12 @@ const renderGalleryControls = useCallback(() => {
                 This gallery requires an invitation to access. Please check with the owner for access.
               </AlertDescription>
             </>
-          ) : (
+          ) : error instanceof Error && error.message === "Gallery not found" ? (
             <>
               <AlertCircle className="h-12 w-12 mb-2" />
               <AlertTitle className="text-2xl mb-2">Gallery Not Found</AlertTitle>
               <AlertDescription className="text-base mb-4">
-                {error instanceof Error ? error.message : 'The gallery you are looking for does not exist or has been removed.'}
+                The gallery you are looking for does not exist or has been removed.
               </AlertDescription>
               <Button
                 variant="outline"
@@ -1783,6 +1778,21 @@ const renderGalleryControls = useCallback(() => {
                 className="w-full"
               >
                 Return to Dashboard
+              </Button>
+            </>
+          ) : (
+            <>
+              <AlertCircle className="h-12 w-12 mb-2" />
+              <AlertTitle className="text-2xl mb-2">Error</AlertTitle>
+              <AlertDescription className="text-base mb-4">
+                {error instanceof Error ? error.message : "Failed to load gallery. Please try again."}
+              </AlertDescription>
+              <Button
+                variant="outline"
+                onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] })}
+                className="w-full"
+              >
+                Retry
               </Button>
             </>
           )}
