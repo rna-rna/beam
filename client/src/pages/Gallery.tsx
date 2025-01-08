@@ -153,13 +153,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   // Refresh Clerk session if expired
   useEffect(() => {
-    if (session?.status === 'expired') {
+    if (session?.status === 'expired' || !session?.lastActiveAt) {
+      setIsLoading(true);
       session
         .refresh()
         .then(() => {
           console.log('Clerk session refreshed successfully');
           queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-          queryClient.refetchQueries({ queryKey: [`/api/galleries/${slug}`] });
+          setIsLoading(false);
         })
         .catch((error) => {
           console.error('Failed to refresh Clerk session:', error);
@@ -168,7 +169,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             description: "Please sign in again",
             variant: "destructive",
           });
+          setIsLoading(false);
         });
+    } else {
+      setIsLoading(false);
     }
   }, [session, queryClient, slug, toast]);
 
