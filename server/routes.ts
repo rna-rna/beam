@@ -1588,9 +1588,9 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      const key = `uploads/${fileName}`; // Correct key
+      const key = `uploads/${fileName}`;
       const command = new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME, // Ensure only bucket name is used
+        Bucket: R2_BUCKET_NAME,
         Key: key,
         ContentType: contentType,
         Metadata: {
@@ -1600,17 +1600,18 @@ export function registerRoutes(app: Express): Server {
       });
 
       // Generate signed URL
-      const url = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+      const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+      const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
 
-      // Validation
-      if (url.includes(`${R2_BUCKET_NAME}/${R2_BUCKET_NAME}`)) {
-        console.warn('Double bucket name detected in URL:', url);
-      }
-
-      console.log('Generated Signed URL:', { url, key });
+      console.log('URL Generation:', { 
+        signedUrl,
+        publicUrl,
+        key
+      });
 
       res.json({
-        url,
+        url: signedUrl,
+        publicUrl,
         key,
         expiresAt: new Date(Date.now() + 3600 * 1000).toISOString()
       });
@@ -1634,9 +1635,11 @@ export function registerRoutes(app: Express): Server {
         ContentType: contentType,
       }));
 
+      const key = `uploads/${fileName}`;
       res.json({ 
         uploadId: upload.ETag,
-        url: `${process.env.VITE_R2_PUBLIC_URL}/uploads/${fileName}`
+        url: `${process.env.VITE_R2_PUBLIC_URL}/${key}`,
+        key
       });
     } catch (err) {
       console.error('Error initiating multipart upload:', err);
@@ -1693,7 +1696,8 @@ export function registerRoutes(app: Express): Server {
 
       res.json({
         success: true,
-        url: `${process.env.VITE_R2_PUBLIC_URL}/${finalKey}`
+        url: `${process.env.VITE_R2_PUBLIC_URL}/${finalKey}`,
+        key: finalKey
       });
     } catch (err) {
       console.error('Error completing multipart upload:', err);
