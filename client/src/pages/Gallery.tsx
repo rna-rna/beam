@@ -1334,14 +1334,19 @@ const renderGalleryControls = useCallback(() => {
   ]);
 
   const renderImage = (image: Image, index: number) => (
-    <motion.div
+    <LazyLoad
       key={image.id}
-      layout={draggedItemIndex === index ? false : "position"}
-      className={`mb-4 image-container relative ${
-        !isMasonry ? 'aspect-[4/3]' : ''
-      } transform transition-all duration-200 ease-out ${
-        isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
-      }`}
+      height={200}
+      offset={100}
+      placeholder={<div className="w-full h-48 bg-muted animate-pulse rounded-lg" />}
+    >
+      <motion.div
+        layout={draggedItemIndex === index ? false : "position"}
+        className={`mb-4 image-container relative ${
+          !isMasonry ? 'aspect-[4/3]' : ''
+        } transform transition-all duration-200 ease-out ${
+          isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
+        }`}
       initial={{ opacity: 0, y: 20}}      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
@@ -1574,6 +1579,7 @@ const renderGalleryControls = useCallback(() => {
         )}
       </div>
     </motion.div>
+    </LazyLoad>
   );
 
   useEffect(() => {
