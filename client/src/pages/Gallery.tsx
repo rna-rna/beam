@@ -474,13 +474,37 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       }
 
       const data = await res.json();
-      console.log('Gallery fetch response:', {
+      console.log('Gallery API Response:', {
         status: res.status,
         ok: res.ok,
-        data,
-        hasImages: data?.images?.length > 0,
+        galleryId: data?.id,
+        title: data?.title,
+        slug: data?.slug,
+        imageCount: data?.images?.length,
+        sampleImage: data?.images?.[0] ? {
+          id: data.images[0].id,
+          originalFilename: data.images[0].originalFilename,
+          url: data.images[0].url,
+          width: data.images[0].width,
+          height: data.images[0].height
+        } : null,
         timestamp: new Date().toISOString()
       });
+
+      // Validate required image fields
+      if (data?.images) {
+        const missingFields = data.images.some((img: any) => 
+          !img.originalFilename || !img.url || !img.id
+        );
+        
+        if (missingFields) {
+          console.error('Invalid image data detected:', 
+            data.images.filter((img: any) => 
+              !img.originalFilename || !img.url || !img.id
+            )
+          );
+        }
+      }
 
       if (!data) {
         throw new Error('Gallery returned null or undefined');
