@@ -1621,12 +1621,15 @@ export function registerRoutes(app: Express): Server {
         signableHeaders: new Set(['content-type', 'content-length'])
       });
 
-      console.log('Generated Signed URL:', {
-        url,
-        key,
+      console.log('Generated Signed URL:', url);
+      console.log('URL Components:', {
+        fullUrl: url,
+        baseEndpoint: process.env.R2_ENDPOINT,
         bucket: R2_BUCKET_NAME,
+        key,
         contentType,
         expiresIn: 3600,
+        queryParams: url.split('?')[1],
         timestamp: new Date().toISOString()
       });
 
