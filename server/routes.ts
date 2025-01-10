@@ -319,7 +319,7 @@ export function registerRoutes(app: Express): Server {
       try {
         const imageInserts = [];
         for (const file of req.files) {
-          const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/beam-01/uploads/${file.filename}`;
+          const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${R2_BUCKET_NAME}/uploads/${file.filename}`;
           const [image] = await db.insert(images).values({
             galleryId: gallery.id,
             url: publicUrl,
