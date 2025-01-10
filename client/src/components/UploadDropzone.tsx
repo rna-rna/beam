@@ -26,10 +26,70 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
   const [isDragging, setIsDragging] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
 
+  const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+
+  const createFileChunks = (file: File) => {
+    const chunks = [];
+    for (let start = 0; start < file.size; start += CHUNK_SIZE) {
+      const chunk = file.slice(start, start + CHUNK_SIZE);
+      chunks.push(chunk);
+    }
+    return chunks;
+  };
+
+  const uploadFileMultipart = async (file: File) => {
+    const chunks = createFileChunks(file);
+    const fileName = file.name;
+    
+    try {
+      // Step 1: Start Multipart Upload
+      const startRes = await fetch('/api/multipart/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName, contentType: file.type }),
+      });
+      const { uploadId, url } = await startRes.json();
+
+      // Step 2: Upload Chunks
+      const uploadedChunks = await Promise.all(
+        chunks.map(async (chunk, index) => {
+          const formData = new FormData();
+          formData.append('chunk', new Blob([chunk]));
+          formData.append('chunkIndex', index.toString());
+          formData.append('fileName', fileName);
+
+          const chunkRes = await fetch('/api/multipart/upload-chunk', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          setUploadProgress(Math.round(((index + 1) / chunks.length) * 100));
+          return chunkRes.json();
+        })
+      );
+
+      // Step 3: Complete Upload
+      const completeRes = await fetch('/api/multipart/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          fileName,
+          totalChunks: chunks.length 
+        }),
+      });
+
+      if (!completeRes.ok) throw new Error('Failed to complete upload');
+      const finalResult = await completeRes.json();
+      return finalResult.url;
+    } catch (error) {
+      console.error('Multipart upload failed:', error);
+      throw error;
+    }
+  };
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (isUploading) return;
 
-    // Prevent empty upload
     if (acceptedFiles.length === 0) {
       toast({
         title: "Invalid Upload",
@@ -43,11 +103,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
     setUploadProgress(0);
 
     try {
-      const formData = new FormData();
-      acceptedFiles.forEach(file => {
-        formData.append('images', file);
-      });
-
       const currentPath = window.location.pathname;
       let gallerySlug = currentPath.split('/').pop();
 
@@ -66,36 +121,26 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
         gallerySlug = galleryData.slug;
       }
 
-      await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `/api/galleries/${gallerySlug}/images`);
+      const uploadedUrls = await Promise.all(
+        acceptedFiles.map(async (file) => {
+          const url = await uploadFileMultipart(file);
+          return {
+            url,
+            originalFilename: file.name
+          };
+        })
+      );
 
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            setUploadProgress(progress);
-          }
-        };
+      // Add images to gallery
+      await fetch(`/api/galleries/${gallerySlug}/images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: uploadedUrls })
+      });
 
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const response = JSON.parse(xhr.response);
-            console.log("Upload successful:", response);
-            toast({
-              title: "Success",
-              description: "Images uploaded successfully!",
-            });
-            resolve(response);
-          } else {
-            reject(new Error('Upload failed'));
-          }
-        };
-
-        xhr.onerror = () => {
-          reject(new Error('Network error during upload'));
-        };
-
-        xhr.send(formData);
+      toast({
+        title: "Success",
+        description: "Images uploaded successfully!",
       });
       
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
