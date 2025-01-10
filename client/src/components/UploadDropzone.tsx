@@ -182,25 +182,22 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
         gallerySlug = galleryData.slug;
       }
 
-      const uploadedUrls = await Promise.all(
-        acceptedFiles.map(async (file, index) => {
-          const fileName = `${Date.now()}-${file.name}`;
-          const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/uploads/${fileName}`;
-          const url = await uploadFile(file);
-          setUploadProgress(Math.round(((index + 1) / acceptedFiles.length) * 100));
-          return {
-            url: publicUrl,
-            originalFilename: file.name
-          };
-        })
-      );
-
-      // Add images to gallery
-      await fetch(`/api/galleries/${gallerySlug}/images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images: uploadedUrls })
+      const formData = new FormData();
+      acceptedFiles.forEach((file) => {
+        formData.append('images', file);
       });
+
+      const response = await fetch(`/api/galleries/${gallerySlug}/images`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload images');
+      }
+
+      const result = await response.json();
+      const uploadedUrls = result.images;
 
       toast({
         title: "Success",
