@@ -1586,7 +1586,15 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      const key = `beam-01/uploads/${fileName}`;
+      // Ensure content type is valid
+      if (!contentType.startsWith('image/')) {
+        return res.status(400).json({
+          error: 'Invalid content type',
+          details: 'Only image files are allowed'
+        });
+      }
+
+      const key = `uploads/${fileName}`;
       console.log('Generating signed URL:', {
         bucket: R2_BUCKET_NAME,
         key,
@@ -1601,13 +1609,19 @@ export function registerRoutes(app: Express): Server {
         ContentType: contentType,
         ACL: 'public-read',
         Metadata: {
-          originalName: fileName
+          originalName: fileName,
+          uploadedAt: new Date().toISOString()
         }
       });
       
       const url = await getSignedUrl(r2Client, command, { 
-        expiresIn: 3600 
+        expiresIn: 3600 // 1 hour expiry
       });
+
+      // Validate generated URL
+      if (!url.includes(R2_BUCKET_NAME)) {
+        throw new Error('Invalid signed URL generated');
+      }
 
       // Validate generated URL
       if (!url.includes(R2_BUCKET_NAME) || !url.includes(key)) {
