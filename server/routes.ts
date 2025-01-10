@@ -1604,11 +1604,9 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Validation Details:', {
         url,
-        expectedKey: key,
-        includesKey: url.includes(key),
+        key,
         bucket: R2_BUCKET_NAME,
-        expires: new Date(Date.now() + 3600 * 1000).toISOString(),
-        hasContentType: url.includes(contentType.replace('/', '%2F'))
+        expires: new Date(Date.now() + 3600 * 1000).toISOString()
       });
 
       res.json({ 
