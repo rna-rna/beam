@@ -1590,8 +1590,8 @@ export function registerRoutes(app: Express): Server {
       const key = `uploads/${fileName}`;
       // Ensure bucket name is clean without any prefixes
       const command = new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME.replace(/^\/+|\/+$/g, ''), // Remove any leading/trailing slashes
-        Key: key,
+        Bucket: R2_BUCKET_NAME, // Ensure only the bucket name is passed
+        Key: `uploads/${fileName}`, // Correct key without bucket name
         ContentType: contentType,
         Metadata: {
           originalName: fileName,
