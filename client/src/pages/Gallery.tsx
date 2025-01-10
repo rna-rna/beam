@@ -1338,7 +1338,15 @@ const renderGalleryControls = useCallback(() => {
       key={image.id}
       height={200}
       offset={100}
-      placeholder={<div className="w-full h-48 bg-muted animate-pulse rounded-lg" />}
+      placeholder={
+        <div 
+          className="w-full bg-muted animate-pulse rounded-lg" 
+          style={{ 
+            aspectRatio: image.width && image.height ? `${image.width} / ${image.height}` : '4/3',
+            minHeight: '200px'
+          }}
+        />
+      }
     >
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
