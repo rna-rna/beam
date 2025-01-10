@@ -127,8 +127,8 @@ interface ImageDimensions {
 
 import { Helmet } from 'react-helmet';
 
-const getR2ImageUrl = (image: Image) => 
-  `${import.meta.env.VITE_R2_PUBLIC_URL}/${image.slug}/${image.originalFilename}`;
+const getR2ImageUrl = (image: Image, gallerySlug?: string) => 
+  `${import.meta.env.VITE_R2_PUBLIC_URL}/${gallerySlug || slug}/${image.originalFilename}`;
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
@@ -1398,8 +1398,8 @@ const renderGalleryControls = useCallback(() => {
             <img
               src={
                 preloadedImages.has(image.id)
-                  ? getR2ImageUrl(image)  // Full-res if preloaded
-                  : getR2ImageUrl(image)  // Use same URL for now since R2 doesn't support transformations
+                  ? getR2ImageUrl(image, slug)  // Full-res if preloaded
+                  : getR2ImageUrl(image, slug)  // Use same URL for now since R2 doesn't support transformations
               }
               data-src={getR2ImageUrl(image)}
               alt={image.originalFilename || ''}
@@ -1737,7 +1737,7 @@ const renderGalleryControls = useCallback(() => {
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getR2ImageUrl(images[idx]);
+          img.src = getR2ImageUrl(images[idx], slug);
         }
       });
     }
@@ -1816,7 +1816,7 @@ const handleImageClick = (index: number) => {
         <Helmet>
           <meta property="og:title" content={gallery.title || "Beam Gallery"} />
           <meta property="og:description" content="Explore stunning galleries!" />
-          <meta property="og:image" content={gallery.ogImageUrl ? getR2ImageUrl(gallery.ogImage) : getR2ImageUrl('12_crhopz')} />
+          <meta property="og:image" content={gallery.ogImageUrl ? getR2ImageUrl(gallery.ogImage, slug) : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`} />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="630" />
           <meta property="og:type" content="website" />
