@@ -911,9 +911,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   );
 
   // Preload image function
-  const preloadImage = useCallback((url: string, imageId: number) => {
+  const preloadImage = useCallback((image: Image, imageId: number) => {
     const img = new Image();
-    img.src = url;
+    img.src = getR2ImageUrl(image);
     img.onload = () => {
       setPreloadedImages(prev => new Set([...Array.from(prev), imageId]));
     };
@@ -924,10 +924,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     if (gallery?.images) {
       gallery.images.forEach(image => {
         if (!preloadedImages.has(image.id)) {
-          preloadImage(
-            getR2ImageUrl(image), // Updated to use getR2ImageUrl
-            image.id
-          );
+          preloadImage(image, image.id);
         }
       });
     }
@@ -946,7 +943,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       toast({
         title: "Preparing Download",
         description: "Creating ZIP file of all images...",
-      });
+});
 
       const zip = new JSZip();
       const imagePromises = gallery!.images.map(async (image, index) => {
@@ -1740,7 +1737,7 @@ const renderGalleryControls = useCallback(() => {
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getR2ImageUrl(images[idx]); // Updated to use getR2ImageUrl
+          img.src = getR2ImageUrl(images[idx]);
         }
       });
     }
@@ -1750,7 +1747,7 @@ const renderGalleryControls = useCallback(() => {
 
 
 const handleImageClick = (index: number) => {
-    console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
+    console.log('handleImageClick:', { isCommentPlacementMode });
 
     if (isMobile) {
       setMobileViewIndex(index);
@@ -1766,14 +1763,14 @@ const handleImageClick = (index: number) => {
 
   // Add comment position handler
   const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
-    console.log('handleImageComment triggered'); // Debug log
+    console.log('handleImageComment triggered');
     if (!isCommentPlacementMode) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
 
-    console.log('Setting comment position:', { x, y }); // Debug log
+    console.log('Setting comment position:', { x, y });
     setNewCommentPos({ x, y });
     setIsCommentModalOpen(true);
   };
@@ -1789,11 +1786,11 @@ const handleImageClick = (index: number) => {
         onClose={() => {
           setIsCommentModalOpen(false);
           setNewCommentPos(null);
-          console.log('Comment modal closed'); // Debug log
+          console.log('Comment modal closed');
         }}
         onSubmit={(content) => {
           if (!user) {
-            console.log('User not authenticated, cannot submit comment'); // Debug log
+            console.log('User not authenticated, cannot submit comment');
             return;
           }
 
