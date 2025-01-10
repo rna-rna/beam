@@ -1402,27 +1402,21 @@ const renderGalleryControls = useCallback(() => {
     setIsOpenShareModal
   ]);
 
-  const renderImage = (image: Image | null | undefined, index: number) => {
-    if (!image || !image.id || !image.url) {
-      console.error(`Invalid image at index ${index}:`, image);
-      return null;
-    }
-
-    return (
-      <LazyLoad
-        key={image.id}
-        height={200}
-        offset={100}
-        placeholder={
-          <div 
-            className="w-full bg-muted animate-pulse rounded-lg" 
-            style={{ 
-              aspectRatio: image.width && image.height ? `${image.width} / ${image.height}` : '4/3',
-              minHeight: '200px'
-            }}
-          />
-        }
-      >
+  const renderImage = (image: Image, index: number) => (
+    <LazyLoad
+      key={image.id}
+      height={200}
+      offset={100}
+      placeholder={
+        <div 
+          className="w-full bg-muted animate-pulse rounded-lg" 
+          style={{ 
+            aspectRatio: image.width && image.height ? `${image.width} / ${image.height}` : '4/3',
+            minHeight: '200px'
+          }}
+        />
+      }
+    >
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={`mb-4 image-container relative ${
