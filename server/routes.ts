@@ -1578,17 +1578,35 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/single-upload-url', async (req: any, res) => {
     const { fileName, contentType } = req.body;
     try {
+      const key = `uploads/${fileName}`;
+      console.log('Generating signed URL:', {
+        bucket: R2_BUCKET_NAME,
+        key,
+        contentType,
+        expiresIn: 3600
+      });
+
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
-        Key: `uploads/${fileName}`,
+        Key: key,
         ContentType: contentType,
       });
       
       const url = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+      console.log('Generated signed URL:', {
+        url,
+        bucket: R2_BUCKET_NAME,
+        key,
+        timestamp: new Date().toISOString()
+      });
+      
       res.json({ url });
     } catch (err) {
       console.error('Error generating single PUT URL:', err);
-      res.status(500).json({ error: 'Failed to generate upload URL' });
+      res.status(500).json({ 
+        error: 'Failed to generate upload URL',
+        details: err instanceof Error ? err.message : 'Unknown error'
+      });
     }
   });
 
