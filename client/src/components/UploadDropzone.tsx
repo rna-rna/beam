@@ -87,6 +87,31 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
     }
   };
 
+  const USE_MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB
+
+  const uploadFile = async (file: File) => {
+    if (file.size > USE_MULTIPART_THRESHOLD) {
+      console.log('Using multipart upload for:', file.name);
+      return uploadFileMultipart(file);
+    } else {
+      console.log('Using single PUT upload for:', file.name);
+      const startRes = await fetch('/api/multipart/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: file.name, contentType: file.type }),
+      });
+      const { url } = await startRes.json();
+      
+      const uploadRes = await fetch(url, {
+        method: 'PUT',
+        body: file,
+      });
+
+      if (!uploadRes.ok) throw new Error('Failed to upload file');
+      return url;
+    }
+  };
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (isUploading) return;
 
@@ -122,8 +147,9 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
       }
 
       const uploadedUrls = await Promise.all(
-        acceptedFiles.map(async (file) => {
-          const url = await uploadFileMultipart(file);
+        acceptedFiles.map(async (file, index) => {
+          const url = await uploadFile(file);
+          setUploadProgress(Math.round(((index + 1) / acceptedFiles.length) * 100));
           return {
             url,
             originalFilename: file.name
