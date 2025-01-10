@@ -204,8 +204,11 @@ export function registerRoutes(app: Express): Server {
                 ContentType: file.mimetype,
               }));
 
+              const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/beam-01/${fileName}`;
+              console.log('Generated Public URL:', publicUrl);
+
               return {
-                url: `${process.env.VITE_R2_PUBLIC_URL}/${fileName}`,
+                url: publicUrl,
                 publicId: fileName,
                 originalFilename: file.originalname,
                 width: metadata.width || 800,
@@ -315,9 +318,10 @@ export function registerRoutes(app: Express): Server {
       try {
         const imageInserts = [];
         for (const file of req.files) {
+          const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/beam-01/uploads/${file.filename}`;
           const [image] = await db.insert(images).values({
             galleryId: gallery.id,
-            url: `/uploads/${file.filename}`,
+            url: publicUrl,
             publicId: file.filename,
             width: 800, // placeholder
             height: 600 // placeholder
