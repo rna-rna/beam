@@ -449,7 +449,7 @@ export function registerRoutes(app: Express): Server {
 
           return {
             galleryId: gallery.id,
-            url: `${process.env.VITE_R2_PUBLIC_URL}/${fileName}`,
+            url: `${process.env.VITE_R2_PUBLIC_URL}/${process.env.R2_BUCKET_NAME}/${fileName}`,
             publicId: fileName,
             originalFilename: file.originalname,
             width: metadata.width || 800,
@@ -938,7 +938,7 @@ export function registerRoutes(app: Express): Server {
         if (invite) {
           role = invite.role;
         }
-      }
+}
 
       res.json({
         id: gallery.id,
