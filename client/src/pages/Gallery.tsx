@@ -134,19 +134,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       return '/fallback-image.jpg';
     }
 
-    if (!image.originalFilename) {
-      console.warn('Missing originalFilename, falling back to url:', image.url);
-      return image.url || '/fallback-image.jpg';
+    if (!image.url) {
+      console.warn('Missing URL in image object');
+      return '/fallback-image.jpg';
     }
 
-    const url = `${import.meta.env.VITE_R2_PUBLIC_URL}/${gallerySlug || propSlug}/${image.originalFilename}`;
-    console.debug('Generated R2 URL:', {
-      url,
-      gallerySlug,
-      propSlug,
-      originalFilename: image.originalFilename
-    });
-    return url;
+    // Return the complete URL from the API response
+    return image.url;
   };
   // URL Parameters and Global Hooks
   const params = useParams();
