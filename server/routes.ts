@@ -1596,6 +1596,8 @@ export function registerRoutes(app: Express): Server {
       }
 
       const key = `uploads/${fileName}`;
+      console.log('Bucket:', R2_BUCKET_NAME);
+      console.log('Key:', key);
       console.log('Generating signed URL:', {
         bucket: R2_BUCKET_NAME,
         key,
