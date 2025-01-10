@@ -128,18 +128,32 @@ interface ImageDimensions {
 import { Helmet } from 'react-helmet';
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
-  const getR2ImageUrl = (image: Image | null | undefined) => {
+  const getR2ImageUrl = (image: Image | null | undefined, slug?: string) => {
     if (!image) {
-      console.error('Image object is null or undefined');
+      console.error('Image object is null or undefined:', {
+        image,
+        stack: new Error().stack 
+      });
       return '/fallback-image.jpg';
     }
 
     if (!image.url) {
-      console.warn('Missing URL in image object');
+      console.warn('Missing URL in image object:', {
+        imageId: image.id,
+        publicId: image.publicId,
+        originalFilename: image.originalFilename
+      });
       return '/fallback-image.jpg';
     }
 
-    return `${process.env.VITE_R2_PUBLIC_URL}/${image.url}`;
+    console.debug('Generating R2 URL:', {
+      imageId: image.id,
+      url: image.url,
+      publicId: image.publicId,
+      slug
+    });
+
+    return image.url;
   };
   // URL Parameters and Global Hooks
   const params = useParams();
