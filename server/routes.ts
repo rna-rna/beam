@@ -1591,28 +1591,6 @@ export function registerRoutes(app: Express): Server {
 
       const key = `uploads/${fileName}`;
 
-      if (process.env.VITE_R2_PUBLIC_URL.includes(R2_BUCKET_NAME)) {
-        throw new Error(
-          'VITE_R2_PUBLIC_URL must not include the bucket name; the bucket name is added dynamically'
-        );
-      }
-
-      console.log('Signed URL Debug Info:', {
-        command: {
-          Bucket: R2_BUCKET_NAME,
-          Key: key,
-          ContentType: contentType,
-          Metadata: {
-            originalName: fileName,
-            uploadedAt: new Date().toISOString()
-          }
-        },
-        config: {
-          endpoint: process.env.R2_ENDPOINT,
-          publicUrl: process.env.VITE_R2_PUBLIC_URL
-        }
-      });
-
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
         Key: key,
@@ -1624,22 +1602,17 @@ export function registerRoutes(app: Express): Server {
       });
 
       const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
-      
-      console.log('Generated Signed URL:', {
-        signedUrl,
-        containsBucketTwice: signedUrl.split(R2_BUCKET_NAME).length > 2,
-        urlParts: signedUrl.split('?')[0].split('/')
-      });
       const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`;
 
-      console.log('Generated Signed URL Details:', {
+      console.log('Generated URL Details:', {
         signedUrl,
         publicUrl,
         key,
       });
 
+      // Validation: Log warnings if signedUrl contains redundant bucket name
       if (signedUrl.includes(`${R2_BUCKET_NAME}/${R2_BUCKET_NAME}`)) {
-        throw new Error('Generated Signed URL contains a double bucket name');
+        console.warn('Double bucket name detected in signed URL:', signedUrl);
       }
 
       res.json({
@@ -1650,9 +1623,9 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (err) {
       console.error('Error generating single PUT URL:', err);
-      res.status(500).json({ 
-        error: 'Failed to generate upload URL', 
-        details: err instanceof Error ? err.message : 'Unknown error' 
+      res.status(500).json({
+        error: 'Failed to generate upload URL',
+        details: err instanceof Error ? err.message : 'Unknown error',
       });
     }
   });
