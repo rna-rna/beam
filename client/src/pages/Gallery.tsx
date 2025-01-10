@@ -127,8 +127,10 @@ interface ImageDimensions {
 
 import { Helmet } from 'react-helmet';
 
-const getR2ImageUrl = (image: Image, gallerySlug?: string) => 
-  `${import.meta.env.VITE_R2_PUBLIC_URL}/${gallerySlug || slug}/${image.originalFilename}`;
+const getR2ImageUrl = (image: Image | null | undefined, gallerySlug?: string) => {
+  if (!image?.originalFilename) return '';
+  return `${import.meta.env.VITE_R2_PUBLIC_URL}/${gallerySlug || slug}/${image.originalFilename}`;
+};
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
