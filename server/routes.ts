@@ -193,7 +193,7 @@ export function registerRoutes(app: Express): Server {
           // ogImageUrl = uploadResponse.secure_url;
           const imageUploads = await Promise.all(
             files.map(async (file) => {
-              const fileName = `galleries/${slug}/${Date.now()}-${file.originalname}`;
+              const fileName = `uploads/${Date.now()}-${file.originalname}`;
 
               // Get image dimensions using Sharp
               const metadata = await sharp(file.buffer).metadata();
@@ -1652,7 +1652,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const upload = await r2Client.send(new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
-        Key: `uploads/${fileName}`,
+        Key: `uploads/${Date.now()}-${fileName}`,
         ContentType: contentType,
       }));
 
