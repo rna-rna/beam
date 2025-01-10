@@ -1579,7 +1579,7 @@ export function registerRoutes(app: Express): Server {
 
   // Single PUT upload endpoint
   app.post('/api/single-upload-url', async (req: any, res) => {
-    const { fileName, contentType } = req.body;
+    const { fileName, contentType, slug } = req.body;
 
     try {
       console.log('Environment Variables:', {
@@ -1587,14 +1587,14 @@ export function registerRoutes(app: Express): Server {
         R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
       });
 
-      if (!fileName || !contentType) {
+      if (!fileName || !contentType || !slug) {
         return res.status(400).json({
           error: 'Missing required fields',
-          details: 'fileName and contentType are required',
+          details: 'fileName, contentType, and slug are required',
         });
       }
 
-      const key = `uploads/${fileName}`;
+      const key = `galleries/${slug}/${fileName}`;
 
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
