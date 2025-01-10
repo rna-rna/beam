@@ -94,48 +94,57 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
   const uploadFile = async (file: File) => {
     if (file.size > USE_MULTIPART_THRESHOLD) {
       console.log('Using multipart upload for:', file.name, `(size: ${file.size} bytes)`);
-      console.log('File details:', {
-        type: file.type,
-        lastModified: new Date(file.lastModified).toISOString()
-      });
       return uploadFileMultipart(file);
     } else {
-      console.log('Using single PUT upload for:', file.name, `(size: ${file.size} bytes)`);
+      console.log('Using single PUT upload for:', file.name);
       console.log('File details:', {
+        name: file.name,
         type: file.type,
+        size: file.size,
         lastModified: new Date(file.lastModified).toISOString()
       });
       
-      const startRes = await fetch('/api/multipart/start', {
+      // Get signed URL
+      const startRes = await fetch('/api/single-upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileName: file.name, contentType: file.type }),
       });
-      const { url } = await startRes.json();
+
+      if (!startRes.ok) {
+        throw new Error(`Failed to get signed URL: ${startRes.statusText}`);
+      }
+
+      const { url, key } = await startRes.json();
       
-      console.log('Making PUT request:', {
+      console.log('Signed URL details:', {
         url,
-        method: 'PUT',
-        contentType: file.type,
-        fileSize: file.size
+        key,
+        contentType: file.type
       });
 
+      // Upload file using signed URL
       const uploadRes = await fetch(url, {
         method: 'PUT',
         headers: {
-          'Content-Type': file.type
+          'Content-Type': file.type,
+          'Content-Length': file.size.toString()
         },
         body: file,
       });
 
       console.log('Upload response:', {
         status: uploadRes.status,
-        ok: uploadRes.ok,
-        statusText: uploadRes.statusText
+        statusText: uploadRes.statusText,
+        headers: Object.fromEntries(uploadRes.headers.entries())
       });
 
-      if (!uploadRes.ok) throw new Error('Failed to upload file');
-      return url;
+      if (!uploadRes.ok) {
+        const errorText = await uploadRes.text();
+        throw new Error(`Upload failed: ${uploadRes.status} ${uploadRes.statusText}\n${errorText}`);
+      }
+
+      return `${process.env.VITE_R2_PUBLIC_URL}/beam-01/${key}`;
     }
   };
 
