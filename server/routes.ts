@@ -939,7 +939,7 @@ export function registerRoutes(app: Express): Server {
         if (invite) {
           role = invite.role;
         }
-}
+      }
 
       res.json({
         id: gallery.id,
@@ -1587,20 +1587,19 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Ensure content type is valid
-      if (!contentType.startsWith('image/')) {
-        return res.status(400).json({
-          error: 'Invalid content type',
-          details: 'Only image files are allowed'
-        });
-      }
+      console.log('Upload Request Details:', {
+        originalBucketName: R2_BUCKET_NAME,
+        fileName,
+        contentType,
+        timestamp: new Date().toISOString()
+      });
 
       // Don't include bucket name in the key since it's already specified in Bucket parameter
       // Don't include bucket name in the key
       // Ensure key doesn't include bucket name
       const key = `uploads/${fileName}`;
       const bucket = R2_BUCKET_NAME.replace(/^beam-01\//, ''); // Remove if bucket starts with beam-01/
-      
+
       console.log('URL Generation:', {
         bucket,
         key,
@@ -1617,7 +1616,7 @@ export function registerRoutes(app: Express): Server {
           uploadedAt: new Date().toISOString()
         }
       });
-      
+
       const url = await getSignedUrl(r2Client, command, { 
         expiresIn: 3600,
         signableHeaders: new Set(['content-type', 'content-length'])
@@ -1647,7 +1646,7 @@ export function registerRoutes(app: Express): Server {
         expires: new Date(Date.now() + 3600 * 1000).toISOString(),
         hasContentType: url.includes(contentType.replace('/', '%2F'))
       });
-      
+
       res.json({ 
         url,
         key,
@@ -1694,7 +1693,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const chunkPath = path.join(uploadsDir, 'chunks', `${fileName}-chunk-${chunkIndex}`);
       await fs.promises.writeFile(chunkPath, file.buffer);
-      
+
       res.json({ 
         success: true,
         chunkIndex
@@ -1707,16 +1706,16 @@ export function registerRoutes(app: Express): Server {
 
   app.post('/api/multipart/complete', async (req: any, res) => {
     const { fileName, totalChunks } = req.body;
-    
+
     try {
       let finalBuffer = Buffer.alloc(0);
-      
+
       // Combine chunks
       for (let i = 0; i < totalChunks; i++) {
         const chunkPath = path.join(uploadsDir, 'chunks', `${fileName}-chunk-${i}`);
         const chunkBuffer = await fs.promises.readFile(chunkPath);
         finalBuffer = Buffer.concat([finalBuffer, chunkBuffer]);
-        
+
         // Clean up chunk
         await fs.promises.unlink(chunkPath);
       }
