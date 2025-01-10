@@ -1885,13 +1885,6 @@ const handleImageClick = (index: number) => {
           </div>
         </div>      )}
 
-      console.log('Gallery Images:', {
-        count: gallery?.images?.length,
-        firstImage: gallery?.images?.[0],
-        hasImages: Boolean(gallery?.images?.length),
-        timestamp: new Date().toISOString()
-      });
-
       <div className="px-4 sm:px-6 lg:px-8 py-4">
         <AnimatePresence mode="wait">
           {isMasonry ? (
