@@ -2385,4 +2385,4 @@ const handleImageClick = (index: number) => {
   );
 }
 
-export default Gallery;;
+export default Gallery;
