@@ -205,7 +205,7 @@ export function registerRoutes(app: Express): Server {
                 ContentType: file.mimetype,
               }));
 
-              const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/beam-01/${fileName}`;
+              const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${fileName}`;
               console.log('Generated Public URL:', publicUrl);
 
               return {
@@ -1649,7 +1649,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json({ 
         uploadId: upload.ETag,
-        url: `${process.env.VITE_R2_PUBLIC_URL}/${R2_BUCKET_NAME}/uploads/${fileName}`
+        url: `${process.env.VITE_R2_PUBLIC_URL}/uploads/${fileName}`
       });
     } catch (err) {
       console.error('Error initiating multipart upload:', err);
@@ -1706,7 +1706,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json({
         success: true,
-        url: `${process.env.VITE_R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${finalKey}`
+        url: `${process.env.VITE_R2_PUBLIC_URL}/${finalKey}`
       });
     } catch (err) {
       console.error('Error completing multipart upload:', err);
