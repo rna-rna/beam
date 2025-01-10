@@ -14,6 +14,12 @@ if (!process.env.CLERK_PUBLISHABLE_KEY) {
   throw new Error('CLERK_PUBLISHABLE_KEY is required. Please add it to your environment variables.');
 }
 
+// Log R2 environment variables
+console.log('Environment Variables:', {
+  VITE_R2_PUBLIC_URL: process.env.VITE_R2_PUBLIC_URL,
+  R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
+});
+
 const app = express();
 
 // Enable CORS with comprehensive options
