@@ -1574,6 +1574,84 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Multipart Upload Endpoints
+  app.post('/api/multipart/start', async (req: any, res) => {
+    const { fileName, contentType } = req.body;
+
+    try {
+      const upload = await r2Client.send(new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: `uploads/${fileName}`,
+        ContentType: contentType,
+      }));
+
+      res.json({ 
+        uploadId: upload.ETag,
+        url: `${process.env.VITE_R2_PUBLIC_URL}/${R2_BUCKET_NAME}/uploads/${fileName}`
+      });
+    } catch (err) {
+      console.error('Error initiating multipart upload:', err);
+      res.status(500).json({ error: 'Failed to start multipart upload' });
+    }
+  });
+
+  app.post('/api/multipart/upload-chunk', upload.single('chunk'), async (req: any, res) => {
+    const { chunkIndex, fileName } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ error: 'No chunk uploaded' });
+    }
+
+    try {
+      const chunkPath = path.join(uploadsDir, 'chunks', `${fileName}-chunk-${chunkIndex}`);
+      await fs.promises.writeFile(chunkPath, file.buffer);
+      
+      res.json({ 
+        success: true,
+        chunkIndex
+      });
+    } catch (err) {
+      console.error('Error uploading chunk:', err);
+      res.status(500).json({ error: 'Failed to upload chunk' });
+    }
+  });
+
+  app.post('/api/multipart/complete', async (req: any, res) => {
+    const { fileName, totalChunks } = req.body;
+    
+    try {
+      let finalBuffer = Buffer.alloc(0);
+      
+      // Combine chunks
+      for (let i = 0; i < totalChunks; i++) {
+        const chunkPath = path.join(uploadsDir, 'chunks', `${fileName}-chunk-${i}`);
+        const chunkBuffer = await fs.promises.readFile(chunkPath);
+        finalBuffer = Buffer.concat([finalBuffer, chunkBuffer]);
+        
+        // Clean up chunk
+        await fs.promises.unlink(chunkPath);
+      }
+
+      // Upload final file to R2
+      const finalKey = `uploads/${fileName}`;
+      await r2Client.send(new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: finalKey,
+        Body: finalBuffer,
+        ContentType: 'image/jpeg' // Adjust based on file type
+      }));
+
+      res.json({
+        success: true,
+        url: `${process.env.VITE_R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${finalKey}`
+      });
+    } catch (err) {
+      console.error('Error completing multipart upload:', err);
+      res.status(500).json({ error: 'Failed to complete multipart upload' });
+    }
+  });
+
   // Mount protected routes
   app.use('/api', protectedRouter);
 
