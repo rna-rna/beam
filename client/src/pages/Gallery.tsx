@@ -1915,6 +1915,8 @@ const handleImageClick = (index: number) => {
                 })}
                 {gallery?.images
                   .filter((image: Image) => {
+                    // Filter out invalid images
+                    if (!image || !image.originalFilename || !image.id) return false;
                     // Apply starred filter
                     if (showStarredOnly && !image.starred) return false;
                     // Apply comments filter
