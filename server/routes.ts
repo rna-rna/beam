@@ -418,7 +418,6 @@ export function registerRoutes(app: Express): Server {
       if (!req.files || !Array.isArray(req.files)) {
         return res.status(400).json({ message: 'No images uploaded' });
       }
-      const sharp = require('sharp');
       const imageUploads = await Promise.all(
         req.files.map(async (file) => {
           const fileName = `galleries/${gallery.slug}/${Date.now()}-${file.originalname}`;
