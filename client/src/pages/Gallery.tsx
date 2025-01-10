@@ -993,13 +993,31 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   );
 
   // Preload image function
-  const preloadImage = useCallback((image: Image, imageId: number) => {
+  const preloadImage = useCallback((image: Image | null | undefined, imageId: number) => {
+    if (!image?.url || !imageId) {
+      console.warn('Skipping preload for invalid image:', { image, imageId });
+      return;
+    }
+
+    const url = getR2ImageUrl(image);
+    if (!url) {
+      console.warn('Invalid URL generated for image:', { image, imageId });
+      return;
+    }
+
+    console.debug('Starting preload for image:', { imageId, url });
     const img = new Image();
-    img.src = getR2ImageUrl(image);
+    img.src = url;
+    
     img.onload = () => {
+      console.debug('Successfully preloaded image:', { imageId, url });
       setPreloadedImages(prev => new Set([...Array.from(prev), imageId]));
     };
-  }, []);
+
+    img.onerror = (error) => {
+      console.error('Failed to preload image:', { imageId, url, error });
+    };
+  }, [getR2ImageUrl]);
 
   // Preload images when gallery data is available
   useEffect(() => {
