@@ -1619,6 +1619,15 @@ export function registerRoutes(app: Express): Server {
         signableHeaders: new Set(['content-type', 'content-length'])
       });
 
+      console.log('Generated Signed URL:', {
+        url,
+        key,
+        bucket: R2_BUCKET_NAME,
+        contentType,
+        expiresIn: 3600,
+        timestamp: new Date().toISOString()
+      });
+
       // Validate generated URL
       if (!url.includes(R2_BUCKET_NAME)) {
         throw new Error('Invalid signed URL generated');
