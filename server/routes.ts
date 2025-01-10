@@ -1597,6 +1597,22 @@ export function registerRoutes(app: Express): Server {
         );
       }
 
+      console.log('Signed URL Debug Info:', {
+        command: {
+          Bucket: R2_BUCKET_NAME,
+          Key: key,
+          ContentType: contentType,
+          Metadata: {
+            originalName: fileName,
+            uploadedAt: new Date().toISOString()
+          }
+        },
+        config: {
+          endpoint: process.env.R2_ENDPOINT,
+          publicUrl: process.env.VITE_R2_PUBLIC_URL
+        }
+      });
+
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
         Key: key,
@@ -1608,6 +1624,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+      
+      console.log('Generated Signed URL:', {
+        signedUrl,
+        containsBucketTwice: signedUrl.split(R2_BUCKET_NAME).length > 2,
+        urlParts: signedUrl.split('?')[0].split('/')
+      });
       const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`;
 
       console.log('Generated Signed URL Details:', {
