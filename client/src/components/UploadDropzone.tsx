@@ -122,6 +122,9 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
 
       const uploadRes = await fetch(url, {
         method: 'PUT',
+        headers: {
+          'Content-Type': file.type
+        },
         body: file,
       });
 
