@@ -500,6 +500,22 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         } : null,
         timestamp: new Date().toISOString()
       });
+      console.log('Gallery API Response:', {
+        status: res.status,
+        ok: res.ok,
+        galleryId: data?.id,
+        title: data?.title,
+        slug: data?.slug,
+        imageCount: data?.images?.length,
+        sampleImage: data?.images?.[0] ? {
+          id: data.images[0].id,
+          originalFilename: data.images[0].originalFilename,
+          url: data.images[0].url,
+          width: data.images[0].width,
+          height: data.images[0].height
+        } : null,
+        timestamp: new Date().toISOString()
+      });
 
       // Validate required image fields
       if (data?.images) {
