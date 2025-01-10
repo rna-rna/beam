@@ -1606,7 +1606,7 @@ export function registerRoutes(app: Express): Server {
 
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
-        Key: `beam-01/${key}`,
+        Key: key, // Remove beam-01 prefix from key
         ContentType: contentType,
         Metadata: {
           originalName: fileName,
