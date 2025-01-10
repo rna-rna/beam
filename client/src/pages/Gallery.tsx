@@ -2383,4 +2383,6 @@ const handleImageClick = (index: number) => {
     </div>
   </>
   );
-};
+}
+
+export default Gallery;;
