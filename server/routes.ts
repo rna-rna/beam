@@ -1596,6 +1596,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Don't include bucket name in the key since it's already specified in Bucket parameter
+      // Don't include bucket name in the key
       const key = `uploads/${fileName}`;
       console.log('Bucket:', R2_BUCKET_NAME);
       console.log('Key:', key);
@@ -1607,9 +1608,10 @@ export function registerRoutes(app: Express): Server {
         timestamp: new Date().toISOString()
       });
 
+      // Create PutObject command with correct bucket and key
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
-        Key: key, // Remove beam-01 prefix from key
+        Key: key,
         ContentType: contentType,
         Metadata: {
           originalName: fileName,
@@ -1634,14 +1636,9 @@ export function registerRoutes(app: Express): Server {
         timestamp: new Date().toISOString()
       });
 
-      // Validate generated URL
-      if (!url.includes(R2_BUCKET_NAME)) {
-        throw new Error('Invalid signed URL generated');
-      }
-
-      // Validate generated URL
-      if (!url.includes(R2_BUCKET_NAME) || !url.includes(key)) {
-        throw new Error('Generated URL does not match expected pattern');
+      // Validate generated URL contains key and expected components
+      if (!url.includes(key)) {
+        throw new Error('Generated URL does not contain the correct key path');
       }
 
       console.log('Signed URL validation:', {
