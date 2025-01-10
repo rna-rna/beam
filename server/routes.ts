@@ -1591,6 +1591,17 @@ export function registerRoutes(app: Express): Server {
       }
 
       const key = `uploads/${fileName}`;
+      
+      console.log('Signed URL Input:', {
+        Bucket: R2_BUCKET_NAME,
+        Key: key,
+        contentType,
+        metadata: {
+          originalName: fileName,
+          uploadedAt: new Date().toISOString()
+        }
+      });
+
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
         Key: key,
@@ -1603,6 +1614,12 @@ export function registerRoutes(app: Express): Server {
 
       // Generate signed URL
       const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+      
+      console.log('Generated Signed URL Details:', {
+        signedUrl,
+        containsDoubleBucket: signedUrl.includes(`${R2_BUCKET_NAME}/${R2_BUCKET_NAME}`),
+        urlStructure: signedUrl.split('?')[0]
+      });
       const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
 
       // Validate URLs for double bucket names
