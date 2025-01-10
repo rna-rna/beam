@@ -1582,6 +1582,11 @@ export function registerRoutes(app: Express): Server {
     const { fileName, contentType } = req.body;
 
     try {
+      console.log('Environment Variables:', {
+        VITE_R2_PUBLIC_URL: process.env.VITE_R2_PUBLIC_URL,
+        R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
+      });
+
       if (!fileName || !contentType) {
         return res.status(400).json({
           error: 'Missing required fields',
@@ -1604,7 +1609,17 @@ export function registerRoutes(app: Express): Server {
       const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
       const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`;
 
-      console.log('Generated URL Details:', {
+      console.log('Generated Signed URL Details:', {
+        signedUrl,
+        publicUrl,
+        key,
+      });
+
+      if (signedUrl.includes(`${R2_BUCKET_NAME}/${R2_BUCKET_NAME}`)) {
+        console.warn('Double bucket name detected in signed URL:', signedUrl);
+      }
+
+      console.log('URL Validation:', {
         signedUrl,
         publicUrl,
         key,
