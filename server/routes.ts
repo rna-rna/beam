@@ -10,6 +10,23 @@ import { setupClerkAuth, extractUserInfo } from './auth';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { invites } from '@db/schema';
 import { nanoid } from 'nanoid';
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+// Import necessary types and modules for R2
+import { S3Client } from '@aws-sdk/client-s3';
+// Replace with your actual bucket name and endpoint
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+const R2_ENDPOINT = process.env.R2_ENDPOINT;
+
+const r2Client = new S3Client({
+  endpoint: R2_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY,
+    secretAccessKey: process.env.R2_SECRET_KEY,
+  },
+  region: 'auto',
+  signatureVersion: 'v4',
+});
 
 // Add Clerk types to Express Request
 declare global {
@@ -32,21 +49,21 @@ declare global {
 }
 
 // Configure multer with Cloudinary storage
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import { cloudinary } from './lib/cloudinary';
+// import { CloudinaryStorage } from 'multer-storage-cloudinary';
+// import { cloudinary } from './lib/cloudinary';
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'galleries',
-    format: async (req, file) => 'jpg',
-    public_id: (req, file) => `${Date.now()}-${file.originalname.split('.')[0]}`,
-    transformation: [{ width: 1600, crop: "limit" }]
-  },
-});
+// const storage = new CloudinaryStorage({
+//   cloudinary,
+//   params: {
+//     folder: 'galleries',
+//     format: async (req, file) => 'jpg',
+//     public_id: (req, file) => `${Date.now()}-${file.originalname.split('.')[0]}`,
+//     transformation: [{ width: 1600, crop: "limit" }]
+//   },
+// });
 
 const upload = multer({
-  storage,
+  // storage,
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
   }
@@ -111,27 +128,26 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Function to generate OG image
-async function generateOgImage(galleryId: string, imagePath: string) {
-  const overlay = 'beam-bar_q6desn';
+  async function generateOgImage(galleryId: string, imagePath: string) {
+    // const overlay = 'beam-bar_q6desn';
+    // const uploadResponse = await cloudinary.uploader.upload(imagePath, {
+    //   eager: [{
+    //     width: 1200,
+    //     height: 630,
+    //     crop: 'limit',
+    //     overlay: overlay,
+    //     gravity: 'center',
+    //     fetch_format: 'auto',
+    //     quality: 'auto',
+    //   }],
+    //   public_id: `og_gallery_${galleryId}`,
+    //   overwrite: true,
+    // });
+    // return uploadResponse.eager[0].secure_url;
+    return null; // Placeholder - needs R2 equivalent
+  }
 
-  const uploadResponse = await cloudinary.uploader.upload(imagePath, {
-    eager: [{
-      width: 1200,
-      height: 630,
-      crop: 'limit',
-      overlay: overlay,
-      gravity: 'center',
-      fetch_format: 'auto',
-      quality: 'auto',
-    }],
-    public_id: `og_gallery_${galleryId}`,
-    overwrite: true,
-  });
-
-  return uploadResponse.eager[0].secure_url;
-}
-
-// Create gallery (supports both authenticated and guest users)
+  // Create gallery (supports both authenticated and guest users)
   app.post('/api/galleries/create', upload.array('images', 50), async (req: any, res) => {
     try {
       const { title = "Untitled Project" } = req.body;
@@ -160,21 +176,22 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       if (files && files.length > 0) {
         try {
           // Upload first image with OG optimization
-          const uploadResponse = await cloudinary.uploader.upload(files[0].path, {
-            transformation: [{
-              width: 1200,
-              height: 630,
-              crop: 'fill',
-              gravity: "auto",
-              overlay: 'beam-bar_q6desn',
-              color: 'rgb:151515',
-              fetch_format: 'auto',
-              quality: 'auto'
-            }],
-            public_id: `og_gallery_${slug}`,
-            folder: 'galleries/og'
-          });
-          ogImageUrl = uploadResponse.secure_url;
+          // const uploadResponse = await cloudinary.uploader.upload(files[0].path, {
+          //   transformation: [{
+          //     width: 1200,
+          //     height: 630,
+          //     crop: 'fill',
+          //     gravity: "auto",
+          //     overlay: 'beam-bar_q6desn',
+          //     color: 'rgb:151515',
+          //     fetch_format: 'auto',
+          //     quality: 'auto'
+          //   }],
+          //   public_id: `og_gallery_${slug}`,
+          //   folder: 'galleries/og'
+          // });
+          // ogImageUrl = uploadResponse.secure_url;
+          ogImageUrl = null; // Placeholder - needs R2 equivalent
         } catch (error) {
           console.error('Failed to generate OG image:', error);
         }
@@ -194,24 +211,24 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       // If we have files, process them for the gallery
       if (files && files.length > 0) {
         try {
-          const firstImage = files[0];
-          const uploadResponse = await cloudinary.uploader.upload(firstImage.path, {
-            eager: [{
-              width: 1200,
-              height: 630,
-              crop: "limit",
-              overlay: "beam-bar_q6desn",
-              gravity: "center"
-            }],
-            public_id: `og_gallery_${gallery.slug}`
-          });
+          // const firstImage = files[0];
+          // const uploadResponse = await cloudinary.uploader.upload(firstImage.path, {
+          //   eager: [{
+          //     width: 1200,
+          //     height: 630,
+          //     crop: "limit",
+          //     overlay: "beam-bar_q6desn",
+          //     gravity: "center"
+          //   }],
+          //   public_id: `og_gallery_${gallery.slug}`
+          // });
 
           // Update gallery with OG image URL
-          await db.update(galleries)
-            .set({ ogImageUrl: uploadResponse.secure_url })
-            .where(eq(galleries.id, gallery.id));
+          // await db.update(galleries)
+          //   .set({ ogImageUrl: uploadResponse.secure_url })
+          //   .where(eq(galleries.id, gallery.id));
 
-          gallery.ogImageUrl = uploadResponse.secure_url;
+          // gallery.ogImageUrl = uploadResponse.secure_url;
         } catch (error) {
           console.error('Failed to generate OG image:', error);
         }
@@ -224,7 +241,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         const exists = await db.query.galleries.findFirst({
           where: eq(galleries.slug, slug)
         });
-        
+
         if (exists) {
           console.log('Gallery available after:', attempts + 1, 'attempts');
           break;
@@ -245,7 +262,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
           position: 0,
           createdAt: new Date()
         }));
-        
+
         if (imageInserts.length > 0) {
           await db.insert(images).values(imageInserts);
         }
@@ -362,19 +379,14 @@ async function generateOgImage(galleryId: string, imagePath: string) {
   // Add images to gallery (supports both guest and authenticated uploads)
   app.post('/api/galleries/:slug/images', upload.array('images', 50), async (req: any, res) => {
     try {
-      console.log('Upload request received for gallery:', req.params.slug);
-      console.log('Uploaded Files:', JSON.stringify(req.files, null, 2));
-
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug)
       });
 
       if (!gallery) {
-        console.error(`Gallery not found for slug: ${req.params.slug}`);
         return res.status(404).json({
           message: 'Gallery not found',
           error: 'NOT_FOUND',
-          details: 'The gallery you are looking for does not exist or has been removed'
         });
       }
 
@@ -385,36 +397,42 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       }
 
       if (!req.files || !Array.isArray(req.files)) {
-        console.error('No files found in request');
         return res.status(400).json({ message: 'No images uploaded' });
       }
 
       const imageInserts = await Promise.all(req.files.map(async file => {
-        console.log('Processing file:', {
-          filename: file.filename,
-          path: file.path,
-          publicId: file.public_id,
-          originalName: file.originalname
+        const fileName = `galleries/${gallery.slug}/${Date.now()}-${file.originalname}`;
+
+        await r2Client.send(new PutObjectCommand({
+          Bucket: R2_BUCKET_NAME,
+          Key: fileName,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        }));
+
+        // Calculate dimensions using a Buffer
+        const dimensions = await new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve({ width: img.width, height: img.height });
+          img.src = URL.createObjectURL(new Blob([file.buffer]));
         });
-        
-        // Fetch metadata from Cloudinary
-        const cloudinaryResult = await cloudinary.api.resource(file.filename);
-        console.log('Cloudinary metadata:', cloudinaryResult);
 
         return {
           galleryId: gallery.id,
-          url: file.path || `/uploads/${file.filename}`,
-          publicId: file.filename,
+          url: `${process.env.VITE_R2_PUBLIC_URL}/${fileName}`,
+          publicId: fileName,
           originalFilename: file.originalname,
-          width: cloudinaryResult.width,
-          height: cloudinaryResult.height,
+          width: dimensions.width,
+          height: dimensions.height,
           createdAt: new Date()
         };
       }));
 
-      console.log('Inserting images:', JSON.stringify(imageInserts, null, 2));
       await db.insert(images).values(imageInserts);
-      res.json({ success: true });
+      res.json({ 
+        success: true,
+        images: imageInserts
+      });
     } catch (error) {
       console.error('Upload error:', error);
       res.status(500).json({
@@ -608,7 +626,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         await tx.execute(
           sql`DELETE FROM recently_viewed_galleries WHERE gallery_id = ${gallery.id}`
         );
-        
+
         // Delete all images in the gallery
         await tx.delete(images)
           .where(eq(images.galleryId, gallery.id));
@@ -738,7 +756,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       // 2. Public
       // 3. User is authenticated and owns the gallery
       const isOwner = gallery.userId === 'guest' || req.auth?.userId === gallery.userId;
-      
+
       // Guest uploads are always accessible
       if (gallery.guestUpload) {
         const galleryImages = await db.query.images.findMany({
@@ -843,7 +861,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
             eq(invites.email, req.auth?.userId ? (await clerkClient.users.getUser(req.auth.userId)).emailAddresses[0].emailAddress : '')
           )
         });
-        
+
         if (!gallery.isPublic && !invite) {
           return res.status(403).json({
             message: 'Access denied',
@@ -851,7 +869,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
             requiresAuth: !req.auth
           });
         }
-        
+
         if (invite) {
           role = invite.role;
         }
@@ -1365,7 +1383,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
           oldRole: existingInvite.role,
           newRole: role
         });
-        
+
         await db.update(invites)
           .set({ role })
           .where(and(
@@ -1379,7 +1397,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
           role,
           clerkUserId: user?.id
         });
-        
+
         await db.insert(invites).values({
           galleryId: gallery.id,
           email,
@@ -1405,7 +1423,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         email,
         slug
       });
-      
+
       res.status(500).json({ 
         message: 'Failed to invite user',
         details: error instanceof Error ? error.message : 'Unknown error'
@@ -1458,7 +1476,7 @@ async function generateOgImage(galleryId: string, imagePath: string) {
   app.get('/api/users/search', async (req, res) => {
     try {
       const email = req.query.email?.toString().toLowerCase();
-      
+
       if (!email) {
         return res.status(400).json({ 
           success: false,
