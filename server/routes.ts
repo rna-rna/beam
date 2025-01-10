@@ -1578,29 +1578,55 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/single-upload-url', async (req: any, res) => {
     const { fileName, contentType } = req.body;
     try {
-      const key = `uploads/${fileName}`;
+      // Validate required fields
+      if (!fileName || !contentType) {
+        return res.status(400).json({ 
+          error: 'Missing required fields',
+          details: 'fileName and contentType are required'
+        });
+      }
+
+      const key = `beam-01/uploads/${fileName}`;
       console.log('Generating signed URL:', {
         bucket: R2_BUCKET_NAME,
         key,
         contentType,
-        expiresIn: 3600
+        expiresIn: 3600,
+        timestamp: new Date().toISOString()
       });
 
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
         Key: key,
         ContentType: contentType,
+        ACL: 'public-read',
+        Metadata: {
+          originalName: fileName
+        }
       });
       
-      const url = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
-      console.log('Generated signed URL:', {
+      const url = await getSignedUrl(r2Client, command, { 
+        expiresIn: 3600 
+      });
+
+      // Validate generated URL
+      if (!url.includes(R2_BUCKET_NAME) || !url.includes(key)) {
+        throw new Error('Generated URL does not match expected pattern');
+      }
+
+      console.log('Signed URL validation:', {
         url,
         bucket: R2_BUCKET_NAME,
         key,
-        timestamp: new Date().toISOString()
+        expires: new Date(Date.now() + 3600 * 1000).toISOString(),
+        hasContentType: url.includes(contentType.replace('/', '%2F'))
       });
       
-      res.json({ url });
+      res.json({ 
+        url,
+        key,
+        expiresAt: new Date(Date.now() + 3600 * 1000).toISOString()
+      });
     } catch (err) {
       console.error('Error generating single PUT URL:', err);
       res.status(500).json({ 
