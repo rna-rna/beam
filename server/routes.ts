@@ -858,9 +858,10 @@ export function registerRoutes(app: Express): Server {
         height: img.height,
         aspectRatio: img.width / img.height,
         publicId: img.publicId,
+        slug: gallery.slug,
+        originalFilename: img.originalFilename,
         userStarred: img.stars.some(star => star.userId === req.auth?.userId),
         stars: img.stars,
-        originalFilename: img.originalFilename,
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
 
