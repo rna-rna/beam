@@ -427,6 +427,19 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         variant: "destructive",
       });
     },
+
+  // Monitor gallery images changes
+  useEffect(() => {
+    if (gallery?.images) {
+      console.log('Gallery Images Updated:', {
+        count: gallery.images.length,
+        validImages: gallery.images.every(img => img.id && img.url && img.originalFilename),
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [gallery?.images]);
+
+
     onSettled: () => {
       // Invalidate both queries to ensure consistency
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
@@ -466,17 +479,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         });
       });
     },
-
-    // Add effect to monitor images array changes
-    useEffect(() => {
-      if (gallery?.images) {
-        console.log('Gallery Images Updated:', {
-          count: gallery.images.length,
-          validImages: gallery.images.every(img => img.id && img.url && img.originalFilename),
-          timestamp: new Date().toISOString()
-        });
-      }
-    }, [gallery?.images]);
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
       console.log('Starting gallery fetch for slug:', slug, {
