@@ -1918,6 +1918,18 @@ const handleImageClick = (index: number) => {
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
                 {renderUploadPlaceholders()}
+                {console.log('Gallery Images:', {
+                  count: gallery?.images?.length,
+                  hasImages: !!gallery?.images,
+                  isArray: Array.isArray(gallery?.images),
+                  sampleImage: gallery?.images?.[0] ? {
+                    id: gallery.images[0].id,
+                    url: gallery.images[0].url,
+                    originalFilename: gallery.images[0].originalFilename,
+                    width: gallery.images[0].width,
+                    height: gallery.images[0].height
+                  } : null
+                })}
                 {gallery?.images
                   .filter((image: Image) => {
                     // Apply starred filter
