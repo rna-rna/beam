@@ -1,0 +1,66 @@
+Here's the corrected code for /api/single-upload-url that removes the double beam-01 issue from the signed URL while ensuring that the publicUrl retains a single beam-01:
+
+Corrected Code
+typescript
+Copy code
+app.post('/api/single-upload-url', async (req: any, res) => {
+  const { fileName, contentType } = req.body;
+
+  try {
+    if (!fileName || !contentType) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        details: 'fileName and contentType are required',
+      });
+    }
+
+    const key = `uploads/${fileName}`;
+
+    // Ensure `VITE_R2_PUBLIC_URL` does not already include `R2_BUCKET_NAME`
+    if (process.env.VITE_R2_PUBLIC_URL.includes(R2_BUCKET_NAME)) {
+      throw new Error(
+        'VITE_R2_PUBLIC_URL must not include the bucket name; the bucket name is added dynamically'
+      );
+    }
+
+    // Generate signed URL
+    const command = new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME, // Use only the bucket name
+      Key: key, // Relative file path inside the bucket
+      ContentType: contentType,
+      Metadata: {
+        originalName: fileName,
+        uploadedAt: new Date().toISOString(),
+      },
+    });
+
+    const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+
+    // Construct public URL (includes `beam-01`)
+    const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`;
+
+    console.log('Generated Signed URL Details:', {
+      signedUrl,
+      publicUrl,
+      key,
+    });
+
+    // Validation: Check for double `beam-01` in signed URL
+    if (signedUrl.includes(`${R2_BUCKET_NAME}/${R2_BUCKET_NAME}`)) {
+      throw new Error('Generated Signed URL contains a double bucket name');
+    }
+
+    res.json({
+      url: signedUrl,
+      publicUrl,
+      key,
+      expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
+    });
+  } catch (err) {
+    console.error('Error generating single PUT URL:', err);
+    res.status(500).json({
+      error: 'Failed to generate upload URL',
+      details: err instanceof Error ? err.message : 'Unknown error',
+    });
+  }
+});
