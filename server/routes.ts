@@ -191,9 +191,13 @@ export function registerRoutes(app: Express): Server {
           //   folder: 'galleries/og'
           // });
           // ogImageUrl = uploadResponse.secure_url;
+          const sharp = require('sharp');
           const imageUploads = await Promise.all(
             files.map(async (file) => {
               const fileName = `galleries/${slug}/${Date.now()}-${file.originalname}`;
+
+              // Get image dimensions using Sharp
+              const metadata = await sharp(file.buffer).metadata();
 
               await r2Client.send(new PutObjectCommand({
                 Bucket: R2_BUCKET_NAME,
@@ -206,8 +210,8 @@ export function registerRoutes(app: Express): Server {
                 url: `${process.env.VITE_R2_PUBLIC_URL}/${fileName}`,
                 publicId: fileName,
                 originalFilename: file.originalname,
-                width: 800, // placeholder - implement proper image dimension detection
-                height: 600 // placeholder - implement proper image dimension detection
+                width: metadata.width || 800,
+                height: metadata.height || 600
               };
             })
           );
@@ -232,7 +236,7 @@ export function registerRoutes(app: Express): Server {
           if (imageUploads[0]) {
             ogImageUrl = imageUploads[0].url;
           }
-          
+
         } catch (error) {
           console.error('Failed to process uploads:', error);
           throw error;
@@ -416,7 +420,7 @@ export function registerRoutes(app: Express): Server {
       if (!req.files || !Array.isArray(req.files)) {
         return res.status(400).json({ message: 'No images uploaded' });
       }
-
+      const sharp = require('sharp');
       const imageUploads = await Promise.all(
         req.files.map(async (file) => {
           const fileName = `galleries/${gallery.slug}/${Date.now()}-${file.originalname}`;
@@ -428,20 +432,16 @@ export function registerRoutes(app: Express): Server {
             ContentType: file.mimetype,
           }));
 
-          // Calculate dimensions using a Buffer
-          const dimensions = await new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve({ width: img.width, height: img.height });
-            img.src = URL.createObjectURL(new Blob([file.buffer]));
-          });
+          // Get image dimensions using Sharp
+          const metadata = await sharp(file.buffer).metadata();
 
           return {
             galleryId: gallery.id,
             url: `${process.env.VITE_R2_PUBLIC_URL}/${fileName}`,
             publicId: fileName,
             originalFilename: file.originalname,
-            width: dimensions.width,
-            height: dimensions.height,
+            width: metadata.width,
+            height: metadata.height,
             createdAt: new Date()
           };
         })

@@ -93,6 +93,7 @@
     "react-masonry-css": "^1.0.16",
     "react-resizable-panels": "^2.1.4",
     "recharts": "^2.13.0",
+    "sharp": "^0.33.5",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.0.3",
