@@ -1474,13 +1474,9 @@ const renderGalleryControls = useCallback(() => {
         {preloadedImages.has(image.id) && (
           <>
             <img
-              src={
-                preloadedImages.has(image.id)
-                  ? getR2ImageUrl(image, slug)  // Full-res if preloaded
-                  : getR2ImageUrl(image, slug)  // Use same URL for now since R2 doesn't support transformations
-              }
+              src={getR2ImageUrl(image, slug)}
               data-src={getR2ImageUrl(image)}
-              alt={image.originalFilename || ''}
+              alt={image.originalFilename || 'Uploaded image'}
               className={`w-full h-auto object-cover rounded-lg blur-up ${
                 selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
               } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
@@ -1491,8 +1487,12 @@ const renderGalleryControls = useCallback(() => {
                 img.classList.add('loaded');
               }}
               onError={(e) => {
-                console.error('Image load failed:', image);
-                e.currentTarget.src = image.url;
+                console.error('Image load failed:', {
+                  id: image.id,
+                  url: image.url,
+                  originalFilename: image.originalFilename
+                });
+                e.currentTarget.src = '/placeholder.png';
               }}
               draggable={false}
             />
