@@ -94,9 +94,18 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
   const uploadFile = async (file: File) => {
     if (file.size > USE_MULTIPART_THRESHOLD) {
       console.log('Using multipart upload for:', file.name, `(size: ${file.size} bytes)`);
+      console.log('File details:', {
+        type: file.type,
+        lastModified: new Date(file.lastModified).toISOString()
+      });
       return uploadFileMultipart(file);
     } else {
       console.log('Using single PUT upload for:', file.name, `(size: ${file.size} bytes)`);
+      console.log('File details:', {
+        type: file.type,
+        lastModified: new Date(file.lastModified).toISOString()
+      });
+      
       const startRes = await fetch('/api/multipart/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -104,9 +113,22 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
       });
       const { url } = await startRes.json();
       
+      console.log('Making PUT request:', {
+        url,
+        method: 'PUT',
+        contentType: file.type,
+        fileSize: file.size
+      });
+
       const uploadRes = await fetch(url, {
         method: 'PUT',
         body: file,
+      });
+
+      console.log('Upload response:', {
+        status: uploadRes.status,
+        ok: uploadRes.ok,
+        statusText: uploadRes.statusText
       });
 
       if (!uploadRes.ok) throw new Error('Failed to upload file');
