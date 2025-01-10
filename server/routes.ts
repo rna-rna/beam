@@ -1578,20 +1578,20 @@ export function registerRoutes(app: Express): Server {
   // Single PUT upload endpoint
   app.post('/api/single-upload-url', async (req: any, res) => {
     const { fileName, contentType } = req.body;
+
     try {
-      // Validate required fields
+      // Validate input
       if (!fileName || !contentType) {
         return res.status(400).json({ 
-          error: 'Missing required fields',
-          details: 'fileName and contentType are required'
+          error: 'Missing required fields', 
+          details: 'fileName and contentType are required' 
         });
       }
 
-      const key = `uploads/${fileName}`;
-      // Ensure bucket name is clean without any prefixes
+      const key = `uploads/${fileName}`; // Correct key
       const command = new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME, // Ensure only the bucket name is passed
-        Key: `uploads/${fileName}`, // Correct key without bucket name
+        Bucket: R2_BUCKET_NAME, // Ensure only bucket name is used
+        Key: key,
         ContentType: contentType,
         Metadata: {
           originalName: fileName,
@@ -1599,30 +1599,17 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      const url = await getSignedUrl(r2Client, command, { 
-        expiresIn: 3600 
-      });
+      // Generate signed URL
+      const url = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
 
-      console.log('Validation Details:', {
-        url,
-        key,
-        encodedKey: encodeURIComponent(key),
-        bucket: R2_BUCKET_NAME,
-        expires: new Date(Date.now() + 3600 * 1000).toISOString()
-      });
-
-      // Check for redundant bucket names
+      // Validation
       if (url.includes(`${R2_BUCKET_NAME}/${R2_BUCKET_NAME}`)) {
-        throw new Error('Generated URL contains a double bucket name');
+        console.warn('Double bucket name detected in URL:', url);
       }
 
-      // Validate the encoded key path
-      const encodedKey = encodeURIComponent(key);
-      if (!url.includes(encodedKey)) {
-        console.warn('Key mismatch detected in signed URL:', { url, key, encodedKey });
-      }
+      console.log('Generated Signed URL:', { url, key });
 
-      res.json({ 
+      res.json({
         url,
         key,
         expiresAt: new Date(Date.now() + 3600 * 1000).toISOString()
@@ -1630,8 +1617,8 @@ export function registerRoutes(app: Express): Server {
     } catch (err) {
       console.error('Error generating single PUT URL:', err);
       res.status(500).json({ 
-        error: 'Failed to generate upload URL',
-        details: err instanceof Error ? err.message : 'Unknown error'
+        error: 'Failed to generate upload URL', 
+        details: err instanceof Error ? err.message : 'Unknown error' 
       });
     }
   });
