@@ -440,11 +440,36 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // Queries
   const { data: gallery, isLoading: isGalleryLoading, error } = useQuery<GalleryType>({
     onSuccess: (data) => {
-      console.log('Gallery Data:', {
+      console.log('Gallery API Response:', {
+        status: 'success',
         galleryId: data?.id,
+        title: data?.title,
+        slug: data?.slug,
         imageCount: data?.images?.length,
-        sampleStars: data?.images?.[0]?.stars,
+        sampleImage: data?.images?.[0] ? {
+          id: data.images[0].id,
+          originalFilename: data.images[0].originalFilename,
+          url: data.images[0].url,
+          width: data.images[0].width,
+          height: data.images[0].height
+        } : null,
+        timestamp: new Date().toISOString()
       });
+
+      // Validate required image fields
+      if (data?.images) {
+        const missingFields = data.images.some((img: any) => 
+          !img.originalFilename || !img.url || !img.id
+        );
+        
+        if (missingFields) {
+          console.error('Invalid image data detected:', 
+            data.images.filter((img: any) => 
+              !img.originalFilename || !img.url || !img.id
+            )
+          );
+        }
+      }
     },
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
