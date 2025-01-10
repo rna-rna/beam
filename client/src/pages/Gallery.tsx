@@ -459,10 +459,24 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           originalFilename: image.originalFilename,
           url: image.url,
           width: image.width,
-          height: image.height
+          height: image.height,
+          stars: image.stars?.length || 0,
+          commentCount: image.commentCount,
+          position: image.position
         });
       });
     },
+
+    // Add effect to monitor images array changes
+    useEffect(() => {
+      if (gallery?.images) {
+        console.log('Gallery Images Updated:', {
+          count: gallery.images.length,
+          validImages: gallery.images.every(img => img.id && img.url && img.originalFilename),
+          timestamp: new Date().toISOString()
+        });
+      }
+    }, [gallery?.images]);
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
       console.log('Starting gallery fetch for slug:', slug, {
