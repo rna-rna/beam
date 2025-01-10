@@ -408,8 +408,18 @@ export function registerRoutes(app: Express): Server {
       hasFiles: !!req.files,
       fileCount: req.files?.length,
       contentType: req.headers['content-type'],
+      files: req.files?.map(f => ({
+        originalname: f.originalname,
+        mimetype: f.mimetype,
+        size: f.size
+      })),
       body: req.body
     });
+
+    if (!req.files || !Array.isArray(req.files)) {
+      console.error('No valid files in request:', req.files);
+      return res.status(400).json({ message: 'No images uploaded' });
+    }
 
     try {
       const gallery = await db.query.galleries.findFirst({
