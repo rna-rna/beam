@@ -456,19 +456,22 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       console.log('Gallery Data:', {
         galleryId: data?.id,
         imageCount: data?.images?.length,
-        sampleStars: data?.images?.[0]?.stars,
+        title: data?.title,
+        slug: data?.slug,
+        isPublic: data?.isPublic
       });
       
-      // Debug image data
-      data?.images?.forEach((image, index) => {
-        console.log(`Image ${index}:`, {
-          id: image.id,
-          originalFilename: image.originalFilename,
-          url: image.url,
-          width: image.width,
-          height: image.height
-        });
-      });
+      console.log('Image Details:', data?.images?.map(image => ({
+        id: image.id,
+        originalFilename: image.originalFilename,
+        url: image.url,
+        width: image.width,
+        height: image.height,
+        publicId: image.publicId,
+        stars: image.stars?.length,
+        userStarred: image.userStarred,
+        commentCount: image.commentCount
+      })));
     },
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
