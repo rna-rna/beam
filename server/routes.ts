@@ -1605,6 +1605,15 @@ export function registerRoutes(app: Express): Server {
       const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
       const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
 
+      // Validate URLs for double bucket names
+      if (publicUrl.includes(`${R2_BUCKET_NAME}/${R2_BUCKET_NAME}`)) {
+        console.warn('Double bucket name detected in public URL:', publicUrl);
+      }
+
+      if (signedUrl.includes(`${R2_BUCKET_NAME}/${R2_BUCKET_NAME}`)) {
+        console.warn('Double bucket name detected in signed URL:', signedUrl);
+      }
+
       console.log('URL Generation:', { 
         signedUrl,
         publicUrl,
