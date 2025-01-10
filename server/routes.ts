@@ -420,25 +420,36 @@ export function registerRoutes(app: Express): Server {
       }
       const imageUploads = await Promise.all(
         req.files.map(async (file) => {
+          // Validate originalFilename
+          if (!file.originalname) {
+            throw new Error('Missing originalFilename in uploaded file');
+          }
+
           const fileName = `galleries/${gallery.slug}/${Date.now()}-${file.originalname}`;
+
+          // Get image dimensions using Sharp
+          const metadata = await sharp(file.buffer).metadata();
+          if (!metadata) {
+            throw new Error('Failed to read image metadata');
+          }
 
           await r2Client.send(new PutObjectCommand({
             Bucket: R2_BUCKET_NAME,
             Key: fileName,
             Body: file.buffer,
             ContentType: file.mimetype,
+            Metadata: {
+              originalFilename: file.originalname
+            }
           }));
-
-          // Get image dimensions using Sharp
-          const metadata = await sharp(file.buffer).metadata();
 
           return {
             galleryId: gallery.id,
             url: `${process.env.VITE_R2_PUBLIC_URL}/${fileName}`,
             publicId: fileName,
             originalFilename: file.originalname,
-            width: metadata.width,
-            height: metadata.height,
+            width: metadata.width || 800,
+            height: metadata.height || 600,
             createdAt: new Date()
           };
         })
