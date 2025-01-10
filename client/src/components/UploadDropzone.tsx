@@ -66,38 +66,28 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
         gallerySlug = galleryData.slug;
       }
 
-      await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `/api/galleries/${gallerySlug}/images`);
+      const controller = new AbortController();
+      const signal = controller.signal;
 
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            setUploadProgress(progress);
-          }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const response = JSON.parse(xhr.response);
-            console.log("Upload successful:", response);
-            toast({
-              title: "Success",
-              description: "Images uploaded successfully!",
-            });
-            queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-            resolve(response);
-          } else {
-            reject(new Error('Upload failed'));
-          }
-        };
-
-        xhr.onerror = () => {
-          reject(new Error('Network error during upload'));
-        };
-
-        xhr.send(formData);
+      const response = await fetch(`/api/galleries/${gallerySlug}/images`, {
+        method: 'POST',
+        body: formData,
+        signal,
       });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      console.log("Upload successful:", data);
+      
+      toast({
+        title: "Success",
+        description: "Images uploaded successfully!",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
 
       if (!currentPath.includes('/g/')) {
         setLocation(`/g/${gallerySlug}`);
