@@ -34,6 +34,8 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
       const chunk = file.slice(start, start + CHUNK_SIZE);
       chunks.push(chunk);
     }
+    console.log(`File size: ${file.size} bytes`);
+    console.log(`Chunks created: ${chunks.length}`);
     return chunks;
   };
 
@@ -91,10 +93,10 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
 
   const uploadFile = async (file: File) => {
     if (file.size > USE_MULTIPART_THRESHOLD) {
-      console.log('Using multipart upload for:', file.name);
+      console.log('Using multipart upload for:', file.name, `(size: ${file.size} bytes)`);
       return uploadFileMultipart(file);
     } else {
-      console.log('Using single PUT upload for:', file.name);
+      console.log('Using single PUT upload for:', file.name, `(size: ${file.size} bytes)`);
       const startRes = await fetch('/api/multipart/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
