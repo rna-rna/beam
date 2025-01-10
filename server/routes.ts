@@ -1607,7 +1607,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
-      const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
+      const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${R2_BUCKET_NAME}/${key}`;
 
       console.log('Generated Signed URL Details:', {
         signedUrl,
