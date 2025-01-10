@@ -322,7 +322,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                   <SelectContent>
                     <SelectItem value="View">Viewer</SelectItem>
                     <SelectItem value="Comment">Commenter</SelectItem>
-                    <SelectItem value="Editor">Editor</SelectItem>
+                    <SelectItem value="Edit">Editor</SelectItem>
                   </SelectContent>
                 </Select>
               )}

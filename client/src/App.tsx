@@ -1,8 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
 import { SignedIn, SignedOut, useUser, useAuth, useClerk } from "@clerk/clerk-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertCircle, Loader2 } from "lucide-react";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
@@ -14,6 +11,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useState, ReactNode, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 import About from "@/pages/About"; // Added import for About page
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
@@ -52,14 +50,10 @@ function AppContent() {
   const { signOut, session } = useClerk();
 
   useEffect(() => {
-    if (session?.status === "expired" || !session?.lastActiveAt) {
-      session?.refresh()
+    if (session?.status === "expired") {
+      session.refresh()
         .then(() => {
-          console.log("Session refreshed successfully", {
-            status: session?.status,
-            lastActiveAt: session?.lastActiveAt,
-            userId: session?.user?.id
-          });
+          console.log("Session refreshed successfully");
           queryClient.invalidateQueries();
         })
         .catch((error) => {

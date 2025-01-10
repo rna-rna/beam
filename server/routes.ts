@@ -378,22 +378,10 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         });
       }
 
+      // Allow uploads for guest galleries or authenticated owners
       const userId = req.auth?.userId;
-      
-      // Check if user is owner or has editor permissions
-      const isOwner = userId === gallery.userId;
-      if (!isOwner && !gallery.guestUpload) {
-        const invite = await db.query.invites.findFirst({
-          where: and(
-            eq(invites.galleryId, gallery.id),
-            eq(invites.userId, userId),
-            eq(invites.role, 'Editor')
-          )
-        });
-
-        if (!invite) {
-          return res.status(403).json({ message: 'Only editors can upload images' });
-        }
+      if (!gallery.guestUpload && (!userId || userId !== gallery.userId)) {
+        return res.status(401).json({ message: 'Unauthorized' });
       }
 
       if (!req.files || !Array.isArray(req.files)) {
@@ -710,54 +698,23 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         'Expires': '0'
       });
 
-      // Find the gallery
+      // Find the gallery first
       const gallery = await db.query.galleries.findFirst({
-        where: eq(galleries.slug, req.params.slug)
-      });
-
-      if (!gallery) {
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND'
-        });
-      }
-
-      // Check if user is owner
-      const isOwner = gallery.userId === req.auth?.userId;
-      if (isOwner) {
-        return res.json({
-          ...gallery,
-          role: 'Editor',
-          isOwner: true
-        });
-      }
-
-      // Check if user is invited
-      if (req.auth?.userId) {
-        const invite = await db.query.invites.findFirst({
-          where: and(
-            eq(invites.galleryId, gallery.id),
-            eq(invites.userId, req.auth.userId)
+        where: or(
+          and(
+            eq(galleries.slug, req.params.slug),
+            eq(galleries.guestUpload, true)
+          ),
+          and(
+            eq(galleries.slug, req.params.slug),
+            eq(galleries.isPublic, true)
+          ),
+          and(
+            eq(galleries.slug, req.params.slug),
+            eq(galleries.userId, req.auth?.userId || '')
           )
-        });
-
-        if (invite) {
-          return res.json({
-            ...gallery,
-            role: invite.role,
-            isOwner: false
-          });
-        }
-      }
-
-      // Check if gallery is restricted
-      if (!gallery.isPublic && !gallery.guestUpload) {
-        return res.status(403).json({
-          message: 'This gallery is private',
-          isPrivate: true,
-          requiresAuth: !req.auth
-        });
-      }
+        )
+      });
 
       console.log('Gallery fetch result:', {
         found: !!gallery,
@@ -780,6 +737,8 @@ async function generateOgImage(galleryId: string, imagePath: string) {
       // 1. A guest upload (accessible to everyone)
       // 2. Public
       // 3. User is authenticated and owns the gallery
+      const isOwner = gallery.userId === 'guest' || req.auth?.userId === gallery.userId;
+      
       // Guest uploads are always accessible
       if (gallery.guestUpload) {
         const galleryImages = await db.query.images.findMany({
@@ -1063,31 +1022,10 @@ async function generateOgImage(galleryId: string, imagePath: string) {
         return res.status(400).json({ message: 'Invalid request: imageIds must be an array' });
       }
 
-      const userId = req.auth?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: 'Authentication required' });
-      }
-
       // Find the gallery first
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug),
       });
-
-      // Check if user is owner or has editor permissions
-      const isOwner = userId === gallery?.userId;
-      if (!isOwner) {
-        const invite = await db.query.invites.findFirst({
-          where: and(
-            eq(invites.galleryId, gallery?.id || 0),
-            eq(invites.userId, userId),
-            eq(invites.role, 'Editor')
-          )
-        });
-
-        if (!invite) {
-          return res.status(403).json({ message: 'Only editors can delete images' });
-        }
-      }
 
       if (!gallery) {
         console.error(`Gallery not found for slug: ${req.params.slug}`);

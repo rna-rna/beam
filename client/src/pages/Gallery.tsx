@@ -1,7 +1,6 @@
 import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { CopyLinkModal } from "@/components/CopyLinkModal";
 import { getCloudinaryUrl } from "@/lib/cloudinary";
 import UploadDropzone from "@/components/UploadDropzone";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,7 +69,7 @@ import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 import { Textarea } from "@/components/ui/textarea";
 
-
+  
 
 
 import { Label } from "@/components/ui/label";
@@ -129,22 +128,8 @@ import { Helmet } from 'react-helmet';
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
   const params = useParams();
   const slug = propSlug || params?.slug;
-
-  if (!slug) {
-    console.error("Missing slug for gallery fetch");
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>Gallery not found</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
 
   const beamOverlayTransform = 'l_beam-bar_q6desn,g_center,x_0,y_0';
   const [presenceMembers, setPresenceMembers] = useState<{[key: string]: any}>({});
@@ -153,28 +138,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   // Refresh Clerk session if expired
   useEffect(() => {
-    if (session?.status === 'expired' || !session?.lastActiveAt) {
-      setIsLoading(true);
+    if (session?.status === 'expired') {
       session
         .refresh()
-        .then(() => {
-          console.log('Clerk session refreshed successfully');
-          queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-          setIsLoading(false);
-        })
-        .catch((error) => {
-          console.error('Failed to refresh Clerk session:', error);
-          toast({
-            title: "Session Expired",
-            description: "Please sign in again",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-        });
-    } else {
-      setIsLoading(false);
+        .then(() => console.log('Clerk session refreshed successfully'))
+        .catch((error) => console.error('Failed to refresh Clerk session:', error));
     }
-  }, [session, queryClient, slug, toast]);
+  }, [session]);
 
   // Log active users when they change
   useEffect(() => {
@@ -192,7 +162,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     const channelName = `presence-gallery-${slug}`;
     console.log('Attempting to subscribe to channel:', channelName);
-
+    
     const channel = pusherClient.subscribe(channelName);
     console.log('Channel details:', {
       name: channel.name,
@@ -206,7 +176,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       members.each((member: any) => {
         const userInfo = member.info || member.user_info || {};
-
+        
         // Skip if this is the current user
         if (member.id === currentUserId) return;
 
@@ -248,10 +218,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     channel.bind('pusher:member_added', (member: any) => {
       console.log('Member added:', member);
-
+      
       // Skip if this is the current user
       if (member.id === user?.id) return;
-
+      
       setActiveUsers(prev => {
         const isPresent = prev.some(user => user.userId === member.id);
         if (isPresent) return prev;
@@ -283,7 +253,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       channel.unsubscribe();
     };
   }, [slug]);
-
+  const { toast } = useToast();
   const [guestGalleryCount, setGuestGalleryCount] = useState(
     Number(sessionStorage.getItem("guestGalleryCount")) || 0
   );
@@ -302,7 +272,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   };
 
-
+  
+  const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const { user } = useUser();
   const { isDark } = useTheme();
@@ -325,7 +296,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [showFilename, setShowFilename] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isLowResLoading, setIsLowResLoading] = useState(true);
-  const [fetchAttempts, setFetchAttempts] = useState(0);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileView, setShowMobileView] = useState(false);
@@ -338,8 +308,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
   const [userRole, setUserRole] = useState<string>("Viewer");
-  const [mounted, setMounted] = useState(false);
-
+  
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
@@ -347,31 +316,24 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       fetch(`/api/galleries/${slug}/permissions`)
         .then((res) => res.json())
         .then((data) => {
-          console.log("Session/Auth State:", {
-            sessionStatus: session?.status,
-            userAuthenticated: !!session?.lastActiveAt,
-            currentTime: new Date().toISOString()
-          });
           console.log("Permissions API Response:", {
             data,
             currentUserEmail: user?.primaryEmailAddress?.emailAddress,
             foundUser: data.users.find(u => u.email === user?.primaryEmailAddress?.emailAddress),
-            allEmails: data.users.map(u => u.email),
-            permissions: data.users
+            allEmails: data.users.map(u => u.email)
           });
-
-          const isOwner = gallery?.userId === user?.id;
-          const assignedRole = data.users.find(
+          
+          const currentUserRole = data.users.find(
             (u) => u.email === user?.primaryEmailAddress?.emailAddress
-          )?.role;
-          const currentUserRole = assignedRole || (isOwner ? "Editor" : "Viewer");
-
+          )?.role || "Viewer";
+          
           console.log("Role Assignment:", {
             assignedRole: currentUserRole,
             userEmail: user?.primaryEmailAddress?.emailAddress,
-            isOwner,
-            galleryUserId: gallery?.userId,
-            currentUserId: user?.id
+            isOwner: data.users.some(u => 
+              u.email === user?.primaryEmailAddress?.emailAddress && 
+              u.role === "Editor"
+            )
           });
 
           setUserRole(currentUserRole);
@@ -380,7 +342,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   }, [slug, user]);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
-  const [isOpenCopyModal, setIsOpenCopyModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -408,20 +369,36 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       return res.json();
     },
     onMutate: async (newTitle) => {
+      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
+      await queryClient.cancelQueries({ queryKey: ['/api/galleries'] });
 
-      const previousData = queryClient.getQueryData([`/api/galleries/${slug}`]);
+      // Snapshot the previous values
+      const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
+      const previousGalleries = queryClient.getQueryData(['/api/galleries']);
 
+      // Optimistically update both caches
       queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
         ...old,
-        title: newTitle.trim() || 'Untitled'
+        title: newTitle
       }));
 
-      return { previousData };
+      queryClient.setQueryData(['/api/galleries'], (old: any) => {
+        if (!old) return old;
+        return old.map((gallery: any) =>
+          gallery.slug === slug ? { ...gallery, title: newTitle } : gallery
+        );
+      });
+
+      return { previousGallery, previousGalleries };
     },
     onError: (err, newTitle, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData([`/api/galleries/${slug}`], context.previousData);
+      // Revert to previous values on error
+      if (context?.previousGallery) {
+        queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
+      }
+      if (context?.previousGalleries) {
+        queryClient.setQueryData(['/api/galleries'], context.previousGalleries);
       }
       toast({
         title: "Error",
@@ -429,17 +406,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         variant: "destructive",
       });
     },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Title updated successfully",
-      });
-    },
     onSettled: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/galleries/${slug}`],
-        exact: true
-      });
+      // Invalidate both queries to ensure consistency
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
     },
   });
 
@@ -455,11 +425,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // Queries
   const { data: gallery, isLoading: isGalleryLoading, error } = useQuery<GalleryType>({
     onSuccess: (data) => {
-      console.log('Session Status:', {
-        status: session?.status,
-        lastActiveAt: session?.lastActiveAt,
-        userId: session?.user?.id
-      });
       console.log('Gallery Data:', {
         galleryId: data?.id,
         imageCount: data?.images?.length,
@@ -467,115 +432,66 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       });
     },
     queryKey: [`/api/galleries/${slug}`],
-    queryFn: async ({ signal }) => {
-      let attempts = 0;
-      const maxAttempts = 5;
-      setFetchAttempts(0);
-      setIsLoading(true);
+    queryFn: async () => {
+      console.log('Starting gallery fetch for slug:', slug, {
+        hasToken: !!await getToken(),
+        timestamp: new Date().toISOString()
+      });
+      
+      const token = await getToken();
+      const headers: HeadersInit = {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      };
 
-      console.time("Total Gallery Fetch Time");
-      while (attempts < maxAttempts) {
-        try {
-          console.time(`Gallery Fetch Attempt ${attempts + 1}`);
-          console.log(`Gallery fetch attempt ${attempts + 1} started for slug:`, slug, {
-            hasToken: !!await getToken(),
-            timestamp: new Date().toISOString(),
-            startTime: performance.now()
-          });
-
-          const token = await getToken();
-          const headers: HeadersInit = {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          };
-
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-
-          const res = await fetch(`/api/galleries/${slug}`, {
-            headers,
-            cache: 'no-store',
-            credentials: 'include',
-            signal
-          });
-
-          if (res.status === 404 && attempts < maxAttempts - 1) {
-            attempts++;
-            setFetchAttempts(attempts);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            continue;
-          }
-
-          if (!res.ok) {
-            console.error('Gallery fetch failed:', {
-              status: res.status,
-              statusText: res.statusText
-            });
-            if (res.status === 403) {
-              setIsLoading(false);
-              throw new Error('This gallery is private');
-            }
-            if (res.status === 404) {
-              setIsLoading(false);
-              throw new Error('Gallery not found');
-            }
-            throw new Error('Failed to fetch gallery');
-          }
-
-          const data = await res.json();
-          setIsLoading(false);
-          console.timeEnd(`Gallery Fetch Attempt ${attempts + 1}`);
-          console.log('Gallery Fetch Debug:', {
-            attempts,
-            status: res.status,
-            ok: res.ok,
-            galleryId: data?.id,
-            images: data?.images?.length,
-            auth: session?.status,
-            userRole,
-            hasToken: !!await getToken(),
-            timestamp: new Date().toISOString(),
-            endTime: performance.now()
-          });
-          console.timeEnd("Total Gallery Fetch Time");
-
-          if (!data || !data.images || !Array.isArray(data.images)) {
-            return {
-              id: null,
-              images: [],
-              title: 'Untitled',
-              isPublic: false,
-              userId: null,
-              slug: '',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            };
-          }
-
-          return data;
-        } catch (error) {
-          if (error instanceof Error && error.name === 'AbortError') {
-            throw error;
-          }
-          if (attempts === maxAttempts - 1) {
-            throw error;
-          }
-          attempts++;
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
-      setIsLoading(false);
-      setFetchAttempts(maxAttempts);
-      throw new Error('Failed to fetch gallery after multiple attempts');
+      const res = await fetch(`/api/galleries/${slug}`, {
+        headers,
+        cache: 'no-store',
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        console.error('Gallery fetch failed:', {
+          status: res.status,
+          statusText: res.statusText
+        });
+        if (res.status === 403) {
+          throw new Error('This gallery is private');
+        }
+        if (res.status === 404) {
+          throw new Error('Gallery not found');
+        }
+        throw new Error('Failed to fetch gallery');
+      }
+
+      const data = await res.json();
+      console.log('Gallery fetch response:', {
+        status: res.status,
+        ok: res.ok,
+        data,
+        hasImages: data?.images?.length > 0,
+        timestamp: new Date().toISOString()
+      });
+      
+      if (!data) {
+        throw new Error('Gallery returned null or undefined');
+      }
+
+      if (!data.images || !Array.isArray(data.images)) {
+        throw new Error('Invalid gallery data format');
+      }
+
+      return data;
     },
     enabled: !!slug,
     staleTime: 0,
     cacheTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    retry: false,
     onError: (err) => {
       console.error('Gallery query error:', err);
       toast({
@@ -591,7 +507,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     setSelectedImage(gallery?.images?.[selectedImageIndex] ?? null);
   }, [selectedImageIndex, gallery?.images]);
 
-
+  
 
   const { data: annotations = [] } = useQuery<Annotation[]>({
     queryKey: [`/api/images/${selectedImage?.id}/annotations`],
@@ -811,14 +727,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         xhr.send(formData);
       });
     },
-    onSuccess: async (data) => {
-      // Force immediate cache invalidation
-      await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      await queryClient.refetchQueries({ 
-        queryKey: [`/api/galleries/${slug}`],
-        type: 'active',
-        exact: true 
-      });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      queryClient.refetchQueries({ queryKey: [`/api/galleries/${slug}`] });
 
       // Trigger preloading immediately after upload
       if (data?.images?.length) {
@@ -941,19 +852,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
-
-      if (userRole !== "Editor") {
-        toast({
-          title: "Action Denied",
-          description: "Only editors can upload images",
-          variant: "destructive",
-        });
-        return;
-      }
-
       uploadMutation.mutate(acceptedFiles);
     },
-    [uploadMutation, userRole, toast]
+    [uploadMutation]
   );
 
   // Modify the useDropzone configuration to disable click
@@ -1100,15 +1001,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   const handleDeleteSelected = () => {
-    if (userRole !== "Editor") {
-      toast({
-        title: "Action Denied",
-        description: "Only editors can delete images",
-        variant: "destructive",
-      });
-      return;
-    }
-
     deleteImagesMutation.mutate(selectedImages);
   };
 
@@ -1123,7 +1015,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const imagePromises = selectedImages.map(async (imageId) => {
         const image = gallery!.images.find(img => img.id === imageId);
         if (!image) return;
-
+        
         const response = await fetch(image.url);
         const blob = await response.blob();
         const extension = image.url.split('.').pop() || 'jpg';
@@ -1230,7 +1122,7 @@ const getUniqueStarredUsers = useMemo(() => {
   if (!gallery?.images) return [];
   const usersSet = new Set<string>();
   const users: { userId: string; firstName: string | null; lastName: string | null; imageUrl: string | null; }[] = [];
-
+  
   gallery.images.forEach(image => {
     image.stars?.forEach(star => {
       if (!usersSet.has(star.userId)) {
@@ -1244,7 +1136,7 @@ const getUniqueStarredUsers = useMemo(() => {
       }
     });
   });
-
+  
   return users;
 }, [gallery?.images]);
 
@@ -1273,7 +1165,7 @@ const renderGalleryControls = useCallback(() => {
             selectedUsers={selectedStarredUsers}
             onSelectionChange={setSelectedStarredUsers}
           />
-
+        
           {/* Grid View Toggle */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1381,44 +1273,29 @@ const renderGalleryControls = useCallback(() => {
 
           {selectMode && (
             <>
+              
 
-
-
+              
             </>
           )}
 
 
           {/* Share Button */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
-                  onClick={() =>
-                    userRole === "Editor"
-                      ? setIsOpenShareModal(true)
-                      : setIsOpenCopyModal(true)
-                  }
-                >
-                  <Share className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {userRole === "Editor" ? "Share Gallery" : "Copy Link"}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                onClick={() => setIsOpenShareModal(true)}
+              >
+                <Share className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Share Gallery</TooltipContent>
+          </Tooltip>
 
-          {/* Copy Link Modal for non-Editor users */}
-          <CopyLinkModal
-            isOpen={isOpenCopyModal}
-            onClose={() => setIsOpenCopyModal(false)}
-            galleryUrl={window.location.href}
-          />
-
-
+          
           {userRole === "Editor" && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1550,8 +1427,8 @@ const renderGalleryControls = useCallback(() => {
               className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
                 e.stopPropagation();
-
-                if (!user || userRole === "Viewer") {
+                
+                if (!user) {
                   setShowSignUpModal(true);
                   return;
                 }
@@ -1580,7 +1457,7 @@ const renderGalleryControls = useCallback(() => {
                 // Update star list optimistically
                 queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
                   if (!old) return { success: true, data: [] };
-
+                  
                   const updatedStars = hasUserStarred
                     ? old.data.filter((star: any) => star.userId !== user?.id)
                     : [
@@ -1738,84 +1615,41 @@ const renderGalleryControls = useCallback(() => {
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
-  if (isLoading && fetchAttempts >= 5) {
+  if (isPrivateGallery) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Alert variant="destructive" className="w-full max-w-md border-destructive">
+          <Lock className="h-12 w-12 mb-2" />
+          <AlertTitle className="text-2xl mb-2">Sorry, This Beam Project is private!</AlertTitle>
+          <AlertDescription className="text-base">
+            This gallery can only be accessed by its owner.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Alert variant="destructive" className="w-full max-w-md">
           <AlertCircle className="h-12 w-12 mb-2" />
-          <AlertTitle className="text-2xl mb-2">Failed to Load Gallery</AlertTitle>
+          <AlertTitle className="text-2xl mb-2">Gallery Not Found</AlertTitle>
           <AlertDescription className="text-base mb-4">
-            Gallery could not be loaded after multiple attempts. Please try again.
+            {error instanceof Error ? error.message : 'The gallery you are looking for does not exist or has been removed.'}
           </AlertDescription>
-          <div className="flex justify-end">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setFetchAttempts(0);
-                setIsLoading(true);
-                queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-              }}
-            >
-              Retry
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            onClick={() => setLocation('/dashboard')}
+          >
+            Return to Dashboard
+          </Button>
         </Alert>
       </div>
     );
   }
 
-  if (!gallery || error) {
-    console.error('Gallery fetch error:', error);
-    setIsLoading(false);
-
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Alert variant={error instanceof Error && (error.message === "This gallery is private" || isPrivateGallery) ? "destructive" : "default"} className="w-full max-w-md">
-          {error instanceof Error && error.message === "This gallery is private" ? (
-            <>
-              <Lock className="h-12 w-12 mb-2" />
-              <AlertTitle className="text-2xl mb-2">Private Gallery</AlertTitle>
-              <AlertDescription className="text-base">
-                This gallery requires an invitation to access. Please check with the owner for access.
-              </AlertDescription>
-            </>
-          ) : error instanceof Error && error.message === "Gallery not found" ? (
-            <>
-              <AlertCircle className="h-12 w-12 mb-2" />
-              <AlertTitle className="text-2xl mb-2">Gallery Not Found</AlertTitle>
-              <AlertDescription className="text-base mb-4">
-                The gallery you are looking for does not exist or has been removed.
-              </AlertDescription>
-              <Button
-                variant="outline"
-                onClick={() => setLocation('/dashboard')}
-                className="w-full"
-              >
-                Return to Dashboard
-              </Button>
-            </>
-          ) : (
-            <>
-              <AlertCircle className="h-12 w-12 mb-2" />
-              <AlertTitle className="text-2xl mb-2">Error</AlertTitle>
-              <AlertDescription className="text-base mb-4">
-                {error instanceof Error ? error.message : "Failed to load gallery. Please try again."}
-              </AlertDescription>
-              <Button
-                variant="outline"
-                onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] })}
-                className="w-full"
-              >
-                Retry
-              </Button>
-            </>
-          )}
-        </Alert>
-      </div>
-    );
-  }
-
-  if (isLoading) {
+  if (!gallery && isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -1823,7 +1657,33 @@ const renderGalleryControls = useCallback(() => {
     );
   }
 
-  if (gallery && gallery.images && gallery.images.length === 0) {
+  if (!gallery && !isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-xl">Gallery not found</p>
+      </div>
+    );
+  }
+
+  if (!gallery) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive" />
+              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
+              <p className="text-muted-foreground">
+                The gallery you're looking for doesn't exist or has been removed.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (gallery && gallery.images.length === 0) {
     return (
       <div className="flex flex-col min-h-screen max-h-screen overflow-hidden">
         <div className="flex-1 w-full overflow-hidden relative">
@@ -1856,7 +1716,7 @@ const renderGalleryControls = useCallback(() => {
     const images = gallery.images;
 
     for (let i = 1; i <= preloadCount; i++) {
-      const nextIndex = (index+ i) % images.length;
+      const nextIndex = (index + i) % images.length;
       const prevIndex = (index - i + images.length) % images.length;
 
       [nextIndex, prevIndex].forEach((idx) => {
@@ -1869,7 +1729,7 @@ const renderGalleryControls = useCallback(() => {
   };
 
   // Preload adjacent images when lightbox opens
-
+  
 
 const handleImageClick = (index: number) => {
     console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
@@ -1884,7 +1744,7 @@ const handleImageClick = (index: number) => {
     preloadAdjacentImages(index);
   };
 
-
+  
 
   // Add comment position handler
   const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -1914,8 +1774,8 @@ const handleImageClick = (index: number) => {
           console.log('Comment modal closed'); // Debug log
         }}
         onSubmit={(content) => {
-          if (!user || userRole === "Viewer") {
-            console.log('User not authenticated or viewer, cannot submit comment'); // Debug log
+          if (!user) {
+            console.log('User not authenticated, cannot submit comment'); // Debug log
             return;
           }
 
@@ -1934,19 +1794,6 @@ const handleImageClick = (index: number) => {
       />
     );
   };
-
-  useEffect(() => {
-    setMounted(true);
-    if (session?.status === 'expired' || !session?.lastActiveAt) {
-      session?.refresh().then(() => {
-        console.log('Gallery session refreshed:', {
-          status: session?.status,
-          lastActiveAt: session?.lastActiveAt
-        });
-        queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      });
-    }
-  }, [session, slug, queryClient]);
 
   return (
     <>
@@ -1989,7 +1836,7 @@ const handleImageClick = (index: number) => {
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
                 {renderUploadPlaceholders()}
-                {gallery?.images?.length > 0 && gallery.images
+                {gallery?.images
                   .filter((image: Image) => {
                     // Apply starred filter
                     if (showStarredOnly && !image.starred) return false;
@@ -2059,7 +1906,7 @@ const handleImageClick = (index: number) => {
         </motion.div>
       )}
 
-
+      
 
       {/* Logo */}
       <div 
@@ -2169,7 +2016,7 @@ const handleImageClick = (index: number) => {
                   className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   onClick={(e) => {
                     e.stopPropagation();
-
+                    
                     // Optimistic UI update for selected image
                     setSelectedImage((prev) =>
                       prev ? { ...prev, userStarred: !prev.userStarred } : prev
@@ -2301,11 +2148,11 @@ const handleImageClick = (index: number) => {
                     onLoad={(e) => {
                       setIsLowResLoading(false);
                       setIsLoading(false);
-
+                      
                       const img = e.currentTarget;
                       img.src = img.dataset.src || img.src;
                       img.classList.add('loaded');
-
+                      
                       setImageDimensions({
                         width: img.clientWidth,
                         height: img.clientHeight,
@@ -2411,7 +2258,7 @@ const handleImageClick = (index: number) => {
         />
       )}
       {renderCommentDialog()}
-
+      
       <AnimatePresence>
         {selectMode && selectedImages.length > 0 && (
           <FloatingToolbar

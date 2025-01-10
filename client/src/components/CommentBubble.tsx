@@ -154,7 +154,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || userRole === "Viewer") {
+    if (!user) {
       setShowAuthModal(true);
       return;
     }
