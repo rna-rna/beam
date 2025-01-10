@@ -19,12 +19,13 @@ const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 const R2_ENDPOINT = process.env.R2_ENDPOINT;
 
 const r2Client = new S3Client({
-  endpoint: R2_ENDPOINT,
+  endpoint: process.env.R2_ENDPOINT,
+  region: 'auto',
   credentials: {
     accessKeyId: process.env.R2_ACCESS_KEY,
     secretAccessKey: process.env.R2_SECRET_KEY,
   },
-  region: 'auto'
+  forcePathStyle: true
 });
 
 // Add Clerk types to Express Request
@@ -1605,9 +1606,8 @@ export function registerRoutes(app: Express): Server {
 
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
-        Key: key,
+        Key: `beam-01/${key}`,
         ContentType: contentType,
-        ACL: 'public-read',
         Metadata: {
           originalName: fileName,
           uploadedAt: new Date().toISOString()
@@ -1615,7 +1615,8 @@ export function registerRoutes(app: Express): Server {
       });
       
       const url = await getSignedUrl(r2Client, command, { 
-        expiresIn: 3600 // 1 hour expiry
+        expiresIn: 3600,
+        signableHeaders: new Set(['content-type', 'content-length'])
       });
 
       // Validate generated URL
