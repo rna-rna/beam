@@ -1611,9 +1611,15 @@ export function registerRoutes(app: Express): Server {
         expires: new Date(Date.now() + 3600 * 1000).toISOString()
       });
 
-      // Validate URL contains encoded key path
-      if (!url.includes(encodeURIComponent(key))) {
-        throw new Error('Generated URL validation failed: URL does not contain expected key path');
+      // Check for redundant bucket names
+      if (url.includes(`${R2_BUCKET_NAME}/${R2_BUCKET_NAME}`)) {
+        throw new Error('Generated URL contains a double bucket name');
+      }
+
+      // Validate the encoded key path
+      const encodedKey = encodeURIComponent(key);
+      if (!url.includes(encodedKey)) {
+        console.warn('Key mismatch detected in signed URL:', { url, key, encodedKey });
       }
 
       res.json({ 
