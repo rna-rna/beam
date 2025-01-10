@@ -70,7 +70,7 @@ import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 import { Textarea } from "@/components/ui/textarea";
 
-  
+
 
 
 import { Label } from "@/components/ui/label";
@@ -127,6 +127,9 @@ interface ImageDimensions {
 
 import { Helmet } from 'react-helmet';
 
+const getR2ImageUrl = (image: Image) => 
+  `${import.meta.env.VITE_R2_PUBLIC_URL}/${image.slug}/${image.originalFilename}`;
+
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   // URL Parameters and Global Hooks
   const params = useParams();
@@ -163,7 +166,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     const channelName = `presence-gallery-${slug}`;
     console.log('Attempting to subscribe to channel:', channelName);
-    
+
     const channel = pusherClient.subscribe(channelName);
     console.log('Channel details:', {
       name: channel.name,
@@ -177,7 +180,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       members.each((member: any) => {
         const userInfo = member.info || member.user_info || {};
-        
+
         // Skip if this is the current user
         if (member.id === currentUserId) return;
 
@@ -219,10 +222,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     channel.bind('pusher:member_added', (member: any) => {
       console.log('Member added:', member);
-      
+
       // Skip if this is the current user
       if (member.id === user?.id) return;
-      
+
       setActiveUsers(prev => {
         const isPresent = prev.some(user => user.userId === member.id);
         if (isPresent) return prev;
@@ -273,7 +276,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   };
 
-  
+
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const { user } = useUser();
@@ -309,7 +312,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
   const [userRole, setUserRole] = useState<string>("Viewer");
-  
+
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
@@ -323,11 +326,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             foundUser: data.users.find(u => u.email === user?.primaryEmailAddress?.emailAddress),
             allEmails: data.users.map(u => u.email)
           });
-          
+
           const currentUserRole = data.users.find(
             (u) => u.email === user?.primaryEmailAddress?.emailAddress
           )?.role || "Viewer";
-          
+
           console.log("Role Assignment:", {
             assignedRole: currentUserRole,
             userEmail: user?.primaryEmailAddress?.emailAddress,
@@ -438,7 +441,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         hasToken: !!await getToken(),
         timestamp: new Date().toISOString()
       });
-      
+
       const token = await getToken();
       const headers: HeadersInit = {
         'Cache-Control': 'no-cache',
@@ -477,7 +480,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         hasImages: data?.images?.length > 0,
         timestamp: new Date().toISOString()
       });
-      
+
       if (!data) {
         throw new Error('Gallery returned null or undefined');
       }
@@ -508,7 +511,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     setSelectedImage(gallery?.images?.[selectedImageIndex] ?? null);
   }, [selectedImageIndex, gallery?.images]);
 
-  
+
 
   const { data: annotations = [] } = useQuery<Annotation[]>({
     queryKey: [`/api/images/${selectedImage?.id}/annotations`],
@@ -922,7 +925,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       gallery.images.forEach(image => {
         if (!preloadedImages.has(image.id)) {
           preloadImage(
-            getCloudinaryUrl(image.publicId, 'w_600,c_limit,q_auto,f_auto'),
+            getR2ImageUrl(image), // Updated to use getR2ImageUrl
             image.id
           );
         }
@@ -1016,7 +1019,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       const imagePromises = selectedImages.map(async (imageId) => {
         const image = gallery!.images.find(img => img.id === imageId);
         if (!image) return;
-        
+
         const response = await fetch(image.url);
         const blob = await response.blob();
         const extension = image.url.split('.').pop() || 'jpg';
@@ -1123,7 +1126,7 @@ const getUniqueStarredUsers = useMemo(() => {
   if (!gallery?.images) return [];
   const usersSet = new Set<string>();
   const users: { userId: string; firstName: string | null; lastName: string | null; imageUrl: string | null; }[] = [];
-  
+
   gallery.images.forEach(image => {
     image.stars?.forEach(star => {
       if (!usersSet.has(star.userId)) {
@@ -1137,7 +1140,7 @@ const getUniqueStarredUsers = useMemo(() => {
       }
     });
   });
-  
+
   return users;
 }, [gallery?.images]);
 
@@ -1166,7 +1169,7 @@ const renderGalleryControls = useCallback(() => {
             selectedUsers={selectedStarredUsers}
             onSelectionChange={setSelectedStarredUsers}
           />
-        
+
           {/* Grid View Toggle */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1274,9 +1277,9 @@ const renderGalleryControls = useCallback(() => {
 
           {selectMode && (
             <>
-              
 
-              
+
+
             </>
           )}
 
@@ -1296,7 +1299,7 @@ const renderGalleryControls = useCallback(() => {
             <TooltipContent>Share Gallery</TooltipContent>
           </Tooltip>
 
-          
+
           {userRole === "Editor" && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1441,7 +1444,7 @@ const renderGalleryControls = useCallback(() => {
               className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
               onClick={(e) => {
                 e.stopPropagation();
-                
+
                 if (!user) {
                   setShowSignUpModal(true);
                   return;
@@ -1471,7 +1474,7 @@ const renderGalleryControls = useCallback(() => {
                 // Update star list optimistically
                 queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
                   if (!old) return { success: true, data: [] };
-                  
+
                   const updatedStars = hasUserStarred
                     ? old.data.filter((star: any) => star.userId !== user?.id)
                     : [
@@ -1737,14 +1740,14 @@ const renderGalleryControls = useCallback(() => {
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getCloudinaryUrl(images[idx].publicId, 'w_1600,q_auto,f_auto');
+          img.src = getR2ImageUrl(images[idx]); // Updated to use getR2ImageUrl
         }
       });
     }
   };
 
   // Preload adjacent images when lightbox opens
-  
+
 
 const handleImageClick = (index: number) => {
     console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
@@ -1759,7 +1762,7 @@ const handleImageClick = (index: number) => {
     preloadAdjacentImages(index);
   };
 
-  
+
 
   // Add comment position handler
   const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -1816,7 +1819,7 @@ const handleImageClick = (index: number) => {
         <Helmet>
           <meta property="og:title" content={gallery.title || "Beam Gallery"} />
           <meta property="og:description" content="Explore stunning galleries!" />
-          <meta property="og:image" content={gallery.ogImageUrl ? getCloudinaryUrl(gallery.ogImageUrl, `w_1200,h_630,c_limit,q_auto,f_auto,l_beam-bar_q6desn,g_center,x_0,y_0`) : getCloudinaryUrl('12_crhopz', `w_1200,h_630,c_limit,q_auto,f_auto,l_beam-bar_q6desn,g_center,x_0,y_0`)} />
+          <meta property="og:image" content={gallery.ogImageUrl ? getR2ImageUrl(gallery.ogImage) : getR2ImageUrl('12_crhopz')} />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="630" />
           <meta property="og:type" content="website" />
@@ -1832,8 +1835,7 @@ const handleImageClick = (index: number) => {
             <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white">Drop images here</h3>
           </div>
-        </div>
-      )}
+        </div>      )}
 
       <div className="px-4 sm:px-6 lg:px-8 py-4">
         <AnimatePresence mode="wait">
@@ -1921,7 +1923,7 @@ const handleImageClick = (index: number) => {
         </motion.div>
       )}
 
-      
+
 
       {/* Logo */}
       <div 
@@ -2031,7 +2033,7 @@ const handleImageClick = (index: number) => {
                   className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   onClick={(e) => {
                     e.stopPropagation();
-                    
+
                     // Optimistic UI update for selected image
                     setSelectedImage((prev) =>
                       prev ? { ...prev, userStarred: !prev.userStarred } : prev
@@ -2151,8 +2153,8 @@ const handleImageClick = (index: number) => {
                   )}
 
                   <motion.img
-                    src={getCloudinaryUrl(selectedImage.publicId, 'w_50,q_10,e_blur:200')}
-                    data-src={getCloudinaryUrl(selectedImage.publicId, 'w_1600,q_auto,f_auto')}
+                    src={getR2ImageUrl(selectedImage)}
+                    data-src={getR2ImageUrl(selectedImage)}
                     alt={selectedImage.originalFilename || ''}
                     className={`max-w-full max-h-full w-auto h-auto object-contain lightbox-img blur-up ${
                       isLowResLoading ? 'opacity-0' : 'opacity-100'
@@ -2163,11 +2165,11 @@ const handleImageClick = (index: number) => {
                     onLoad={(e) => {
                       setIsLowResLoading(false);
                       setIsLoading(false);
-                      
+
                       const img = e.currentTarget;
                       img.src = img.dataset.src || img.src;
                       img.classList.add('loaded');
-                      
+
                       setImageDimensions({
                         width: img.clientWidth,
                         height: img.clientHeight,
@@ -2273,7 +2275,7 @@ const handleImageClick = (index: number) => {
         />
       )}
       {renderCommentDialog()}
-      
+
       <AnimatePresence>
         {selectMode && selectedImages.length > 0 && (
           <FloatingToolbar
