@@ -128,7 +128,7 @@ interface ImageDimensions {
 import { Helmet } from 'react-helmet';
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
-  const getR2ImageUrl = (image: Image | null | undefined, gallerySlug?: string) => {
+  const getR2ImageUrl = (image: Image | null | undefined) => {
     if (!image) {
       console.error('Image object is null or undefined');
       return '/fallback-image.jpg';
@@ -139,8 +139,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       return '/fallback-image.jpg';
     }
 
-    // Return the complete URL from the API response
-    return image.url;
+    return `${process.env.VITE_R2_PUBLIC_URL}/${image.url}`;
   };
   // URL Parameters and Global Hooks
   const params = useParams();
