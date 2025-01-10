@@ -10,10 +10,10 @@ import { setupClerkAuth, extractUserInfo } from './auth';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { invites } from '@db/schema';
 import { nanoid } from 'nanoid';
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-// Import necessary types and modules for R2
-import { S3Client } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
+
 // Replace with your actual bucket name and endpoint
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 const R2_ENDPOINT = process.env.R2_ENDPOINT;
@@ -24,8 +24,7 @@ const r2Client = new S3Client({
     accessKeyId: process.env.R2_ACCESS_KEY,
     secretAccessKey: process.env.R2_SECRET_KEY,
   },
-  region: 'auto',
-  signatureVersion: 'v4',
+  region: 'auto'
 });
 
 // Add Clerk types to Express Request
@@ -191,7 +190,6 @@ export function registerRoutes(app: Express): Server {
           //   folder: 'galleries/og'
           // });
           // ogImageUrl = uploadResponse.secure_url;
-          const sharp = require('sharp');
           const imageUploads = await Promise.all(
             files.map(async (file) => {
               const fileName = `galleries/${slug}/${Date.now()}-${file.originalname}`;
