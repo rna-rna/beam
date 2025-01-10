@@ -184,10 +184,12 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
 
       const uploadedUrls = await Promise.all(
         acceptedFiles.map(async (file, index) => {
+          const fileName = `${Date.now()}-${file.name}`;
+          const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/uploads/${fileName}`;
           const url = await uploadFile(file);
           setUploadProgress(Math.round(((index + 1) / acceptedFiles.length) * 100));
           return {
-            url,
+            url: publicUrl,
             originalFilename: file.name
           };
         })
