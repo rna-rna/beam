@@ -427,19 +427,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         variant: "destructive",
       });
     },
-
-  // Monitor gallery images changes
-  useEffect(() => {
-    if (gallery?.images) {
-      console.log('Gallery Images Updated:', {
-        count: gallery.images.length,
-        validImages: gallery.images.every(img => img.id && img.url && img.originalFilename),
-        timestamp: new Date().toISOString()
-      });
-    }
-  }, [gallery?.images]);
-
-
     onSettled: () => {
       // Invalidate both queries to ensure consistency
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
@@ -472,10 +459,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           originalFilename: image.originalFilename,
           url: image.url,
           width: image.width,
-          height: image.height,
-          stars: image.stars?.length || 0,
-          commentCount: image.commentCount,
-          position: image.position
+          height: image.height
         });
       });
     },
@@ -995,31 +979,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   );
 
   // Preload image function
-  const preloadImage = useCallback((image: Image | null | undefined, imageId: number) => {
-    if (!image?.url || !imageId) {
-      console.warn('Skipping preload for invalid image:', { image, imageId });
-      return;
-    }
-
-    const url = getR2ImageUrl(image);
-    if (!url) {
-      console.warn('Invalid URL generated for image:', { image, imageId });
-      return;
-    }
-
-    console.debug('Starting preload for image:', { imageId, url });
+  const preloadImage = useCallback((image: Image, imageId: number) => {
     const img = new Image();
-    img.src = url;
-    
+    img.src = getR2ImageUrl(image);
     img.onload = () => {
-      console.debug('Successfully preloaded image:', { imageId, url });
       setPreloadedImages(prev => new Set([...Array.from(prev), imageId]));
     };
-
-    img.onerror = (error) => {
-      console.error('Failed to preload image:', { imageId, url, error });
-    };
-  }, [getR2ImageUrl]);
+  }, []);
 
   // Preload images when gallery data is available
   useEffect(() => {
