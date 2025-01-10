@@ -1605,9 +1605,15 @@ export function registerRoutes(app: Express): Server {
       console.log('Validation Details:', {
         url,
         key,
+        encodedKey: encodeURIComponent(key),
         bucket: R2_BUCKET_NAME,
         expires: new Date(Date.now() + 3600 * 1000).toISOString()
       });
+
+      // Validate URL contains encoded key path
+      if (!url.includes(encodeURIComponent(key))) {
+        throw new Error('Generated URL validation failed: URL does not contain expected key path');
+      }
 
       res.json({ 
         url,
