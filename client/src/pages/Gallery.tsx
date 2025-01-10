@@ -445,6 +445,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         imageCount: data?.images?.length,
         sampleStars: data?.images?.[0]?.stars,
       });
+      
+      // Debug image data
+      data?.images?.forEach((image, index) => {
+        console.log(`Image ${index}:`, {
+          id: image.id,
+          originalFilename: image.originalFilename,
+          url: image.url,
+          width: image.width,
+          height: image.height
+        });
+      });
     },
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
