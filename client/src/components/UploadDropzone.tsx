@@ -144,7 +144,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
         throw new Error(`Upload failed: ${uploadRes.status} ${uploadRes.statusText}\n${errorText}`);
       }
 
-      return `${process.env.VITE_R2_PUBLIC_URL}/beam-01/${key}`;
+      return `${process.env.VITE_R2_PUBLIC_URL}/${process.env.R2_BUCKET_NAME}/${key}`;
     }
   };
 

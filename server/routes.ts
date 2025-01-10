@@ -1595,6 +1595,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
+      // Don't include bucket name in the key since it's already specified in Bucket parameter
       const key = `uploads/${fileName}`;
       console.log('Bucket:', R2_BUCKET_NAME);
       console.log('Key:', key);
