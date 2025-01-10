@@ -458,7 +458,7 @@ export function registerRoutes(app: Express): Server {
             throw new Error('Missing originalFilename in uploaded file');
           }
 
-          const key = `galleries/${gallery.slug}/${Date.now()}-${file.originalname}`;
+          const key = `uploads/${Date.now()}-${file.originalname}`;
           const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
 
           // Get image dimensions using Sharp
@@ -1621,7 +1621,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      const key = `uploads/${fileName}`;
+      const key = `uploads/${Date.now()}-${fileName}`;
 
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
