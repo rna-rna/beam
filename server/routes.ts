@@ -430,7 +430,8 @@ export function registerRoutes(app: Express): Server {
             throw new Error('Missing originalFilename in uploaded file');
           }
 
-          const fileName = `galleries/${gallery.slug}/${Date.now()}-${file.originalname}`;
+          const key = `galleries/${gallery.slug}/${Date.now()}-${file.originalname}`;
+          const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
 
           // Get image dimensions using Sharp
           const metadata = await sharp(file.buffer).metadata();
@@ -440,18 +441,18 @@ export function registerRoutes(app: Express): Server {
 
           await r2Client.send(new PutObjectCommand({
             Bucket: R2_BUCKET_NAME,
-            Key: fileName,
+            Key: key,
             Body: file.buffer,
             ContentType: file.mimetype,
             Metadata: {
-              originalFilename: file.originalname
+              originalName: file.originalname
             }
           }));
 
           return {
             galleryId: gallery.id,
-            url: `${process.env.VITE_R2_PUBLIC_URL}/${process.env.R2_BUCKET_NAME}/${fileName}`,
-            publicId: fileName,
+            url: publicUrl,
+            publicId: key,
             originalFilename: file.originalname,
             width: metadata.width || 800,
             height: metadata.height || 600,
