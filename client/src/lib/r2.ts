@@ -15,7 +15,7 @@ export const R2_BUCKET_NAME = process.env.VITE_R2_BUCKET_NAME || "";
 
 export const getR2Url = (publicId: string) => {
   if (!publicId) return "";
-  return `${import.meta.env.VITE_R2_PUBLIC_URL}/${publicId}`;
+  return `${import.meta.env.VITE_R2_PUBLIC_URL}/beam-01/${publicId}`;
 };
 
 export const getR2ImageUrl = (image: Image) => {
