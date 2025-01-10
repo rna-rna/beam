@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
-import { registerRoutes } from './routes';
+import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import pusherAuthRouter from "./routes/pusherAuth";
 import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
