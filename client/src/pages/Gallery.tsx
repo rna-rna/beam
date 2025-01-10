@@ -1384,10 +1384,10 @@ const renderGalleryControls = useCallback(() => {
             <img
               src={
                 preloadedImages.has(image.id)
-                  ? getCloudinaryUrl(image.publicId, 'w_600,c_limit,q_auto,f_auto')  // Full-res if preloaded
-                  : getCloudinaryUrl(image.publicId, 'w_50,q_10,e_blur:200')         // Low-res if not
+                  ? getR2ImageUrl(image)  // Full-res if preloaded
+                  : getR2ImageUrl(image)  // Use same URL for now since R2 doesn't support transformations
               }
-              data-src={getCloudinaryUrl(image.publicId, 'w_600,c_limit,q_auto,f_auto')}
+              data-src={getR2ImageUrl(image)}
               alt={image.originalFilename || ''}
               className={`w-full h-auto object-cover rounded-lg blur-up ${
                 selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''

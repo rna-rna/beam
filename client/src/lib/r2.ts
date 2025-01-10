@@ -1,5 +1,6 @@
 
 import { S3Client } from "@aws-sdk/client-s3";
+import { Image } from "@/types/gallery";
 
 export const r2Client = new S3Client({
   region: "auto",
@@ -11,3 +12,13 @@ export const r2Client = new S3Client({
 });
 
 export const R2_BUCKET_NAME = process.env.VITE_R2_BUCKET_NAME || "";
+
+export const getR2Url = (publicId: string) => {
+  if (!publicId) return "";
+  return `${import.meta.env.VITE_R2_PUBLIC_URL}/${publicId}`;
+};
+
+export const getR2ImageUrl = (image: Image) => {
+  if (!image?.publicId) return "";
+  return getR2Url(image.publicId);
+};
