@@ -1597,20 +1597,19 @@ export function registerRoutes(app: Express): Server {
 
       // Don't include bucket name in the key since it's already specified in Bucket parameter
       // Don't include bucket name in the key
+      // Ensure key doesn't include bucket name
       const key = `uploads/${fileName}`;
-      console.log('Bucket:', R2_BUCKET_NAME);
-      console.log('Key:', key);
-      console.log('Generating signed URL:', {
-        bucket: R2_BUCKET_NAME,
+      const bucket = R2_BUCKET_NAME.replace(/^beam-01\//, ''); // Remove if bucket starts with beam-01/
+      
+      console.log('URL Generation:', {
+        bucket,
         key,
         contentType,
-        expiresIn: 3600,
-        timestamp: new Date().toISOString()
+        fullPath: `${bucket}/${key}`
       });
 
-      // Create PutObject command with correct bucket and key
       const command = new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME,
+        Bucket: bucket,
         Key: key,
         ContentType: contentType,
         Metadata: {
