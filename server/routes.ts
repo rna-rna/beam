@@ -1602,10 +1602,11 @@ export function registerRoutes(app: Express): Server {
         expiresIn: 3600 
       });
 
-      console.log('Signed URL validation:', {
+      console.log('Validation Details:', {
         url,
+        expectedKey: key,
+        includesKey: url.includes(key),
         bucket: R2_BUCKET_NAME,
-        key,
         expires: new Date(Date.now() + 3600 * 1000).toISOString(),
         hasContentType: url.includes(contentType.replace('/', '%2F'))
       });
