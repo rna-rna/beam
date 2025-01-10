@@ -1587,22 +1587,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      console.log('Upload Request Details:', {
-        originalBucketName: R2_BUCKET_NAME,
-        fileName,
-        contentType,
-        timestamp: new Date().toISOString()
-      });
-
-      // Create key path relative to bucket root
       const key = `uploads/${fileName}`;
-
-      console.log('URL Generation:', {
-        bucket: R2_BUCKET_NAME,
-        key,
-        contentType
-      });
-
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
         Key: key,
@@ -1614,26 +1599,8 @@ export function registerRoutes(app: Express): Server {
       });
 
       const url = await getSignedUrl(r2Client, command, { 
-        expiresIn: 3600,
-        signableHeaders: new Set(['content-type', 'content-length'])
+        expiresIn: 3600 
       });
-
-      console.log('Generated Signed URL:', url);
-      console.log('URL Components:', {
-        fullUrl: url,
-        baseEndpoint: process.env.R2_ENDPOINT,
-        bucket: R2_BUCKET_NAME,
-        key,
-        contentType,
-        expiresIn: 3600,
-        queryParams: url.split('?')[1],
-        timestamp: new Date().toISOString()
-      });
-
-      // Validate generated URL contains key and expected components
-      if (!url.includes(key)) {
-        throw new Error('Generated URL does not contain the correct key path');
-      }
 
       console.log('Signed URL validation:', {
         url,
