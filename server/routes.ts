@@ -191,9 +191,51 @@ export function registerRoutes(app: Express): Server {
           //   folder: 'galleries/og'
           // });
           // ogImageUrl = uploadResponse.secure_url;
-          ogImageUrl = null; // Placeholder - needs R2 equivalent
+          const imageUploads = await Promise.all(
+            files.map(async (file) => {
+              const fileName = `galleries/${slug}/${Date.now()}-${file.originalname}`;
+
+              await r2Client.send(new PutObjectCommand({
+                Bucket: R2_BUCKET_NAME,
+                Key: fileName,
+                Body: file.buffer,
+                ContentType: file.mimetype,
+              }));
+
+              return {
+                url: `${process.env.VITE_R2_PUBLIC_URL}/${fileName}`,
+                publicId: fileName,
+                originalFilename: file.originalname,
+                width: 800, // placeholder - implement proper image dimension detection
+                height: 600 // placeholder - implement proper image dimension detection
+              };
+            })
+          );
+
+          // Insert image records
+          if (imageUploads.length > 0) {
+            await db.insert(images).values(
+              imageUploads.map(img => ({
+                galleryId: gallery.id,
+                url: img.url,
+                publicId: img.publicId,
+                originalFilename: img.originalFilename,
+                width: img.width,
+                height: img.height,
+                position: 0,
+                createdAt: new Date()
+              }))
+            );
+          }
+
+          // Set OG image URL from first uploaded image
+          if (imageUploads[0]) {
+            ogImageUrl = imageUploads[0].url;
+          }
+          
         } catch (error) {
-          console.error('Failed to generate OG image:', error);
+          console.error('Failed to process uploads:', error);
+          throw error;
         }
       }
 
@@ -208,31 +250,6 @@ export function registerRoutes(app: Express): Server {
         ogImageUrl
       }).returning();
 
-      // If we have files, process them for the gallery
-      if (files && files.length > 0) {
-        try {
-          // const firstImage = files[0];
-          // const uploadResponse = await cloudinary.uploader.upload(firstImage.path, {
-          //   eager: [{
-          //     width: 1200,
-          //     height: 630,
-          //     crop: "limit",
-          //     overlay: "beam-bar_q6desn",
-          //     gravity: "center"
-          //   }],
-          //   public_id: `og_gallery_${gallery.slug}`
-          // });
-
-          // Update gallery with OG image URL
-          // await db.update(galleries)
-          //   .set({ ogImageUrl: uploadResponse.secure_url })
-          //   .where(eq(galleries.id, gallery.id));
-
-          // gallery.ogImageUrl = uploadResponse.secure_url;
-        } catch (error) {
-          console.error('Failed to generate OG image:', error);
-        }
-      }
 
       console.log('Gallery created, waiting for propagation...');
 
@@ -400,38 +417,40 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: 'No images uploaded' });
       }
 
-      const imageInserts = await Promise.all(req.files.map(async file => {
-        const fileName = `galleries/${gallery.slug}/${Date.now()}-${file.originalname}`;
+      const imageUploads = await Promise.all(
+        req.files.map(async (file) => {
+          const fileName = `galleries/${gallery.slug}/${Date.now()}-${file.originalname}`;
 
-        await r2Client.send(new PutObjectCommand({
-          Bucket: R2_BUCKET_NAME,
-          Key: fileName,
-          Body: file.buffer,
-          ContentType: file.mimetype,
-        }));
+          await r2Client.send(new PutObjectCommand({
+            Bucket: R2_BUCKET_NAME,
+            Key: fileName,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+          }));
 
-        // Calculate dimensions using a Buffer
-        const dimensions = await new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => resolve({ width: img.width, height: img.height });
-          img.src = URL.createObjectURL(new Blob([file.buffer]));
-        });
+          // Calculate dimensions using a Buffer
+          const dimensions = await new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve({ width: img.width, height: img.height });
+            img.src = URL.createObjectURL(new Blob([file.buffer]));
+          });
 
-        return {
-          galleryId: gallery.id,
-          url: `${process.env.VITE_R2_PUBLIC_URL}/${fileName}`,
-          publicId: fileName,
-          originalFilename: file.originalname,
-          width: dimensions.width,
-          height: dimensions.height,
-          createdAt: new Date()
-        };
-      }));
+          return {
+            galleryId: gallery.id,
+            url: `${process.env.VITE_R2_PUBLIC_URL}/${fileName}`,
+            publicId: fileName,
+            originalFilename: file.originalname,
+            width: dimensions.width,
+            height: dimensions.height,
+            createdAt: new Date()
+          };
+        })
+      );
 
-      await db.insert(images).values(imageInserts);
-      res.json({ 
+      await db.insert(images).values(imageUploads);
+      res.json({
         success: true,
-        images: imageInserts
+        images: imageUploads
       });
     } catch (error) {
       console.error('Upload error:', error);
@@ -849,7 +868,7 @@ export function registerRoutes(app: Express): Server {
       }));
 
       // Get OG image URL from first image or use fallback
-      const ogImageUrl = processedImages[0]?.url || 
+      const ogImageUrl = processedImages[0]?.url ||
         'https://res.cloudinary.com/dq7m5z3zf/image/upload/v1700000000/12_crhopz.jpg';
 
       // Check for invite and role if not owner
@@ -901,7 +920,7 @@ export function registerRoutes(app: Express): Server {
 
       // Early auth check
       if (!req.auth?.userId) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           success: false,
           message: 'Authentication required for commenting',
           requiresAuth: true
@@ -924,9 +943,9 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!image || !image.gallery) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           success: false,
-          message: 'Image not found' 
+          message: 'Image not found'
         });
       }
 
@@ -1094,7 +1113,7 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/images/:imageId/star', async (req, res) => {
     try {
       if (!req.auth?.userId) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           success: false,
           message: 'Authentication required',
           requiresAuth: true
@@ -1150,7 +1169,7 @@ export function registerRoutes(app: Express): Server {
   app.delete('/api/images/:imageId/star', async (req, res) => {
     try {
       if (!req.auth?.userId) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           success: false,
           message: 'Authentication required',
           requiresAuth: true
@@ -1304,8 +1323,8 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       console.error('Failed to fetch permissions:', error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: 'Failed to fetch permissions'
       });
     }
@@ -1424,7 +1443,7 @@ export function registerRoutes(app: Express): Server {
         slug
       });
 
-      res.status(500).json({ 
+      res.status(500).json({
         message: 'Failed to invite user',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -1478,9 +1497,9 @@ export function registerRoutes(app: Express): Server {
       const email = req.query.email?.toString().toLowerCase();
 
       if (!email) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          message: 'Email query parameter is required' 
+          message: 'Email query parameter is required'
         });
       }
 
