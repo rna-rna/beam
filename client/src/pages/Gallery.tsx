@@ -440,36 +440,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // Queries
   const { data: gallery, isLoading: isGalleryLoading, error } = useQuery<GalleryType>({
     onSuccess: (data) => {
-      console.log('Gallery API Response:', {
-        status: 'success',
+      console.log('Gallery Data:', {
         galleryId: data?.id,
-        title: data?.title,
-        slug: data?.slug,
         imageCount: data?.images?.length,
-        sampleImage: data?.images?.[0] ? {
-          id: data.images[0].id,
-          originalFilename: data.images[0].originalFilename,
-          url: data.images[0].url,
-          width: data.images[0].width,
-          height: data.images[0].height
-        } : null,
-        timestamp: new Date().toISOString()
+        sampleStars: data?.images?.[0]?.stars,
       });
-
-      // Validate required image fields
-      if (data?.images) {
-        const missingFields = data.images.some((img: any) => 
-          !img.originalFilename || !img.url || !img.id
-        );
-        
-        if (missingFields) {
-          console.error('Invalid image data detected:', 
-            data.images.filter((img: any) => 
-              !img.originalFilename || !img.url || !img.id
-            )
-          );
-        }
-      }
     },
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
@@ -1410,27 +1385,21 @@ const renderGalleryControls = useCallback(() => {
     setIsOpenShareModal
   ]);
 
-  const renderImage = (image: Image | null | undefined, index: number) => {
-    if (!image?.id || !image?.originalFilename) {
-      console.warn(`Skipping invalid image at index ${index}:`, image);
-      return null;
-    }
-
-    return (
-      <LazyLoad
-        key={image.id}
-        height={200}
-        offset={100}
-        placeholder={
-          <div 
-            className="w-full bg-muted animate-pulse rounded-lg" 
-            style={{ 
-              aspectRatio: image.width && image.height ? `${image.width} / ${image.height}` : '4/3',
-              minHeight: '200px'
-            }}
-          />
-        }
-      >
+  const renderImage = (image: Image, index: number) => (
+    <LazyLoad
+      key={image.id}
+      height={200}
+      offset={100}
+      placeholder={
+        <div 
+          className="w-full bg-muted animate-pulse rounded-lg" 
+          style={{ 
+            aspectRatio: image.width && image.height ? `${image.width} / ${image.height}` : '4/3',
+            minHeight: '200px'
+          }}
+        />
+      }
+    >
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={`mb-4 image-container relative ${
@@ -1932,16 +1901,8 @@ const handleImageClick = (index: number) => {
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
                 {renderUploadPlaceholders()}
-                {console.log('Gallery Images:', {
-                  count: gallery?.images?.length,
-                  sampleImage: gallery?.images?.[0],
-                  hasImages: Boolean(gallery?.images?.length),
-                  timestamp: new Date().toISOString()
-                })}
                 {gallery?.images
                   .filter((image: Image) => {
-                    // Filter out invalid images
-                    if (!image || !image.originalFilename || !image.id) return false;
                     // Apply starred filter
                     if (showStarredOnly && !image.starred) return false;
                     // Apply comments filter
@@ -2381,8 +2342,6 @@ const handleImageClick = (index: number) => {
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
       <SignUpModal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)} />
     </div>
-  </>
+    </>
   );
-};
-
-export default Gallery;
+}
