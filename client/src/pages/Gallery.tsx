@@ -129,8 +129,18 @@ import { Helmet } from 'react-helmet';
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   const getR2ImageUrl = (image: Image | null | undefined, gallerySlug?: string) => {
-    if (!image?.originalFilename) return '';
-    return `${import.meta.env.VITE_R2_PUBLIC_URL}/${gallerySlug || propSlug}/${image.originalFilename}`;
+    if (!image?.originalFilename) {
+      console.warn('Missing originalFilename for image:', image);
+      return '';
+    }
+    const url = `${import.meta.env.VITE_R2_PUBLIC_URL}/${gallerySlug || propSlug}/${image.originalFilename}`;
+    console.debug('Generated R2 URL:', {
+      url,
+      gallerySlug,
+      propSlug,
+      originalFilename: image.originalFilename
+    });
+    return url;
   };
   // URL Parameters and Global Hooks
   const params = useParams();
