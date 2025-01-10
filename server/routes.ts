@@ -1574,6 +1574,24 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Single PUT upload endpoint
+  app.post('/api/single-upload-url', async (req: any, res) => {
+    const { fileName, contentType } = req.body;
+    try {
+      const command = new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: `uploads/${fileName}`,
+        ContentType: contentType,
+      });
+      
+      const url = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+      res.json({ url });
+    } catch (err) {
+      console.error('Error generating single PUT URL:', err);
+      res.status(500).json({ error: 'Failed to generate upload URL' });
+    }
+  });
+
   // Multipart Upload Endpoints
   app.post('/api/multipart/start', async (req: any, res) => {
     const { fileName, contentType } = req.body;
