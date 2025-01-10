@@ -1901,6 +1901,12 @@ const handleImageClick = (index: number) => {
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
                 {renderUploadPlaceholders()}
+                {console.log('Gallery Images:', {
+                  count: gallery?.images?.length,
+                  sampleImage: gallery?.images?.[0],
+                  hasImages: Boolean(gallery?.images?.length),
+                  timestamp: new Date().toISOString()
+                })}
                 {gallery?.images
                   .filter((image: Image) => {
                     // Apply starred filter
