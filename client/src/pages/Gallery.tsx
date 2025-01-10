@@ -129,10 +129,16 @@ import { Helmet } from 'react-helmet';
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   const getR2ImageUrl = (image: Image | null | undefined, gallerySlug?: string) => {
-    if (!image?.originalFilename) {
-      console.warn('Missing originalFilename for image:', image);
-      return '';
+    if (!image) {
+      console.error('Image object is null or undefined');
+      return '/fallback-image.jpg';
     }
+
+    if (!image.originalFilename) {
+      console.warn('Missing originalFilename, falling back to url:', image.url);
+      return image.url || '/fallback-image.jpg';
+    }
+
     const url = `${import.meta.env.VITE_R2_PUBLIC_URL}/${gallerySlug || propSlug}/${image.originalFilename}`;
     console.debug('Generated R2 URL:', {
       url,
