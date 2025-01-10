@@ -822,6 +822,32 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
+      // Debug image data
+      console.log('Gallery Images Data:', {
+        count: imagesWithStars.length,
+        sampleImage: imagesWithStars[0] ? {
+          id: imagesWithStars[0].id,
+          originalFilename: imagesWithStars[0].originalFilename,
+          hasOriginalFilename: !!imagesWithStars[0].originalFilename,
+          url: imagesWithStars[0].url,
+        } : null,
+        missingFilenames: imagesWithStars.filter(img => !img.originalFilename).length
+      });
+
+      // Validate required image fields
+      const invalidImages = imagesWithStars.filter(img => !img.originalFilename || !img.url);
+      if (invalidImages.length > 0) {
+        console.error('Invalid image data detected:', {
+          total: imagesWithStars.length,
+          invalid: invalidImages.length,
+          samples: invalidImages.slice(0, 3).map(img => ({
+            id: img.id,
+            hasOriginalFilename: !!img.originalFilename,
+            hasUrl: !!img.url
+          }))
+        });
+      }
+
       // Fetch user data for all stars
       const imagesWithUserData = await Promise.all(
         imagesWithStars.map(async (img) => {
@@ -864,17 +890,24 @@ export function registerRoutes(app: Express): Server {
 
       const processedImages = imagesWithUserData.map(img => ({
         id: img.id,
-        url: img.url,
-        width: img.width,
-        height: img.height,
-        aspectRatio: img.width / img.height,
+        url: img.url || '',
+        width: img.width || 800,
+        height: img.height || 600,
+        aspectRatio: (img.width && img.height) ? img.width / img.height : 1.33,
         publicId: img.publicId,
         slug: gallery.slug,
-        originalFilename: img.originalFilename,
+        originalFilename: img.originalFilename || `image-${img.id}`,
         userStarred: img.stars.some(star => star.userId === req.auth?.userId),
         stars: img.stars,
         commentCount: commentCounts.find(c => c.imageId === img.id)?.count || 0
       }));
+
+      // Final validation check
+      console.log('Processed Images:', {
+        total: processedImages.length,
+        withFilenames: processedImages.filter(img => img.originalFilename).length,
+        sample: processedImages[0]
+      });
 
       // Get OG image URL from first image or use fallback
       const ogImageUrl = processedImages[0]?.url ||
