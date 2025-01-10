@@ -403,16 +403,33 @@ export function registerRoutes(app: Express): Server {
 
   // Add images to gallery (supports both guest and authenticated uploads)
   app.post('/api/galleries/:slug/images', upload.array('images', 50), async (req: any, res) => {
+    console.log('Image Upload Request:', {
+      slug: req.params.slug,
+      hasFiles: !!req.files,
+      fileCount: req.files?.length,
+      contentType: req.headers['content-type'],
+      body: req.body
+    });
+
     try {
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug)
       });
 
       if (!gallery) {
+        console.error('Gallery not found:', req.params.slug);
         return res.status(404).json({
           message: 'Gallery not found',
           error: 'NOT_FOUND',
         });
+      }
+
+      if (!req.files || !Array.isArray(req.files)) {
+        console.error('No valid files in request:', {
+          files: req.files,
+          isArray: Array.isArray(req.files)
+        });
+        return res.status(400).json({ message: 'No images uploaded' });
       }
 
       // Allow uploads for guest galleries or authenticated owners
