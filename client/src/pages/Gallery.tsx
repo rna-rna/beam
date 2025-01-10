@@ -2381,5 +2381,5 @@ const handleImageClick = (index: number) => {
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
       <SignUpModal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)} />
     </div>
-    </>
-  );
+  </>
+);
