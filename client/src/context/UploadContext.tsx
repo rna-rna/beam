@@ -21,8 +21,8 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [uploadedBytes, setUploadedBytes] = useState(0);
   const [activeUploads, setActiveUploads] = useState<string[]>([]);
 
-  const startUpload = (uploadId: string, totalSize: number) => {
-    setActiveUploads((prev) => [...prev, uploadId]);
+  const startUpload = (uploadId: string, totalSize: number, fileCount: number) => {
+    setActiveUploads([uploadId]); // Single upload session
     setTotalSize(totalSize);
     setUploadedBytes(0);
     setIsUploading(true);

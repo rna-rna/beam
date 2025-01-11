@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { queryClient } from '@/lib/queryClient';
@@ -33,7 +32,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
     const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
     console.log('[Upload] Starting upload session:', { uploadId, totalSize });
 
-    startUpload(uploadId, totalSize);
+    startUpload(uploadId, totalSize, acceptedFiles.length);
 
     try {
       if (!acceptedFiles?.length) {
@@ -59,7 +58,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       }
 
       setIsUploading(true);
-      startUpload(uploadId, totalSize);
+      startUpload(uploadId, totalSize, acceptedFiles.length);
 
       // Request presigned URL
       const response = await fetch(`/api/galleries/${window.location.pathname.split('/').pop()}/images`, {
@@ -89,14 +88,14 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
         await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        
+
         fileProgress.set(index, 0);
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
             const currentFileProgress = event.loaded;
             const previousFileProgress = fileProgress.get(index) || 0;
             const incrementBytes = currentFileProgress - previousFileProgress;
-            
+
             fileProgress.set(index, currentFileProgress);
             totalUploadedBytes += incrementBytes;
             updateProgress(Math.min(totalUploadedBytes, totalSize));
@@ -105,7 +104,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
         xhr.open('PUT', signedUrl, true);
         xhr.setRequestHeader('Content-Type', file.type);
-        
+
         xhr.onload = () => {
           if (xhr.status === 200) {
             resolve(xhr.response);
@@ -113,7 +112,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
             reject(new Error(`Failed to upload ${file.name}`));
           }
         };
-        
+
         xhr.onerror = () => reject(new Error(`Network error uploading ${file.name}`));
         xhr.send(file);
       });
