@@ -1421,7 +1421,7 @@ const renderGalleryControls = useCallback(() => {
         <div 
           className="w-full bg-muted animate-pulse rounded-lg" 
           style={{ 
-            aspectRatio: image.width && image.height ? `${image.width} / ${image.height}` : '4/3',
+            aspectRatio: image.aspectRatio ? String(image.aspectRatio) : '4/3',
             minHeight: '200px'
           }}
         />

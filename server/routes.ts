@@ -885,7 +885,7 @@ export function registerRoutes(app: Express): Server {
         url: img.url || '',
         width: img.width || 800,
         height: img.height || 600,
-        aspectRatio: (img.width && img.height) ? img.width / img.height : 1.33,
+        aspectRatio: img.width && img.height ? img.width / img.height : 4/3,
         publicId: img.publicId,
         slug: gallery.slug,
         originalFilename: img.originalFilename || `image-${img.id}`,
