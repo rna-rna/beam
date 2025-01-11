@@ -1869,7 +1869,7 @@ const handleImageClick = (index: number) => {
           <meta property="og:image" content={gallery.ogImageUrl ? getR2ImageUrl(gallery.ogImage, slug) : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`} />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="630" />
-          <metaproperty="og:type" content="website" />
+          <meta property="og:type" content="website" />
           <meta property="og:url" content={window.location.href} />
           <meta name="twitter:card" content="summary_large_image" />
         </Helmet>
