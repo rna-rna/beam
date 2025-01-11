@@ -361,49 +361,31 @@ export function registerRoutes(app: Express): Server {
 
   // Add images to gallery (supports both guest and authenticated uploads)
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
-    const startTime = Date.now();
+    const { files } = req.body; // Array of file metadata (name, type, size)
+    const slug = req.params.slug;
+    const USE_MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB
+
     console.log('[Upload] Starting request:', {
-      slug: req.params.slug,
-      hasFiles: !!req.files,
-      fileCount: req.files?.length,
-      contentType: req.headers['content-type'],
-      userId: req.auth?.userId || 'guest',
-      timestamp: new Date().toISOString(),
-      files: req.files?.map(f => ({
-        originalname: f.originalname,
-        mimetype: f.mimetype,
-        size: f.size,
-        sizeInMB: (f.size / (1024 * 1024)).toFixed(2) + 'MB'
+      slug,
+      filesCount: files?.length,
+      files: files?.map((f: any) => ({
+        name: f.name,
+        type: f.type,
+        size: (f.size / (1024 * 1024)).toFixed(2) + 'MB'
       }))
     });
 
-    const { files } = req.body; // Expecting an array of file metadata (name, type, size)
-    const slug = req.params.slug;
-
     if (!files || !Array.isArray(files)) {
-      console.error('No valid files in request:', files);
       return res.status(400).json({ message: 'No images uploaded' });
     }
 
     try {
       const gallery = await db.query.galleries.findFirst({
-        where: eq(galleries.slug, req.params.slug)
+        where: eq(galleries.slug, slug)
       });
 
       if (!gallery) {
-        console.error('Gallery not found:', req.params.slug);
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND',
-        });
-      }
-
-      if (!files || !Array.isArray(files)) {
-        console.error('No valid files in request:', {
-          files: files,
-          isArray: Array.isArray(files)
-        });
-        return res.status(400).json({ message: 'No images uploaded' });
+        return res.status(404).json({ message: 'Gallery not found' });
       }
 
       // Allow uploads for guest galleries or authenticated owners
@@ -412,21 +394,58 @@ export function registerRoutes(app: Express): Server {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      if (!files || !Array.isArray(files)) {
-        return res.status(400).json({ message: 'No images uploaded' });
-      }
-      try {
-        const preSignedUrls = await Promise.all(
-          files.map(async (file: any) => {
-            const key = `uploads/${Date.now()}-${file.name}`;
+      // Generate pre-signed URLs
+      const preSignedUrls = await Promise.all(
+        files.map(async (file: any) => {
+          const isMultipart = file.size > USE_MULTIPART_THRESHOLD;
+          const timestamp = Date.now();
 
-            console.log(`[R2] Generating signed URL:`, {
-              filename: file.name,
-              key,
-              contentType: file.type,
-              size: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
+          if (isMultipart) {
+            const chunkCount = Math.ceil(file.size / USE_MULTIPART_THRESHOLD);
+            const chunkUrls = await Promise.all(
+              Array.from({ length: chunkCount }, async (_, index) => {
+                const chunkKey = `uploads/${timestamp}-${file.name}-chunk-${index}`;
+                const command = new PutObjectCommand({
+                  Bucket: R2_BUCKET_NAME,
+                  Key: chunkKey,
+                  ContentType: 'application/octet-stream',
+                  Metadata: {
+                    originalName: file.name,
+                    chunkIndex: index.toString(),
+                    totalChunks: chunkCount.toString(),
+                    uploadedAt: new Date().toISOString()
+                  }
+                });
+
+                const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+                const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${chunkKey}`;
+
+                return {
+                  fileName: file.name,
+                  key: chunkKey,
+                  signedUrl,
+                  publicUrl,
+                  chunkIndex: index,
+                  totalChunks: chunkCount
+                };
+              })
+            );
+
+            // Create placeholder image record for multipart upload
+            await db.insert(images).values({
+              galleryId: gallery.id,
+              url: `${process.env.VITE_R2_PUBLIC_URL}/uploads/${timestamp}-${file.name}`,
+              publicId: `uploads/${timestamp}-${file.name}`,
+              originalFilename: file.name,
+              width: 800,
+              height: 600,
+              createdAt: new Date()
             });
 
+            return chunkUrls;
+          } else {
+            // Single file upload
+            const key = `uploads/${timestamp}-${file.name}`;
             const command = new PutObjectCommand({
               Bucket: R2_BUCKET_NAME,
               Key: key,
@@ -440,47 +459,41 @@ export function registerRoutes(app: Express): Server {
             const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
             const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
 
-            // Create placeholder image record
+            // Create placeholder image record for single upload
             await db.insert(images).values({
               galleryId: gallery.id,
               url: publicUrl,
               publicId: key,
               originalFilename: file.name,
-              width: 800, // Placeholder values until metadata is updated
+              width: 800,
               height: 600,
               createdAt: new Date()
             });
 
-            return {
+            return [{
               fileName: file.name,
               key,
               signedUrl,
-              publicUrl,
-            };
-          })
-        );
+              publicUrl
+            }];
+          }
+        })
+      );
 
-        console.log('[Upload] Signed URLs generated:', {
-          slug: req.params.slug,
-          totalFiles: preSignedUrls.length,
-          timestamp: new Date().toISOString()
-        });
+      console.log('[Upload] Signed URLs generated:', {
+        slug,
+        totalUrls: preSignedUrls.flat().length,
+        timestamp: new Date().toISOString()
+      });
 
-        res.json({
-          success: true,
-          urls: preSignedUrls
-        });
-      } catch (error) {
-        console.error('Upload error:', error);
-        res.status(500).json({
-          message: 'Failed to generate signed URLs',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
+      res.json({
+        success: true,
+        urls: preSignedUrls.flat()
+      });
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('[Upload Error]:', error);
       res.status(500).json({
-        message: 'Failed to upload images',
+        message: 'Failed to generate signed URLs',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
