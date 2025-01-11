@@ -759,74 +759,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   });
 
-  const uploadMutation = useMutation({
-    mutationFn: async (files: File[]) => {
-      setIsUploading(true);
-
-      // Request presigned URLs
-      const response = await fetch(`/api/galleries/${slug}/images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          files: files.map(file => ({
-            name: file.name,
-            type: file.type,
-            size: file.size
-          }))
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get upload URLs');
-      }
-
-      const { urls } = await response.json();
-
-      // Upload directly to R2
-      await Promise.all(urls.map(async (urlData: any, index: number) => {
-        const file = files[index];
-        const { signedUrl } = urlData;
-
-        const uploadResponse = await fetch(signedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error(`Failed to upload ${file.name}`);
-        }
-      }));
-
-      return { success: true };
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      queryClient.refetchQueries({ queryKey: [`/api/galleries/${slug}`] });
-
-      // Trigger preloading immediately after upload
-      if (data?.images?.length) {
-        const lastIndex = data.images.length - 1;
-        preloadAdjacentImages(lastIndex);
-      }
-
-      setIsUploading(false);
-      //setUploadProgress({}); // Removed
-      toast({
-        title: "Success",
-        description: "Images uploaded successfully",
-      });
-    },
-    onError: (error: Error) => {
-      setIsUploading(false);
-      //setUploadProgress({}); // Removed
-      toast({
-        title: "Error",
-        description: `Failed to upload images: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
+  const handleUploadComplete = () => {
+    queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+    queryClient.refetchQueries({ queryKey: [`/api/galleries/${slug}`] });
+  };
 
   const createCommentMutation = useMutation({
     mutationFn: async ({
@@ -1755,11 +1691,9 @@ const renderGalleryControls = useCallback(() => {
           <SignedIn>
             <div className="absolute inset-0">
               <UploadDropzone 
-                onUpload={(files) => {
-                  if (!files.length) return;
-                  uploadMutation.mutate(files);
-                }}
+                onUpload={handleUploadComplete}
                 imageCount={gallery?.images?.length || 0}
+                gallerySlug={slug}
               />
             </div>
           </SignedIn>

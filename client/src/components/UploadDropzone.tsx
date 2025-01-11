@@ -9,11 +9,12 @@ import { Progress } from './ui/progress';
 import { useUpload } from '../context/UploadContext';
 
 interface Props {
-  onUpload: (files: File[]) => void;
+  onUpload: () => void;
   imageCount?: number;
+  gallerySlug: string;
 }
 
-export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
+export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }: Props) {
   const [isUploading, setIsUploading] = useState(false);
   const { startUpload, updateProgress, completeUpload, uploadProgress } = useUpload();
 
@@ -95,7 +96,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
         updateProgress(progress);
       }));
 
-      onUpload(acceptedFiles);
+      onUpload();
 
       const gallerySlug = window.location.pathname.split('/').pop();
       if (gallerySlug) {
