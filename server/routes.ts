@@ -1566,6 +1566,12 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/single-upload-url', async (req: any, res) => {
     const { fileName, contentType } = req.body;
 
+    console.log('Generating single upload URL:', {
+      fileName,
+      contentType,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       console.log('Environment Variables:', {
         VITE_R2_PUBLIC_URL: process.env.VITE_R2_PUBLIC_URL,
@@ -1634,6 +1640,12 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/multipart/start', async (req: any, res) => {
     const { fileName, contentType } = req.body;
 
+    console.log('Starting multipart upload:', {
+      fileName,
+      contentType,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       const upload = await r2Client.send(new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
@@ -1658,8 +1670,22 @@ export function registerRoutes(app: Express): Server {
     const file = req.file;
 
     if (!file) {
+      console.error('Chunk upload failed:', {
+        reason: 'No file received',
+        fileName,
+        chunkIndex,
+        timestamp: new Date().toISOString()
+      });
       return res.status(400).json({ error: 'No chunk uploaded' });
     }
+
+    console.log('Received chunk:', {
+      fileName,
+      chunkIndex,
+      size: file.size,
+      mimeType: file.mimetype,
+      timestamp: new Date().toISOString()
+    });
 
     try {
       const chunkPath = path.join(uploadsDir, 'chunks', `${fileName}-chunk-${chunkIndex}`);
@@ -1677,6 +1703,12 @@ export function registerRoutes(app: Express): Server {
 
   app.post('/api/multipart/complete', async (req: any, res) => {
     const { fileName, totalChunks } = req.body;
+
+    console.log('Completing multipart upload:', {
+      fileName,
+      totalChunks,
+      timestamp: new Date().toISOString()
+    });
 
     try {
       let finalBuffer = Buffer.alloc(0);
