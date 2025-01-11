@@ -395,7 +395,13 @@ export function registerRoutes(app: Express): Server {
 
   // Add images to gallery (supports both guest and authenticated uploads)
   // Track processed requests with Map for upload debouncing
-  const processedRequests = new Map<string, boolean>();
+  // Track processed requests with request details
+  interface ProcessedRequest {
+    timestamp: number;
+    fileHashes: string[];
+    status: 'processing' | 'completed' | 'failed';
+  }
+  const processedRequests = new Map<string, ProcessedRequest>();
   const DEBOUNCE_TIMEOUT = 60000; // 1 minute timeout
 
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
@@ -406,25 +412,49 @@ export function registerRoutes(app: Express): Server {
     
     const requestId = uploadId || `${slug}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Check for duplicate requests with improved logging
-    if (processedRequests.has(requestId)) {
-      console.warn('[Duplicate Upload Request]', {
-        requestId,
-        slug,
-        filesCount: files?.length,
-        timestamp: new Date().toISOString()
-      });
-      return res.status(429).json({
-        success: false,
-        message: 'Duplicate upload request detected',
-        requestId,
-        details: 'This upload request was already processed'
-      });
+    // Generate unique hash for files array to detect duplicates
+    const fileHashes = files?.map((f: any) => `${f.name}-${f.size}`);
+    const existingRequest = processedRequests.get(requestId);
+
+    // Check for duplicate requests with detailed validation
+    if (existingRequest) {
+      const isDuplicate = existingRequest.fileHashes.toString() === fileHashes?.toString();
+      const isRecent = (Date.now() - existingRequest.timestamp) < 5000; // 5 second window
+
+      if (isDuplicate && isRecent) {
+        console.warn('[Duplicate Upload Request]', {
+          requestId,
+          slug,
+          filesCount: files?.length,
+          timeSinceOriginal: Date.now() - existingRequest.timestamp,
+          status: existingRequest.status,
+          timestamp: new Date().toISOString()
+        });
+        return res.status(429).json({
+          success: false,
+          message: 'Duplicate upload request detected',
+          requestId,
+          details: 'This upload request was already processed',
+          status: existingRequest.status
+        });
+      }
     }
 
-    // Track this request with Map
-    processedRequests.set(requestId, true);
-    setTimeout(() => processedRequests.delete(requestId), DEBOUNCE_TIMEOUT);
+    // Track this request with detailed metadata
+    processedRequests.set(requestId, {
+      timestamp: Date.now(),
+      fileHashes: fileHashes || [],
+      status: 'processing'
+    });
+
+    // Cleanup after timeout
+    setTimeout(() => {
+      const request = processedRequests.get(requestId);
+      if (request?.status === 'processing') {
+        console.warn('[Upload Request Timeout]', { requestId });
+        processedRequests.delete(requestId);
+      }
+    }, DEBOUNCE_TIMEOUT);
 
     // Comprehensive request validation
     if (!files || !Array.isArray(files) || files.length === 0) {
@@ -651,12 +681,24 @@ export function registerRoutes(app: Express): Server {
           });
       }
 
+      // Update request status to completed
+      const request = processedRequests.get(requestId);
+      if (request) {
+        request.status = 'completed';
+      }
+
       res.json({
           success: true,
           urls: preSignedUrls.flat(),
           requestId: requestId
       });
     } catch (error) {
+        // Update request status to failed
+        const request = processedRequests.get(requestId);
+        if (request) {
+          request.status = 'failed';
+        }
+
         console.error('[Upload Error]:', {
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
