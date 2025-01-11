@@ -39,6 +39,31 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
     return chunks;
   };
 
+  const retryUploadChunk = async (chunk: Blob, index: number, fileName: string, maxRetries = 3) => {
+    let retries = maxRetries;
+    while (retries > 0) {
+      try {
+        const formData = new FormData();
+        formData.append('chunk', new Blob([chunk]));
+        formData.append('chunkIndex', index.toString());
+        formData.append('fileName', fileName);
+
+        const chunkRes = await fetch('/api/multipart/upload-chunk', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!chunkRes.ok) throw new Error(`HTTP error! status: ${chunkRes.status}`);
+        return await chunkRes.json();
+      } catch (error) {
+        console.error(`Chunk ${index} upload failed, retries left: ${retries - 1}`, error);
+        retries--;
+        if (retries === 0) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+      }
+    }
+  };
+
   const uploadFileMultipart = async (file: File) => {
     const chunks = createFileChunks(file);
     const fileName = file.name;
@@ -55,18 +80,9 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
       // Step 2: Upload Chunks
       const uploadedChunks = await Promise.all(
         chunks.map(async (chunk, index) => {
-          const formData = new FormData();
-          formData.append('chunk', new Blob([chunk]));
-          formData.append('chunkIndex', index.toString());
-          formData.append('fileName', fileName);
-
-          const chunkRes = await fetch('/api/multipart/upload-chunk', {
-            method: 'POST',
-            body: formData,
-          });
-          
+          const result = await retryUploadChunk(chunk, index, fileName);
           setUploadProgress(Math.round(((index + 1) / chunks.length) * 100));
-          return chunkRes.json();
+          return result;
         })
       );
 
