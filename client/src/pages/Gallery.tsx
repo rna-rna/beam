@@ -2411,4 +2411,3 @@ const handleImageClick = (index: number) => {
       <SignUpModal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)} />
     </div>
     </>
-  );
