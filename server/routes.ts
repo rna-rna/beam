@@ -143,7 +143,7 @@ export function registerRoutes(app: Express): Server {
       let ogImageUrl = null;
       if (files && files.length > 0) {
         try {
-          
+
           const imageUploads = await Promise.all(
             files.map(async (file) => {
               const fileName = `uploads/originals/${Date.now()}-${file.originalname}`;
@@ -403,7 +403,7 @@ export function registerRoutes(app: Express): Server {
     const { files, uploadId } = req.body;
     const slug = req.params.slug;
     const MAX_FILE_SIZE = 60 * 1024 * 1024; // 60MB
-    
+
     const requestId = uploadId || `${slug}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Generate unique hash for files array to detect duplicates

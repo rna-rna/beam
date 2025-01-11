@@ -15,6 +15,9 @@ export const R2_BUCKET_NAME = process.env.VITE_R2_BUCKET_NAME || "";
 
 export const getR2Url = (publicId: string) => {
   if (!publicId) return "/fallback-image.jpg";
+  if (!publicId.startsWith('uploads/originals/')) {
+    return `${import.meta.env.VITE_R2_PUBLIC_URL}/uploads/originals/${publicId}`;
+  }
   return `${import.meta.env.VITE_R2_PUBLIC_URL}/${publicId}`;
 };
 
