@@ -43,17 +43,21 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    console.log('[Upload] Drop event triggered:', {
-      isUploading,
-      hasCurrentUpload: !!currentUploadId,
-      filesCount: acceptedFiles?.length,
-      timestamp: new Date().toISOString()
-    });
-
-    // Block if already uploading or has current upload ID
-    if (isUploading || currentUploadId) {
-      console.log('[Upload] Skipping redundant upload.');
+    // Early validation of files
+    if (!acceptedFiles?.length) {
+      console.log('[Upload] No valid files to process');
       return;
+    }
+
+    // Prevent concurrent uploads
+    if (isUploading) {
+      console.log('[Upload] Upload already in progress');
+      return;
+    }
+
+    // Clear any stale upload ID
+    if (currentUploadId) {
+      setCurrentUploadId(null);
     }
 
     // Early validation of files array
@@ -141,8 +145,10 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       // Call the provided onUpload handler
       onUpload(acceptedFiles);
       
-      // Clear upload state
+      // Clean up all upload state
+      setIsUploading(false);
       setCurrentUploadId(null);
+      setUploadProgress(0);
       
       // Force invalidate and refresh gallery queries
       const gallerySlug = window.location.pathname.split('/').pop();
@@ -156,6 +162,9 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
           })
         ]);
       }
+
+      // Add delay before accepting new uploads
+      await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (error) {
       console.error('[Upload Error]:', error);
       toast({
