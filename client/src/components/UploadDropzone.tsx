@@ -90,9 +90,12 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         
+        let prevUploadedBytes = 0;
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
-            updateProgress(event.loaded);
+            const bytesUploaded = event.loaded - prevUploadedBytes;
+            prevUploadedBytes = event.loaded;
+            updateProgress(bytesUploaded);
           }
         };
 
