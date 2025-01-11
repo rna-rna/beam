@@ -394,13 +394,35 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Add images to gallery (supports both guest and authenticated uploads)
+  // Track processed requests
+  const processedRequests = new Set<string>();
+  const DEBOUNCE_TIMEOUT = 30000; // 30 seconds
+
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
     const { files } = req.body;
     const slug = req.params.slug;
     const USE_MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     
-    const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const requestId = `${slug}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Check for duplicate requests
+    if (processedRequests.has(requestId)) {
+      console.warn('[Duplicate Request]', {
+        requestId,
+        slug,
+        timestamp: new Date().toISOString()
+      });
+      return res.status(429).json({
+        success: false,
+        message: 'Duplicate request detected',
+        requestId
+      });
+    }
+
+    // Track this request
+    processedRequests.add(requestId);
+    setTimeout(() => processedRequests.delete(requestId), DEBOUNCE_TIMEOUT);
 
     // Comprehensive request validation
     if (!files || !Array.isArray(files) || files.length === 0) {
