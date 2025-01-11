@@ -65,42 +65,59 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
 
   const uploadFileMultipart = async (file: File) => {
     const chunks = createFileChunks(file);
-    console.log(`[Multipart] Created ${chunks.length} chunks for "${file.name}"`);
+    const fileName = file.name;
+
+    console.log(`[Multipart] Created ${chunks.length} chunks for "${fileName}"`);
 
     try {
-      // Start multipart upload
-      const startRes = await fetch('/api/multipart/start', {
+      // Step 1: Request pre-signed URLs for each chunk
+      const startRes = await fetch(`/api/galleries/${gallerySlug}/images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: file.name, contentType: file.type })
+        body: JSON.stringify({
+          files: chunks.map((_, index) => ({
+            name: `${fileName}-chunk-${index}`,
+            type: 'application/octet-stream',
+          })),
+        }),
       });
-      const { uploadId } = await startRes.json();
-      console.log(`[Multipart] Started upload ID: ${uploadId} for "${file.name}"`);
 
-      // Upload chunks
-      for (let i = 0; i < chunks.length; i++) {
-        console.log(`[Multipart] Uploading chunk ${i + 1}/${chunks.length} for "${file.name}"`);
-        const formData = new FormData();
-        formData.append('chunk', chunks[i]);
-        formData.append('chunkIndex', i.toString());
-        formData.append('fileName', file.name);
-
-        const chunkRes = await fetch('/api/multipart/upload-chunk', {
-          method: 'POST',
-          body: formData
-        });
-
-        if (!chunkRes.ok) {
-          throw new Error(`Chunk ${i} upload failed: ${chunkRes.statusText}`);
-        }
-
-        console.log(`[Multipart] Completed chunk ${i + 1}/${chunks.length} for "${file.name}"`);
-        setUploadProgress(Math.round(((i + 1) / chunks.length) * 100));
+      if (!startRes.ok) {
+        throw new Error('Failed to get signed URLs for chunks');
       }
 
+      const { urls } = await startRes.json();
+      console.log(`[Multipart] Received ${urls.length} signed URLs for chunks`);
+
+      // Step 2: Upload chunks to R2
+      let completedChunks = 0;
+      await Promise.all(
+        chunks.map(async (chunk, index) => {
+          try {
+            const { signedUrl } = urls[index];
+            const chunkRes = await fetch(signedUrl, {
+              method: 'PUT',
+              body: chunk,
+            });
+
+            if (!chunkRes.ok) {
+              throw new Error(`Chunk ${index} upload failed: ${chunkRes.statusText}`);
+            }
+
+            completedChunks++;
+            setUploadProgress(Math.round((completedChunks / chunks.length) * 100));
+            console.log(`[Multipart] Chunk ${index + 1}/${chunks.length} uploaded successfully`);
+          } catch (error) {
+            console.error(`[Multipart] Chunk ${index} upload failed:`, error);
+            throw error;
+          }
+        })
+      );
+
+      console.log(`[Multipart] All chunks uploaded successfully for "${fileName}"`);
       return true;
     } catch (error) {
-      console.error(`[Multipart] Upload failed for "${file.name}":`, error);
+      console.error(`[Multipart] Upload failed for "${fileName}":`, error);
       throw error;
     }
   };
