@@ -1429,11 +1429,12 @@ const renderGalleryControls = useCallback(() => {
     >
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
-        className={`mb-4 image-container relative ${
-          !isMasonry ? 'aspect-[4/3]' : ''
-        } transform transition-all duration-200 ease-out ${
-          isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
-        }`}
+        className={cn(
+          "mb-4 image-container relative transform transition-all duration-200 ease-out",
+          !isMasonry && "aspect-[4/3]",
+          isReorderMode && "cursor-grab active:cursor-grabbing",
+          "block overflow-hidden"
+        )}
       initial={{ opacity: 0, y: 20}}      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
@@ -1477,9 +1478,11 @@ const renderGalleryControls = useCallback(() => {
               src={image.displayUrl}
               data-src={image.displayUrl}
               alt={image.originalFilename || 'Uploaded image'}
-              className={`w-full h-auto object-cover rounded-lg blur-up ${
-                selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
-              } ${draggedItemIndex === index ? 'opacity-50' : ''}`}
+              className={cn(
+                "w-full h-full object-cover rounded-lg blur-up block",
+                selectMode && selectedImages.includes(image.id) && "opacity-75",
+                draggedItemIndex === index && "opacity-50"
+              )}
               loading="lazy"
               onLoad={(e) => {
                 const img = e.currentTarget;
