@@ -1928,27 +1928,20 @@ const handleImageClick = (index: number) => {
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
                 {renderUploadPlaceholders()}
-                {useMemo(() => {
-                  const [debouncedImages, setDebouncedImages] = useState(gallery?.images || []);
+                {(() => {
+                  // Filter images based on current criteria
+                  const filteredImages = gallery?.images?.filter((image: Image) => {
+                    if (!image || !image.url || !image.id) return false;
+                    if (showStarredOnly && !image.starred) return false;
+                    if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                    if (selectedStarredUsers.length > 0) {
+                      return image.stars?.some(star => selectedStarredUsers.includes(star.userId)) || false;
+                    }
+                    return true;
+                  }) || [];
 
-                  useEffect(() => {
-                    const timer = setTimeout(() => {
-                      const validImages = gallery?.images?.filter((image: Image) => {
-                        if (!image || !image.url || !image.id) return false;
-                        if (showStarredOnly && !image.starred) return false;
-                        if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
-                        if (selectedStarredUsers.length > 0) {
-                          return image.stars?.some(star => selectedStarredUsers.includes(star.userId)) || false;
-                        }
-                        return true;
-                      }) || [];
-                      setDebouncedImages(validImages);
-                    }, 300);
-                    return () => clearTimeout(timer);
-                  }, [gallery?.images, showStarredOnly, showWithComments, selectedStarredUsers]);
-                  
-                  return debouncedImages.map((image: Image, index: number) => renderImage(image, index));
-                }, [gallery?.images, showStarredOnly, showWithComments, selectedStarredUsers, renderImage])}
+                  return filteredImages.map((image: Image, index: number) => renderImage(image, index));
+                })()}
               </Masonry>
             </motion.div>
           ) : (
