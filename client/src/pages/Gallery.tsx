@@ -2412,4 +2412,3 @@ const handleImageClick = (index: number) => {
     </div>
     </>
   );
-}
