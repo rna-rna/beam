@@ -402,7 +402,6 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
     const { files, uploadId } = req.body;
     const slug = req.params.slug;
-    const USE_MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     
     const requestId = uploadId || `${slug}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -569,57 +568,11 @@ export function registerRoutes(app: Express): Server {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      // Generate pre-signed URLs
+      // Generate pre-signed URL for direct upload
       const preSignedUrls = await Promise.all(
         files.map(async (file: any) => {
-          const isMultipart = file.size > USE_MULTIPART_THRESHOLD;
           const timestamp = Date.now();
-
-          if (isMultipart) {
-            const chunkCount = Math.ceil(file.size / USE_MULTIPART_THRESHOLD);
-            const chunkUrls = await Promise.all(
-              Array.from({ length: chunkCount }, async (_, index) => {
-                const chunkKey = `uploads/${timestamp}-${file.name}-chunk-${index}`;
-                const command = new PutObjectCommand({
-                  Bucket: R2_BUCKET_NAME,
-                  Key: chunkKey,
-                  ContentType: 'application/octet-stream',
-                  Metadata: {
-                    originalName: file.name,
-                    chunkIndex: index.toString(),
-                    totalChunks: chunkCount.toString(),
-                    uploadedAt: new Date().toISOString()
-                  }
-                });
-
-                const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
-                const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${chunkKey}`;
-
-                return {
-                  fileName: file.name,
-                  key: chunkKey,
-                  signedUrl,
-                  publicUrl,
-                  chunkIndex: index,
-                  totalChunks: chunkCount
-                };
-              })
-            );
-
-            // Create placeholder image record for multipart upload
-            await db.insert(images).values({
-              galleryId: gallery.id,
-              url: `${process.env.VITE_R2_PUBLIC_URL}/uploads/${timestamp}-${file.name}`,
-              publicId: `uploads/${timestamp}-${file.name}`,
-              originalFilename: file.name,
-              width: 800,
-              height: 600,
-              createdAt: new Date()
-            });
-
-            return chunkUrls;
-          } else {
-            // Single file upload
+          // Single file upload
             const key = `uploads/${timestamp}-${file.name}`;
             const command = new PutObjectCommand({
               Bucket: R2_BUCKET_NAME,
