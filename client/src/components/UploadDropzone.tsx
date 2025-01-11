@@ -131,9 +131,8 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
           console.log(`[Upload] Successfully uploaded: ${file.name}`);
         }));
 
-        const progress = ((i + 1) / acceptedFiles.length) * 100;
-        updateProgress(progress);
-        console.log(`[Upload] Successfully uploaded: ${file.name}`);
+        // Progress is already calculated in the batch map above
+        console.log(`[Upload] Batch upload complete`);
       }
 
       toast({
