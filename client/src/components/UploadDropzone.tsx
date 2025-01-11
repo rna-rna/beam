@@ -43,13 +43,28 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    console.log('[Upload] Drop event triggered:', {
+      isUploading,
+      hasCurrentUpload: !!currentUploadId,
+      filesCount: acceptedFiles?.length,
+      timestamp: new Date().toISOString()
+    });
+
+    // Block if already uploading or has current upload ID
     if (isUploading || currentUploadId) {
-      console.log('[Upload] Skipping upload: another upload is in progress.');
+      console.log('[Upload] Skipping redundant upload.');
+      return;
+    }
+
+    // Early validation of files array
+    if (!acceptedFiles?.length) {
+      console.log('[Upload] No valid files to process');
       return;
     }
 
     // Generate a unique ID for this upload session
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log('[Upload] Starting new upload session:', { uploadId });
 
     try {
       if (!acceptedFiles?.length) {
@@ -142,10 +157,16 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
         description: error instanceof Error ? error.message : 'Upload failed. Please try again.',
         variant: 'destructive',
       });
-      setCurrentUploadId(null); //Added to handle case where upload fails
+      
+      // Clean up failed upload state
+      console.log('[Upload] Cleaning up failed upload state:', { uploadId });
+      setCurrentUploadId(null);
     } finally {
+      console.log('[Upload] Resetting upload state');
       setIsUploading(false);
       setUploadProgress(0);
+      // Add a small delay before allowing new uploads
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }, [onUpload, isUploading, currentUploadId]);
 
