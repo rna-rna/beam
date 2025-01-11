@@ -14,7 +14,7 @@ interface Props {
 
 export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
   const [isUploading, setIsUploading] = useState(false);
-  const { startUpload, updateProgress, completeUpload } = useUpload();
+  const { startUpload, updateProgress, completeUpload, uploadProgress } = useUpload();
 
   const requestSignedUrls = async (files: File[], uploadId: string) => {
     if (!files.length) {
