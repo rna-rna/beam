@@ -1420,8 +1420,10 @@ const renderGalleryControls = useCallback(() => {
       placeholder={
         <div 
           className="w-full bg-muted animate-pulse rounded-lg" 
-          style={{ 
-            aspectRatio: image.aspectRatio ? String(image.aspectRatio) : '4/3',
+          style={{
+            aspectRatio: image.width && image.height 
+              ? `${image.width} / ${image.height}` 
+              : '4/3',
             minHeight: '200px'
           }}
         />
@@ -1431,10 +1433,14 @@ const renderGalleryControls = useCallback(() => {
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
           "mb-4 image-container relative transform transition-all duration-200 ease-out",
-          !isMasonry && "aspect-[4/3]",
           isReorderMode && "cursor-grab active:cursor-grabbing",
           "block overflow-hidden"
         )}
+        style={{
+          aspectRatio: image.width && image.height 
+            ? `${image.width} / ${image.height}` 
+            : '4/3'
+        }}
       initial={{ opacity: 0, y: 20}}      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
