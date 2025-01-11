@@ -41,7 +41,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (isUploading) {
-      console.log('Upload already in progress, skipping');
+      console.log('[Upload] Upload already in progress, skipping.');
       return;
     }
 
@@ -78,55 +78,57 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       console.log('[Upload] Starting upload attempt:', {
         files: acceptedFiles.map(f => ({
           name: f.name,
-          size: Math.round(f.size / 1024) + 'KB',
-          type: f.type
+          size: `${Math.round(f.size / 1024)}KB`,
+          type: f.type,
         })),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       if (!urls || !Array.isArray(urls)) {
-        console.error('[Upload Error] Invalid URLs response:', {
-          urls,
-          timestamp: new Date().toISOString()
-        });
-        throw new Error('Invalid response: Missing upload URLs');
+        throw new Error('Failed to get upload URLs from server');
       }
 
-      // Track retry attempts
-      const maxRetries = 3;
-      const uploadWithRetry = async (file: File, url: string, attempt = 1) => {
-        try {
-          console.log(`[Upload] Attempt ${attempt} for file: ${file.name}`);
-          const response = await fetch(url, {
+      // Upload files without retries
+      await Promise.all(
+        acceptedFiles.map(async (file, index) => {
+          const { signedUrl } = urls[index];
+          if (!signedUrl) {
+            throw new Error(`Missing upload URL for file: ${file.name}`);
+          }
+
+          const response = await fetch(signedUrl, {
             method: 'PUT',
             headers: { 'Content-Type': file.type },
-            body: file
+            body: file,
           });
 
           if (!response.ok) {
-            throw new Error(`Upload failed with status ${response.status}`);
+            throw new Error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
           }
 
-          console.log(`[Upload] Success for file: ${file.name}`, {
-            attempt,
-            status: response.status,
-            timestamp: new Date().toISOString()
-          });
+          console.log(`[Upload] Successfully uploaded: ${file.name}`);
+          setUploadProgress(((index + 1) / acceptedFiles.length) * 100);
+        })
+      );
 
-          return response;
-        } catch (error) {
-          console.warn(`[Upload] Failed attempt ${attempt} for file: ${file.name}`, {
-            error: error instanceof Error ? error.message : 'Unknown error',
-            timestamp: new Date().toISOString()
-          });
+      toast({
+        title: 'Upload complete',
+        description: 'All files were successfully uploaded.',
+      });
 
-          if (attempt < maxRetries) {
-            console.log(`[Upload] Retrying file: ${file.name} (Attempt ${attempt + 1}/${maxRetries})`);
-            return uploadWithRetry(file, url, attempt + 1);
-          }
-          throw error;
-        }
-      };
+      onUpload(acceptedFiles);
+    } catch (error) {
+      console.error('[Upload Error]:', error);
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Upload failed. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  }, [onUpload, isUploading]);
 
 
       // Upload files directly to R2 with individual error handling
