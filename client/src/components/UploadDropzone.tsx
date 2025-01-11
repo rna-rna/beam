@@ -83,17 +83,29 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         const file = acceptedFiles[index];
         const { signedUrl, publicUrl } = urlData;
 
-        const uploadResponse = await fetch(signedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file
-        });
+        await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            updateProgress(event.loaded);
+          }
+        };
 
-        if (!uploadResponse.ok) {
-          throw new Error(`Failed to upload ${file.name}`);
-        }
-
-        updateProgress(file.size);
+        xhr.open('PUT', signedUrl, true);
+        xhr.setRequestHeader('Content-Type', file.type);
+        
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            resolve(xhr.response);
+          } else {
+            reject(new Error(`Failed to upload ${file.name}`));
+          }
+        };
+        
+        xhr.onerror = () => reject(new Error(`Network error uploading ${file.name}`));
+        xhr.send(file);
+      });
       }
 
       onUpload();
