@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
 const GlobalUploadProgress = () => {
-  const { isUploading, uploadProgress, activeUploads, totalSize, uploadedBytes } = useUpload();
+  const { isUploading, uploadProgress, activeUploads, totalSize, uploadedBytes, fileCount } = useUpload();
 
   if (!isUploading) return null;
 
