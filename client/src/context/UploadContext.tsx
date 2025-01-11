@@ -29,12 +29,8 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProgress = (bytes: number) => {
-    setUploadedBytes((prev) => {
-      const newUploadedBytes = prev + bytes;
-      const calculatedProgress = (newUploadedBytes / totalSize) * 100;
-      setUploadProgress(calculatedProgress);
-      return newUploadedBytes;
-    });
+    setUploadedBytes(bytes);
+    setUploadProgress((bytes / totalSize) * 100);
   };
 
   const completeUpload = (uploadId: string) => {
