@@ -330,7 +330,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [mobileViewIndex, setMobileViewIndex] = useState(-1);
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
+  //const [uploadProgress, setUploadProgress] = useState<UploadProgress>({}); //Removed
   const [isMasonry, setIsMasonry] = useState(true);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
@@ -460,7 +460,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         slug: data?.slug,
         isPublic: data?.isPublic
       });
-      
+
       console.log('Image Details:', data?.images?.map(image => ({
         id: image.id,
         originalFilename: image.originalFilename,
@@ -549,7 +549,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         const missingFields = data.images.some((img: any) => 
           !img.originalFilename || !img.url || !img.id
         );
-        
+
         if (missingFields) {
           console.error('Invalid image data detected:', 
             data.images.filter((img: any) => 
@@ -769,7 +769,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         formData.append("images", file);
         progressMap[file.name] = 0;
       });
-      setUploadProgress(progressMap);
+      //setUploadProgress(progressMap); // Removed
 
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -777,13 +777,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
             const progress = (event.loaded / event.total) * 100;
-            setUploadProgress(prev => {
-              const newProgress = { ...prev };
-              Object.keys(newProgress).forEach(key => {
-                newProgress[key] = progress;
-              });
-              return newProgress;
-            });
+            //setUploadProgress(prev => { //Removed
+            //  const newProgress = { ...prev };
+            //  Object.keys(newProgress).forEach(key => {
+            //    newProgress[key] = progress;
+            //  });
+            //  return newProgress;
+            //});
+            console.log("Upload progress:", progress); //Added for debugging
           }
         };
 
@@ -820,7 +821,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       }
 
       setIsUploading(false);
-      setUploadProgress({});
+      //setUploadProgress({}); // Removed
       toast({
         title: "Success",
         description: "Images uploaded successfully",
@@ -828,7 +829,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     },
     onError: (error: Error) => {
       setIsUploading(false);
-      setUploadProgress({});
+      //setUploadProgress({}); // Removed
       toast({
         title: "Error",
         description: `Failed to upload images: ${error.message}`,
@@ -951,27 +952,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   });
 
   // Add upload progress placeholders to the masonry grid
-  const renderUploadPlaceholders = () => {
-    if (!Object.keys(uploadProgress).length) return null;
-
-    return Object.entries(uploadProgress).map(([filename, progress]) => (
-      <motion.div
-        key={filename}
-        initial={{ opacity: 0.5, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.3 }}
-        className="mb-4 bg-zinc-900 rounded-lg overflow-hidden relative"
-      >
-        <div className="w-full aspect-[4/3] flex items-center justify-center">
-          <span className="text-sm font-geist-mono font-medium text-zinc-500/80">{filename}</span>
-        </div>
-        <div className="absolute inset-0 flex flex-col justify-end">
-          <Progress value={progress} className="h-1" />
-        </div>
-      </motion.div>
-    ));
-  };
+  //Removed renderUploadPlaceholders function
 
   // Memoized Values
   const breakpointCols = useMemo(
@@ -1933,7 +1914,7 @@ const handleImageClick = (index: number) => {
                 className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
-                {renderUploadPlaceholders()}
+                {/*Removed renderUploadPlaceholders()*/}
                 {(() => {
                   // Filter images based on current criteria
                   const filteredImages = gallery?.images?.filter((image: Image) => {
@@ -1962,7 +1943,7 @@ const handleImageClick = (index: number) => {
                 gridTemplateColumns: `repeat(${breakpointCols.default}, minmax(0, 1fr))`,
               }}
             >
-              {renderUploadPlaceholders()}
+              {/*Removed renderUploadPlaceholders()*/}
               {gallery?.images
                 .filter((image: Image) => {
                   if (showStarredOnly && !image.starred) return false;
