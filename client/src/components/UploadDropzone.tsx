@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { queryClient } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import { Button } from './ui/button';
 import { Loader2, Upload } from 'lucide-react';
@@ -131,9 +132,8 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       // Force invalidate gallery queries to trigger a fresh fetch
       const gallerySlug = window.location.pathname.split('/').pop();
       if (gallerySlug) {
-        const queryClient = new QueryClient();
-        await queryClient.invalidateQueries([`/api/galleries/${gallerySlug}`]);
-        await queryClient.refetchQueries([`/api/galleries/${gallerySlug}`]);
+        await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+        await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
       }
     } catch (error) {
       console.error('[Upload Error]:', error);
