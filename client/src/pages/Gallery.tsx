@@ -128,33 +128,20 @@ interface ImageDimensions {
 import { Helmet } from 'react-helmet';
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
-  const getR2ImageUrl = (image: Image | null | undefined, slug?: string) => {
-    if (!image) {
-      console.error('Image object is null or undefined:', {
-        image,
-        stack: new Error().stack 
-      });
+  const getR2ImageUrl = useCallback((image: Image | null | undefined) => {
+    if (!image?.url) {
       return '/fallback-image.jpg';
     }
-
-    if (!image.url) {
-      console.warn('Missing URL in image object:', {
-        imageId: image.id,
-        publicId: image.publicId,
-        originalFilename: image.originalFilename
-      });
-      return '/fallback-image.jpg';
-    }
-
-    console.debug('Generating R2 URL:', {
-      imageId: image.id,
-      url: image.url,
-      publicId: image.publicId,
-      slug
-    });
-
     return image.url;
-  };
+  }, []);
+
+  const processedImages = useMemo(() => {
+    return gallery?.images?.filter(image => image && image.url).map(image => ({
+      ...image,
+      displayUrl: getR2ImageUrl(image),
+      aspectRatio: (image.width && image.height) ? image.width / image.height : 1.33,
+    }));
+  }, [gallery?.images, getR2ImageUrl]);
   // URL Parameters and Global Hooks
   const params = useParams();
   const slug = propSlug || params?.slug;
@@ -1474,8 +1461,8 @@ const renderGalleryControls = useCallback(() => {
         {preloadedImages.has(image.id) && (
           <>
             <img
-              src={getR2ImageUrl(image, slug)}
-              data-src={getR2ImageUrl(image)}
+              src={image.displayUrl}
+              data-src={image.displayUrl}
               alt={image.originalFilename || 'Uploaded image'}
               className={`w-full h-auto object-cover rounded-lg blur-up ${
                 selectMode && selectedImages.includes(image.id) ? 'opacity-75' : ''
