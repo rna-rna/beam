@@ -48,6 +48,11 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       return;
     }
 
+    if (isUploading) {
+      console.log('[Upload] Upload already in progress, skipping');
+      return;
+    }
+
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     console.log('[Upload] Starting new upload session:', { uploadId });
 
