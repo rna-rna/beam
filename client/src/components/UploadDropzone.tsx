@@ -16,7 +16,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
   const [isUploading, setIsUploading] = useState(false);
   const { startUpload, updateProgress, completeUpload, uploadProgress } = useUpload();
 
-  const requestSignedUrls = async (files: File[], uploadId: string) => {
+  const requestSignedUrls = async (files: File[]) => {
     if (!files.length) {
       throw new Error('No files provided for upload');
     }
@@ -25,7 +25,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        uploadId,
         files: files.map((file) => ({
           name: file.name,
           type: file.type,
@@ -53,23 +52,8 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       return;
     }
 
-    // Generate a unique upload ID
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const uploadKey = acceptedFiles.map(f => `${f.name}-${f.size}`).join('|');
-    
-    // Check for duplicate upload in last 5 seconds
-    const lastUploadTime = (window as any).lastUploadAttempt || 0;
-    const lastUploadKey = (window as any).lastUploadKey || '';
-    
-    if (Date.now() - lastUploadTime < 5000 && uploadKey === lastUploadKey) {
-      console.log('[Upload] Duplicate upload detected, skipping');
-      return;
-    }
-
-    (window as any).lastUploadAttempt = Date.now();
-    (window as any).lastUploadKey = uploadKey;
-
-    console.log('[Upload] Starting new upload session:', { uploadId });
+    console.log('[Upload] Starting upload session:', { uploadId });
 
     try {
       if (!acceptedFiles?.length) {
@@ -97,43 +81,29 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       setIsUploading(true);
       startUpload(uploadId);
 
-      // Keep track of files still being processed
-      const pendingFiles = [...acceptedFiles];
-      
-      while (pendingFiles.length > 0) {
-        const batch = pendingFiles.splice(0, 3); // Process 3 files at a time
-        
-        const { urls } = await requestSignedUrls(batch, uploadId);
+      const { urls } = await requestSignedUrls(acceptedFiles);
 
-        if (!urls || !Array.isArray(urls)) {
-          throw new Error('Failed to get upload URLs from server');
+      if (!urls || !Array.isArray(urls)) {
+        throw new Error('Failed to get upload URLs from server');
+      }
+
+      // Upload files directly to R2
+      await Promise.all(acceptedFiles.map(async (file, index) => {
+        const { signedUrl, publicUrl } = urls[index];
+
+        const response = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
         }
 
-        await Promise.all(batch.map(async (file, i) => {
-          const { signedUrl } = urls[i];
-          
-          if (!signedUrl) {
-            throw new Error(`Missing upload URL for file: ${file.name}`);
-          }
-
-          const response = await fetch(signedUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': file.type },
-            body: file,
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
-          }
-
-          const progress = ((acceptedFiles.length - pendingFiles.length + i + 1) / acceptedFiles.length) * 100;
-          updateProgress(progress);
-          console.log(`[Upload] Successfully uploaded: ${file.name}`);
-        }));
-
-        // Progress is already calculated in the batch map above
-        console.log(`[Upload] Batch upload complete`);
-      }
+        const progress = ((index + 1) / acceptedFiles.length) * 100;
+        updateProgress(progress);
+      }));
 
       toast({
         title: 'Upload complete',
@@ -144,17 +114,9 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
 
       const gallerySlug = window.location.pathname.split('/').pop();
       if (gallerySlug) {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] }),
-          queryClient.invalidateQueries({ queryKey: ['/api/galleries'] }),
-          queryClient.refetchQueries({ 
-            queryKey: [`/api/galleries/${gallerySlug}`],
-            type: 'active'
-          })
-        ]);
+        await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+        await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
       }
-
-      completeUpload(uploadId);
     } catch (error) {
       console.error('[Upload Error]:', error);
       toast({
@@ -162,10 +124,9 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
         description: error instanceof Error ? error.message : 'Upload failed. Please try again.',
         variant: 'destructive',
       });
-      completeUpload(uploadId);
     } finally {
       setIsUploading(false);
-      (window as any).lastUploadAttempt = 0;
+      completeUpload(uploadId);
     }
   }, [onUpload, startUpload, updateProgress, completeUpload]);
 
