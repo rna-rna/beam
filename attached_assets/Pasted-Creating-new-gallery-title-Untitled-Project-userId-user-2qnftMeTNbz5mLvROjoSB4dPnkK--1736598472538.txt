@@ -1,0 +1,263 @@
+Creating new gallery: {
+  title: 'Untitled Project',
+  userId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  guestUpload: false,
+  fileCount: 0
+}
+12:27:16 PM [express] GET /api/galleries 200 in 1028ms :: [{"id":2274,"slug":"Mt-THgnI3x","title":"Un…
+Gallery created, waiting for propagation...
+Gallery available after: 1 attempts
+Created gallery: {
+  id: 2275,
+  slug: 'DHsnySqmQ_',
+  title: 'Untitled Project',
+  userId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  isPublic: false,
+  guestUpload: false,
+  createdAt: 2025-01-11T12:27:16.347Z,
+  ogImageUrl: null
+}
+12:27:16 PM [express] POST /api/galleries/create 200 in 124ms :: {"id":2275,"slug":"DHsnySqmQ_","titl…
+Gallery fetch request: {
+  slug: 'DHsnySqmQ_',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2275,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: { count: 0, sampleImage: null, missingFilenames: 0 }
+Processed Images: { total: 0, withFilenames: 0, sample: undefined }
+12:27:17 PM [express] GET /api/galleries/DHsnySqmQ_ 200 in 64ms :: {"id":2275,"slug":"DHsnySqmQ_","ti…
+Pusher Auth Request: {
+  socketId: '205209.406347',
+  channel: 'presence-gallery-DHsnySqmQ_',
+  hasUser: true,
+  sessionId: 'sess_2rTYnchY1VAnJTBFVBpT5rmiy0O'
+}
+Debug - Extracting user info: {
+  hasAuth: true,
+  hasUser: false,
+  userId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  session: false,
+  headers: 'missing'
+}
+Gallery fetch request: {
+  slug: 'DHsnySqmQ_',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2275,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: { count: 0, sampleImage: null, missingFilenames: 0 }
+Processed Images: { total: 0, withFilenames: 0, sample: undefined }
+12:27:17 PM [express] GET /api/galleries/DHsnySqmQ_ 200 in 62ms :: {"id":2275,"slug":"DHsnySqmQ_","ti…
+Debug - Retrieved user from Clerk: { userId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK', hasUser: true }
+Debug - User object: {
+  userId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasUser: true,
+  userFields: [
+    'id',
+    'passwordEnabled',
+    'totpEnabled',
+    'backupCodeEnabled',
+    'twoFactorEnabled',
+    'banned',
+    'locked',
+    'createdAt',
+    'updatedAt',
+    'imageUrl',
+    'hasImage',
+    'primaryEmailAddressId',
+    'primaryPhoneNumberId',
+    'primaryWeb3WalletId',
+    'lastSignInAt',
+    'externalId',
+    'username',
+    'firstName',
+    'lastName',
+    'publicMetadata',
+    'privateMetadata',
+    'unsafeMetadata',
+    'emailAddresses',
+    'phoneNumbers',
+    'web3Wallets',
+    'externalAccounts',
+    'samlAccounts',
+    'lastActiveAt',
+    'createOrganizationEnabled',
+    'createOrganizationsLimit',
+    'deleteSelfEnabled',
+    'legalAcceptedAt'
+  ]
+}
+Debug - Extracted user info: {
+  userId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  userName: 'Luke Georgeson',
+  hasImage: true,
+  imageUrl: 'https://img.clerk.com/eyJ0eXBlIjoiZGVmYXVsdCIsImlpZCI6Imluc18ycW5lYTJDWEhIQlhlUTJ2TXkxQjVaWVR5dlIiLCJyaWQiOiJ1c2VyXzJxbmZ0TWVUTmJ6NW1MdlJPam9TQjRkUG5rSyIsImluaXRpYWxzIjoiTEcifQ'
+}
+Auth Response Generated: {
+  userId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  channel: 'presence-gallery-DHsnySqmQ_',
+  timestamp: '2025-01-11T12:27:17.581Z'
+}
+12:27:17 PM [express] GET /api/galleries/DHsnySqmQ_/permissions 200 in 212ms :: {"success":true,"user…
+12:27:17 PM [express] GET /api/galleries/DHsnySqmQ_/permissions 304 in 139ms :: {"success":true,"user…
+[Upload Request] {
+  requestId: '1736598441791-vk6jvk0br',
+  slug: 'DHsnySqmQ_',
+  filesCount: 1,
+  auth: 'authenticated',
+  timestamp: '2025-01-11T12:27:22.086Z'
+}
+[Upload] Starting request: {
+  slug: 'DHsnySqmQ_',
+  filesCount: 1,
+  files: [ { name: '6-3.jpg', type: 'image/jpeg', size: '6.28MB' } ]
+}
+[Upload] Signed URLs generated: {
+  slug: 'DHsnySqmQ_',
+  totalUrls: 2,
+  timestamp: '2025-01-11T12:27:22.168Z'
+}
+12:27:22 PM [express] POST /api/galleries/DHsnySqmQ_/images 200 in 84ms :: {"success":true,"urls":[{"…
+Gallery fetch request: {
+  slug: 'DHsnySqmQ_',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+[Invalid Upload Request] {
+  requestId: 'DHsnySqmQ_-1736598447350-57kklxkrq',
+  reason: 'Missing or invalid files array',
+  body: {},
+  timestamp: '2025-01-11T12:27:27.350Z'
+}
+12:27:27 PM [express] POST /api/galleries/DHsnySqmQ_/images 400 in 5ms :: {"success":false,"message":…
+Gallery fetch request: {
+  slug: 'DHsnySqmQ_',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2275,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2275,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 861,
+    originalFilename: '6-3.jpg',
+    hasOriginalFilename: true,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736598442118-6-3.jpg'
+  },
+  missingFilenames: 0
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 861,
+    originalFilename: '6-3.jpg',
+    hasOriginalFilename: true,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736598442118-6-3.jpg'
+  },
+  missingFilenames: 0
+}
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 861,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736598442118-6-3.jpg',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/1736598442118-6-3.jpg',
+    slug: 'DHsnySqmQ_',
+    originalFilename: '6-3.jpg',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+12:27:27 PM [express] GET /api/galleries/DHsnySqmQ_ 200 in 93ms :: {"id":2275,"slug":"DHsnySqmQ_","ti…
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 861,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736598442118-6-3.jpg',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/1736598442118-6-3.jpg',
+    slug: 'DHsnySqmQ_',
+    originalFilename: '6-3.jpg',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+12:27:27 PM [express] GET /api/galleries/DHsnySqmQ_ 200 in 119ms :: {"id":2275,"slug":"DHsnySqmQ_","t…
+12:27:27 PM [express] GET /api/images/861/stars 200 in 32ms :: {"success":true,"data":[],"userStarred…
+[Invalid Upload Request] {
+  requestId: 'DHsnySqmQ_-1736598448375-u6i4ele2t',
+  reason: 'Missing or invalid files array',
+  body: {},
+  timestamp: '2025-01-11T12:27:28.375Z'
+}
+12:27:28 PM [express] POST /api/galleries/DHsnySqmQ_/images 400 in 2ms :: {"success":false,"message":…
+[Invalid Upload Request] {
+  requestId: 'DHsnySqmQ_-1736598449326-w5kuon7uh',
+  reason: 'Missing or invalid files array',
+  body: {},
+  timestamp: '2025-01-11T12:27:29.327Z'
+}
+12:27:29 PM [express] POST /api/galleries/DHsnySqmQ_/images 400 in 2ms :: {"success":false,"message":…
+[Invalid Upload Request] {
+  requestId: 'DHsnySqmQ_-1736598450302-isutizb6r',
+  reason: 'Missing or invalid files array',
+  body: {},
+  timestamp: '2025-01-11T12:27:30.302Z'
+}
+12:27:30 PM [express] POST /api/galleries/DHsnySqmQ_/images 400 in 2ms :: {"success":false,"message":…
+[Invalid Upload Request] {
+  requestId: 'DHsnySqmQ_-1736598451287-2voyfq1b5',
+  reason: 'Missing or invalid files array',
+  body: {},
+  timestamp: '2025-01-11T12:27:31.287Z'
+}
+12:27:31 PM [express] POST /api/galleries/DHsnySqmQ_/images 400 in 3ms :: {"success":false,"message":…
+[Invalid Upload Request] {
+  requestId: 'DHsnySqmQ_-1736598452248-dcwcwldou',
+  reason: 'Missing or invalid files array',
+  body: {},
+  timestamp: '2025-01-11T12:27:32.248Z'
+}
+12:27:32 PM [express] POST /api/galleries/DHsnySqmQ_/images 400 in 2ms :: {"success":false,"message":…
+[Invalid Upload Request] {
+  requestId: 'DHsnySqmQ_-1736598453696-ecupqf205',
+  reason: 'Missing or invalid files array',
+  body: {},
+  timestamp: '2025-01-11T12:27:33.696Z'
+}
+12:27:33 PM [express] POST /api/galleries/DHsnySqmQ_/images 400 in 6ms :: {"success":false,"message":…
