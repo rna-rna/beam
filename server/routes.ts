@@ -573,38 +573,37 @@ export function registerRoutes(app: Express): Server {
         files.map(async (file: any) => {
           const timestamp = Date.now();
           // Single file upload
-            const key = `uploads/${timestamp}-${file.name}`;
-            const command = new PutObjectCommand({
-              Bucket: R2_BUCKET_NAME,
-              Key: key,
-              ContentType: file.type,
-              Metadata: {
-                originalName: file.name,
-                uploadedAt: new Date().toISOString()
-              }
-            });
+          const key = `uploads/${timestamp}-${file.name}`;
+          const command = new PutObjectCommand({
+            Bucket: R2_BUCKET_NAME,
+            Key: key,
+            ContentType: file.type,
+            Metadata: {
+              originalName: file.name,
+              uploadedAt: new Date().toISOString()
+            }
+          });
 
-            const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
-            const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
+          const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+          const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
 
-            // Create placeholder image record for single upload
-            await db.insert(images).values({
-              galleryId: gallery.id,
-              url: publicUrl,
-              publicId: key,
-              originalFilename: file.name,
-              width: 800,
-              height: 600,
-              createdAt: new Date()
-            });
+          // Create placeholder image record for single upload
+          await db.insert(images).values({
+            galleryId: gallery.id,
+            url: publicUrl,
+            publicId: key,
+            originalFilename: file.name,
+            width: 800,
+            height: 600,
+            createdAt: new Date()
+          });
 
-            return [{
-              fileName: file.name,
-              key,
-              signedUrl,
-              publicUrl
-            }];
-          }
+          return {
+            fileName: file.name,
+            key,
+            signedUrl,
+            publicUrl
+          };
         })
       );
 
