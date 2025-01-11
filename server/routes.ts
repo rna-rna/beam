@@ -361,17 +361,20 @@ export function registerRoutes(app: Express): Server {
 
   // Add images to gallery (supports both guest and authenticated uploads)
   app.post('/api/galleries/:slug/images', upload.array('images', 50), async (req: any, res) => {
-    console.log('Image Upload Request:', {
+    const startTime = Date.now();
+    console.log('[Upload] Starting request:', {
       slug: req.params.slug,
       hasFiles: !!req.files,
       fileCount: req.files?.length,
       contentType: req.headers['content-type'],
+      userId: req.auth?.userId || 'guest',
+      timestamp: new Date().toISOString(),
       files: req.files?.map(f => ({
         originalname: f.originalname,
         mimetype: f.mimetype,
-        size: f.size
-      })),
-      body: req.body
+        size: f.size,
+        sizeInMB: (f.size / (1024 * 1024)).toFixed(2) + 'MB'
+      }))
     });
 
     if (!req.files || !Array.isArray(req.files)) {
@@ -425,15 +428,31 @@ export function registerRoutes(app: Express): Server {
             throw new Error('Failed to read image metadata');
           }
 
-          await r2Client.send(new PutObjectCommand({
+          console.log(`[R2] Uploading file:`, {
+            filename: file.originalname,
+            key,
+            contentType: file.mimetype,
+            size: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
+          });
+
+          const uploadStartTime = Date.now();
+          const upload = await r2Client.send(new PutObjectCommand({
             Bucket: R2_BUCKET_NAME,
             Key: key,
             Body: file.buffer,
             ContentType: file.mimetype,
             Metadata: {
-              originalName: file.originalname
+              originalName: file.originalname,
+              uploadedAt: new Date().toISOString()
             }
           }));
+
+          console.log(`[R2] Upload complete:`, {
+            filename: file.originalname,
+            key,
+            etag: upload.ETag,
+            duration: `${Date.now() - uploadStartTime}ms`
+          });
 
           return {
             galleryId: gallery.id,
@@ -448,6 +467,14 @@ export function registerRoutes(app: Express): Server {
       );
 
       await db.insert(images).values(imageUploads);
+
+      console.log('[Upload] Request complete:', {
+        slug: req.params.slug,
+        totalFiles: imageUploads.length,
+        duration: `${Date.now() - startTime}ms`,
+        timestamp: new Date().toISOString()
+      });
+
       res.json({
         success: true,
         images: imageUploads
