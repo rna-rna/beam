@@ -89,27 +89,27 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       }
 
       // Upload files without retries
-      await Promise.all(
-        acceptedFiles.map(async (file, index) => {
-          const { signedUrl } = urls[index];
-          if (!signedUrl) {
-            throw new Error(`Missing upload URL for file: ${file.name}`);
-          }
+      for (let i = 0; i < acceptedFiles.length; i++) {
+        const file = acceptedFiles[i];
+        const { signedUrl } = urls[i];
 
-          const response = await fetch(signedUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': file.type },
-            body: file,
-          });
+        if (!signedUrl) {
+          throw new Error(`Missing upload URL for file: ${file.name}`);
+        }
 
-          if (!response.ok) {
-            throw new Error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
-          }
+        const response = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
 
-          console.log(`[Upload] Successfully uploaded: ${file.name}`);
-          setUploadProgress(((index + 1) / acceptedFiles.length) * 100);
-        })
-      );
+        if (!response.ok) {
+          throw new Error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
+        }
+
+        console.log(`[Upload] Successfully uploaded: ${file.name}`);
+        setUploadProgress(((i + 1) / acceptedFiles.length) * 100);
+      }
 
       toast({
         title: 'Upload complete',
@@ -129,51 +129,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       setUploadProgress(0);
     }
   }, [onUpload, isUploading]);
-
-
-      // Upload files directly to R2 with individual error handling
-      const uploadResults = await Promise.allSettled(
-        acceptedFiles.map(async (file, index) => {
-          const { signedUrl, publicUrl } = urls[index];
-          if (!signedUrl || !publicUrl) {
-            throw new Error(`Missing upload URL for file: ${file.name}`);
-          }
-
-          await uploadWithRetry(file, signedUrl);
-
-          console.log(`Uploaded file: ${file.name} -> ${publicUrl}`);
-          setUploadProgress(((index + 1) / acceptedFiles.length) * 100);
-          return { file, publicUrl };
-        })
-      );
-
-      // Check for any failed uploads
-      const failures = uploadResults.filter(result => result.status === 'rejected');
-      if (failures.length) {
-        const failureMessages = failures
-          .map(failure => (failure as PromiseRejectedResult).reason.message)
-          .join(', ');
-        throw new Error(`Failed to upload some files: ${failureMessages}`);
-      }
-
-      toast({
-        title: 'Upload complete',
-        description: 'All images were successfully uploaded!',
-      });
-
-      onUpload(acceptedFiles);
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: 'Upload failed',
-        description: error instanceof Error ? error.message : 'Failed to upload files',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-    }
-  }, [onUpload]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
