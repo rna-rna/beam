@@ -146,7 +146,7 @@ export function registerRoutes(app: Express): Server {
           
           const imageUploads = await Promise.all(
             files.map(async (file) => {
-              const fileName = `uploads/${Date.now()}-${file.originalname}`;
+              const fileName = `uploads/originals/${Date.now()}-${file.originalname}`;
 
               // Get image dimensions using Sharp
               const metadata = await sharp(file.buffer).metadata();
@@ -1784,7 +1784,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      const key = `uploads/${Date.now()}-${fileName}`;
+      const key = `uploads/originals/${Date.now()}-${fileName}`;
 
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
