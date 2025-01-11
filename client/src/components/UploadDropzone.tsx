@@ -97,29 +97,39 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       setIsUploading(true);
       startUpload(uploadId);
 
-      const { urls } = await requestSignedUrls(acceptedFiles, uploadId);
+      // Keep track of files still being processed
+      const pendingFiles = [...acceptedFiles];
+      
+      while (pendingFiles.length > 0) {
+        const batch = pendingFiles.splice(0, 3); // Process 3 files at a time
+        
+        const { urls } = await requestSignedUrls(batch, uploadId);
 
-      if (!urls || !Array.isArray(urls)) {
-        throw new Error('Failed to get upload URLs from server');
-      }
-
-      for (let i = 0; i < acceptedFiles.length; i++) {
-        const file = acceptedFiles[i];
-        const { signedUrl } = urls[i];
-
-        if (!signedUrl) {
-          throw new Error(`Missing upload URL for file: ${file.name}`);
+        if (!urls || !Array.isArray(urls)) {
+          throw new Error('Failed to get upload URLs from server');
         }
 
-        const response = await fetch(signedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file,
-        });
+        await Promise.all(batch.map(async (file, i) => {
+          const { signedUrl } = urls[i];
+          
+          if (!signedUrl) {
+            throw new Error(`Missing upload URL for file: ${file.name}`);
+          }
 
-        if (!response.ok) {
-          throw new Error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
-        }
+          const response = await fetch(signedUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file,
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
+          }
+
+          const progress = ((acceptedFiles.length - pendingFiles.length + i + 1) / acceptedFiles.length) * 100;
+          updateProgress(progress);
+          console.log(`[Upload] Successfully uploaded: ${file.name}`);
+        }));
 
         const progress = ((i + 1) / acceptedFiles.length) * 100;
         updateProgress(progress);
