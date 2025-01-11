@@ -858,6 +858,50 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     },
   });
 
+  const uploadMutation = useMutation({
+    mutationFn: async (files: File[]) => {
+      const token = await getToken();
+      const headers: HeadersInit = {
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(`/api/galleries/${slug}/images`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          files: files.map(file => ({
+            name: file.name,
+            type: file.type,
+            size: file.size
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload images');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      toast({
+        title: "Success",
+        description: "Images uploaded successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload images",
+        variant: "destructive",
+      });
+    }
+  });
+
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
