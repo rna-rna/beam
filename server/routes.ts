@@ -394,34 +394,36 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Add images to gallery (supports both guest and authenticated uploads)
-  // Track processed requests
-  const processedRequests = new Set<string>();
-  const DEBOUNCE_TIMEOUT = 30000; // 30 seconds
+  // Track processed requests with Map for upload debouncing
+  const processedRequests = new Map<string, boolean>();
+  const DEBOUNCE_TIMEOUT = 60000; // 1 minute timeout
 
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
-    const { files } = req.body;
+    const { files, uploadId } = req.body;
     const slug = req.params.slug;
     const USE_MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     
-    const requestId = `${slug}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const requestId = uploadId || `${slug}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Check for duplicate requests
+    // Check for duplicate requests with improved logging
     if (processedRequests.has(requestId)) {
-      console.warn('[Duplicate Request]', {
+      console.warn('[Duplicate Upload Request]', {
         requestId,
         slug,
+        filesCount: files?.length,
         timestamp: new Date().toISOString()
       });
       return res.status(429).json({
         success: false,
-        message: 'Duplicate request detected',
-        requestId
+        message: 'Duplicate upload request detected',
+        requestId,
+        details: 'This upload request was already processed'
       });
     }
 
-    // Track this request
-    processedRequests.add(requestId);
+    // Track this request with Map
+    processedRequests.set(requestId, true);
     setTimeout(() => processedRequests.delete(requestId), DEBOUNCE_TIMEOUT);
 
     // Comprehensive request validation
