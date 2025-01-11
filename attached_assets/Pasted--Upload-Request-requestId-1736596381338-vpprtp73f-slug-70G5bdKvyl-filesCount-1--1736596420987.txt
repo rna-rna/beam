@@ -1,0 +1,192 @@
+[Upload Request] {
+  requestId: '1736596381338-vpprtp73f',
+  slug: '70G5bdKvyl',
+  filesCount: 1,
+  auth: 'authenticated',
+  timestamp: '2025-01-11T11:53:01.494Z'
+}
+[Upload] Starting request: {
+  slug: '70G5bdKvyl',
+  filesCount: 1,
+  files: [
+    {
+      name: 'Screenshot 2025-01-11 at 04.28.15.png',
+      type: 'image/png',
+      size: '0.04MB'
+    }
+  ]
+}
+[Upload] Signed URLs generated: {
+  slug: '70G5bdKvyl',
+  totalUrls: 1,
+  timestamp: '2025-01-11T11:53:01.585Z'
+}
+11:53:01 AM [express] POST /api/galleries/70G5bdKvyl/images 200 in 94ms :: {"success":true,"urls":[{"…
+[Invalid Upload Request] {
+  requestId: '70G5bdKvyl-1736596384230-oj6fmp76v',
+  reason: 'Missing or invalid files array',
+  body: {},
+  timestamp: '2025-01-11T11:53:04.230Z'
+}
+11:53:04 AM [express] POST /api/galleries/70G5bdKvyl/images 400 in 3ms :: {"success":false,"message":…
+Gallery fetch request: {
+  slug: '70G5bdKvyl',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch request: {
+  slug: '70G5bdKvyl',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2269,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2269,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 855,
+    originalFilename: 'Screenshot 2025-01-11 at 04.28.15.png',
+    hasOriginalFilename: true,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png'
+  },
+  missingFilenames: 0
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 855,
+    originalFilename: 'Screenshot 2025-01-11 at 04.28.15.png',
+    hasOriginalFilename: true,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png'
+  },
+  missingFilenames: 0
+}
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 855,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png',
+    slug: '70G5bdKvyl',
+    originalFilename: 'Screenshot 2025-01-11 at 04.28.15.png',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+11:53:04 AM [express] GET /api/galleries/70G5bdKvyl 200 in 93ms :: {"id":2269,"slug":"70G5bdKvyl","ti…
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 855,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png',
+    slug: '70G5bdKvyl',
+    originalFilename: 'Screenshot 2025-01-11 at 04.28.15.png',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+11:53:04 AM [express] GET /api/galleries/70G5bdKvyl 200 in 89ms :: {"id":2269,"slug":"70G5bdKvyl","ti…
+11:53:04 AM [express] GET /api/images/855/stars 200 in 31ms :: {"success":true,"data":[],"userStarred…
+Gallery fetch request: {
+  slug: '70G5bdKvyl',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2269,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 855,
+    originalFilename: 'Screenshot 2025-01-11 at 04.28.15.png',
+    hasOriginalFilename: true,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png'
+  },
+  missingFilenames: 0
+}
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 855,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png',
+    slug: '70G5bdKvyl',
+    originalFilename: 'Screenshot 2025-01-11 at 04.28.15.png',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+11:53:11 AM [express] GET /api/galleries/70G5bdKvyl 200 in 94ms :: {"id":2269,"slug":"70G5bdKvyl","ti…
+Gallery fetch request: {
+  slug: '70G5bdKvyl',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2269,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 855,
+    originalFilename: 'Screenshot 2025-01-11 at 04.28.15.png',
+    hasOriginalFilename: true,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png'
+  },
+  missingFilenames: 0
+}
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 855,
+    url: 'https://pub-fd08184f15694366b9454ae23422d038.r2.dev/uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/1736596381525-Screenshot 2025-01-11 at 04.28.15.png',
+    slug: '70G5bdKvyl',
+    originalFilename: 'Screenshot 2025-01-11 at 04.28.15.png',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+11:53:28 AM [express] GET /api/galleries/70G5bdKvyl 200 in 191ms :: {"id":2269,"slug":"70G5bdKvyl","t…
