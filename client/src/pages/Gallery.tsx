@@ -129,18 +129,10 @@ import { Helmet } from 'react-helmet';
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   const getR2ImageUrl = (image: Image | null | undefined, slug?: string) => {
-    console.debug('getR2ImageUrl called with:', {
-      hasImage: !!image,
-      imageType: image ? typeof image : 'undefined',
-      imageFields: image ? Object.keys(image) : [],
-      slug,
-      stack: new Error().stack.split('\n').slice(0,3)
-    });
-
     if (!image) {
       console.error('Image object is null or undefined:', {
         image,
-        calledFrom: new Error().stack.split('\n')[2]
+        stack: new Error().stack 
       });
       return '/fallback-image.jpg';
     }
@@ -149,23 +141,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       console.warn('Missing URL in image object:', {
         imageId: image.id,
         publicId: image.publicId,
-        originalFilename: image.originalFilename,
-        imageKeys: Object.keys(image),
-        calledFrom: new Error().stack.split('\n')[2]
+        originalFilename: image.originalFilename
       });
       return '/fallback-image.jpg';
     }
 
-    console.debug('Valid image URL generated:', {
+    console.debug('Generating R2 URL:', {
       imageId: image.id,
       url: image.url,
       publicId: image.publicId,
-      dimensions: `${image.width}x${image.height}`,
-      hasRequiredFields: {
-        id: !!image.id,
-        url: !!image.url,
-        originalFilename: !!image.originalFilename
-      }
+      slug
     });
 
     return image.url;
@@ -1427,25 +1412,7 @@ const renderGalleryControls = useCallback(() => {
     setIsOpenShareModal
   ]);
 
-  const renderImage = (image: Image, index: number) => {
-    console.debug('renderImage called:', {
-      imageId: image.id,
-      index,
-      hasRequiredFields: {
-        id: !!image.id,
-        url: !!image.url,
-        originalFilename: !!image.originalFilename,
-        width: !!image.width,
-        height: !!image.height
-      },
-      imageState: {
-        preloaded: preloadedImages.has(image.id),
-        selected: selectedImages.includes(image.id),
-        dragged: draggedItemIndex === index
-      }
-    });
-    
-    return (
+  const renderImage = (image: Image, index: number) => (
     <LazyLoad
       key={image.id}
       height={200}
@@ -2411,3 +2378,5 @@ const handleImageClick = (index: number) => {
       <SignUpModal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)} />
     </div>
     </>
+  );
+}
