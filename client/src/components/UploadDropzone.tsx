@@ -53,6 +53,22 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       return;
     }
 
+    // Generate a unique upload ID
+    const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const uploadKey = acceptedFiles.map(f => `${f.name}-${f.size}`).join('|');
+    
+    // Check for duplicate upload in last 5 seconds
+    const lastUploadTime = (window as any).lastUploadAttempt || 0;
+    const lastUploadKey = (window as any).lastUploadKey || '';
+    
+    if (Date.now() - lastUploadTime < 5000 && uploadKey === lastUploadKey) {
+      console.log('[Upload] Duplicate upload detected, skipping');
+      return;
+    }
+
+    (window as any).lastUploadAttempt = Date.now();
+    (window as any).lastUploadKey = uploadKey;
+
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     console.log('[Upload] Starting new upload session:', { uploadId });
 
