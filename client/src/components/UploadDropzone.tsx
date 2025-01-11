@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from '@/hooks/use-toast';
@@ -16,7 +15,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentUploadId, setCurrentUploadId] = useState<string | null>(null);
 
-  const requestSignedUrls = async (files: File[]) => {
+  const requestSignedUrls = async (files: File[], uploadId: string) => {
     if (!files.length) {
       throw new Error('No files provided for upload');
     }
@@ -25,6 +24,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        uploadId,
         files: files.map((file) => ({
           name: file.name,
           type: file.type,
@@ -47,21 +47,20 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       return;
     }
 
-    if (!acceptedFiles?.length) {
-      toast({
-        title: 'No files selected',
-        description: 'Please upload valid image files.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     // Generate a unique ID for this upload session
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    setCurrentUploadId(uploadId);
 
     try {
-      // Validate file types and sizes
+      if (!acceptedFiles?.length) {
+        toast({
+          title: 'No files selected',
+          description: 'Please upload valid image files.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Validate file types and sizes upfront
       const invalidFiles = acceptedFiles.filter(
         file => !file.type.startsWith('image/') || file.size > 10 * 1024 * 1024
       );
@@ -72,15 +71,15 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
           description: 'Please only upload images under 10MB in size.',
           variant: 'destructive',
         });
-        setCurrentUploadId(null);
         return;
       }
 
+      setCurrentUploadId(uploadId);
       setIsUploading(true);
       setUploadProgress(0);
 
-      // Request pre-signed URLs with validation
-      const { urls } = await requestSignedUrls(acceptedFiles);
+      // Request pre-signed URLs with session ID
+      const { urls } = await requestSignedUrls(acceptedFiles, uploadId);
 
       console.log('[Upload] Starting upload attempt:', {
         files: acceptedFiles.map(f => ({
