@@ -25,7 +25,7 @@ const GlobalUploadProgress = () => {
           <span className="text-sm font-medium">Uploading...</span>
         </div>
         <div className="text-xs">
-          Files: {activeUploads.length}<br />
+          Files: {fileCount}<br />
           Size: {uploadedMB} MB / {totalSizeMB} MB
         </div>
         <Progress value={Math.min(uploadProgress, 100)} className="h-2 mt-2" />

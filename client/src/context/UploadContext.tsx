@@ -7,7 +7,8 @@ interface UploadContextType {
   activeUploads: string[];
   totalSize: number;
   uploadedBytes: number;
-  startUpload: (uploadId: string, totalSize: number) => void;
+  fileCount: number;
+  startUpload: (uploadId: string, totalSize: number, fileCount: number) => void;
   updateProgress: (uploadedBytes: number) => void;
   completeUpload: (uploadId: string) => void;
 }
@@ -20,11 +21,13 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [totalSize, setTotalSize] = useState(0);
   const [uploadedBytes, setUploadedBytes] = useState(0);
   const [activeUploads, setActiveUploads] = useState<string[]>([]);
+  const [fileCount, setFileCount] = useState(0);
 
   const startUpload = (uploadId: string, totalSize: number, fileCount: number) => {
     setActiveUploads([uploadId]); // Single upload session
     setTotalSize(totalSize);
     setUploadedBytes(0);
+    setFileCount(fileCount);
     setIsUploading(true);
   };
 
@@ -40,6 +43,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       setUploadProgress(0);
       setUploadedBytes(0);
       setTotalSize(0);
+      setFileCount(0);
     }
   };
 
@@ -51,6 +55,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         activeUploads,
         totalSize,
         uploadedBytes,
+        fileCount,
         startUpload,
         updateProgress,
         completeUpload,
