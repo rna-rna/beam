@@ -1441,19 +1441,18 @@ const renderGalleryControls = useCallback(() => {
             ? `${image.width} / ${image.height}` 
             : '4/3'
         }}
-      initial={{ opacity: 0, y: 20}}      animate={{
+      initial={{ opacity: 0, y: 20}}
+      animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
-        transition: {
-          duration: draggedItemIndex === index ? 0 : 0.25,
-        }
-      }}
-      style={{
         position: draggedItemIndex === index ? "absolute" : "relative",
         top: draggedItemIndex === index ? dragPosition?.y : "auto",
         left: draggedItemIndex === index ? dragPosition?.x : "auto",
+        transition: {
+          duration: draggedItemIndex === index ? 0 : 0.25,
+        }
       }}
       drag={isReorderMode}
       dragMomentum={false}
