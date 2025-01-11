@@ -144,11 +144,17 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       // Clear upload state
       setCurrentUploadId(null);
       
-      // Force invalidate gallery queries to trigger a fresh fetch
+      // Force invalidate and refresh gallery queries
       const gallerySlug = window.location.pathname.split('/').pop();
       if (gallerySlug) {
-        await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-        await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] }),
+          queryClient.invalidateQueries({ queryKey: ['/api/galleries'] }),
+          queryClient.refetchQueries({ 
+            queryKey: [`/api/galleries/${gallerySlug}`],
+            type: 'active'
+          })
+        ]);
       }
     } catch (error) {
       console.error('[Upload Error]:', error);
