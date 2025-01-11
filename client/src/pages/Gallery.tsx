@@ -1942,6 +1942,9 @@ const handleImageClick = (index: number) => {
                 })}
                 {gallery?.images
                   .filter((image: Image) => {
+                    // Validate image object first
+                    if (!image || !image.url || !image.id) return false;
+                    
                     // Apply starred filter
                     if (showStarredOnly && !image.starred) return false;
                     // Apply comments filter
