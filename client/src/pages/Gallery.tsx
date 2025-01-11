@@ -128,6 +128,10 @@ interface ImageDimensions {
 import { Helmet } from 'react-helmet';
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
+  // URL Parameters and Global Hooks first
+  const params = useParams();
+  const slug = propSlug || params?.slug;
+
   const getR2ImageUrl = useCallback((image: Image | null | undefined) => {
     if (!image?.url) {
       return '/fallback-image.jpg';
@@ -135,16 +139,25 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     return image.url;
   }, []);
 
+  // Query must be declared before being used in useMemo
+  const { data: gallery, isLoading: isGalleryLoading, error } = useQuery<GalleryType>({
+    queryKey: [`/api/galleries/${slug}`],
+    queryFn: async () => {
+      // ... existing query logic ...
+    },
+    enabled: !!slug
+  });
+
   const processedImages = useMemo(() => {
-    return gallery?.images?.filter(image => image && image.url).map(image => ({
-      ...image,
-      displayUrl: getR2ImageUrl(image),
-      aspectRatio: (image.width && image.height) ? image.width / image.height : 1.33,
-    }));
+    if (!gallery?.images) return [];
+    return gallery.images
+      .filter(image => image && image.url)
+      .map(image => ({
+        ...image,
+        displayUrl: getR2ImageUrl(image),
+        aspectRatio: (image.width && image.height) ? image.width / image.height : 1.33,
+      }));
   }, [gallery?.images, getR2ImageUrl]);
-  // URL Parameters and Global Hooks
-  const params = useParams();
-  const slug = propSlug || params?.slug;
 
   const beamOverlayTransform = 'l_beam-bar_q6desn,g_center,x_0,y_0';
   const [presenceMembers, setPresenceMembers] = useState<{[key: string]: any}>({});
