@@ -50,15 +50,18 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
     }
 
     // Prevent concurrent uploads
-    if (isUploading) {
-      console.log('[Upload] Upload already in progress');
+    if (isUploading || currentUploadId) {
+      console.log('[Upload] Upload already in progress or recent upload completed');
       return;
     }
 
-    // Clear any stale upload ID
-    if (currentUploadId) {
-      setCurrentUploadId(null);
+    // Add debounce delay to prevent rapid re-triggers
+    const debounceDelay = 1000;
+    if (Date.now() - (window as any).lastUploadTime < debounceDelay) {
+      console.log('[Upload] Debouncing recent upload request');
+      return;
     }
+    (window as any).lastUploadTime = Date.now();
 
     // Early validation of files array
     if (!acceptedFiles?.length) {
@@ -180,8 +183,12 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       console.log('[Upload] Resetting upload state');
       setIsUploading(false);
       setUploadProgress(0);
-      // Add a small delay before allowing new uploads
-      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Clear upload state after delay
+      setTimeout(() => {
+        setCurrentUploadId(null);
+        (window as any).lastUploadTime = 0;
+      }, 1000);
     }
   }, [onUpload, isUploading, currentUploadId]);
 
