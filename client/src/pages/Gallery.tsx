@@ -762,53 +762,43 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
       setIsUploading(true);
-      const formData = new FormData();
 
-      const progressMap: UploadProgress = {};
-      files.forEach((file) => {
-        formData.append("images", file);
-        progressMap[file.name] = 0;
+      // Request presigned URLs
+      const response = await fetch(`/api/galleries/${slug}/images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: files.map(file => ({
+            name: file.name,
+            type: file.type,
+            size: file.size
+          }))
+        })
       });
-      //setUploadProgress(progressMap); // Removed
 
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
+      if (!response.ok) {
+        throw new Error('Failed to get upload URLs');
+      }
 
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const progress = (event.loaded / event.total) * 100;
-            //setUploadProgress(prev => { //Removed
-            //  const newProgress = { ...prev };
-            //  Object.keys(newProgress).forEach(key => {
-            //    newProgress[key] = progress;
-            //  });
-            //  return newProgress;
-            //});
-            console.log("Upload progress:", progress); //Added for debugging
-          }
-        };
+      const { urls } = await response.json();
 
-        xhr.open('POST', `/api/galleries/${slug}/images`);
+      // Upload directly to R2
+      await Promise.all(urls.map(async (urlData: any, index: number) => {
+        const file = files[index];
+        const { signedUrl } = urlData;
 
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const response = JSON.parse(xhr.response);
-              resolve(response);
-            } catch (error) {
-              reject(new Error('Invalid server response'));
-            }
-          } else {
-            reject(new Error('Upload failed'));
-          }
-        };
+        const uploadResponse = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file
+        });
 
-        xhr.onerror = () => {
-          reject(new Error('Network error during upload'));
-        };
+        if (!uploadResponse.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+      }));
 
-        xhr.send(formData);
-      });
+      return { success: true };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
@@ -1324,7 +1314,7 @@ const renderGalleryControls = useCallback(() => {
           </Tooltip>
           */}
 
-          
+
 
           {selectMode && (
             <>
@@ -1879,7 +1869,7 @@ const handleImageClick = (index: number) => {
           <meta property="og:image" content={gallery.ogImageUrl ? getR2ImageUrl(gallery.ogImage, slug) : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`} />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="630" />
-          <meta property="og:type" content="website" />
+          <metaproperty="og:type" content="website" />
           <meta property="og:url" content={window.location.href} />
           <meta name="twitter:card" content="summary_large_image" />
         </Helmet>
