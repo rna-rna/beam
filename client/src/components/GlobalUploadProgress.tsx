@@ -5,9 +5,12 @@ import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
 const GlobalUploadProgress = () => {
-  const { isUploading, uploadProgress } = useUpload();
+  const { isUploading, uploadProgress, activeUploads, totalSize, uploadedBytes } = useUpload();
 
   if (!isUploading) return null;
+
+  const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+  const uploadedMB = (uploadedBytes / (1024 * 1024)).toFixed(2);
 
   return (
     <motion.div
@@ -19,6 +22,10 @@ const GlobalUploadProgress = () => {
       <div className="flex items-center gap-2 mb-2">
         <Loader2 className="h-4 w-4 animate-spin" />
         <span className="text-sm font-medium">Uploading...</span>
+      </div>
+      <div className="text-xs">
+        Files: {activeUploads.length}<br />
+        Size: {uploadedMB} MB / {totalSizeMB} MB
       </div>
       <Progress value={uploadProgress} className="h-2" />
       <div className="text-xs text-muted-foreground mt-1 text-right">
