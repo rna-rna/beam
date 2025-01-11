@@ -1324,12 +1324,7 @@ const renderGalleryControls = useCallback(() => {
           </Tooltip>
           */}
 
-          {isUploading && (
-            <div className="flex items-center gap-4">
-              <Progress value={undefined} className="w-24" />
-              <span className={cn("text-sm", isDark ? "text-white/70" : "text-gray-600")}>Uploading...</span>
-            </div>
-          )}
+          
 
           {selectMode && (
             <>
