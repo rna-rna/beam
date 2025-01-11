@@ -87,35 +87,35 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         const { signedUrl, publicUrl } = urlData;
 
         await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
+          const xhr = new XMLHttpRequest();
 
-        fileProgress.set(index, 0);
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const currentProgress = event.loaded;
-            const previousProgress = fileProgress.get(index) || 0;
-            const incrementBytes = currentProgress - previousProgress;
-            
-            fileProgress.set(index, currentProgress);
-            totalUploadedBytes = Array.from(fileProgress.values()).reduce((sum, progress) => sum + progress, 0);
-            updateProgress(Math.min(totalUploadedBytes, totalSize));
-          }
-        };
+          fileProgress.set(index, 0);
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const currentProgress = event.loaded;
+              const previousProgress = fileProgress.get(index) || 0;
+              const incrementBytes = currentProgress - previousProgress;
 
-        xhr.open('PUT', signedUrl, true);
-        xhr.setRequestHeader('Content-Type', file.type);
+              fileProgress.set(index, currentProgress);
+              totalUploadedBytes += incrementBytes;
+              updateProgress(totalUploadedBytes);
+            }
+          };
 
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            resolve(xhr.response);
-          } else {
-            reject(new Error(`Failed to upload ${file.name}`));
-          }
-        };
+          xhr.open('PUT', signedUrl, true);
+          xhr.setRequestHeader('Content-Type', file.type);
 
-        xhr.onerror = () => reject(new Error(`Network error uploading ${file.name}`));
-        xhr.send(file);
-      });
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              resolve(xhr.response);
+            } else {
+              reject(new Error(`Failed to upload ${file.name}`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error(`Network error uploading ${file.name}`));
+          xhr.send(file);
+        });
       }
 
       onUpload();
