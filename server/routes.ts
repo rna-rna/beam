@@ -398,30 +398,74 @@ export function registerRoutes(app: Express): Server {
     const { files } = req.body;
     const slug = req.params.slug;
     const USE_MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     
     const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    console.log('[Upload Request]', {
-      requestId,
-      slug,
-      filesCount: files?.length || 0,
-      auth: req.auth ? 'authenticated' : 'unauthenticated',
-      timestamp: new Date().toISOString()
-    });
 
-    // Validate request structure
-    if (!files || !Array.isArray(files)) {
-      console.warn('[Invalid Request]', {
+    // Comprehensive request validation
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      console.warn('[Invalid Upload Request]', {
         requestId,
         reason: 'Missing or invalid files array',
         body: req.body,
         timestamp: new Date().toISOString()
       });
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Invalid request format',
+        message: 'No valid files provided',
         requestId
       });
     }
+
+    // Validate file types and sizes
+    const invalidFiles = files.filter(file => 
+      !file.name || 
+      !file.type || 
+      !file.size ||
+      !file.type.startsWith('image/') ||
+      file.size > MAX_FILE_SIZE
+    );
+
+    if (invalidFiles.length > 0) {
+      console.warn('[Invalid Files]', {
+        requestId,
+        invalidFiles: invalidFiles.map(f => ({
+          name: f.name,
+          type: f.type,
+          size: f.size
+        })),
+        timestamp: new Date().toISOString()
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid files detected',
+        details: 'All files must be images under 10MB'
+      });
+    }
+
+    // Check for duplicate filenames
+    const fileNames = files.map(f => f.name);
+    const hasDuplicates = fileNames.length !== new Set(fileNames).size;
+    if (hasDuplicates) {
+      console.warn('[Duplicate Files]', {
+        requestId,
+        fileNames,
+        timestamp: new Date().toISOString()
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Duplicate filenames detected',
+        details: 'All files must have unique names'
+      });
+    }
+
+    console.log('[Upload Request]', {
+      requestId,
+      slug,
+      filesCount: files.length,
+      auth: req.auth ? 'authenticated' : 'unauthenticated',
+      timestamp: new Date().toISOString()
+    });
 
     // Track request processing
     const processingStart = Date.now();
