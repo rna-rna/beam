@@ -49,14 +49,20 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       return;
     }
 
-    // Prevent concurrent uploads
-    if (isUploading || currentUploadId) {
-      console.log('[Upload] Upload already in progress or recent upload completed');
+    // Prevent concurrent uploads with stronger locking
+    if (isUploading || currentUploadId || (window as any).uploadLock) {
+      console.log('[Upload] Upload already in progress or locked');
       return;
     }
 
+    // Set upload lock
+    (window as any).uploadLock = true;
+    setTimeout(() => {
+      (window as any).uploadLock = false;
+    }, 5000); // Release lock after 5 seconds
+
     // Add debounce delay to prevent rapid re-triggers
-    const debounceDelay = 1000;
+    const debounceDelay = 2000; // Increased to 2 seconds
     if (Date.now() - (window as any).lastUploadTime < debounceDelay) {
       console.log('[Upload] Debouncing recent upload request');
       return;
@@ -148,11 +154,17 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       // Call the provided onUpload handler
       onUpload(acceptedFiles);
       
-      // Clean up all upload state
-      setIsUploading(false);
-      setCurrentUploadId(null);
-      setUploadProgress(0);
-      
+      // Clean up all upload state in a more controlled way
+      const cleanup = () => {
+        setIsUploading(false);
+        setUploadProgress(0);
+        // Add delay before clearing upload ID to prevent race conditions
+        setTimeout(() => {
+          setCurrentUploadId(null);
+          (window as any).lastUploadTime = 0;
+        }, 2000); // Longer delay to ensure all requests complete
+      };
+
       // Force invalidate and refresh gallery queries
       const gallerySlug = window.location.pathname.split('/').pop();
       if (gallerySlug) {
@@ -166,8 +178,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
         ]);
       }
 
-      // Add delay before accepting new uploads
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      cleanup();
     } catch (error) {
       console.error('[Upload Error]:', error);
       toast({
