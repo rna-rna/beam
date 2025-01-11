@@ -360,7 +360,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Add images to gallery (supports both guest and authenticated uploads)
-  app.post('/api/galleries/:slug/images', upload.array('images', 50), async (req: any, res) => {
+  app.post('/api/galleries/:slug/images', async (req: any, res) => {
     const startTime = Date.now();
     console.log('[Upload] Starting request:', {
       slug: req.params.slug,
@@ -377,8 +377,11 @@ export function registerRoutes(app: Express): Server {
       }))
     });
 
-    if (!req.files || !Array.isArray(req.files)) {
-      console.error('No valid files in request:', req.files);
+    const { files } = req.body; // Expecting an array of file metadata (name, type, size)
+    const slug = req.params.slug;
+
+    if (!files || !Array.isArray(files)) {
+      console.error('No valid files in request:', files);
       return res.status(400).json({ message: 'No images uploaded' });
     }
 
@@ -395,10 +398,10 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      if (!req.files || !Array.isArray(req.files)) {
+      if (!files || !Array.isArray(files)) {
         console.error('No valid files in request:', {
-          files: req.files,
-          isArray: Array.isArray(req.files)
+          files: files,
+          isArray: Array.isArray(files)
         });
         return res.status(400).json({ message: 'No images uploaded' });
       }
@@ -409,76 +412,71 @@ export function registerRoutes(app: Express): Server {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      if (!req.files || !Array.isArray(req.files)) {
+      if (!files || !Array.isArray(files)) {
         return res.status(400).json({ message: 'No images uploaded' });
       }
-      const imageUploads = await Promise.all(
-        req.files.map(async (file) => {
-          // Validate originalFilename
-          if (!file.originalname) {
-            throw new Error('Missing originalFilename in uploaded file');
-          }
+      try {
+        const preSignedUrls = await Promise.all(
+          files.map(async (file: any) => {
+            const key = `uploads/${Date.now()}-${file.name}`;
 
-          const key = `uploads/${Date.now()}-${file.originalname}`;
-          const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
+            console.log(`[R2] Generating signed URL:`, {
+              filename: file.name,
+              key,
+              contentType: file.type,
+              size: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
+            });
 
-          // Get image dimensions using Sharp
-          const metadata = await sharp(file.buffer).metadata();
-          if (!metadata) {
-            throw new Error('Failed to read image metadata');
-          }
+            const command = new PutObjectCommand({
+              Bucket: R2_BUCKET_NAME,
+              Key: key,
+              ContentType: file.type,
+              Metadata: {
+                originalName: file.name,
+                uploadedAt: new Date().toISOString()
+              }
+            });
 
-          console.log(`[R2] Uploading file:`, {
-            filename: file.originalname,
-            key,
-            contentType: file.mimetype,
-            size: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
-          });
+            const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+            const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
 
-          const uploadStartTime = Date.now();
-          const upload = await r2Client.send(new PutObjectCommand({
-            Bucket: R2_BUCKET_NAME,
-            Key: key,
-            Body: file.buffer,
-            ContentType: file.mimetype,
-            Metadata: {
-              originalName: file.originalname,
-              uploadedAt: new Date().toISOString()
-            }
-          }));
+            // Create placeholder image record
+            await db.insert(images).values({
+              galleryId: gallery.id,
+              url: publicUrl,
+              publicId: key,
+              originalFilename: file.name,
+              width: 800, // Placeholder values until metadata is updated
+              height: 600,
+              createdAt: new Date()
+            });
 
-          console.log(`[R2] Upload complete:`, {
-            filename: file.originalname,
-            key,
-            etag: upload.ETag,
-            duration: `${Date.now() - uploadStartTime}ms`
-          });
+            return {
+              fileName: file.name,
+              key,
+              signedUrl,
+              publicUrl,
+            };
+          })
+        );
 
-          return {
-            galleryId: gallery.id,
-            url: publicUrl,
-            publicId: key,
-            originalFilename: file.originalname,
-            width: metadata.width || 800,
-            height: metadata.height || 600,
-            createdAt: new Date()
-          };
-        })
-      );
+        console.log('[Upload] Signed URLs generated:', {
+          slug: req.params.slug,
+          totalFiles: preSignedUrls.length,
+          timestamp: new Date().toISOString()
+        });
 
-      await db.insert(images).values(imageUploads);
-
-      console.log('[Upload] Request complete:', {
-        slug: req.params.slug,
-        totalFiles: imageUploads.length,
-        duration: `${Date.now() - startTime}ms`,
-        timestamp: new Date().toISOString()
-      });
-
-      res.json({
-        success: true,
-        images: imageUploads
-      });
+        res.json({
+          success: true,
+          urls: preSignedUrls
+        });
+      } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({
+          message: 'Failed to generate signed URLs',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     } catch (error) {
       console.error('Upload error:', error);
       res.status(500).json({
