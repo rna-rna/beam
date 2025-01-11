@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { queryClient } from '@/lib/queryClient';
@@ -15,31 +16,6 @@ interface Props {
 export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
   const [isUploading, setIsUploading] = useState(false);
   const { startUpload, updateProgress, completeUpload, uploadProgress } = useUpload();
-
-  const requestSignedUrls = async (files: File[]) => {
-    if (!files.length) {
-      throw new Error('No files provided for upload');
-    }
-
-    const response = await fetch(`/api/galleries/${window.location.pathname.split('/').pop()}/images`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        files: files.map((file) => ({
-          name: file.name,
-          type: file.type,
-          size: file.size,
-        })),
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get signed URLs');
-    }
-
-    return response.json();
-  };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!acceptedFiles?.length) {
@@ -81,28 +57,43 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       setIsUploading(true);
       startUpload(uploadId);
 
-      const { url: signedUrl, publicUrl } = await requestSignedUrls(acceptedFiles[0]);
-
-      if (!signedUrl || !publicUrl) {
-        throw new Error('Failed to get upload URL from server');
-      }
-
-      const response = await fetch(signedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': acceptedFiles[0].type },
-        body: acceptedFiles[0],
+      // Request presigned URL
+      const response = await fetch(`/api/galleries/${window.location.pathname.split('/').pop()}/images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: acceptedFiles.map(file => ({
+            name: file.name,
+            type: file.type,
+            size: file.size
+          }))
+        })
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to upload ${acceptedFiles[0].name}`);
+        throw new Error('Failed to get upload URLs');
       }
 
-      updateProgress(100);
+      const { urls } = await response.json();
 
-      toast({
-        title: 'Upload complete',
-        description: 'All files were successfully uploaded.',
-      });
+      // Upload directly to R2
+      await Promise.all(urls.map(async (urlData: any, index: number) => {
+        const file = acceptedFiles[index];
+        const { signedUrl, publicUrl } = urlData;
+
+        const uploadResponse = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+
+        const progress = ((index + 1) / urls.length) * 100;
+        updateProgress(progress);
+      }));
 
       onUpload(acceptedFiles);
 
@@ -111,6 +102,12 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
         await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
         await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
       }
+
+      toast({
+        title: 'Upload complete',
+        description: 'All files were successfully uploaded.',
+      });
+
     } catch (error) {
       console.error('[Upload Error]:', error);
       toast({
