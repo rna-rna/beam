@@ -477,43 +477,7 @@ export function registerRoutes(app: Express): Server {
       });
     };
 
-    // Enhanced request validation
-    if (!files || !Array.isArray(files) || files.length === 0) {
-        console.warn('[Invalid Upload Request]', {
-            slug,
-            body: req.body,
-            timestamp: new Date().toISOString()
-        });
-        return res.status(400).json({ 
-            success: false,
-            message: 'No valid files provided',
-            details: 'Request must include an array of files with name, type, and size'
-        });
-    }
-
-    // Validate individual file objects
-    const invalidFiles = files.filter(file => 
-        !file.name || !file.type || !file.size ||
-        !file.type.startsWith('image/') ||
-        file.size > 10 * 1024 * 1024 // 10MB limit
-    );
-
-    if (invalidFiles.length > 0) {
-        console.warn('[Invalid File Types/Sizes]', {
-            slug,
-            invalidFiles: invalidFiles.map(f => ({
-                name: f.name,
-                type: f.type,
-                size: f.size
-            })),
-            timestamp: new Date().toISOString()
-        });
-        return res.status(400).json({
-            success: false,
-            message: 'Invalid files detected',
-            details: 'Files must be images under 10MB'
-        });
-    }
+    // The validation is already handled above, removing duplicate code
 
     console.log('[Upload] Starting request:', {
       slug,
