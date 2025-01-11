@@ -30,7 +30,8 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
     }
 
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    console.log('[Upload] Starting upload session:', { uploadId });
+    const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
+    console.log('[Upload] Starting upload session:', { uploadId, totalSize });
 
     try {
       if (!acceptedFiles?.length) {
@@ -56,7 +57,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       }
 
       setIsUploading(true);
-      startUpload(uploadId);
+      startUpload(uploadId, totalSize);
 
       // Request presigned URL
       const response = await fetch(`/api/galleries/${window.location.pathname.split('/').pop()}/images`, {
@@ -78,7 +79,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       const { urls } = await response.json();
 
       // Upload directly to R2
-      await Promise.all(urls.map(async (urlData: any, index: number) => {
+      for (const [index, urlData] of urls.entries()) {
         const file = acceptedFiles[index];
         const { signedUrl, publicUrl } = urlData;
 
@@ -92,9 +93,8 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
           throw new Error(`Failed to upload ${file.name}`);
         }
 
-        const progress = ((index + 1) / urls.length) * 100;
-        updateProgress(progress);
-      }));
+        updateProgress(file.size);
+      }
 
       onUpload();
 
