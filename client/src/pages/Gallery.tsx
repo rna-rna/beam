@@ -1481,8 +1481,7 @@ const renderGalleryControls = useCallback(() => {
         {preloadedImages.has(image.id) && (
           <>
             <img
-              src={image.displayUrl}
-              data-src={image.displayUrl}
+              src={image.url}
               alt={image.originalFilename || 'Uploaded image'}
               className={cn(
                 "w-full h-full object-cover rounded-lg blur-up block",
@@ -1492,7 +1491,6 @@ const renderGalleryControls = useCallback(() => {
               loading="lazy"
               onLoad={(e) => {
                 const img = e.currentTarget;
-                img.src = img.dataset.src || img.src;
                 img.classList.add('loaded');
               }}
               onError={(e) => {
