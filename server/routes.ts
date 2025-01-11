@@ -359,6 +359,40 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Update image metadata after direct R2 uploads
+  app.post('/api/galleries/:slug/images/metadata', async (req: any, res) => {
+    const { images } = req.body;
+    const slug = req.params.slug;
+
+    try {
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, slug),
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      // Insert image metadata into the database
+      await db.insert(images).values(
+        images.map((img: any) => ({
+          galleryId: gallery.id,
+          url: img.publicUrl,
+          publicId: img.key,
+          originalFilename: img.fileName,
+          width: img.width || 800,
+          height: img.height || 600,
+          createdAt: new Date(),
+        }))
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[Metadata Update Error]', error);
+      res.status(500).json({ message: 'Failed to update metadata', error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // Add images to gallery (supports both guest and authenticated uploads)
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
     const { files } = req.body; // Array of file metadata (name, type, size)
