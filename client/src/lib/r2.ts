@@ -14,11 +14,11 @@ export const r2Client = new S3Client({
 export const R2_BUCKET_NAME = process.env.VITE_R2_BUCKET_NAME || "";
 
 export const getR2Url = (publicId: string) => {
-  if (!publicId) return "";
+  if (!publicId) return "/fallback-image.jpg";
   return `${import.meta.env.VITE_R2_PUBLIC_URL}/${publicId}`;
 };
 
-export const getR2ImageUrl = (image: Image) => {
-  if (!image?.publicId) return "";
-  return getR2Url(image.publicId);
+export const getR2ImageUrl = (image: Image | null | undefined) => {
+  if (!image || !image.url) return "/fallback-image.jpg";
+  return image.url;
 };
