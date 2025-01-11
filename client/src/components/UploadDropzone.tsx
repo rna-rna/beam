@@ -46,13 +46,13 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       }
 
       const invalidFiles = acceptedFiles.filter(
-        file => !file.type.startsWith('image/') || file.size > 10 * 1024 * 1024
+        file => !file.type.startsWith('image/') || file.size > 60 * 1024 * 1024
       );
 
       if (invalidFiles.length) {
         toast({
           title: 'Invalid files detected',
-          description: 'Please only upload images under 10MB in size.',
+          description: 'Please only upload images under 60MB in size.',
           variant: 'destructive',
         });
         return;

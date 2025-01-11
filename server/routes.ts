@@ -402,7 +402,7 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
     const { files, uploadId } = req.body;
     const slug = req.params.slug;
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_FILE_SIZE = 60 * 1024 * 1024; // 60MB
     
     const requestId = uploadId || `${slug}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
