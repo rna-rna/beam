@@ -1,4 +1,3 @@
-
 import { useUpload } from "../context/UploadContext";
 import { Progress } from "./ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,6 +10,7 @@ const GlobalUploadProgress = () => {
 
   const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
   const uploadedMB = (uploadedBytes / (1024 * 1024)).toFixed(2);
+  const calculatedProgress = totalSize > 0 ? (uploadedBytes / totalSize) * 100 : 0;
 
   return (
     <AnimatePresence>
@@ -28,9 +28,9 @@ const GlobalUploadProgress = () => {
           Files: {fileCount}<br />
           Size: {uploadedMB} MB / {totalSizeMB} MB
         </div>
-        <Progress value={Math.min(uploadProgress, 100)} className="h-2 mt-2" />
+        <Progress value={Math.min(calculatedProgress, 100)} className="h-2 mt-2" />
         <div className="text-xs text-muted-foreground mt-1 text-right">
-          {Math.min(Math.round(uploadProgress), 100)}%
+          {Math.min(Math.round(calculatedProgress), 100)}%
         </div>
       </motion.div>
     </AnimatePresence>
