@@ -395,9 +395,47 @@ export function registerRoutes(app: Express): Server {
 
   // Add images to gallery (supports both guest and authenticated uploads)
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
-    const { files } = req.body; // Array of file metadata (name, type, size)
+    const { files } = req.body;
     const slug = req.params.slug;
     const USE_MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB
+
+    // Enhanced request validation
+    if (!files || !Array.isArray(files) || files.length === 0) {
+        console.warn('[Invalid Upload Request]', {
+            slug,
+            body: req.body,
+            timestamp: new Date().toISOString()
+        });
+        return res.status(400).json({ 
+            success: false,
+            message: 'No valid files provided',
+            details: 'Request must include an array of files with name, type, and size'
+        });
+    }
+
+    // Validate individual file objects
+    const invalidFiles = files.filter(file => 
+        !file.name || !file.type || !file.size ||
+        !file.type.startsWith('image/') ||
+        file.size > 10 * 1024 * 1024 // 10MB limit
+    );
+
+    if (invalidFiles.length > 0) {
+        console.warn('[Invalid File Types/Sizes]', {
+            slug,
+            invalidFiles: invalidFiles.map(f => ({
+                name: f.name,
+                type: f.type,
+                size: f.size
+            })),
+            timestamp: new Date().toISOString()
+        });
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid files detected',
+            details: 'Files must be images under 10MB'
+        });
+    }
 
     console.log('[Upload] Starting request:', {
       slug,
@@ -414,13 +452,25 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      const gallery = await db.query.galleries.findFirst({
-        where: eq(galleries.slug, slug)
-      });
+        // Check for duplicate request
+        const requestId = `${slug}-${Date.now()}`;
+        const gallery = await db.query.galleries.findFirst({
+            where: eq(galleries.slug, slug)
+        });
 
-      if (!gallery) {
-        return res.status(404).json({ message: 'Gallery not found' });
-      }
+        if (!gallery) {
+            console.error('[Gallery Not Found]', {
+                slug,
+                requestId,
+                timestamp: new Date().toISOString()
+            });
+            return res.status(404).json({
+                success: false,
+                message: 'Gallery not found',
+                error: 'NOT_FOUND',
+                details: 'The specified gallery does not exist'
+            });
+        }
 
       // Allow uploads for guest galleries or authenticated owners
       const userId = req.auth?.userId;
@@ -520,16 +570,38 @@ export function registerRoutes(app: Express): Server {
         timestamp: new Date().toISOString()
       });
 
+      // Ensure all URLs were generated successfully
+      const invalidUrls = preSignedUrls.flat().filter(url => !url.signedUrl || !url.publicUrl);
+      if (invalidUrls.length > 0) {
+          console.error('[URL Generation Failed]', {
+              slug,
+              failedFiles: invalidUrls.map(u => u.fileName),
+              timestamp: new Date().toISOString()
+          });
+          return res.status(500).json({
+              success: false,
+              message: 'Failed to generate URLs for some files',
+              details: 'Internal server error during URL generation'
+          });
+      }
+
       res.json({
-        success: true,
-        urls: preSignedUrls.flat()
+          success: true,
+          urls: preSignedUrls.flat(),
+          requestId: requestId
       });
     } catch (error) {
-      console.error('[Upload Error]:', error);
-      res.status(500).json({
-        message: 'Failed to generate signed URLs',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+        console.error('[Upload Error]:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            slug,
+            timestamp: new Date().toISOString()
+        });
+        res.status(500).json({
+            success: false,
+            message: 'Failed to process upload request',
+            details: error instanceof Error ? error.message : 'Internal server error'
+        });
     }
   });
 
