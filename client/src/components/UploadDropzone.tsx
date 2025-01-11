@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from '@/hooks/use-toast';
@@ -59,83 +60,84 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setCurrentUploadId(uploadId);
 
-    // Validate file types and sizes
-    const invalidFiles = acceptedFiles.filter(
-      file => !file.type.startsWith('image/') || file.size > 10 * 1024 * 1024
-    );
+    try {
+      // Validate file types and sizes
+      const invalidFiles = acceptedFiles.filter(
+        file => !file.type.startsWith('image/') || file.size > 10 * 1024 * 1024
+      );
 
-    if (invalidFiles.length) {
+      if (invalidFiles.length) {
+        toast({
+          title: 'Invalid files detected',
+          description: 'Please only upload images under 10MB in size.',
+          variant: 'destructive',
+        });
+        setCurrentUploadId(null);
+        return;
+      }
+
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      // Request pre-signed URLs with validation
+      const { urls } = await requestSignedUrls(acceptedFiles);
+
+      console.log('[Upload] Starting upload attempt:', {
+        files: acceptedFiles.map(f => ({
+          name: f.name,
+          size: `${Math.round(f.size / 1024)}KB`,
+          type: f.type,
+        })),
+        timestamp: new Date().toISOString(),
+      });
+
+      if (!urls || !Array.isArray(urls)) {
+        throw new Error('Failed to get upload URLs from server');
+      }
+
+      // Upload files without retries
+      for (let i = 0; i < acceptedFiles.length; i++) {
+        const file = acceptedFiles[i];
+        const { signedUrl } = urls[i];
+
+        if (!signedUrl) {
+          throw new Error(`Missing upload URL for file: ${file.name}`);
+        }
+
+        const response = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
+        }
+
+        console.log(`[Upload] Successfully uploaded: ${file.name}`);
+        setUploadProgress(((i + 1) / acceptedFiles.length) * 100);
+      }
+
       toast({
-        title: 'Invalid files detected',
-        description: 'Please only upload images under 10MB in size.',
+        title: 'Upload complete',
+        description: 'All files were successfully uploaded.',
+      });
+
+      onUpload(acceptedFiles);
+      setCurrentUploadId(null); //Added to handle case where upload completes successfully
+    } catch (error) {
+      console.error('[Upload Error]:', error);
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Upload failed. Please try again.',
         variant: 'destructive',
       });
-      setCurrentUploadId(null);
-      return;
+      setCurrentUploadId(null); //Added to handle case where upload fails
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
     }
-
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    // Request pre-signed URLs with validation
-    const { urls } = await requestSignedUrls(acceptedFiles);
-
-    console.log('[Upload] Starting upload attempt:', {
-      files: acceptedFiles.map(f => ({
-        name: f.name,
-        size: `${Math.round(f.size / 1024)}KB`,
-        type: f.type,
-      })),
-      timestamp: new Date().toISOString(),
-    });
-
-    if (!urls || !Array.isArray(urls)) {
-      throw new Error('Failed to get upload URLs from server');
-    }
-
-    // Upload files without retries
-    for (let i = 0; i < acceptedFiles.length; i++) {
-      const file = acceptedFiles[i];
-      const { signedUrl } = urls[i];
-
-      if (!signedUrl) {
-        throw new Error(`Missing upload URL for file: ${file.name}`);
-      }
-
-      const response = await fetch(signedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
-      }
-
-      console.log(`[Upload] Successfully uploaded: ${file.name}`);
-      setUploadProgress(((i + 1) / acceptedFiles.length) * 100);
-    }
-
-    toast({
-      title: 'Upload complete',
-      description: 'All files were successfully uploaded.',
-    });
-
-    onUpload(acceptedFiles);
-    setCurrentUploadId(null); //Added to handle case where upload completes successfully
-  } catch (error) {
-    console.error('[Upload Error]:', error);
-    toast({
-      title: 'Upload failed',
-      description: error instanceof Error ? error.message : 'Upload failed. Please try again.',
-      variant: 'destructive',
-    });
-    setCurrentUploadId(null); //Added to handle case where upload fails
-  } finally {
-    setIsUploading(false);
-    setUploadProgress(0);
-  }
-}, [onUpload, isUploading, currentUploadId]);
+  }, [onUpload, isUploading, currentUploadId]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
