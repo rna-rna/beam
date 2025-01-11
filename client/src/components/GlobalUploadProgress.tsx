@@ -27,9 +27,9 @@ const GlobalUploadProgress = () => {
         Files: {activeUploads.length}<br />
         Size: {uploadedMB} MB / {totalSizeMB} MB
       </div>
-      <Progress value={uploadProgress} className="h-2" />
+      <Progress value={Math.min(uploadProgress, 100)} className="h-2" />
       <div className="text-xs text-muted-foreground mt-1 text-right">
-        {Math.round(uploadProgress)}%
+        {Math.min(Math.round(uploadProgress), 100)}%
       </div>
     </motion.div>
   );
