@@ -69,7 +69,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
     (window as any).lastUploadAttempt = Date.now();
     (window as any).lastUploadKey = uploadKey;
 
-    const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     console.log('[Upload] Starting new upload session:', { uploadId });
 
     try {
