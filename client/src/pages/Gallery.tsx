@@ -129,10 +129,18 @@ import { Helmet } from 'react-helmet';
 
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
   const getR2ImageUrl = (image: Image | null | undefined, slug?: string) => {
+    console.debug('getR2ImageUrl called with:', {
+      hasImage: !!image,
+      imageType: image ? typeof image : 'undefined',
+      imageFields: image ? Object.keys(image) : [],
+      slug,
+      stack: new Error().stack.split('\n').slice(0,3)
+    });
+
     if (!image) {
       console.error('Image object is null or undefined:', {
         image,
-        stack: new Error().stack 
+        calledFrom: new Error().stack.split('\n')[2]
       });
       return '/fallback-image.jpg';
     }
@@ -141,16 +149,23 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       console.warn('Missing URL in image object:', {
         imageId: image.id,
         publicId: image.publicId,
-        originalFilename: image.originalFilename
+        originalFilename: image.originalFilename,
+        imageKeys: Object.keys(image),
+        calledFrom: new Error().stack.split('\n')[2]
       });
       return '/fallback-image.jpg';
     }
 
-    console.debug('Generating R2 URL:', {
+    console.debug('Valid image URL generated:', {
       imageId: image.id,
       url: image.url,
       publicId: image.publicId,
-      slug
+      dimensions: `${image.width}x${image.height}`,
+      hasRequiredFields: {
+        id: !!image.id,
+        url: !!image.url,
+        originalFilename: !!image.originalFilename
+      }
     });
 
     return image.url;
@@ -1412,7 +1427,25 @@ const renderGalleryControls = useCallback(() => {
     setIsOpenShareModal
   ]);
 
-  const renderImage = (image: Image, index: number) => (
+  const renderImage = (image: Image, index: number) => {
+    console.debug('renderImage called:', {
+      imageId: image.id,
+      index,
+      hasRequiredFields: {
+        id: !!image.id,
+        url: !!image.url,
+        originalFilename: !!image.originalFilename,
+        width: !!image.width,
+        height: !!image.height
+      },
+      imageState: {
+        preloaded: preloadedImages.has(image.id),
+        selected: selectedImages.includes(image.id),
+        dragged: draggedItemIndex === index
+      }
+    });
+    
+    return (
     <LazyLoad
       key={image.id}
       height={200}
