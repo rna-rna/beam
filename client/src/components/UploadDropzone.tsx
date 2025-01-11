@@ -158,7 +158,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
         {isUploading ? (
           <div className="space-y-4">
             <Loader2 className="w-8 h-8 mx-auto animate-spin text-muted-foreground" />
-            <Progress value={uploadProgress} className="w-full" />
+            <Progress value={uploadProgress || 0} className="w-full" />
             <p className="text-sm text-muted-foreground">Uploading...</p>
           </div>
         ) : (
