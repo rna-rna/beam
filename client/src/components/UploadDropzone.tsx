@@ -49,11 +49,20 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       return;
     }
 
-    // Prevent concurrent uploads with stronger locking
-    if (isUploading || currentUploadId || (window as any).uploadLock) {
-      console.log('[Upload] Upload already in progress or locked');
+    // Prevent concurrent uploads and handle cleanup
+    if (isUploading || currentUploadId) {
+      console.log('[Upload] Upload already in progress');
       return;
     }
+
+    // Add delay between upload attempts
+    const lastUploadTime = (window as any).lastUploadAttempt || 0;
+    const currentTime = Date.now();
+    if (currentTime - lastUploadTime < 2000) { // 2 second cooldown
+      console.log('[Upload] Too soon after last upload');
+      return;
+    }
+    (window as any).lastUploadAttempt = currentTime;
 
     // Set upload lock
     (window as any).uploadLock = true;
@@ -186,20 +195,17 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
         description: error instanceof Error ? error.message : 'Upload failed. Please try again.',
         variant: 'destructive',
       });
-      
-      // Clean up failed upload state
-      console.log('[Upload] Cleaning up failed upload state:', { uploadId });
-      setCurrentUploadId(null);
     } finally {
+      // Comprehensive cleanup
       console.log('[Upload] Resetting upload state');
       setIsUploading(false);
       setUploadProgress(0);
+      setCurrentUploadId(null);
       
-      // Clear upload state after delay
+      // Prevent rapid re-uploads
       setTimeout(() => {
-        setCurrentUploadId(null);
-        (window as any).lastUploadTime = 0;
-      }, 1000);
+        (window as any).lastUploadAttempt = 0;
+      }, 2000);
     }
   }, [onUpload, isUploading, currentUploadId]);
 
