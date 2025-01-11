@@ -80,6 +80,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
       const { urls } = await response.json();
       let totalUploadedBytes = 0;
+      const fileProgress = new Map();
 
       // Upload directly to R2
       for (const [index, urlData] of urls.entries()) {
@@ -89,13 +90,16 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         
-        xhr.upload.prevUploadedBytes = 0;
+        fileProgress.set(index, 0);
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
-            const incrementBytes = event.loaded - (xhr.upload.prevUploadedBytes || 0);
-            xhr.upload.prevUploadedBytes = event.loaded;
+            const currentFileProgress = event.loaded;
+            const previousFileProgress = fileProgress.get(index) || 0;
+            const incrementBytes = currentFileProgress - previousFileProgress;
+            
+            fileProgress.set(index, currentFileProgress);
             totalUploadedBytes += incrementBytes;
-            updateProgress(totalUploadedBytes);
+            updateProgress(Math.min(totalUploadedBytes, totalSize));
           }
         };
 
