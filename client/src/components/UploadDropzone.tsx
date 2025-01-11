@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useMemo } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useDropzone } from "react-dropzone";
@@ -52,7 +51,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
           method: 'POST',
           body: formData,
         });
-        
+
         if (!chunkRes.ok) throw new Error(`HTTP error! status: ${chunkRes.status}`);
         return await chunkRes.json();
       } catch (error) {
@@ -66,101 +65,85 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
 
   const uploadFileMultipart = async (file: File) => {
     const chunks = createFileChunks(file);
-    const fileName = file.name;
-    
+    console.log(`[Multipart] Created ${chunks.length} chunks for "${file.name}"`);
+
     try {
-      // Step 1: Start Multipart Upload
+      // Start multipart upload
       const startRes = await fetch('/api/multipart/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName, contentType: file.type }),
+        body: JSON.stringify({ fileName: file.name, contentType: file.type })
       });
-      const { uploadId, url } = await startRes.json();
+      const { uploadId } = await startRes.json();
+      console.log(`[Multipart] Started upload ID: ${uploadId} for "${file.name}"`);
 
-      // Step 2: Upload Chunks
-      const uploadedChunks = await Promise.all(
-        chunks.map(async (chunk, index) => {
-          const result = await retryUploadChunk(chunk, index, fileName);
-          setUploadProgress(Math.round(((index + 1) / chunks.length) * 100));
-          return result;
-        })
-      );
+      // Upload chunks
+      for (let i = 0; i < chunks.length; i++) {
+        console.log(`[Multipart] Uploading chunk ${i + 1}/${chunks.length} for "${file.name}"`);
+        const formData = new FormData();
+        formData.append('chunk', chunks[i]);
+        formData.append('chunkIndex', i.toString());
+        formData.append('fileName', file.name);
 
-      // Step 3: Complete Upload
-      const completeRes = await fetch('/api/multipart/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          fileName,
-          totalChunks: chunks.length 
-        }),
-      });
+        const chunkRes = await fetch('/api/multipart/upload-chunk', {
+          method: 'POST',
+          body: formData
+        });
 
-      if (!completeRes.ok) throw new Error('Failed to complete upload');
-      const finalResult = await completeRes.json();
-      return finalResult.url;
+        if (!chunkRes.ok) {
+          throw new Error(`Chunk ${i} upload failed: ${chunkRes.statusText}`);
+        }
+
+        console.log(`[Multipart] Completed chunk ${i + 1}/${chunks.length} for "${file.name}"`);
+        setUploadProgress(Math.round(((i + 1) / chunks.length) * 100));
+      }
+
+      return true;
     } catch (error) {
-      console.error('Multipart upload failed:', error);
+      console.error(`[Multipart] Upload failed for "${file.name}":`, error);
       throw error;
     }
   };
 
-  const USE_MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB
+  const uploadFileSingle = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    console.log(`[Single] Starting upload for "${file.name}"`);
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+        console.log('Upload response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}\n${errorText}`);
+      }
+
+      return response.json();
+  };
+
+  const USE_MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB threshold
 
   const uploadFile = async (file: File) => {
+    console.log(`[Upload] Starting upload for "${file.name}"`, {
+      size: file.size,
+      type: file.type,
+      lastModified: new Date(file.lastModified).toISOString()
+    });
+
     if (file.size > USE_MULTIPART_THRESHOLD) {
-      console.log('Using multipart upload for:', file.name, `(size: ${file.size} bytes)`);
+      console.log(`[Upload] Using multipart upload for "${file.name}" (${file.size} bytes)`);
       return uploadFileMultipart(file);
     } else {
-      console.log('Using single PUT upload for:', file.name);
-      console.log('File details:', {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        lastModified: new Date(file.lastModified).toISOString()
-      });
-      
-      // Get signed URL
-      const startRes = await fetch('/api/single-upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: file.name, contentType: file.type }),
-      });
-
-      if (!startRes.ok) {
-        throw new Error(`Failed to get signed URL: ${startRes.statusText}`);
-      }
-
-      const { url, key } = await startRes.json();
-      
-      console.log('Signed URL details:', {
-        url,
-        key,
-        contentType: file.type
-      });
-
-      // Upload file using signed URL
-      const uploadRes = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': file.type,
-          'Content-Length': file.size.toString()
-        },
-        body: file,
-      });
-
-      console.log('Upload response:', {
-        status: uploadRes.status,
-        statusText: uploadRes.statusText,
-        headers: Object.fromEntries(uploadRes.headers.entries())
-      });
-
-      if (!uploadRes.ok) {
-        const errorText = await uploadRes.text();
-        throw new Error(`Upload failed: ${uploadRes.status} ${uploadRes.statusText}\n${errorText}`);
-      }
-
-      return `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
+      console.log(`[Upload] Using single PUT upload for "${file.name}" (${file.size} bytes)`);
+      return uploadFileSingle(file);
     }
   };
 
@@ -219,7 +202,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: UploadDropz
         title: "Success",
         description: "Images uploaded successfully!",
       });
-      
+
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
 
       if (!currentPath.includes('/g/')) {
