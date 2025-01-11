@@ -122,8 +122,19 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
         description: 'All files were successfully uploaded.',
       });
 
+      // Call the provided onUpload handler
       onUpload(acceptedFiles);
-      setCurrentUploadId(null); //Added to handle case where upload completes successfully
+      
+      // Clear upload state
+      setCurrentUploadId(null);
+      
+      // Force invalidate gallery queries to trigger a fresh fetch
+      const gallerySlug = window.location.pathname.split('/').pop();
+      if (gallerySlug) {
+        const queryClient = new QueryClient();
+        await queryClient.invalidateQueries([`/api/galleries/${gallerySlug}`]);
+        await queryClient.refetchQueries([`/api/galleries/${gallerySlug}`]);
+      }
     } catch (error) {
       console.error('[Upload Error]:', error);
       toast({
