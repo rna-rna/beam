@@ -1928,34 +1928,19 @@ const handleImageClick = (index: number) => {
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
                 {renderUploadPlaceholders()}
-                {console.log('Gallery Images:', {
-                  count: gallery?.images?.length,
-                  hasImages: !!gallery?.images,
-                  isArray: Array.isArray(gallery?.images),
-                  sampleImage: gallery?.images?.[0] ? {
-                    id: gallery.images[0].id,
-                    url: gallery.images[0].url,
-                    originalFilename: gallery.images[0].originalFilename,
-                    width: gallery.images[0].width,
-                    height: gallery.images[0].height
-                  } : null
-                })}
-                {gallery?.images
-                  .filter((image: Image) => {
-                    // Validate image object first
+                {useMemo(() => {
+                  const validImages = gallery?.images?.filter((image: Image) => {
                     if (!image || !image.url || !image.id) return false;
-                    
-                    // Apply starred filter
                     if (showStarredOnly && !image.starred) return false;
-                    // Apply comments filter
                     if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
-                    // Apply user filter
                     if (selectedStarredUsers.length > 0) {
                       return image.stars?.some(star => selectedStarredUsers.includes(star.userId)) || false;
                     }
                     return true;
-                  })
-                  .map((image: Image, index: number) => renderImage(image, index))}
+                  }) || [];
+                  
+                  return validImages.map((image: Image, index: number) => renderImage(image, index));
+                }, [gallery?.images, showStarredOnly, showWithComments, selectedStarredUsers, renderImage])}
               </Masonry>
             </motion.div>
           ) : (
