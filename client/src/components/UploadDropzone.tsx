@@ -81,29 +81,23 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
       setIsUploading(true);
       startUpload(uploadId);
 
-      const { urls } = await requestSignedUrls(acceptedFiles);
+      const { url: signedUrl, publicUrl } = await requestSignedUrls(acceptedFiles[0]);
 
-      if (!urls || !Array.isArray(urls)) {
-        throw new Error('Failed to get upload URLs from server');
+      if (!signedUrl || !publicUrl) {
+        throw new Error('Failed to get upload URL from server');
       }
 
-      // Upload files directly to R2
-      await Promise.all(acceptedFiles.map(async (file, index) => {
-        const { signedUrl, publicUrl } = urls[index];
+      const response = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': acceptedFiles[0].type },
+        body: acceptedFiles[0],
+      });
 
-        const response = await fetch(signedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file,
-        });
+      if (!response.ok) {
+        throw new Error(`Failed to upload ${acceptedFiles[0].name}`);
+      }
 
-        if (!response.ok) {
-          throw new Error(`Failed to upload ${file.name}`);
-        }
-
-        const progress = ((index + 1) / acceptedFiles.length) * 100;
-        updateProgress(progress);
-      }));
+      updateProgress(100);
 
       toast({
         title: 'Upload complete',

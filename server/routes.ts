@@ -50,12 +50,7 @@ declare global {
 
 
 
-const upload = multer({
-  // storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
-  }
-});
+const upload = multer();
 
 export function registerRoutes(app: Express): Server {
   // Ensure uploads directory exists
@@ -1888,112 +1883,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Multipart Upload Endpoints
-  app.post('/api/multipart/start', async (req: any, res) => {
-    const { fileName, contentType } = req.body;
-
-    console.log('Starting multipart upload:', {
-      fileName,
-      contentType,
-      timestamp: new Date().toISOString()
-    });
-
-    try {
-      const upload = await r2Client.send(new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME,
-        Key: `uploads/${Date.now()}-${fileName}`,
-        ContentType: contentType,
-      }));
-
-      const key = `uploads/${fileName}`;
-      res.json({ 
-        uploadId: upload.ETag,
-        url: `${process.env.VITE_R2_PUBLIC_URL}/${key}`,
-        key
-      });
-    } catch (err) {
-      console.error('Error initiating multipart upload:', err);
-      res.status(500).json({ error: 'Failed to start multipart upload' });
-    }
-  });
-
-  app.post('/api/multipart/upload-chunk', upload.single('chunk'), async (req: any, res) => {
-    const { chunkIndex, fileName } = req.body;
-    const file = req.file;
-
-    if (!file) {
-      console.error('Chunk upload failed:', {
-        reason: 'No file received',
-        fileName,
-        chunkIndex,
-        timestamp: new Date().toISOString()
-      });
-      return res.status(400).json({ error: 'No chunk uploaded' });
-    }
-
-    console.log('Received chunk:', {
-      fileName,
-      chunkIndex,
-      size: file.size,
-      mimeType: file.mimetype,
-      timestamp: new Date().toISOString()
-    });
-
-    try {
-      const chunkPath = path.join(uploadsDir, 'chunks', `${fileName}-chunk-${chunkIndex}`);
-      await fs.promises.writeFile(chunkPath, file.buffer);
-
-      res.json({ 
-        success: true,
-        chunkIndex
-      });
-    } catch (err) {
-      console.error('Error uploading chunk:', err);
-      res.status(500).json({ error: 'Failed to upload chunk' });
-    }
-  });
-
-  app.post('/api/multipart/complete', async (req: any, res) => {
-    const { fileName, totalChunks } = req.body;
-
-    console.log('Completing multipart upload:', {
-      fileName,
-      totalChunks,
-      timestamp: new Date().toISOString()
-    });
-
-    try {
-      let finalBuffer = Buffer.alloc(0);
-
-      // Combine chunks
-      for (let i = 0; i < totalChunks; i++) {
-        const chunkPath = path.join(uploadsDir, 'chunks', `${fileName}-chunk-${i}`);
-        const chunkBuffer = await fs.promises.readFile(chunkPath);
-        finalBuffer = Buffer.concat([finalBuffer, chunkBuffer]);
-
-        // Clean up chunk
-        await fs.promises.unlink(chunkPath);
-      }
-
-      // Upload final file to R2
-      const finalKey = `uploads/${fileName}`;
-      await r2Client.send(new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME,
-        Key: finalKey,
-        Body: finalBuffer,
-        ContentType: 'image/jpeg' // Adjust based on file type
-      }));
-
-      res.json({
-        success: true,
-        url: `${process.env.VITE_R2_PUBLIC_URL}/${finalKey}`,
-        key: finalKey
-      });
-    } catch (err) {
-      console.error('Error completing multipart upload:', err);
-      res.status(500).json({ error: 'Failed to complete multipart upload' });
-    }
-  });
+  // Direct upload endpoints only
 
   // Mount protected routes
   app.use('/api', protectedRouter);
