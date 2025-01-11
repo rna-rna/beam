@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import About from "@/pages/About"; // Added import for About page
 import { UploadProvider } from "./context/UploadContext"; // Import UploadProvider
+import GlobalUploadProgress from "./components/GlobalUploadProgress";
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
@@ -263,6 +264,7 @@ export default function App() {
 
   return (
     <UploadProvider>
+      <GlobalUploadProgress />
       <AppContent />
     </UploadProvider>
   );
