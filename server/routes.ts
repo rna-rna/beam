@@ -48,19 +48,7 @@ declare global {
   }
 }
 
-// Configure multer with Cloudinary storage
-// import { CloudinaryStorage } from 'multer-storage-cloudinary';
-// import { cloudinary } from './lib/cloudinary';
 
-// const storage = new CloudinaryStorage({
-//   cloudinary,
-//   params: {
-//     folder: 'galleries',
-//     format: async (req, file) => 'jpg',
-//     public_id: (req, file) => `${Date.now()}-${file.originalname.split('.')[0]}`,
-//     transformation: [{ width: 1600, crop: "limit" }]
-//   },
-// });
 
 const upload = multer({
   // storage,
@@ -127,24 +115,9 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Function to generate OG image
   async function generateOgImage(galleryId: string, imagePath: string) {
-    // const overlay = 'beam-bar_q6desn';
-    // const uploadResponse = await cloudinary.uploader.upload(imagePath, {
-    //   eager: [{
-    //     width: 1200,
-    //     height: 630,
-    //     crop: 'limit',
-    //     overlay: overlay,
-    //     gravity: 'center',
-    //     fetch_format: 'auto',
-    //     quality: 'auto',
-    //   }],
-    //   public_id: `og_gallery_${galleryId}`,
-    //   overwrite: true,
-    // });
-    // return uploadResponse.eager[0].secure_url;
-    return null; // Placeholder - needs R2 equivalent
+    // TODO: Implement R2-based OG image generation if needed
+    return null;
   }
 
   // Create gallery (supports both authenticated and guest users)
@@ -175,22 +148,7 @@ export function registerRoutes(app: Express): Server {
       let ogImageUrl = null;
       if (files && files.length > 0) {
         try {
-          // Upload first image with OG optimization
-          // const uploadResponse = await cloudinary.uploader.upload(files[0].path, {
-          //   transformation: [{
-          //     width: 1200,
-          //     height: 630,
-          //     crop: 'fill',
-          //     gravity: "auto",
-          //     overlay: 'beam-bar_q6desn',
-          //     color: 'rgb:151515',
-          //     fetch_format: 'auto',
-          //     quality: 'auto'
-          //   }],
-          //   public_id: `og_gallery_${slug}`,
-          //   folder: 'galleries/og'
-          // });
-          // ogImageUrl = uploadResponse.secure_url;
+          
           const imageUploads = await Promise.all(
             files.map(async (file) => {
               const fileName = `uploads/${Date.now()}-${file.originalname}`;
