@@ -398,6 +398,40 @@ export function registerRoutes(app: Express): Server {
     const { files } = req.body;
     const slug = req.params.slug;
     const USE_MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB
+    
+    const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log('[Upload Request]', {
+      requestId,
+      slug,
+      filesCount: files?.length || 0,
+      auth: req.auth ? 'authenticated' : 'unauthenticated',
+      timestamp: new Date().toISOString()
+    });
+
+    // Validate request structure
+    if (!files || !Array.isArray(files)) {
+      console.warn('[Invalid Request]', {
+        requestId,
+        reason: 'Missing or invalid files array',
+        body: req.body,
+        timestamp: new Date().toISOString()
+      });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid request format',
+        requestId
+      });
+    }
+
+    // Track request processing
+    const processingStart = Date.now();
+    const logTiming = (stage: string) => {
+      console.log(`[Upload Timing] ${stage}`, {
+        requestId,
+        duration: Date.now() - processingStart + 'ms',
+        timestamp: new Date().toISOString()
+      });
+    };
 
     // Enhanced request validation
     if (!files || !Array.isArray(files) || files.length === 0) {

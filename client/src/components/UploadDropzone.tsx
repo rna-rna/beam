@@ -74,10 +74,60 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
 
       // Request pre-signed URLs with validation
       const { urls } = await requestSignedUrls(acceptedFiles);
-      
-      if (!urls || !Array.isArray(urls) || urls.length !== acceptedFiles.length) {
-        throw new Error('Invalid response from server: missing or incomplete upload URLs');
+
+      console.log('[Upload] Starting upload attempt:', {
+        files: acceptedFiles.map(f => ({
+          name: f.name,
+          size: Math.round(f.size / 1024) + 'KB',
+          type: f.type
+        })),
+        timestamp: new Date().toISOString()
+      });
+
+      if (!urls || !Array.isArray(urls)) {
+        console.error('[Upload Error] Invalid URLs response:', {
+          urls,
+          timestamp: new Date().toISOString()
+        });
+        throw new Error('Invalid response: Missing upload URLs');
       }
+
+      // Track retry attempts
+      const maxRetries = 3;
+      const uploadWithRetry = async (file: File, url: string, attempt = 1) => {
+        try {
+          console.log(`[Upload] Attempt ${attempt} for file: ${file.name}`);
+          const response = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file
+          });
+
+          if (!response.ok) {
+            throw new Error(`Upload failed with status ${response.status}`);
+          }
+
+          console.log(`[Upload] Success for file: ${file.name}`, {
+            attempt,
+            status: response.status,
+            timestamp: new Date().toISOString()
+          });
+
+          return response;
+        } catch (error) {
+          console.warn(`[Upload] Failed attempt ${attempt} for file: ${file.name}`, {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+          });
+
+          if (attempt < maxRetries) {
+            console.log(`[Upload] Retrying file: ${file.name} (Attempt ${attempt + 1}/${maxRetries})`);
+            return uploadWithRetry(file, url, attempt + 1);
+          }
+          throw error;
+        }
+      };
+
 
       // Upload files directly to R2 with individual error handling
       const uploadResults = await Promise.allSettled(
@@ -87,15 +137,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0 }: Props) {
             throw new Error(`Missing upload URL for file: ${file.name}`);
           }
 
-          const uploadResponse = await fetch(signedUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': file.type },
-            body: file,
-          });
-
-          if (!uploadResponse.ok) {
-            throw new Error(`Failed to upload file: ${file.name} (${uploadResponse.status})`);
-          }
+          await uploadWithRetry(file, signedUrl);
 
           console.log(`Uploaded file: ${file.name} -> ${publicUrl}`);
           setUploadProgress(((index + 1) / acceptedFiles.length) * 100);
