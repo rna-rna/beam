@@ -30,7 +30,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
-    console.log('[Upload] Starting upload session:', { uploadId, totalSize });
+    console.log('[Upload] Starting upload session:', { uploadId, totalSize, fileCount: acceptedFiles.length });
 
     startUpload(uploadId, totalSize, acceptedFiles.length);
 
