@@ -272,7 +272,7 @@ export function registerRoutes(app: Express): Server {
       try {
         const imageInserts = [];
         for (const file of req.files) {
-          const key = `uploads/${file.filename}`;
+          const key = `uploads/originals/${file.filename}`;
           const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
           const [image] = await db.insert(images).values({
             galleryId: gallery.id,
@@ -573,7 +573,7 @@ export function registerRoutes(app: Express): Server {
         files.map(async (file: any) => {
           const timestamp = Date.now();
           // Single file upload
-          const key = `uploads/${timestamp}-${file.name}`;
+          const key = `uploads/originals/${timestamp}-${file.name}`;
           const command = new PutObjectCommand({
             Bucket: R2_BUCKET_NAME,
             Key: key,
