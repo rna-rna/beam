@@ -23,6 +23,14 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       return;
     }
 
+    console.log('[Upload] Processing new batch:', {
+      files: acceptedFiles.map(f => ({
+        name: f.name,
+        type: f.type,
+        size: f.size
+      }))
+    });
+
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
     console.log('[Upload] Starting upload session:', { uploadId, totalSize, fileCount: acceptedFiles.length, gallerySlug });

@@ -569,40 +569,64 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Generate pre-signed URL for direct upload
+      // Generate unique batch ID for this upload request
+      const batchId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      console.log('[Generating presigned URLs]', {
+        batchId,
+        filesCount: files.length,
+        files: files.map((f: any) => ({
+          name: f.name,
+          type: f.type,
+          size: f.size
+        }))
+      });
+
       const preSignedUrls = await Promise.all(
         files.map(async (file: any) => {
           const timestamp = Date.now();
-          // Single file upload
-          const key = `uploads/originals/${timestamp}-${file.name}`;
+          const key = `uploads/originals/${timestamp}-${batchId}-${file.name}`;
+          
           const command = new PutObjectCommand({
             Bucket: R2_BUCKET_NAME,
             Key: key,
             ContentType: file.type,
             Metadata: {
               originalName: file.name,
-              uploadedAt: new Date().toISOString()
+              uploadedAt: new Date().toISOString(),
+              batchId
             }
           });
 
           const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
           const publicUrl = `${process.env.VITE_R2_PUBLIC_URL}/${key}`;
 
-          // Create placeholder image record for single upload
-          await db.insert(images).values({
-            galleryId: gallery.id,
-            url: publicUrl,
-            publicId: key,
-            originalFilename: file.name,
-            width: 800,
-            height: 600,
-            createdAt: new Date()
+          // Create placeholder image record with batch tracking
+          const [image] = await db.insert(images)
+            .values({
+              galleryId: gallery.id,
+              url: publicUrl,
+              publicId: key,
+              originalFilename: file.name,
+              width: 800,
+              height: 600,
+              createdAt: new Date()
+            })
+            .returning();
+
+          console.log('[Generated presigned URL]', {
+            batchId,
+            fileName: file.name,
+            imageId: image.id,
+            key
           });
 
           return {
             fileName: file.name,
             key,
             signedUrl,
-            publicUrl
+            publicUrl,
+            imageId: image.id
           };
         })
       );
