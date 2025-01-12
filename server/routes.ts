@@ -444,20 +444,6 @@ export function registerRoutes(app: Express): Server {
       }))
     });
 
-    // Check for previously processed files
-    const existingHashes = processedRequests.get(requestId)?.fileHashes || [];
-    const newFiles = files.filter(file => {
-      const hash = `${file.name}-${file.size}`;
-      return !existingHashes.includes(hash);
-    });
-
-    console.log('[New Files to Process]', {
-      requestId,
-      totalFiles: files.length,
-      newFiles: newFiles.length,
-      newFileNames: newFiles.map(f => f.name)
-    });
-
     // First get the gallery
     const gallery = await db.query.galleries.findFirst({
       where: eq(galleries.slug, slug)
@@ -477,7 +463,8 @@ export function registerRoutes(app: Express): Server {
       });
     }
 
-    // Check for existing files using filename and size
+    // Check for existing files in both request history and database
+    const existingHashes = processedRequests.get(requestId)?.fileHashes || [];
     const existingFiles = await db.query.images.findMany({
       where: and(
         eq(images.galleryId, gallery.id),
@@ -490,8 +477,18 @@ export function registerRoutes(app: Express): Server {
       existingFiles.map(f => [f.originalFilename, f])
     );
 
-    // Filter out duplicates
-    const newFiles = files.filter(file => !existingFileMap.has(file.name));
+    // Filter out duplicates from both sources
+    const newFiles = files.filter(file => {
+      const hash = `${file.name}-${file.size}`;
+      return !existingHashes.includes(hash) && !existingFileMap.has(file.name);
+    });
+
+    console.log('[File Deduplication]', {
+      requestId,
+      totalFiles: files.length,
+      duplicateFiles: files.length - newFiles.length,
+      newFiles: newFiles.map(f => f.name)
+    });
 
     console.log('[File Deduplication]', {
       requestId,
