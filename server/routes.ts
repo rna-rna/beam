@@ -463,56 +463,7 @@ export function registerRoutes(app: Express): Server {
       });
     }
 
-    // Check for existing files in both request history and database
-    const existingHashes = processedRequests.get(requestId)?.fileHashes || [];
-    const existingFiles = await db.query.images.findMany({
-      where: and(
-        eq(images.galleryId, gallery.id),
-        inArray(images.originalFilename, files.map(f => f.name))
-      )
-    });
-
-    // Map existing files for quick lookup
-    const existingFileMap = new Map(
-      existingFiles.map(f => [f.originalFilename, f])
-    );
-
-    // Filter out duplicates from both sources
-    const newFiles = files.filter(file => {
-      const hash = `${file.name}-${file.size}`;
-      return !existingHashes.includes(hash) && !existingFileMap.has(file.name);
-    });
-
-    console.log('[File Deduplication]', {
-      requestId,
-      totalFiles: files.length,
-      duplicateFiles: files.length - newFiles.length,
-      newFiles: newFiles.map(f => f.name)
-    });
-
-    console.log('[File Deduplication]', {
-      requestId,
-      totalFiles: files.length,
-      duplicateFiles: files.length - newFiles.length,
-      duplicates: files.filter(f => existingFileMap.has(f.name)).map(f => f.name),
-      newFiles: newFiles.map(f => f.name)
-    });
-
-    // Return early if all files are duplicates
-    if (newFiles.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'All files already exist in this gallery',
-        details: 'No new files to upload',
-        existingFiles: existingFiles.map(f => ({
-          name: f.originalFilename,
-          url: f.url
-        }))
-      });
-    }
-
-    // Use deduplicated files for the rest of processing
-    files = newFiles;
+    // Duplicate detection removed
 
     // Track this request with detailed metadata
     processedRequests.set(requestId, {
