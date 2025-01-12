@@ -400,7 +400,7 @@ export function registerRoutes(app: Express): Server {
   const DEBOUNCE_TIMEOUT = 60000; // 1 minute timeout
 
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
-    const { files, uploadId } = req.body;
+    let { files, uploadId } = req.body;
     const slug = req.params.slug;
     const MAX_FILE_SIZE = 60 * 1024 * 1024; // 60MB
 
