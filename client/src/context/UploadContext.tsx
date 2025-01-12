@@ -96,18 +96,25 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   };
 
   const completeUpload = (uploadId: string) => {
-    setActiveUploads(prev => prev.filter(id => id !== uploadId));
-    setUploadInfo(prev => {
-      const { [uploadId]: removed, ...rest } = prev;
-      const { progress } = getTotalProgress(rest);
-      setUploadProgress(progress);
-      return rest;
+    setActiveUploads(prev => {
+      const newUploads = prev.filter(id => id !== uploadId);
+      // Reset uploading state if this was the last upload
+      if (newUploads.length === 0) {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }
+      return newUploads;
     });
 
-    if (activeUploads.length <= 1) {
-      setIsUploading(false);
-      setUploadProgress(0);
-    }
+    setUploadInfo(prev => {
+      const { [uploadId]: removed, ...rest } = prev;
+      // Only recalculate progress if there are remaining uploads
+      if (Object.keys(rest).length > 0) {
+        const { progress } = getTotalProgress(rest);
+        setUploadProgress(progress);
+      }
+      return rest;
+    });
   };
 
   const totalProgress = getTotalProgress();
