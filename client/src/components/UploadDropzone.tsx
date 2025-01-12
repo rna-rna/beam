@@ -19,7 +19,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
   // Use ref to persist processed files across renders
   const processedFiles = useRef(new Set<string>());
-  
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!acceptedFiles?.length) {
       console.log('[Upload] No valid files to process');
@@ -82,7 +82,8 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload images');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to get upload URLs');
       }
 
       const { urls } = await response.json();
@@ -177,7 +178,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       startUpload(uploadId, totalSize, acceptedFiles.length);
 
       // Request presigned URL
-      const response = await fetch(`/api/galleries/${window.location.pathname.split('/').pop()}/images`, {
+      const response = await fetch(`/api/galleries/${gallerySlug}/images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -190,7 +191,8 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get upload URLs');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to get upload URLs');
       }
 
       const { urls } = await response.json();
