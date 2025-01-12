@@ -9,7 +9,7 @@ interface UploadContextType {
   uploadedBytes: number;
   fileCount: number;
   startUpload: (uploadId: string, totalSize: number, fileCount: number) => void;
-  updateProgress: (uploadId: string, bytes: number) => void;
+  updateProgress: (uploadId: string, incrementBytes: number) => void;
   completeUpload: (uploadId: string) => void;
 }
 
@@ -42,12 +42,12 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     }));
   }, [activeUploads, uploadInfo, isUploading, uploadProgress]);
 
-  const getTotalProgress = () => {
-    const total = Object.values(uploadInfo).reduce(
-      (acc, info) => ({
-        totalSize: acc.totalSize + info.totalSize,
-        uploadedBytes: acc.uploadedBytes + info.uploadedBytes,
-        fileCount: acc.fileCount + info.fileCount,
+  const getTotalProgress = (info = uploadInfo) => {
+    const total = Object.values(info).reduce(
+      (acc, curr) => ({
+        totalSize: acc.totalSize + curr.totalSize,
+        uploadedBytes: acc.uploadedBytes + curr.uploadedBytes,
+        fileCount: acc.fileCount + curr.fileCount,
       }),
       { totalSize: 0, uploadedBytes: 0, fileCount: 0 }
     );
@@ -71,23 +71,24 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     setIsUploading(true);
   };
 
-  const updateProgress = (uploadId: string, bytes: number) => {
+  const updateProgress = (uploadId: string, incrementBytes: number) => {
     setUploadInfo(prev => {
       const upload = prev[uploadId];
       if (!upload) return prev;
 
-      const updated = {
+      const updatedUploadedBytes = upload.uploadedBytes + incrementBytes;
+      const updatedInfo = {
         ...prev,
         [uploadId]: {
           ...upload,
-          uploadedBytes: bytes,
+          uploadedBytes: Math.min(updatedUploadedBytes, upload.totalSize),
         },
       };
 
-      const { progress } = getTotalProgress();
+      const { progress } = getTotalProgress(updatedInfo);
       setUploadProgress(progress);
 
-      return updated;
+      return updatedInfo;
     });
   };
 
@@ -95,6 +96,8 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     setActiveUploads(prev => prev.filter(id => id !== uploadId));
     setUploadInfo(prev => {
       const { [uploadId]: removed, ...rest } = prev;
+      const { progress } = getTotalProgress(rest);
+      setUploadProgress(progress);
       return rest;
     });
 
