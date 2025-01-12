@@ -10,6 +10,7 @@ interface UploadContextType {
   startUpload: (uploadId: string, totalSize: number, fileCount: number) => void;
   updateProgress: (uploadId: string, incrementBytes: number) => void;
   completeUpload: (uploadId: string) => void;
+  allUploadsComplete: boolean;
 }
 
 const UploadContext = createContext<UploadContextType | undefined>(undefined);
@@ -24,6 +25,7 @@ interface UploadInfo {
 export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [uploadInfo, setUploadInfo] = useState<Record<string, UploadInfo>>({});
   const [activeUploads, setActiveUploads] = useState<string[]>([]);
+  const [allUploadsComplete, setAllUploadsComplete] = useState(false);
 
   // Calculate overall progress across all active uploads
   const getTotalProgress = (info = uploadInfo) => {

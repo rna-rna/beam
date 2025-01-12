@@ -153,11 +153,30 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         });
       }
 
-      onUpload();
-
-      if (gallerySlug) {
-        await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-        await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+      // Only invalidate queries if this was the last batch
+      const remainingUploads = activeUploads.filter(id => id !== uploadId);
+      if (remainingUploads.length === 0) {
+        if (gallerySlug) {
+          await queryClient.invalidateQueries({ 
+            queryKey: [`/api/galleries/${gallerySlug}`],
+            refetchType: 'all'
+          });
+        }
+        onUpload();
+      } else {
+        // Optimistically update the UI without refetching
+        queryClient.setQueryData([`/api/galleries/${gallerySlug}`], (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            images: [...oldData.images, ...urls.map((u: any) => ({
+              id: u.imageId,
+              url: u.publicUrl,
+              publicId: u.key,
+              originalFilename: u.fileName
+            }))]
+          };
+        });
       }
 
       toast({
