@@ -1,7 +1,7 @@
 import { useCallback, useState, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { queryClient } from '@/lib/queryClient';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from './ui/button';
 import { Loader2, Upload } from 'lucide-react';
 import { Progress } from './ui/progress';
@@ -25,8 +25,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       console.log('[Upload] No valid files to process');
       return;
     }
-
-    const onDrop = useCallback(async (acceptedFiles: File[]) => {
       if (!acceptedFiles?.length) {
         console.log('[Upload] No valid files to process');
         return;
