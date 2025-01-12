@@ -25,10 +25,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       console.log('[Upload] No valid files to process');
       return;
     }
-      if (!acceptedFiles?.length) {
-        console.log('[Upload] No valid files to process');
-        return;
-      }
 
       // Filter out duplicate files with enhanced logging
       const uniqueFiles = acceptedFiles.filter(file => {
@@ -181,15 +177,14 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       completeUpload(uploadId);
     }
 
-    try {
-      if (!acceptedFiles?.length) {
-        toast({
-          title: 'No files selected',
-          description: 'Please upload valid image files.',
-          variant: 'destructive',
-        });
-        return;
-      }
+    if (!acceptedFiles?.length) {
+      toast({
+        title: 'No files selected',
+        description: 'Please upload valid image files.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
       const invalidFiles = acceptedFiles.filter(
         file => !file.type.startsWith('image/') || file.size > 60 * 1024 * 1024
