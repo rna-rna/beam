@@ -26,8 +26,14 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       return;
     }
 
-    // Filter out duplicate files with enhanced logging
-    const uniqueFiles = acceptedFiles.filter(file => {
+    const onDrop = useCallback(async (acceptedFiles: File[]) => {
+      if (!acceptedFiles?.length) {
+        console.log('[Upload] No valid files to process');
+        return;
+      }
+
+      // Filter out duplicate files with enhanced logging
+      const uniqueFiles = acceptedFiles.filter(file => {
       const key = `${file.name}-${file.size}-${file.lastModified}`;
       if (processedFiles.current.has(key)) {
         console.log('[Upload] Skipping duplicate:', {
