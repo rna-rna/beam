@@ -397,7 +397,6 @@ export function registerRoutes(app: Express): Server {
     status: 'processing' | 'completed' | 'failed';
   }
   const processedRequests = new Map<string, ProcessedRequest>();
-  const DEBOUNCE_TIMEOUT = 60000; // 1 minute timeout
 
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
     let { files, uploadId } = req.body;
@@ -474,15 +473,6 @@ export function registerRoutes(app: Express): Server {
 
     // Use deduplicated files for processing
     files = newFiles;
-
-    // Cleanup after timeout
-    setTimeout(() => {
-      const request = processedRequests.get(requestId);
-      if (request?.status === 'processing') {
-        console.warn('[Upload Request Timeout]', { requestId });
-        processedRequests.delete(requestId);
-      }
-    }, DEBOUNCE_TIMEOUT);
 
     // Comprehensive request validation
     if (!files || !Array.isArray(files) || files.length === 0) {
