@@ -26,6 +26,9 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       return;
     }
 
+    setIsUploading(true);
+    
+    try {
       // Filter out duplicate files with enhanced logging
       const uniqueFiles = acceptedFiles.filter(file => {
       const key = `${file.name}-${file.size}-${file.lastModified}`;
@@ -177,16 +180,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       completeUpload(uploadId);
     }
 
-    if (!acceptedFiles?.length) {
-      toast({
-        title: 'No files selected',
-        description: 'Please upload valid image files.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-      const invalidFiles = acceptedFiles.filter(
+    const invalidFiles = acceptedFiles.filter(
         file => !file.type.startsWith('image/') || file.size > 60 * 1024 * 1024
       );
 
@@ -199,7 +193,9 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         return;
       }
 
-      setIsUploading(true);
+      const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
+      
       startUpload(uploadId, totalSize, acceptedFiles.length);
 
       // Request presigned URL
