@@ -28,6 +28,31 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
     // Filter out duplicate files with enhanced logging
     const uniqueFiles = acceptedFiles.filter(file => {
+      const key = `${file.name}-${file.size}-${file.lastModified}`;
+      if (processedFiles.current.has(key)) {
+        console.log('[Upload] Skipping duplicate:', {
+          name: file.name,
+          size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+          key
+        });
+        return false;
+      }
+      processedFiles.current.add(key);
+      console.log('[Upload] Processing new file:', {
+        name: file.name,
+        size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        key
+      });
+      return true;
+    });
+
+    if (!uniqueFiles.length) {
+      console.log('[Upload] No unique files to process');
+      return;
+    }
+
+    // Use uniqueFiles instead of acceptedFiles for the rest of processing
+    acceptedFiles = uniqueFiles;
       const uniqueKey = `${file.name}-${file.size}-${file.lastModified}`;
       if (processedFiles.current.has(uniqueKey)) {
         console.log('[Upload] Skipping duplicate:', {
@@ -135,6 +160,8 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
 
       onUpload();
+      // Reset processed files after successful upload
+      processedFiles.current.clear();
       toast({
         title: 'Upload complete',
         description: `Successfully added ${acceptedFiles.length} ${acceptedFiles.length === 1 ? 'image' : 'images'} to the gallery.`,
