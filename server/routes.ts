@@ -458,7 +458,26 @@ export function registerRoutes(app: Express): Server {
       newFileNames: newFiles.map(f => f.name)
     });
 
-    // Check for existing files in the gallery
+    // First get the gallery
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, slug)
+    });
+
+    if (!gallery) {
+      console.error('[Gallery Not Found]', {
+        slug,
+        requestId,
+        timestamp: new Date().toISOString()
+      });
+      return res.status(404).json({
+        success: false,
+        message: 'Gallery not found',
+        error: 'NOT_FOUND',
+        details: 'The specified gallery does not exist'
+      });
+    }
+
+    // Then check for existing files
     const existingFiles = await db.query.images.findMany({
       where: and(
         eq(images.galleryId, gallery.id),
