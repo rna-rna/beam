@@ -465,6 +465,30 @@ export function registerRoutes(app: Express): Server {
       });
     }
 
+    // Deduplicate files based on name and size
+    const uniqueFiles = new Map();
+    const duplicates: string[] = [];
+
+    files.forEach(file => {
+      const uniqueKey = `${file.name}-${file.size}`;
+      if (uniqueFiles.has(uniqueKey)) {
+        duplicates.push(file.name);
+      } else {
+        uniqueFiles.set(uniqueKey, file);
+      }
+    });
+
+    if (duplicates.length > 0) {
+      console.warn('[Duplicate Files Detected]', {
+        requestId,
+        duplicates,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Use deduplicated files array
+    files = Array.from(uniqueFiles.values());
+
     // Validate file types and sizes
     const invalidFiles = files.filter(file => 
       !file.name || 
