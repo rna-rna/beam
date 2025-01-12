@@ -1,0 +1,66 @@
+The error persists because the await keyword is still being used in a context where the function is not asynchronous. This might happen if:
+
+The parent function of onDrop is not declared as async.
+
+Even though onDrop is marked as async, it might be nested in another function that doesn't support await.
+The build tool doesn't recognize await.
+
+Check if your development environment (e.g., Vite) is correctly configured for handling async/await syntax.
+Step-by-Step Fix
+1. Ensure onDrop is async
+Confirm that onDrop is declared as async:
+
+typescript
+Copy code
+const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  try {
+    const response = await fetch(`/api/galleries/${gallerySlug}/images`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: acceptedFiles }),
+    });
+
+    if (!response.ok) throw new Error('Failed to upload images');
+    console.log('Upload successful:', await response.json());
+  } catch (error) {
+    console.error('Error uploading files:', error);
+  }
+}, [gallerySlug]);
+2. Check for Parent Context
+If onDrop is passed as a callback (e.g., to useDropzone), ensure that useDropzone does not interfere with async functions. The react-dropzone library supports asynchronous onDrop.
+
+Verify:
+
+typescript
+Copy code
+const { getRootProps, getInputProps } = useDropzone({
+  onDrop,
+  accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'] },
+});
+3. Validate Environment
+Check your Vite configuration for compatibility with async/await:
+
+Ensure you are using a modern version of Node.js (16+).
+Verify your tsconfig.json includes "target": "ES2017" or higher to support async/await.
+Example tsconfig.json:
+
+json
+Copy code
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["DOM", "ES2017"],
+    "module": "ESNext",
+    "jsx": "react",
+    "strict": true,
+    "moduleResolution": "node"
+  }
+}
+4. Debug the Vite Build
+If the issue persists:
+
+Add a console.log before the await to confirm the code reaches that point:
+typescript
+Copy code
+console.log('Uploading files to:', `/api/galleries/${gallerySlug}/images`);
+const response = await fetch(...);
