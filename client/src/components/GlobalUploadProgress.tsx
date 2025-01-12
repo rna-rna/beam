@@ -1,3 +1,4 @@
+
 import { useUpload } from "../context/UploadContext";
 import { Progress } from "./ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,15 +23,16 @@ const GlobalUploadProgress = () => {
       >
         <div className="flex items-center gap-2 mb-2">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-sm font-medium">Uploading...</span>
+          <span className="text-sm font-medium">
+            Uploading {fileCount} {fileCount === 1 ? 'file' : 'files'}...
+          </span>
         </div>
-        <div className="text-xs">
-          Files: {fileCount}<br />
-          Size: {uploadedMB} MB / {totalSizeMB} MB
-        </div>
-        <Progress value={Math.min(calculatedProgress, 100)} className="h-2 mt-2" />
-        <div className="text-xs text-muted-foreground mt-1 text-right">
-          {Math.min(Math.round(calculatedProgress), 100)}%
+        <div className="space-y-1">
+          <Progress value={Math.min(calculatedProgress, 100)} className="h-2" />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{uploadedMB} MB / {totalSizeMB} MB</span>
+            <span>{Math.min(Math.round(calculatedProgress), 100)}%</span>
+          </div>
         </div>
       </motion.div>
     </AnimatePresence>
