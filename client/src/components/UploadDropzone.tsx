@@ -129,12 +129,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
       // Force gallery refresh after successful upload
       await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-      await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-
-      // Force gallery refresh after successful upload
-      await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-      await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-
+      
       onUpload();
       toast({
         title: 'Upload complete',
