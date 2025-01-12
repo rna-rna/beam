@@ -30,6 +30,84 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
     startUpload(uploadId, totalSize, acceptedFiles.length);
 
     try {
+      const response = await fetch(`/api/galleries/${gallerySlug}/images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: acceptedFiles.map((file) => ({
+            name: file.name,
+            type: file.type,
+            size: file.size
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload images');
+      }
+
+      const { urls } = await response.json();
+      let totalUploadedBytes = 0;
+      const fileProgress = new Map<number, number>();
+
+      // Upload directly to R2
+      for (const [index, urlData] of urls.entries()) {
+        const file = acceptedFiles[index];
+        const { signedUrl } = urlData;
+
+        await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+
+          fileProgress.set(index, 0);
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const currentProgress = event.loaded;
+              const previousProgress = fileProgress.get(index) || 0;
+              const incrementBytes = currentProgress - previousProgress;
+
+              fileProgress.set(index, currentProgress);
+              totalUploadedBytes += incrementBytes;
+              updateProgress(uploadId, incrementBytes);
+            }
+          };
+
+          xhr.open('PUT', signedUrl, true);
+          xhr.setRequestHeader('Content-Type', file.type);
+
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              resolve(xhr.response);
+            } else {
+              reject(new Error(`Failed to upload ${file.name}`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error(`Network error uploading ${file.name}`));
+          xhr.send(file);
+        });
+      }
+
+      // Force gallery refresh after successful upload
+      await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+      await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+
+      onUpload();
+      toast({
+        title: 'Upload complete',
+        description: `Successfully added ${acceptedFiles.length} ${acceptedFiles.length === 1 ? 'image' : 'images'} to the gallery.`,
+      });
+    } catch (error) {
+      console.error('[Upload Error]:', error);
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Upload failed. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      completeUpload(uploadId);
+    }
+
+    try {
       if (!acceptedFiles?.length) {
         toast({
           title: 'No files selected',
