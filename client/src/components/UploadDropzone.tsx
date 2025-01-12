@@ -65,7 +65,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
     const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
     console.log('[Upload] Starting upload session:', { uploadId, totalSize, fileCount: acceptedFiles.length, gallerySlug });
 
-    startUpload(uploadId, totalSize, acceptedFiles.length);
+    addBatch(uploadId, totalSize, acceptedFiles.length);
 
     try {
       if (!acceptedFiles?.length) {
@@ -192,7 +192,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
     } finally {
       completeBatch(uploadId, true);
     }
-  }, [onUpload, startUpload, updateProgress, completeUpload]);
+  }, [onUpload, addBatch, updateBatchProgress, completeBatch, gallerySlug]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
