@@ -17,11 +17,33 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
   const [isUploading, setIsUploading] = useState(false);
   const { startUpload, updateProgress, completeUpload, uploadProgress } = useUpload();
 
+  // Track processed files across component lifecycle
+  const processedFiles = new Set<string>();
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!acceptedFiles?.length) {
       console.log('[Upload] No valid files to process');
       return;
     }
+
+    // Filter out duplicate files
+    const uniqueFiles = acceptedFiles.filter(file => {
+      const uniqueKey = `${file.name}-${file.size}`;
+      if (processedFiles.has(uniqueKey)) {
+        console.log(`[Upload] Skipping duplicate file: ${file.name}`);
+        return false;
+      }
+      processedFiles.add(uniqueKey);
+      return true;
+    });
+
+    if (!uniqueFiles.length) {
+      console.log('[Upload] No unique files to process');
+      return;
+    }
+
+    // Use uniqueFiles instead of acceptedFiles for the rest of processing
+    acceptedFiles = uniqueFiles;
 
     console.log('[Upload] Processing new batch:', {
       files: acceptedFiles.map(f => ({
@@ -102,7 +124,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       // Force gallery refresh after successful upload
       await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
       await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-      
+
       onUpload();
       toast({
         title: 'Upload complete',
