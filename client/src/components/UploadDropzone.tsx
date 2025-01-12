@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { queryClient } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
