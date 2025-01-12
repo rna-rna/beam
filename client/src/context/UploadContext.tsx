@@ -9,50 +9,87 @@ interface UploadContextType {
   uploadedBytes: number;
   fileCount: number;
   startUpload: (uploadId: string, totalSize: number, fileCount: number) => void;
-  updateProgress: (uploadedBytes: number) => void;
+  updateProgress: (uploadId: string, bytes: number) => void;
   completeUpload: (uploadId: string) => void;
 }
 
 const UploadContext = createContext<UploadContextType | undefined>(undefined);
 
+interface UploadInfo {
+  totalSize: number;
+  uploadedBytes: number;
+  fileCount: number;
+}
+
 export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [totalSize, setTotalSize] = useState(0);
-  const [uploadedBytes, setUploadedBytes] = useState(0);
   const [activeUploads, setActiveUploads] = useState<string[]>([]);
-  const [fileCount, setFileCount] = useState(0);
+  const [uploadInfo, setUploadInfo] = useState<Record<string, UploadInfo>>({});
+
+  const getTotalProgress = () => {
+    const total = Object.values(uploadInfo).reduce(
+      (acc, info) => ({
+        totalSize: acc.totalSize + info.totalSize,
+        uploadedBytes: acc.uploadedBytes + info.uploadedBytes,
+        fileCount: acc.fileCount + info.fileCount,
+      }),
+      { totalSize: 0, uploadedBytes: 0, fileCount: 0 }
+    );
+
+    return {
+      progress: total.totalSize > 0 ? (total.uploadedBytes / total.totalSize) * 100 : 0,
+      ...total,
+    };
+  };
 
   const startUpload = (uploadId: string, totalSize: number, fileCount: number) => {
-    setActiveUploads([uploadId]); // Single upload session
-    setTotalSize(totalSize);
-    setUploadedBytes(0);
-    setFileCount(fileCount);
+    setActiveUploads(prev => [...prev, uploadId]);
+    setUploadInfo(prev => ({
+      ...prev,
+      [uploadId]: {
+        totalSize,
+        uploadedBytes: 0,
+        fileCount,
+      },
+    }));
     setIsUploading(true);
   };
 
-  const updateProgress = (bytes: number) => {
-    setUploadedBytes(bytes);
-    const progress = (bytes / totalSize) * 100;
-    setUploadProgress(progress);
-    
-    console.log("[Upload Progress]", {
-      uploadedBytes: bytes,
-      totalSize,
-      progress: `${progress.toFixed(2)}%`
+  const updateProgress = (uploadId: string, bytes: number) => {
+    setUploadInfo(prev => {
+      const upload = prev[uploadId];
+      if (!upload) return prev;
+
+      const updated = {
+        ...prev,
+        [uploadId]: {
+          ...upload,
+          uploadedBytes: bytes,
+        },
+      };
+
+      const { progress } = getTotalProgress();
+      setUploadProgress(progress);
+
+      return updated;
     });
   };
 
   const completeUpload = (uploadId: string) => {
-    setActiveUploads((prev) => prev.filter((id) => id !== uploadId));
+    setActiveUploads(prev => prev.filter(id => id !== uploadId));
+    setUploadInfo(prev => {
+      const { [uploadId]: removed, ...rest } = prev;
+      return rest;
+    });
+
     if (activeUploads.length <= 1) {
       setIsUploading(false);
       setUploadProgress(0);
-      setUploadedBytes(0);
-      setTotalSize(0);
-      setFileCount(0);
     }
   };
+
+  const totalProgress = getTotalProgress();
 
   return (
     <UploadContext.Provider
@@ -60,9 +97,9 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         isUploading,
         uploadProgress,
         activeUploads,
-        totalSize,
-        uploadedBytes,
-        fileCount,
+        totalSize: totalProgress.totalSize,
+        uploadedBytes: totalProgress.uploadedBytes,
+        fileCount: totalProgress.fileCount,
         startUpload,
         updateProgress,
         completeUpload,
