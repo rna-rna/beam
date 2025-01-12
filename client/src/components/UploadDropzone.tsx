@@ -30,7 +30,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
-    console.log('[Upload] Starting upload session:', { uploadId, totalSize, fileCount: acceptedFiles.length });
+    console.log('[Upload] Starting upload session:', { uploadId, totalSize, fileCount: acceptedFiles.length, gallerySlug });
 
     startUpload(uploadId, totalSize, acceptedFiles.length);
 
@@ -120,7 +120,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
       onUpload();
 
-      const gallerySlug = window.location.pathname.split('/').pop();
       if (gallerySlug) {
         await queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
         await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
@@ -128,7 +127,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
       toast({
         title: 'Upload complete',
-        description: 'All files were successfully uploaded.',
+        description: `Successfully added ${acceptedFiles.length} ${acceptedFiles.length === 1 ? 'image' : 'images'} to the gallery.`,
       });
 
     } catch (error) {
