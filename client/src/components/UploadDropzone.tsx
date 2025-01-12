@@ -179,7 +179,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
               fileProgress.set(index, currentProgress);
               totalUploadedBytes += incrementBytes;
-              updateProgress(totalUploadedBytes);
+              updateProgress(uploadId, incrementBytes);
             }
           };
 

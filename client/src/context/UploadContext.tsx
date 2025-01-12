@@ -74,20 +74,27 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const updateProgress = (uploadId: string, incrementBytes: number) => {
     setUploadInfo(prev => {
       const upload = prev[uploadId];
-      if (!upload) return prev;
+      if (!upload) {
+        console.warn(`No upload found for ID: ${uploadId}`);
+        return prev;
+      }
 
-      const updatedUploadedBytes = upload.uploadedBytes + incrementBytes;
+      const updatedUploadedBytes = Math.min(
+        upload.uploadedBytes + incrementBytes,
+        upload.totalSize
+      );
+
       const updatedInfo = {
         ...prev,
         [uploadId]: {
           ...upload,
-          uploadedBytes: Math.min(updatedUploadedBytes, upload.totalSize),
+          uploadedBytes: updatedUploadedBytes,
         },
       };
 
       const { progress } = getTotalProgress(updatedInfo);
       setUploadProgress(progress);
-
+      
       return updatedInfo;
     });
   };
