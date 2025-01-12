@@ -458,6 +458,32 @@ export function registerRoutes(app: Express): Server {
       newFileNames: newFiles.map(f => f.name)
     });
 
+    // Check for existing files in the gallery
+    const existingFiles = await db.query.images.findMany({
+      where: and(
+        eq(images.galleryId, gallery.id),
+        inArray(images.originalFilename, files.map(f => f.name))
+      )
+    });
+
+    console.log('[Existing Files]', {
+      requestId,
+      existingCount: existingFiles.length,
+      existingFiles: existingFiles.map(f => f.originalFilename)
+    });
+
+    // Filter out files that already exist in the gallery
+    const filteredFiles = files.filter(
+      file => !existingFiles.some(existing => existing.originalFilename === file.name)
+    );
+
+    console.log('[New Files to Process]', {
+      requestId,
+      totalFiles: files.length,
+      newFiles: filteredFiles.length,
+      newFileNames: filteredFiles.map(f => f.name)
+    });
+
     // Track this request with detailed metadata
     processedRequests.set(requestId, {
       timestamp: Date.now(),
@@ -465,8 +491,8 @@ export function registerRoutes(app: Express): Server {
       status: 'processing'
     });
 
-    // Only process new files
-    files = newFiles;
+    // Use deduplicated files for processing
+    files = filteredFiles;
 
     // Cleanup after timeout
     setTimeout(() => {
