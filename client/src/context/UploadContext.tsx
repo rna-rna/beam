@@ -24,14 +24,8 @@ interface UploadInfo {
 export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [activeUploads, setActiveUploads] = useState<string[]>(() => {
-    const persisted = sessionStorage.getItem("uploadState");
-    return persisted ? JSON.parse(persisted).activeUploads : [];
-  });
-  const [uploadInfo, setUploadInfo] = useState<Record<string, UploadInfo>>(() => {
-    const persisted = sessionStorage.getItem("uploadState");
-    return persisted ? JSON.parse(persisted).uploadInfo : {};
-  });
+  const [activeUploads, setActiveUploads] = useState<string[]>([]);
+  const [uploadInfo, setUploadInfo] = useState<Record<string, UploadInfo>>({});
 
   useEffect(() => {
     sessionStorage.setItem("uploadState", JSON.stringify({
@@ -59,16 +53,18 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   };
 
   const startUpload = (uploadId: string, totalSize: number, fileCount: number) => {
-    setActiveUploads(prev => [...prev, uploadId]);
-    setUploadInfo(prev => ({
-      ...prev,
-      [uploadId]: {
-        totalSize,
-        uploadedBytes: 0,
-        fileCount,
-      },
-    }));
-    setIsUploading(true);
+    if (!activeUploads.includes(uploadId)) {
+      setActiveUploads(prev => [...prev, uploadId]);
+      setUploadInfo(prev => ({
+        ...prev,
+        [uploadId]: {
+          totalSize,
+          uploadedBytes: 0,
+          fileCount,
+        },
+      }));
+      setIsUploading(true);
+    }
   };
 
   const updateProgress = (uploadId: string, incrementBytes: number) => {
