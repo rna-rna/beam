@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 interface UploadContextType {
@@ -19,37 +18,24 @@ interface UploadInfo {
   totalSize: number;
   uploadedBytes: number;
   fileCount: number;
+  progress: number;
 }
 
 export function UploadProvider({ children }: { children: React.ReactNode }) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [activeUploads, setActiveUploads] = useState<string[]>([]);
   const [uploadInfo, setUploadInfo] = useState<Record<string, UploadInfo>>({});
+  const [activeUploads, setActiveUploads] = useState<string[]>([]);
 
-  useEffect(() => {
-    sessionStorage.setItem("uploadState", JSON.stringify({
-      activeUploads,
-      uploadInfo,
-      isUploading,
-      uploadProgress
-    }));
-  }, [activeUploads, uploadInfo, isUploading, uploadProgress]);
-
+  // Calculate overall progress across all active uploads
   const getTotalProgress = (info = uploadInfo) => {
-    const total = Object.values(info).reduce(
-      (acc, curr) => ({
-        totalSize: acc.totalSize + curr.totalSize,
-        uploadedBytes: acc.uploadedBytes + curr.uploadedBytes,
-        fileCount: acc.fileCount + curr.fileCount,
-      }),
-      { totalSize: 0, uploadedBytes: 0, fileCount: 0 }
-    );
+    const uploads = Object.values(info);
+    if (uploads.length === 0) return { progress: 0, totalSize: 0, uploadedBytes: 0, fileCount: 0 };
 
-    return {
-      progress: total.totalSize > 0 ? (total.uploadedBytes / total.totalSize) * 100 : 0,
-      ...total,
-    };
+    return uploads.reduce((acc, curr) => ({
+      totalSize: acc.totalSize + curr.totalSize,
+      uploadedBytes: acc.uploadedBytes + curr.uploadedBytes,
+      fileCount: acc.fileCount + curr.fileCount,
+      progress: acc.totalSize > 0 ? (acc.uploadedBytes / acc.totalSize) * 100 : 0
+    }), { totalSize: 0, uploadedBytes: 0, fileCount: 0, progress: 0 });
   };
 
   const startUpload = (uploadId: string, totalSize: number, fileCount: number) => {
@@ -61,19 +47,16 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
           totalSize,
           uploadedBytes: 0,
           fileCount,
+          progress: 0
         },
       }));
-      setIsUploading(true);
     }
   };
 
   const updateProgress = (uploadId: string, incrementBytes: number) => {
     setUploadInfo(prev => {
       const upload = prev[uploadId];
-      if (!upload) {
-        console.warn(`No upload found for ID: ${uploadId}`);
-        return prev;
-      }
+      if (!upload) return prev;
 
       const updatedUploadedBytes = Math.min(
         upload.uploadedBytes + incrementBytes,
@@ -85,45 +68,30 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         [uploadId]: {
           ...upload,
           uploadedBytes: updatedUploadedBytes,
+          progress: (updatedUploadedBytes / upload.totalSize) * 100
         },
       };
 
-      const { progress } = getTotalProgress(updatedInfo);
-      setUploadProgress(progress);
-      
       return updatedInfo;
     });
   };
 
   const completeUpload = (uploadId: string) => {
-    setActiveUploads(prev => {
-      const newUploads = prev.filter(id => id !== uploadId);
-      // Reset uploading state if this was the last upload
-      if (newUploads.length === 0) {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }
-      return newUploads;
-    });
-
+    setActiveUploads(prev => prev.filter(id => id !== uploadId));
     setUploadInfo(prev => {
       const { [uploadId]: removed, ...rest } = prev;
-      // Only recalculate progress if there are remaining uploads
-      if (Object.keys(rest).length > 0) {
-        const { progress } = getTotalProgress(rest);
-        setUploadProgress(progress);
-      }
       return rest;
     });
   };
 
   const totalProgress = getTotalProgress();
+  const isUploading = activeUploads.length > 0;
 
   return (
     <UploadContext.Provider
       value={{
         isUploading,
-        uploadProgress,
+        uploadProgress: totalProgress.progress,
         activeUploads,
         totalSize: totalProgress.totalSize,
         uploadedBytes: totalProgress.uploadedBytes,
