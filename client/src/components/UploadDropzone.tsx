@@ -1,7 +1,7 @@
 import { useCallback, useState, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { Button } from './ui/button';
 import { Loader2, Upload } from 'lucide-react';
 import { Progress } from './ui/progress';
@@ -19,43 +19,15 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
   // Use ref to persist processed files across renders
   const processedFiles = useRef(new Set<string>());
-
+  
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!acceptedFiles?.length) {
       console.log('[Upload] No valid files to process');
       return;
     }
 
-    setIsUploading(true);
-    
-    try {
-      // Filter out duplicate files with enhanced logging
-      const uniqueFiles = acceptedFiles.filter(file => {
-      const key = `${file.name}-${file.size}-${file.lastModified}`;
-      if (processedFiles.current.has(key)) {
-        console.log('[Upload] Skipping duplicate:', {
-          name: file.name,
-          size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-          key
-        });
-        return false;
-      }
-      processedFiles.current.add(key);
-      console.log('[Upload] Processing new file:', {
-        name: file.name,
-        size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-        key
-      });
-      return true;
-    });
-
-    if (!uniqueFiles.length) {
-      console.log('[Upload] No unique files to process');
-      return;
-    }
-
-    // Use uniqueFiles instead of acceptedFiles for the rest of processing
-    acceptedFiles = uniqueFiles;
+    // Filter out duplicate files with enhanced logging
+    const uniqueFiles = acceptedFiles.filter(file => {
       const uniqueKey = `${file.name}-${file.size}-${file.lastModified}`;
       if (processedFiles.current.has(uniqueKey)) {
         console.log('[Upload] Skipping duplicate:', {
@@ -163,8 +135,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       await queryClient.refetchQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
 
       onUpload();
-      // Reset processed files after successful upload
-      processedFiles.current.clear();
       toast({
         title: 'Upload complete',
         description: `Successfully added ${acceptedFiles.length} ${acceptedFiles.length === 1 ? 'image' : 'images'} to the gallery.`,
@@ -180,7 +150,17 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       completeUpload(uploadId);
     }
 
-    const invalidFiles = acceptedFiles.filter(
+    try {
+      if (!acceptedFiles?.length) {
+        toast({
+          title: 'No files selected',
+          description: 'Please upload valid image files.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const invalidFiles = acceptedFiles.filter(
         file => !file.type.startsWith('image/') || file.size > 60 * 1024 * 1024
       );
 
@@ -193,9 +173,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         return;
       }
 
-      const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
-      
+      setIsUploading(true);
       startUpload(uploadId, totalSize, acceptedFiles.length);
 
       // Request presigned URL

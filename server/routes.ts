@@ -477,29 +477,10 @@ export function registerRoutes(app: Express): Server {
       existingFiles.map(f => [f.originalFilename, f])
     );
 
-    // Enhanced deduplication with name, size and lastModified 
+    // Filter out duplicates from both sources
     const newFiles = files.filter(file => {
-      const hash = `${file.name}-${file.size}-${file.lastModified}`;
-      const hasExistingFile = existingFileMap.has(file.name);
-      
-      // Log deduplication check
-      console.log('[Deduplication Check]', {
-        fileName: file.name,
-        hash,
-        isExistingHash: existingHashes.includes(hash),
-        hasExistingFile,
-        fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`
-      });
-
-      return !existingHashes.includes(hash) && !hasExistingFile;
-    });
-
-    // Log deduplication results
-    console.log('[Deduplication Results]', {
-      totalFiles: files.length,
-      duplicateCount: files.length - newFiles.length,
-      uniqueFiles: newFiles.length,
-      uniqueFileNames: newFiles.map(f => f.name)
+      const hash = `${file.name}-${file.size}`;
+      return !existingHashes.includes(hash) && !existingFileMap.has(file.name);
     });
 
     console.log('[File Deduplication]', {
