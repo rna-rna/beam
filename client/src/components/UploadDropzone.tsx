@@ -19,7 +19,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
 
   // Use ref to persist processed files across renders
   const processedFiles = useRef(new Set<string>());
-  
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!acceptedFiles?.length) {
       console.log('[Upload] No valid files to process');
