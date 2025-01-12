@@ -462,17 +462,12 @@ export function registerRoutes(app: Express): Server {
       });
     }
 
-    // Duplicate detection removed
-
     // Track this request with detailed metadata
     processedRequests.set(requestId, {
       timestamp: Date.now(),
       fileHashes: fileHashes || [],
       status: 'processing'
     });
-
-    // Use deduplicated files for processing
-    files = newFiles;
 
     // Comprehensive request validation
     if (!files || !Array.isArray(files) || files.length === 0) {
