@@ -24,8 +24,23 @@ interface UploadInfo {
 export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [activeUploads, setActiveUploads] = useState<string[]>([]);
-  const [uploadInfo, setUploadInfo] = useState<Record<string, UploadInfo>>({});
+  const [activeUploads, setActiveUploads] = useState<string[]>(() => {
+    const persisted = sessionStorage.getItem("uploadState");
+    return persisted ? JSON.parse(persisted).activeUploads : [];
+  });
+  const [uploadInfo, setUploadInfo] = useState<Record<string, UploadInfo>>(() => {
+    const persisted = sessionStorage.getItem("uploadState");
+    return persisted ? JSON.parse(persisted).uploadInfo : {};
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem("uploadState", JSON.stringify({
+      activeUploads,
+      uploadInfo,
+      isUploading,
+      uploadProgress
+    }));
+  }, [activeUploads, uploadInfo, isUploading, uploadProgress]);
 
   const getTotalProgress = () => {
     const total = Object.values(uploadInfo).reduce(
