@@ -434,12 +434,39 @@ export function registerRoutes(app: Express): Server {
       }
     }
 
+    // Log incoming files payload
+    console.log('[Upload Request Files]', {
+      requestId,
+      files: files?.map(f => ({
+        name: f.name,
+        size: f.size,
+        hash: `${f.name}-${f.size}`
+      }))
+    });
+
+    // Check for previously processed files
+    const existingHashes = processedRequests.get(requestId)?.fileHashes || [];
+    const newFiles = files.filter(file => {
+      const hash = `${file.name}-${file.size}`;
+      return !existingHashes.includes(hash);
+    });
+
+    console.log('[New Files to Process]', {
+      requestId,
+      totalFiles: files.length,
+      newFiles: newFiles.length,
+      newFileNames: newFiles.map(f => f.name)
+    });
+
     // Track this request with detailed metadata
     processedRequests.set(requestId, {
       timestamp: Date.now(),
       fileHashes: fileHashes || [],
       status: 'processing'
     });
+
+    // Only process new files
+    files = newFiles;
 
     // Cleanup after timeout
     setTimeout(() => {
