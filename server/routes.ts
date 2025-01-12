@@ -522,7 +522,7 @@ export function registerRoutes(app: Express): Server {
     });
 
     // Use deduplicated files for processing
-    files = filteredFiles;
+    files = newFiles;
 
     // Cleanup after timeout
     setTimeout(() => {
