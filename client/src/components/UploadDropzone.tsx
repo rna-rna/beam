@@ -23,11 +23,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       return;
     }
 
-    if (isUploading) {
-      console.log('[Upload] Upload already in progress, skipping');
-      return;
-    }
-
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
     console.log('[Upload] Starting upload session:', { uploadId, totalSize, fileCount: acceptedFiles.length, gallerySlug });
@@ -148,7 +143,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
-    disabled: isUploading
+    disabled: false
   });
 
   return (
