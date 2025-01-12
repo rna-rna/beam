@@ -17,23 +17,32 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
   const [isUploading, setIsUploading] = useState(false);
   const { startUpload, updateProgress, completeUpload, uploadProgress } = useUpload();
 
-  // Track processed files across component lifecycle
-  const processedFiles = new Set<string>();
-
+  // Use ref to persist processed files across renders
+  const processedFiles = useRef(new Set<string>());
+  
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!acceptedFiles?.length) {
       console.log('[Upload] No valid files to process');
       return;
     }
 
-    // Filter out duplicate files
+    // Filter out duplicate files with enhanced logging
     const uniqueFiles = acceptedFiles.filter(file => {
-      const uniqueKey = `${file.name}-${file.size}`;
-      if (processedFiles.has(uniqueKey)) {
-        console.log(`[Upload] Skipping duplicate file: ${file.name}`);
+      const uniqueKey = `${file.name}-${file.size}-${file.lastModified}`;
+      if (processedFiles.current.has(uniqueKey)) {
+        console.log('[Upload] Skipping duplicate:', {
+          name: file.name,
+          size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+          key: uniqueKey
+        });
         return false;
       }
-      processedFiles.add(uniqueKey);
+      processedFiles.current.add(uniqueKey);
+      console.log('[Upload] Processing new file:', {
+        name: file.name,
+        size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        key: uniqueKey
+      });
       return true;
     });
 
