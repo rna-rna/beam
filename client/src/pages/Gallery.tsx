@@ -345,6 +345,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   }[]>([]);
 
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const masonryRef = useRef<any>(null);
 
   useEffect(() => {
     if (slug) {
@@ -1042,6 +1043,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       setPreloadedImages(prev => new Set([...Array.from(prev), imageId]));
     };
   }, []);
+
+  // Reflow Masonry layout when images or uploads change
+  useEffect(() => {
+    if (masonryRef.current?.layout) {
+      masonryRef.current.layout();
+    }
+  }, [gallery?.images, pendingUploads]);
 
   // Preload images when gallery data is available
   useEffect(() => {
@@ -1975,6 +1983,7 @@ const handleImageClick = (index: number) => {
               transition={{ duration: 0.3 }}
             >
               <Masonry
+                ref={masonryRef}
                 breakpointCols={breakpointCols}
                 className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
