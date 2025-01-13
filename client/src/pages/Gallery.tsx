@@ -1475,7 +1475,7 @@ const renderGalleryControls = useCallback(() => {
 
   const renderImage = (image: Image, index: number) => (
     <LazyLoad
-      key={image.id}
+      key={image.id === -1 ? `pending-${index}` : image.id}
       height={200}
       offset={100}
       placeholder={
@@ -1992,20 +1992,38 @@ const handleImageClick = (index: number) => {
                 className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
-                {/*Removed renderUploadPlaceholders()*/}
                 {(() => {
+                  const combinedImages = useMemo(() => {
+                    const serverImages = gallery?.images || [];
+                    const pendingAsImages = pendingUploads.map((pu) => ({
+                      id: `pending-${pu.id}`,
+                      url: pu.localUrl,
+                      originalFilename: pu.file.name,
+                      width: 800,
+                      height: 600,
+                      userStarred: false,
+                      commentCount: 0,
+                      stars: [],
+                      _isPending: true,
+                      _progress: pu.progress,
+                      _status: pu.status
+                    }));
+                    return [...pendingAsImages, ...serverImages];
+                  }, [gallery?.images, pendingUploads]);
+
                   // Filter images based on current criteria
-                  const filteredImages = gallery?.images?.filter((image: Image) => {
-                    if (!image || !image.url || !image.id) return false;
+                  const filteredImages = combinedImages.filter((image: any) => {
+                    if (!image || !image.url) return false;
+                    if (image._isPending) return true; // Always show pending uploads
                     if (showStarredOnly && !image.starred) return false;
                     if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
                     if (selectedStarredUsers.length > 0) {
                       return image.stars?.some(star => selectedStarredUsers.includes(star.userId)) || false;
                     }
                     return true;
-                  }) || [];
+                  });
 
-                  return filteredImages.map((image: Image, index: number) => renderImage(image, index));
+                  return filteredImages.map((image: any, index: number) => renderImage(image, index));
                 })()}
               </Masonry>
             </motion.div>
@@ -2021,14 +2039,39 @@ const handleImageClick = (index: number) => {
                 gridTemplateColumns: `repeat(${breakpointCols.default}, minmax(0, 1fr))`,
               }}
             >
-              {/*Removed renderUploadPlaceholders()*/}
-              {gallery?.images
-                .filter((image: Image) => {
-                  if (showStarredOnly && !image.starred) return false;
-                  if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
-                  return true;
-                })
-                .map((image: Image, index: number) => renderImage(image, index))}
+              {(() => {
+                  const combinedImages = useMemo(() => {
+                    const serverImages = gallery?.images || [];
+                    const pendingAsImages = pendingUploads.map((pu) => ({
+                      id: `pending-${pu.id}`,
+                      url: pu.localUrl,
+                      originalFilename: pu.file.name,
+                      width: 800,
+                      height: 600,
+                      userStarred: false,
+                      commentCount: 0,
+                      stars: [],
+                      _isPending: true,
+                      _progress: pu.progress,
+                      _status: pu.status
+                    }));
+                    return [...pendingAsImages, ...serverImages];
+                  }, [gallery?.images, pendingUploads]);
+
+                  // Filter images based on current criteria
+                  const filteredImages = combinedImages.filter((image: any) => {
+                    if (!image || !image.url) return false;
+                    if (image._isPending) return true; // Always show pending uploads
+                    if (showStarredOnly && !image.starred) return false;
+                    if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                    if (selectedStarredUsers.length > 0) {
+                      return image.stars?.some(star => selectedStarredUsers.includes(star.userId)) || false;
+                    }
+                    return true;
+                  });
+
+                  return filteredImages.map((image: any, index: number) => renderImage(image, index));
+                })()}
             </motion.div>
           )}
         </AnimatePresence>
