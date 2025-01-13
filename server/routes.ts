@@ -399,15 +399,34 @@ export function registerRoutes(app: Express): Server {
   const processedRequests = new Map<string, ProcessedRequest>();
 
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
+    console.log("==== /api/galleries/:slug/images ENDPOINT HIT ====");
+    console.log("Request params:", { slug: req.params.slug });
+    
     let { files, uploadId } = req.body;
     const slug = req.params.slug;
     const MAX_FILE_SIZE = 60 * 1024 * 1024; // 60MB
+    
+    console.log("Received request body:", {
+      filesCount: files?.length,
+      uploadId,
+      sampleFile: files?.[0] ? {
+        name: files[0].name,
+        type: files[0].type,
+        size: files[0].size
+      } : null
+    });
 
     const requestId = uploadId || `${slug}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log("Generated requestId:", requestId);
 
     // Generate unique hash for files array to detect duplicates
     const fileHashes = files?.map((f: any) => `${f.name}-${f.size}`);
     const existingRequest = processedRequests.get(requestId);
+    
+    console.log("File hashes computed:", {
+      count: fileHashes?.length,
+      sample: fileHashes?.[0]
+    });
 
     // Check for duplicate requests with detailed validation
     if (existingRequest) {
@@ -585,10 +604,18 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-        // Check for duplicate request
-        const requestId = `${slug}-${Date.now()}`;
+        console.log("=== Starting upload request processing ===");
+        console.log("Looking up gallery in database...");
+        
         const gallery = await db.query.galleries.findFirst({
             where: eq(galleries.slug, slug)
+        });
+
+        console.log("Gallery lookup result:", {
+          found: !!gallery,
+          galleryId: gallery?.id,
+          ownerId: gallery?.userId,
+          timestamp: new Date().toISOString()
         });
 
         if (!gallery) {
@@ -625,10 +652,24 @@ export function registerRoutes(app: Express): Server {
         }))
       });
 
+      console.log("=== Starting presigned URL generation ===");
+      console.log("Processing files:", {
+        count: files.length,
+        totalSize: files.reduce((acc, f) => acc + f.size, 0),
+        types: [...new Set(files.map(f => f.type))]
+      });
+
       const preSignedUrls = await Promise.all(
         files.map(async (file: any) => {
           const timestamp = Date.now();
           const key = `uploads/originals/${timestamp}-${batchId}-${file.name}`;
+          
+          console.log("Generating URL for file:", {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            key
+          });
           
           const command = new PutObjectCommand({
             Bucket: R2_BUCKET_NAME,
