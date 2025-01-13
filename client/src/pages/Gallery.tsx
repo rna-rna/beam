@@ -2016,7 +2016,7 @@ const handleImageClick = (index: number) => {
                   const allImages = [...pendingImages, ...combinedImages];
 
                   // Filter images based on current criteria
-                  const filteredImages = combinedImages.filter((image: any) => {
+                  const filteredImages = allImages.filter((image: any) => {
                     if (!image || !image.url) return false;
                     if (image._isPending) return true; // Always show pending uploads
                     if (showStarredOnly && !image.starred) return false;
@@ -2044,7 +2044,7 @@ const handleImageClick = (index: number) => {
               }}
             >
               {(() => {
-                  const combinedImages = useMemo(() => {
+                  const allImages = useMemo(() => {
                     const serverImages = gallery?.images || [];
                     const pendingAsImages = pendingUploads.map((pu) => ({
                       id: `pending-${pu.id}`,
@@ -2063,7 +2063,7 @@ const handleImageClick = (index: number) => {
                   }, [gallery?.images, pendingUploads]);
 
                   // Filter images based on current criteria
-                  const filteredImages = combinedImages.filter((image: any) => {
+                  const filteredImages = allImages.filter((image: any) => {
                     if (!image || !image.url) return false;
                     if (image._isPending) return true; // Always show pending uploads
                     if (showStarredOnly && !image.starred) return false;
