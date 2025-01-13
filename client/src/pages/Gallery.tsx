@@ -1313,7 +1313,7 @@ const renderGalleryControls = useCallback(() => {
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
+            <TooltipContent>Switch to {isMasonry ? "grid" : "masonry"} view</TooltipContent>
           </Tooltip>
 
           {/* Filter Menu - Temporarily commented out
