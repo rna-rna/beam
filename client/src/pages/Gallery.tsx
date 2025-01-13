@@ -1963,6 +1963,16 @@ const handleImageClick = (index: number) => {
         </div>      )}
 
       <div className="px-4 sm:px-6 lg:px-8 py-4">
+        {gallery && gallery.images.length === 0 && pendingUploads.length === 0 && (
+          <div className="my-8 text-center">
+            <Upload className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No images yet</h3>
+            <p className="text-sm text-muted-foreground">
+              Drag and drop images here to start your gallery
+            </p>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           {isMasonry ? (
             <motion.div
