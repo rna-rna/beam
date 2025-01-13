@@ -939,20 +939,59 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload image');
+        throw new Error('Failed to get upload URLs');
       }
 
-      const data = await response.json();
-      setPendingUploads(prev => 
-        prev.map(upload => 
-          upload.id === item.id 
-            ? { ...upload, status: 'done', progress: 100 } 
-            : upload
-        )
+      const { urls } = await response.json();
+      const { signedUrl, publicUrl, imageId } = urls[0];
+
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) {
+            const fraction = ev.loaded / ev.total;
+            const newProgress = fraction * 100;
+            setPendingUploads((prev) =>
+              prev.map((obj) =>
+                obj.id === item.id
+                  ? { ...obj, progress: newProgress }
+                  : obj
+              )
+            );
+          }
+        };
+
+        xhr.open('PUT', signedUrl, true);
+        xhr.setRequestHeader('Content-Type', item.file.type);
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            resolve();
+          } else {
+            reject(new Error(`Failed to upload ${item.file.name}`));
+          }
+        };
+        xhr.onerror = () => {
+          reject(new Error('Network error uploading file'));
+        };
+        xhr.send(item.file);
+      });
+
+      setPendingUploads((prev) =>
+        prev.map((obj) => {
+          if (obj.id !== item.id) return obj;
+          URL.revokeObjectURL(obj.localUrl);
+          return {
+            ...obj,
+            localUrl: publicUrl,
+            status: 'done',
+            progress: 100
+          };
+        })
       );
 
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
     } catch (error) {
+      console.error('uploadSingleFile error:', error);
       setPendingUploads(prev => 
         prev.map(upload => 
           upload.id === item.id 
