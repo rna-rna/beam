@@ -954,7 +954,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           if (xhr.status === 200) {
             resolve();
           } else {
-            reject(new Error(`Failed to upload ${item.file.name}`));
+            reject(newError(`Failed to upload ${item.file.name}`));
           }
         };
         xhr.onerror = () => {
@@ -1987,7 +1987,6 @@ const handleImageClick = (index: number) => {
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
                 {(() => {
-                  const combinedImages = gallery?.images || [];
                   const pendingImages = pendingUploads.map((pu) => ({
                     id: `pending-${pu.id}`,
                     url: pu.localUrl,
@@ -2001,10 +2000,10 @@ const handleImageClick = (index: number) => {
                     _progress: pu.progress,
                     _status: pu.status
                   }));
-                  const allImages = [...pendingImages, ...combinedImages];
+                  const combinedImages = [...pendingImages, ...(gallery?.images || [])];
 
                   // Filter images based on current criteria
-                  const filteredImages = allImages.filter((image: any) => {
+                  const filteredImages = combinedImages.filter((image: any) => {
                     if (!image || !image.url) return false;
                     if (image._isPending) return true; // Always show pending uploads
                     if (showStarredOnly && !image.starred) return false;
