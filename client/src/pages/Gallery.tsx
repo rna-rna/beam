@@ -954,8 +954,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           if (xhr.status === 200) {
             resolve();
           } else {
-            reject(new Error(`Failed to upload ${item.file.name}));
-          }
+            reject(new Error(`Failed to upload ${item.file.name}));}
         };
         xhr.onerror = () => {
           reject(new Error('Network error uploading file'));
@@ -976,7 +975,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         })
       );
 
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries', slug] });
     } catch (error) {
       console.error('uploadSingleFile error:', error);
       setPendingUploads(prev => 
