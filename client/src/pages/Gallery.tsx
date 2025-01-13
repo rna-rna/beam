@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import LazyLoad from 'react-lazyload';
 import { getCloudinaryUrl } from "@/lib/cloudinary";
-import UploadDropzone from "@/components/UploadDropzone";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Upload,
