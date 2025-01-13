@@ -96,6 +96,7 @@ import { Logo } from "@/components/Logo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { SignUpModal } from "@/components/SignUpModal";
 import PusherClient from "pusher-js";
+import { nanoid } from "nanoid";
 
 // Initialize Pusher client
 const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
@@ -336,6 +337,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
   const [userRole, setUserRole] = useState<string>("Viewer");
+  const [pendingUploads, setPendingUploads] = useState<{
+    id: string;
+    file: File;
+    localUrl: string;
+    status: 'uploading' | 'done' | 'error';
+    progress: number;
+  }[]>([]);
 
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -934,7 +942,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       1024: Math.max(1, Math.floor(3 * (100 / scale))),
       768: Math.max(1, Math.min(5, Math.floor(3 * (100 / scale)))),
       640: Math.max(1, Math.min(5, Math.floor(2 * (100 / scale)))),
-      480: Math.max(1, Math.min(5, Math.floor(2 * (100 / scale)))),
+      480: Math.max1, Math.min(5, Math.floor(2 * (100 / scale)))),
     }),
     [scale]
   );
