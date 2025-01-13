@@ -874,11 +874,27 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     status: 'uploading' | 'done' | 'error';
     progress: number;
   }) => {
+    console.log("[Client] Starting uploadSingleFile with item:", {
+      id: item.id,
+      fileName: item.file.name,
+      fileSize: item.file.size,
+      fileType: item.file.type,
+      status: item.status
+    });
+
     try {
       const token = await getToken();
+      console.log("[Client] Retrieved auth token:", !!token);
+      
       const headers: HeadersInit = {
         'Authorization': `Bearer ${token}`
       };
+
+      console.log("[Client] Sending request to /api/galleries/${slug}/images", {
+        fileName: item.file.name,
+        fileType: item.file.type,
+        fileSize: item.file.size
+      });
 
       const response = await fetch(`/api/galleries/${slug}/images`, {
         method: 'POST',
@@ -895,12 +911,27 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         })
       });
 
+      console.log("[Client] Server responded with status:", response.status);
+
       if (!response.ok) {
+        console.error("[Client] Server returned error status:", response.status);
         throw new Error('Failed to get upload URLs');
       }
 
-      const { urls } = await response.json();
+      const data = await response.json();
+      console.log("[Client] Received response data:", {
+        hasUrls: !!data.urls,
+        urlCount: data.urls?.length
+      });
+
+      const { urls } = data;
       const { signedUrl, publicUrl, imageId } = urls[0];
+
+      console.log("[Client] Starting file upload to signed URL:", {
+        hasSignedUrl: !!signedUrl,
+        hasPublicUrl: !!publicUrl,
+        imageId
+      });
 
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
