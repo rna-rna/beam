@@ -1579,29 +1579,29 @@ const renderGalleryControls = useCallback(() => {
         {preloadedImages.has(image.id) && (
           <>
             <img
-              src={image.url}
-              alt={image.originalFilename || 'Uploaded image'}
-              className={cn(
-                "w-full h-full object-cover rounded-lg blur-up block",
-                selectMode && selectedImages.includes(image.id) && "opacity-75",
-                draggedItemIndex === index && "opacity-50",
-                image._isPending && "opacity-80"
-              )}
-              loading="lazy"
-              onLoad={(e) => {
-                const img = e.currentTarget;
-                img.classList.add('loaded');
-              }}
-              onError={(e) => {
-                console.error('Image load failed:', {
-                  id: image.id,
-                  url: image.url,
-                  originalFilename: image.originalFilename
-                });
-                e.currentTarget.src = '/placeholder.png';
-              }}
-              draggable={false}
-            />
+                src={image.url}
+                alt={image.originalFilename || 'Uploaded image'}
+                className={cn(
+                  "w-full h-auto object-contain rounded-lg blur-up block",
+                  selectMode && selectedImages.includes(image.id) && "opacity-75",
+                  draggedItemIndex === index && "opacity-50",
+                  image._isPending && "opacity-80"
+                )}
+                loading="lazy"
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  img.classList.add('loaded');
+                }}
+                onError={(e) => {
+                  console.error('Image load failed:', {
+                    id: image.id,
+                    url: image.url,
+                    originalFilename: image.originalFilename
+                  });
+                  e.currentTarget.src = '/placeholder.png';
+                }}
+                draggable={false}
+              />
             {image._isPending && (
               <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
                 {image._status === "uploading" && (
