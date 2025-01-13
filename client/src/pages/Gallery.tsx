@@ -910,13 +910,81 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   });
 
-  const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      if (acceptedFiles.length === 0) return;
-      uploadMutation.mutate(acceptedFiles);
-    },
-    [uploadMutation]
-  );
+  const uploadSingleFile = async (item: {
+    id: string;
+    file: File;
+    localUrl: string;
+    status: 'uploading' | 'done' | 'error';
+    progress: number;
+  }) => {
+    try {
+      const token = await getToken();
+      const headers: HeadersInit = {
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(`/api/galleries/${slug}/images`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          files: [{
+            name: item.file.name,
+            type: item.file.type,
+            size: item.file.size
+          }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+      setPendingUploads(prev => 
+        prev.map(upload => 
+          upload.id === item.id 
+            ? { ...upload, status: 'done', progress: 100 } 
+            : upload
+        )
+      );
+
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+    } catch (error) {
+      setPendingUploads(prev => 
+        prev.map(upload => 
+          upload.id === item.id 
+            ? { ...upload, status: 'error', progress: 0 } 
+            : upload
+        )
+      );
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+
+    acceptedFiles.forEach((file) => {
+      const localUrl = URL.createObjectURL(file);
+      const newItem = {
+        id: nanoid(),
+        file,
+        localUrl,
+        status: 'uploading' as const,
+        progress: 0,
+      };
+
+      setPendingUploads((prev) => [...prev, newItem]);
+      uploadSingleFile(newItem);
+    });
+  }, [setPendingUploads, slug, getToken, queryClient]);
 
   // Modify the useDropzone configuration to disable click
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
