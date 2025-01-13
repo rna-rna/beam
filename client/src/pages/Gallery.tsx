@@ -297,7 +297,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     sessionStorage.setItem("guestGalleryCount", "1");
 
     if (files?.length) {
-      uploadMutation.mutate(files);
+      // uploadMutation.mutate(files); // Removed
     }
   };
 
@@ -866,49 +866,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     },
   });
 
-  const uploadMutation = useMutation({
-    mutationFn: async (files: File[]) => {
-      const token = await getToken();
-      const headers: HeadersInit = {
-        'Authorization': `Bearer ${token}`
-      };
-
-      const response = await fetch(`/api/galleries/${slug}/images`, {
-        method: 'POST',
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          files: files.map(file => ({
-            name: file.name,
-            type: file.type,
-            size: file.size
-          }))
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload images');
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      toast({
-        title: "Success",
-        description: "Images uploaded successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to upload images",
-        variant: "destructive",
-      });
-    }
-  });
 
   const uploadSingleFile = async (item: {
     id: string;
@@ -1023,7 +980,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       setPendingUploads((prev) => [...prev, newItem]);
       uploadSingleFile(newItem);
     });
-  }, [setPendingUploads, slug, getToken, queryClient]);
+  }, [setPendingUploads]);
 
   // Modify the useDropzone configuration to disable click
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
