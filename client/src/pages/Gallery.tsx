@@ -1849,28 +1849,7 @@ const renderGalleryControls = useCallback(() => {
     );
   }
 
-  if (gallery && gallery.images.length === 0) {
-    return (
-      <div className="flex flex-col min-h-screen max-h-screen overflow-hidden">
-        <div className="flex-1 w-full overflow-hidden relative">
-          <SignedIn>
-            <div className="absolute inset-0">
-              <UploadDropzone 
-                onUpload={handleUploadComplete}
-                imageCount={gallery?.images?.length || 0}
-                gallerySlug={slug}
-              />
-            </div>
-          </SignedIn>
-          <SignedOut>
-            <div className="absolute inset-0">
-              <UploadDropzone onUpload={handleGuestUpload} />
-            </div>
-          </SignedOut>
-        </div>
-      </div>
-    );
-  }
+  
 
   // Image preloading logic
   const preloadAdjacentImages = (index: number) => {
