@@ -89,6 +89,7 @@ import { useUser, useClerk, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/LoginModal";
+import { useUpload } from "@/context/UploadContext";
 import { StarredAvatars } from "@/components/StarredAvatars";
 import { LoginButton } from "@/components/LoginButton";
 import { Logo } from "@/components/Logo";
