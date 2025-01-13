@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import LazyLoad from 'react-lazyload';
 import { getCloudinaryUrl } from "@/lib/cloudinary";
-import UploadDropzone from "@/components/UploadDropzone";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Upload,
@@ -885,7 +884,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     try {
       const token = await getToken();
       console.log("[Client] Retrieved auth token:", !!token);
-      
+
       const headers: HeadersInit = {
         'Authorization': `Bearer ${token}`
       };
@@ -955,7 +954,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           if (xhr.status === 200) {
             resolve();
           } else {
-            reject(new Error(`Failed to upload ${item.file.name}`));
+            reject(new Error(`Failed to upload ${item.file.name}));
           }
         };
         xhr.onerror = () => {
@@ -1849,7 +1848,7 @@ const renderGalleryControls = useCallback(() => {
     );
   }
 
-  
+
 
   // Image preloading logic
   const preloadAdjacentImages = (index: number) => {
@@ -1858,7 +1857,7 @@ const renderGalleryControls = useCallback(() => {
     const preloadCount = 2;
     const images = gallery.images;
 
-    for (let i = 1; i <= preloadCount; i++) {
+    for (leti = 1; i <= preloadCount; i++) {
       const nextIndex = (index + i) % images.length;
       const prevIndex = (index - i + images.length) % images.length;
 
