@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import LazyLoad from 'react-lazyload';
 import { getCloudinaryUrl } from "@/lib/cloudinary";
+import UploadDropzone from "@/components/UploadDropzone";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Upload,
@@ -884,7 +885,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     try {
       const token = await getToken();
       console.log("[Client] Retrieved auth token:", !!token);
-
+      
       const headers: HeadersInit = {
         'Authorization': `Bearer ${token}`
       };
@@ -954,7 +955,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           if (xhr.status === 200) {
             resolve();
           } else {
-            reject(new Error(`Failed to upload ${item.file.name}));}
+            reject(new Error(`Failed to upload ${item.file.name}`));
+          }
         };
         xhr.onerror = () => {
           reject(new Error('Network error uploading file'));
@@ -975,7 +977,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         })
       );
 
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries', slug] });
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
     } catch (error) {
       console.error('uploadSingleFile error:', error);
       setPendingUploads(prev => 
@@ -1080,12 +1082,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         const response = await fetch(image.url);
         const blob = await response.blob();
         const extension = image.url.split('.').pop() || 'jpg';
-        zip.file('image-' + (index + 1) + '.' + extension, blob);
+        zip.file(`image-${index + 1}.${extension}`, blob);
       });
 
       await Promise.all(imagePromises);
       const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, gallery?.title ? gallery.title + '-images.zip' : 'gallery-images.zip');
+      saveAs(content, `${gallery!.title || 'gallery'}-images.zip`);
 
       toast({
         title: "Success",
@@ -1150,12 +1152,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         const response = await fetch(image.url);
         const blob = await response.blob();
         const extension = image.url.split('.').pop() || 'jpg';
-        zip.file('image-' + imageId + '.' + extension, blob);
+        zip.file(`image-${imageId}.${extension}`, blob);
       });
 
       await Promise.all(imagePromises);
       const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, 'selected-images.zip');
+      saveAs(content, `selected-images.zip`);
 
       toast({
         title: "Success",
@@ -1232,7 +1234,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       updatedImages.splice(targetIndex, 0, movedImage);
 
       // Optimistic update for immediate visual feedback
-      queryClient.setQueryData(['/api/galleries', slug], {
+      queryClient.setQueryData([`/api/galleries/${slug}`], {
         ...gallery,
         images: updatedImages,
       });
@@ -1313,7 +1315,7 @@ const renderGalleryControls = useCallback(() => {
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Switch to {isMasonry ? "grid" : "masonry"} view</TooltipContent>
+            <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
           </Tooltip>
 
           {/* Filter Menu - Temporarily commented out
@@ -1461,7 +1463,7 @@ const renderGalleryControls = useCallback(() => {
 
   const renderImage = (image: Image, index: number) => (
     <LazyLoad
-      key={image.id === -1 ? 'pending-' + index : image.id}
+      key={image.id === -1 ? `pending-${index}` : image.id}
       height={200}
       offset={100}
       placeholder={
@@ -1847,7 +1849,7 @@ const renderGalleryControls = useCallback(() => {
     );
   }
 
-
+  
 
   // Image preloading logic
   const preloadAdjacentImages = (index: number) => {
@@ -1856,7 +1858,7 @@ const renderGalleryControls = useCallback(() => {
     const preloadCount = 2;
     const images = gallery.images;
 
-    for (leti = 1; i <= preloadCount; i++) {
+    for (let i = 1; i <= preloadCount; i++) {
       const nextIndex = (index + i) % images.length;
       const prevIndex = (index - i + images.length) % images.length;
 
