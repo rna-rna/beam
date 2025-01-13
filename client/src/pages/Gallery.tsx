@@ -1232,7 +1232,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       updatedImages.splice(targetIndex, 0, movedImage);
 
       // Optimistic update for immediate visual feedback
-      queryClient.setQueryData([`/api/galleries/${slug}`], {
+      queryClient.setQueryData(['/api/galleries', slug], {
         ...gallery,
         images: updatedImages,
       });
