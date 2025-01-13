@@ -1150,7 +1150,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         const response = await fetch(image.url);
         const blob = await response.blob();
         const extension = image.url.split('.').pop() || 'jpg';
-        zip.file(`image-${imageId}.${extension}`, blob);
+        zip.file('image-' + imageId + '.' + extension, blob);
       });
 
       await Promise.all(imagePromises);
