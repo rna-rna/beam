@@ -2045,6 +2045,17 @@ const handleImageClick = (index: number) => {
             >
               {(() => {
                   const allImages = useMemo(() => {
+                    console.log('[Debug] Starting allImages calculation', {
+                      pendingUploadsCount: pendingUploads.length,
+                      galleryImagesCount: gallery?.images?.length,
+                      pendingDetails: pendingUploads.map(pu => ({
+                        id: pu.id,
+                        filename: pu.file.name,
+                        status: pu.status,
+                        progress: pu.progress
+                      }))
+                    });
+
                     const serverImages = gallery?.images || [];
                     const pendingAsImages = pendingUploads.map((pu) => ({
                       id: `pending-${pu.id}`,
@@ -2059,7 +2070,15 @@ const handleImageClick = (index: number) => {
                       _progress: pu.progress,
                       _status: pu.status
                     }));
-                    return [...pendingAsImages, ...serverImages];
+
+                    const combined = [...pendingAsImages, ...serverImages];
+                    console.log('[Debug] Combined images:', { 
+                      totalCount: combined.length,
+                      pendingCount: pendingAsImages.length,
+                      serverCount: serverImages.length
+                    });
+
+                    return combined;
                   }, [gallery?.images, pendingUploads]);
 
                   // Filter images based on current criteria
