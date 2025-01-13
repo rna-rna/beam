@@ -1564,7 +1564,7 @@ const renderGalleryControls = useCallback(() => {
       onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
     >
       <div
-        className={`group relative bg-card rounded-lg overflow-hidden transform transition-all ${
+        className={`group relative bg-card rounded-lg transform transition-all ${
           !isReorderMode ? 'hover:scale-[1.02] cursor-pointer' : ''
         } ${selectMode ? 'hover:scale-100' : ''} ${
           isReorderMode ? 'border-2 border-dashed border-gray-200 border-opacity-50' : ''
