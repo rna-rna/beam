@@ -1968,23 +1968,21 @@ const handleImageClick = (index: number) => {
                 columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
                 {(() => {
-                  const combinedImages = useMemo(() => {
-                    const serverImages = gallery?.images || [];
-                    const pendingAsImages = pendingUploads.map((pu) => ({
-                      id: `pending-${pu.id}`,
-                      url: pu.localUrl,
-                      originalFilename: pu.file.name,
-                      width: 800,
-                      height: 600,
-                      userStarred: false,
-                      commentCount: 0,
-                      stars: [],
-                      _isPending: true,
-                      _progress: pu.progress,
-                      _status: pu.status
-                    }));
-                    return [...pendingAsImages, ...serverImages];
-                  }, [gallery?.images, pendingUploads]);
+                  const combinedImages = gallery?.images || [];
+                  const pendingImages = pendingUploads.map((pu) => ({
+                    id: `pending-${pu.id}`,
+                    url: pu.localUrl,
+                    originalFilename: pu.file.name,
+                    width: 800,
+                    height: 600,
+                    userStarred: false,
+                    commentCount: 0,
+                    stars: [],
+                    _isPending: true,
+                    _progress: pu.progress,
+                    _status: pu.status
+                  }));
+                  const allImages = [...pendingImages, ...combinedImages];
 
                   // Filter images based on current criteria
                   const filteredImages = combinedImages.filter((image: any) => {
