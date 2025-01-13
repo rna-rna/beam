@@ -963,18 +963,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         xhr.send(item.file);
       });
 
-      setPendingUploads((prev) =>
-        prev.map((obj) => {
-          if (obj.id !== item.id) return obj;
-          URL.revokeObjectURL(obj.localUrl);
-          return {
-            ...obj,
-            localUrl: publicUrl,
-            status: 'done',
-            progress: 100
-          };
-        })
+      // Remove completed upload from pending state
+      setPendingUploads((prev) => 
+        prev.filter(obj => obj.id !== item.id)
       );
+      URL.revokeObjectURL(item.localUrl);
 
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
     } catch (error) {
