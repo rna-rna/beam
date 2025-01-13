@@ -2041,13 +2041,13 @@ const handleImageClick = (index: number) => {
                     _progress: pu.progress,
                     _status: pu.status
                   }));
-                  const combinedImages = [...pendingImages, ...(gallery?.images || [])];
+                  const allImages = [...pendingImages, ...(gallery?.images || [])];
 
                   // Filter images based on current criteria
-                  const filteredImages = combinedImages.filter((image: any) => {
+                  const filteredImages = allImages.filter((image: any) => {
                     if (!image || !image.url) return false;
                     if (image._isPending) return true; // Always show pending uploads
-                    if (showStarredOnly && !image.starred) return false;
+                    if (showStarredOnly && !image.userStarred) return false;
                     if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
                     if (selectedStarredUsers.length > 0) {
                       return image.stars?.some(star => selectedStarredUsers.includes(star.userId)) || false;
