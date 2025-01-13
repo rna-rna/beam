@@ -1190,9 +1190,9 @@ export function registerRoutes(app: Express): Server {
       const processedImages = imagesWithUserData.map(img => ({
         id: img.id,
         url: img.url || '',
-        width: img.width || 800,
-        height: img.height || 600,
-        aspectRatio: img.width && img.height ? img.width / img.height : 4/3,
+        width: img.width,
+        height: img.height,
+        aspectRatio: img.width && img.height ? img.width / img.height : null,
         publicId: img.publicId,
         slug: gallery.slug,
         originalFilename: img.originalFilename || `image-${img.id}`,
