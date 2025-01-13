@@ -1013,7 +1013,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       setPendingUploads(prev => 
         prev.map(upload => 
           upload.id === item.id 
-            ? { ...upload, status: 'error', progress: 0 } 
+            ? { ...upload, status: 'error', progress: 0, _status: 'error', _progress: 0 } 
             : upload
         )
       );
@@ -1034,6 +1034,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         id: nanoid(),
         file,
         localUrl,
+        _status: 'uploading',
+        _progress: 0,
         status: 'uploading' as const,
         progress: 0,
       };
