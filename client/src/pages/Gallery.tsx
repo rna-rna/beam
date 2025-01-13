@@ -884,7 +884,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     try {
       const token = await getToken();
       console.log("[Client] Retrieved auth token:", !!token);
-      
+
       const headers: HeadersInit = {
         'Authorization': `Bearer ${token}`
       };
@@ -958,7 +958,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
           }
         };
         xhr.onerror = () => {
-          reject(new Error('Network error uploading file'));
+          reject(newError('Network error uploading file'));
         };
         xhr.send(item.file);
       });
@@ -1848,7 +1848,7 @@ const renderGalleryControls = useCallback(() => {
     );
   }
 
-  
+
 
   // Image preloading logic
   const preloadAdjacentImages = (index: number) => {
@@ -1858,7 +1858,7 @@ const renderGalleryControls = useCallback(() => {
     const images = gallery.images;
 
     for (let i = 1; i <= preloadCount; i++) {
-      const nextIndex = (index + i) % images.length;
+      const nextIndex = (index+ i) % images.length;
       const prevIndex = (index - i + images.length) % images.length;
 
       [nextIndex, prevIndex].forEach((idx) => {
