@@ -906,7 +906,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   });
 
 
-  const uploadSingleFile = async (item: {
+  const { addBatch, updateBatchProgress, completeBatch } = useUpload();
+
+const uploadSingleFile = async (item: {
     id: string;
     file: File;
     localUrl: string;
@@ -920,6 +922,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       fileType: item.file.type,
       status: item.status
     });
+    
+    // Add the batch when starting upload
+    addBatch(item.id, item.file.size, 1);
 
     try {
       const token = await getToken();
@@ -974,10 +979,15 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
+        let previousProgress = 0;
         xhr.upload.onprogress = (ev) => {
           if (ev.lengthComputable) {
             const fraction = ev.loaded / ev.total;
             const newProgress = fraction * 100;
+            const incrementBytes = ev.loaded - previousProgress;
+            updateBatchProgress(item.id, incrementBytes);
+            previousProgress = ev.loaded;
+            
             setPendingUploads((prev) =>
               prev.map((obj) =>
                 obj.id === item.id
@@ -1008,6 +1018,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         prev.filter(obj => obj.id !== item.id)
       );
       URL.revokeObjectURL(item.localUrl);
+      completeBatch(item.id, true);
 
       queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
     } catch (error) {
@@ -1019,6 +1030,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             : upload
         )
       );
+      completeBatch(item.id, false);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to upload image",
