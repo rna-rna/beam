@@ -1085,7 +1085,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
       await Promise.all(imagePromises);
       const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, `${gallery!.title || 'gallery'}-images.zip`);
+      saveAs(content, gallery?.title ? gallery.title + '-images.zip' : 'gallery-images.zip');
 
       toast({
         title: "Success",
