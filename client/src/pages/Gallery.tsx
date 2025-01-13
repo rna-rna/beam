@@ -347,6 +347,43 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [isDarkMode, setIsDarkMode] = useState(false);
   const masonryRef = useRef<any>(null);
 
+  const combinedImages = useMemo(() => {
+    console.log('[Debug] Starting allImages calculation', {
+      pendingUploadsCount: pendingUploads.length,
+      galleryImagesCount: gallery?.images?.length,
+      pendingDetails: pendingUploads.map(pu => ({
+        id: pu.id,
+        filename: pu.file.name,
+        status: pu.status,
+        progress: pu.progress
+      }))
+    });
+
+    const serverImages = gallery?.images || [];
+    const pendingAsImages = pendingUploads.map((pu) => ({
+      id: `pending-${pu.id}`,
+      url: pu.localUrl,
+      originalFilename: pu.file.name,
+      width: 800,
+      height: 600,
+      userStarred: false,
+      commentCount: 0,
+      stars: [],
+      _isPending: true,
+      _progress: pu.progress,
+      _status: pu.status
+    }));
+
+    const combined = [...pendingAsImages, ...serverImages];
+    console.log('[Debug] Combined images:', { 
+      totalCount: combined.length,
+      pendingCount: pendingAsImages.length,
+      serverCount: serverImages.length
+    });
+
+    return combined;
+  }, [gallery?.images, pendingUploads]);
+
   useEffect(() => {
     if (slug) {
       fetch(`/api/galleries/${slug}/permissions`)
@@ -2033,45 +2070,8 @@ const handleImageClick = (index: number) => {
               }}
             >
               {(() => {
-                  const allImages = useMemo(() => {
-                    console.log('[Debug] Starting allImages calculation', {
-                      pendingUploadsCount: pendingUploads.length,
-                      galleryImagesCount: gallery?.images?.length,
-                      pendingDetails: pendingUploads.map(pu => ({
-                        id: pu.id,
-                        filename: pu.file.name,
-                        status: pu.status,
-                        progress: pu.progress
-                      }))
-                    });
-
-                    const serverImages = gallery?.images || [];
-                    const pendingAsImages = pendingUploads.map((pu) => ({
-                      id: `pending-${pu.id}`,
-                      url: pu.localUrl,
-                      originalFilename: pu.file.name,
-                      width: 800,
-                      height: 600,
-                      userStarred: false,
-                      commentCount: 0,
-                      stars: [],
-                      _isPending: true,
-                      _progress: pu.progress,
-                      _status: pu.status
-                    }));
-
-                    const combined = [...pendingAsImages, ...serverImages];
-                    console.log('[Debug] Combined images:', { 
-                      totalCount: combined.length,
-                      pendingCount: pendingAsImages.length,
-                      serverCount: serverImages.length
-                    });
-
-                    return combined;
-                  }, [gallery?.images, pendingUploads]);
-
                   // Filter images based on current criteria
-                  const filteredImages = allImages.filter((image: any) => {
+                  const filteredImages = combinedImages.filter((image: any) => {
                     if (!image || !image.url) return false;
                     if (image._isPending) return true; // Always show pending uploads
                     if (showStarredOnly && !image.starred) return false;
