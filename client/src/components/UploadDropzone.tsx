@@ -90,8 +90,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         return;
       }
 
-      addBatch(uploadId, totalSize, acceptedFiles.length);
-
       // Request presigned URL
       const response = await fetch(`/api/galleries/${gallerySlug}/images`, {
         method: 'POST',
