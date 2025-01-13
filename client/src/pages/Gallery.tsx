@@ -342,6 +342,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     localUrl: string;
     status: 'uploading' | 'done' | 'error';
     progress: number;
+    width?: number;
+    height?: number;
   }[]>([]);
 
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -364,8 +366,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       id: `pending-${pu.id}`,
       url: pu.localUrl,
       originalFilename: pu.file.name,
-      width: 800,
-      height: 600,
+      width: pu.width || 800,
+      height: pu.height || 600,
       userStarred: false,
       commentCount: 0,
       stars: [],
@@ -1030,18 +1032,27 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
     acceptedFiles.forEach((file) => {
       const localUrl = URL.createObjectURL(file);
-      const newItem = {
-        id: nanoid(),
-        file,
-        localUrl,
-        _status: 'uploading',
-        _progress: 0,
-        status: 'uploading' as const,
-        progress: 0,
-      };
+      const imageEl = new Image();
+      imageEl.onload = () => {
+        const width = imageEl.naturalWidth;
+        const height = imageEl.naturalHeight;
 
-      setPendingUploads((prev) => [...prev, newItem]);
-      uploadSingleFile(newItem);
+        const newItem = {
+          id: nanoid(),
+          file,
+          localUrl,
+          _status: 'uploading',
+          _progress: 0,
+          status: 'uploading' as const,
+          progress: 0,
+          width,
+          height
+        };
+
+        setPendingUploads((prev) => [...prev, newItem]);
+        uploadSingleFile(newItem);
+      };
+      imageEl.src = localUrl;
     });
   }, [setPendingUploads]);
 
@@ -1839,7 +1850,7 @@ const renderGalleryControls = useCallback(() => {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Alert variant="destructive" className="w-full max-w-md">
           <AlertCircle className="h-12 w-12 mb-2" />
-          <AlertTitle className="text-2xl mb-2">Gallery Not Found</AlertTitle>
+          <AlertTitle className="text2xl mb-2">Gallery Not Found</AlertTitle>
           <AlertDescription className="text-base mb-4">
             {error instanceof Error ? error.message : 'The gallery you are looking for does not exist or has been removed.'}
           </AlertDescription>
@@ -2032,8 +2043,8 @@ const handleImageClick = (index: number) => {
                     id: `pending-${pu.id}`,
                     url: pu.localUrl,
                     originalFilename: pu.file.name,
-                    width: 800,
-                    height: 600,
+                    width: pu.width || 800,
+                    height: pu.height || 600,
                     userStarred: false,
                     commentCount: 0,
                     stars: [],
