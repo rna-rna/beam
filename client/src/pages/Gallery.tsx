@@ -1461,7 +1461,7 @@ const renderGalleryControls = useCallback(() => {
 
   const renderImage = (image: Image, index: number) => (
     <LazyLoad
-      key={image.id === -1 ? `pending-${index}` : image.id}
+      key={image.id === -1 ? 'pending-' + index : image.id}
       height={200}
       offset={100}
       placeholder={
