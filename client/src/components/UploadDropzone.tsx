@@ -14,7 +14,7 @@ interface Props {
 }
 
 export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }: Props) {
-  const { addBatch, updateBatchProgress, completeBatch } = useUpload();
+  const { batches, addBatch, updateBatchProgress, completeBatch } = useUpload();
 
   // Use ref to persist processed files across renders
   const processedFiles = useRef(new Set<string>());
