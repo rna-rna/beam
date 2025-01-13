@@ -942,7 +942,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       1024: Math.max(1, Math.floor(3 * (100 / scale))),
       768: Math.max(1, Math.min(5, Math.floor(3 * (100 / scale)))),
       640: Math.max(1, Math.min(5, Math.floor(2 * (100 / scale)))),
-      480: Math.max1, Math.min(5, Math.floor(2 * (100 / scale)))),
+      480: Math.max(1, Math.min(5, Math.floor(2 * (100 / scale)))),
     }),
     [scale]
   );
