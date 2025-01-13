@@ -1531,14 +1531,15 @@ const renderGalleryControls = useCallback(() => {
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
-          "mb-4 image-container relative transform transition-all duration-200 ease-out",
+          "mb-4 image-container relative transform transition-all duration-200 ease-out w-full",
           isReorderMode && "cursor-grab active:cursor-grabbing",
           "block overflow-hidden"
         )}
         style={{
           aspectRatio: image.width && image.height 
             ? `${image.width} / ${image.height}` 
-            : '4/3'
+            : '4/3',
+          width: '100%'
         }}
       initial={{ opacity: 0, y: 20}}
       animate={{
@@ -1582,7 +1583,7 @@ const renderGalleryControls = useCallback(() => {
                 src={image.url}
                 alt={image.originalFilename || 'Uploaded image'}
                 className={cn(
-                  "w-full h-auto object-contain rounded-lg blur-up block",
+                  "w-full h-full object-cover rounded-lg blur-up block",
                   selectMode && selectedImages.includes(image.id) && "opacity-75",
                   draggedItemIndex === index && "opacity-50",
                   image._isPending && "opacity-80"
