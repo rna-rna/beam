@@ -1505,7 +1505,7 @@ const renderGalleryControls = useCallback(() => {
       offset={100}
       placeholder={
         <div 
-          className="w-full bg-muted animate-pulse rounded-lg" 
+          className="w-full bg-muted animate-pulse rounded-lg ring-2 ring-purple-500/20" 
           style={{
             aspectRatio: image.width && image.height 
               ? `${image.width} / ${image.height}` 
@@ -1590,7 +1590,7 @@ const renderGalleryControls = useCallback(() => {
               draggable={false}
             />
             {image._isPending && (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
                 {image._status === "uploading" && (
                   <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
                     <Loader2 className="h-4 w-4 animate-spin" />
