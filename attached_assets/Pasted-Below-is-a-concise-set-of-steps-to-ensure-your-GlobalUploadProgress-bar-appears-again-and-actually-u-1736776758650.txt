@@ -1,0 +1,57 @@
+Below is a concise set of steps to ensure your GlobalUploadProgress bar appears again and actually updates. The key is:
+
+You must render <GlobalUploadProgress /> somewhere in your top-level app (so it’s always in the DOM).
+Make sure your upload logic (e.g. in gallery.tsx or uploaddropzone.tsx) actually calls the Add, Update, and Complete methods from the UploadContext.
+1. Render the GlobalUploadProgress
+In your top-level app.tsx (or wherever you wrap <UploadProvider>), do something like:
+
+tsx
+Copy code
+import { UploadProvider } from "@/context/UploadContext";
+import GlobalUploadProgress from "@/components/GlobalUploadProgress"; 
+// or wherever globaluploadprogress is
+
+function App() {
+  return (
+    <UploadProvider>
+      <GlobalUploadProgress />
+      {/* the rest of your app routes */}
+    </UploadProvider>
+  );
+}
+
+export default App;
+This ensures that no matter what page you’re on, if batches.length > 0, the progress UI is shown. If you never see it, then either:
+
+The code is not actually calling addBatch etc.
+Or the progress stays at 0 and instantly completes.
+2. Call Your addBatch, updateBatchProgress, and completeBatch
+Inside your upload logic (like in uploaddropzone.tsx or gallery.tsx), you have to do the following:
+
+addBatch — When you begin the upload.
+updateBatchProgress — Each time you get a progress event.
+completeBatch — When the upload finishes (whether success or error).
+Below is an example that lines up with how your context expects these calls. If we look at your onDrop in uploaddropzone.tsx, you actually do:
+
+js
+Copy code
+const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+addBatch(uploadId, totalSize, acceptedFiles.length);
+Then in the loop, for each file:
+
+js
+Copy code
+xhr.upload.onprogress = (event) => {
+  if (event.lengthComputable) {
+    const incrementBytes = event.loaded - (previousProgress ?? 0);
+    updateBatchProgress(uploadId, incrementBytes);
+    previousProgress = event.loaded;
+  }
+};
+Finally when the entire loop completes:
+
+js
+Copy code
+completeBatch(uploadId, /* success = true/false */ true);
+Make sure you’re actually doing these calls (your snippet does show them in onDrop). That means your batches array in UploadContext should fill up and progress should appear in <GlobalUploadProgress />.
+
