@@ -1587,51 +1587,49 @@ const renderGalleryControls = useCallback(() => {
           selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
         }}
       >
-        {preloadedImages.has(image.id) && (
-          <>
-            <img
-                src={image.url}
-                alt={image.originalFilename || 'Uploaded image'}
-                className={cn(
-                  "w-full h-auto object-contain rounded-lg blur-up block",
-                  selectMode && selectedImages.includes(image.id) && "opacity-75",
-                  draggedItemIndex === index && "opacity-50",
-                  image._isPending && "opacity-80"
-                )}
-                loading="lazy"
-                onLoad={(e) => {
-                  const img = e.currentTarget;
-                  img.classList.add('loaded');
-                }}
-                onError={(e) => {
-                  console.error('Image load failed:', {
-                    id: image.id,
-                    url: image.url,
-                    originalFilename: image.originalFilename
-                  });
-                  e.currentTarget.src = '/placeholder.png';
-                }}
-                draggable={false}
-              />
-            {image._isPending && (
-              <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
-                {image._status === "uploading" && (
-                  <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                )}
-                {image._status === "error" && (
-                  <div className="absolute top-2 right-2 bg-destructive/80 backdrop-blur-sm p-2 rounded-full">
-                    <AlertCircle className="h-4 w-4 text-destructive-foreground" />
-                  </div>
-                )}
-                {image._status === "uploading" && (
-                  <Progress value={image._progress} className="w-3/4 h-1" />
-                )}
-              </div>
-            )}
-          </>
-        )}
+        <>
+          <img
+              src={image.url}
+              alt={image.originalFilename || 'Uploaded image'}
+              className={cn(
+                "w-full h-auto object-contain rounded-lg blur-up block",
+                selectMode && selectedImages.includes(image.id) && "opacity-75",
+                draggedItemIndex === index && "opacity-50",
+                image._isPending && "opacity-80"
+              )}
+              loading="lazy"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                img.classList.add('loaded');
+              }}
+              onError={(e) => {
+                console.error('Image load failed:', {
+                  id: image.id,
+                  url: image.url,
+                  originalFilename: image.originalFilename
+                });
+                e.currentTarget.src = '/placeholder.png';
+              }}
+              draggable={false}
+            />
+          {image._isPending && (
+            <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
+              {image._status === "uploading" && (
+                <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              )}
+              {image._status === "error" && (
+                <div className="absolute top-2 right-2 bg-destructive/80 backdrop-blur-sm p-2 rounded-full">
+                  <AlertCircle className="h-4 w-4 text-destructive-foreground" />
+                </div>
+              )}
+              {image._status === "uploading" && (
+                <Progress value={image._progress} className="w-3/4 h-1" />
+              )}
+            </div>
+          )}
+        </>
 
         {/* Starred avatars in bottom left corner */}
         {!selectMode && (
