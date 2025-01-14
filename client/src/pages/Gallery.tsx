@@ -1587,9 +1587,7 @@ const renderGalleryControls = useCallback(() => {
           selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
         }}
       >
-        {preloadedImages.has(image.id) && (
-          <>
-            <img
+        <img
                 src={image.url}
                 alt={image.originalFilename || 'Uploaded image'}
                 className={cn(
