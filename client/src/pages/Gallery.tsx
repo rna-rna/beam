@@ -1587,10 +1587,12 @@ const renderGalleryControls = useCallback(() => {
           selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
         }}
       >
-        <img
-            src={image.url}
-            alt={image.originalFilename || 'Uploaded image'}
-            className={cn(
+        {preloadedImages.has(image.id) && (
+          <>
+            <img
+                src={image.url}
+                alt={image.originalFilename || 'Uploaded image'}
+                className={cn(
                   "w-full h-auto object-contain rounded-lg blur-up block",
                   selectMode && selectedImages.includes(image.id) && "opacity-75",
                   draggedItemIndex === index && "opacity-50",
