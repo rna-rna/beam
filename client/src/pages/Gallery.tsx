@@ -1536,18 +1536,15 @@ export default function Gallery({
               : handleImageClick(index);
           }}
         >
-          <div className="relative w-full">
-            <img
-              key={`${image.id}-${image._status || "final"}`}
-              src={'localUrl' in image ? image.localUrl : image.url}
-              alt={image.originalFilename || "Uploaded image"}
-              style={{
-                width: '100%',
-                height: 'auto',
-                aspectRatio: image.width && image.height ? `${image.width}/${image.height}` : 'auto'
-              }}
-              className={cn(
-                "rounded-lg blur-up block transition-opacity duration-200",
+          <AspectRatio ratio={image.width && image.height ? image.width / image.height : 4/3}>
+            <div className="relative w-full h-full">
+              <img
+                key={`${image.id}-${image._status || "final"}`}
+                src={'localUrl' in image ? image.localUrl : image.url}
+                alt={image.originalFilename || "Uploaded image"}
+                style={{ objectFit: "cover" }}
+                className={cn(
+                "absolute inset-0 w-full h-full object-cover rounded-lg blur-up block transition-opacity duration-200",
                 selectMode && selectedImages.includes(image.id) && "opacity-75",
                 draggedItemIndex === index && "opacity-50",
                 'localUrl' in image && "opacity-80",
@@ -1584,6 +1581,8 @@ export default function Gallery({
             }}
             draggable={false}
           />
+            </div>
+          </AspectRatio>
           {'localUrl' in image && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
               {image.status === "uploading" && (
@@ -1793,6 +1792,7 @@ export default function Gallery({
             </motion.div>
           )}
         </div>
+      </motion.div>
     </div>
   );
 
