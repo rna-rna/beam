@@ -1543,16 +1543,16 @@ export default function Gallery({
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50"
             )}
+            onClick={(e) => {
+              if (isReorderMode) {
+                e.stopPropagation();
+                return;
+              }
+              selectMode
+                ? handleImageSelect(image.id, e)
+                : handleImageClick(index);
+            }}
           />
-          onClick={(e) => {
-            if (isReorderMode) {
-              e.stopPropagation();
-              return;
-            }
-            selectMode
-              ? handleImageSelect(image.id, e)
-              : handleImageClick(index);
-          }}
         >
           <AspectRatio ratio={'localUrl' in image ? (image.width / image.height) : (image.width && image.height ? image.width / image.height : 4/3)}>
             <div className="relative w-full h-full">
