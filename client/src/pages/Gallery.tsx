@@ -76,6 +76,8 @@ import type {
   Comment,
   Annotation,
   UploadProgress,
+  ImageOrPending,
+  PendingImage,
 } from "@/types/gallery";
 import { useToast } from "@/hooks/use-toast";
 import Masonry from "react-masonry-css";
@@ -360,7 +362,6 @@ export default function Gallery({
   const [mobileViewIndex, setMobileViewIndex] = useState(-1);
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
-  //const [uploadProgress, setUploadProgress] = useState<UploadProgress>({}); //Removed
   const [isMasonry, setIsMasonry] = useState(true);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{
@@ -369,40 +370,24 @@ export default function Gallery({
   } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
   const [userRole, setUserRole] = useState<string>("Viewer");
-  const [pendingUploads, setPendingUploads] = useState<
-    {
-      id: string;
-      file: File;
-      localUrl: string;
-      status: "uploading" | "done" | "error";
-      progress: number;
-      width?: number;
-      height?: number;
-      uploadTimestamp: number; // Added uploadTimestamp
-    }[]
-  >([]);
+  const [images, setImages] = useState<ImageOrPending[]>([]);
+
+  // Load server images
+  useEffect(() => {
+    if (gallery?.images) {
+      setImages(prev => {
+        const pendingIds = new Set(prev.filter(img => 'localUrl' in img).map(img => img.id));
+        return [...prev.filter(img => pendingIds.has(img.id)), ...gallery.images];
+      });
+    }
+  }, [gallery?.images]);
 
   const [isDarkMode, setIsDarkMode] = useState(false);
   const masonryRef = useRef<any>(null);
 
   const combinedImages = useMemo(() => {
-    const pendingItems = pendingUploads.map((pu) => ({
-      id: `pending-${pu.id}`,
-      url: pu.localUrl,
-      originalFilename: pu.file.name,
-      width: pu.width,
-      height: pu.height,
-      userStarred: false,
-      commentCount: 0,
-      stars: [],
-      _isPending: true,
-      _progress: pu.progress,
-      _status: pu.status,
-      uploadTimestamp: pu.uploadTimestamp,
-    }));
-
-    return [...pendingItems, ...(gallery?.images || [])];
-  }, [gallery?.images, pendingUploads]);
+    return images;
+  }, [images]);
 
   useEffect(() => {
     if (slug) {
@@ -973,147 +958,86 @@ export default function Gallery({
 
   const { addBatch, updateBatchProgress, completeBatch } = useUpload();
 
-  const uploadSingleFile = async (item: {
-    id: string;
-    file: File;
-    localUrl: string;
-    status: "uploading" | "done" | "error";
-    progress: number;
-  }) => {
-    console.log("[Client] Starting uploadSingleFile with item:", {
-      id: item.id,
-      fileName: item.file.name,
-      fileSize: item.file.size,
-      fileType: item.file.type,
-      status: item.status,
-    });
-
-    // Add the batch when starting upload
-    addBatch(item.id, item.file.size, 1);
+  const uploadSingleFile = async (file: File, tmpId: string) => {
+    const addBatchId = nanoid();
+    addBatch(addBatchId, file.size, 1);
 
     try {
       const token = await getToken();
-      console.log("[Client] Retrieved auth token:", !!token);
-
-      const headers: HeadersInit = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      console.log("[Client] Sending request to /api/galleries/${slug}/images", {
-        fileName: item.file.name,
-        fileType: item.file.type,
-        fileSize: item.file.size,
-      });
-
       const response = await fetch(`/api/galleries/${slug}/images`, {
         method: "POST",
         headers: {
-          ...headers,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          files: [
-            {
-              name: item.file.name,
-              type: item.file.type,
-              size: item.file.size,
-            },
-          ],
+          files: [{
+            name: file.name,
+            type: file.type,
+            size: file.size,
+          }],
         }),
       });
 
-      console.log("[Client] Server responded with status:", response.status);
+      if (!response.ok) throw new Error("Failed to get upload URL");
 
-      if (!response.ok) {
-        console.error(
-          "[Client] Server returned error status:",
-          response.status,
-        );
-        throw new Error("Failed to get upload URLs");
-      }
-
-      const data = await response.json();
-      console.log("[Client] Received response data:", {
-        hasUrls: !!data.urls,
-        urlCount: data.urls?.length,
-      });
-
-      const { urls } = data;
+      const { urls } = await response.json();
       const { signedUrl, publicUrl, imageId } = urls[0];
 
-      console.log("[Client] Starting file upload to signed URL:", {
-        hasSignedUrl: !!signedUrl,
-        hasPublicUrl: !!publicUrl,
-        imageId,
-      });
-
+      // Upload to R2
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        let previousProgress = 0;
         xhr.upload.onprogress = (ev) => {
           if (ev.lengthComputable) {
-            const fraction = ev.loaded / ev.total;
-            const newProgress = fraction * 100;
-            const incrementBytes = ev.loaded - previousProgress;
-            updateBatchProgress(item.id, incrementBytes);
-            previousProgress = ev.loaded;
-
-            setPendingUploads((prev) =>
-              prev.map((obj) =>
-                obj.id === item.id ? { ...obj, progress: newProgress } : obj,
-              ),
+            const progress = (ev.loaded / ev.total) * 100;
+            setImages(prev => 
+              prev.map(img => 
+                img.id === tmpId 
+                  ? { ...img, progress } 
+                  : img
+              )
             );
+            updateBatchProgress(addBatchId, evloaded - ev.total);
           }
         };
 
-        xhr.open("PUT", signedUrl, true);
-        xhr.setRequestHeader("Content-Type", item.file.type);
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            resolve();
-          } else {
-            reject(new Error(`Failed to upload ${item.file.name}`));
-          }
-        };
-        xhr.onerror = () => {
-          reject(new Error("Network error uploading file"));
-        };
-        xhr.send(item.file);
+        xhr.open("PUT", signedUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.onload = () => xhr.status === 200 ? resolve() : reject();
+        xhr.onerror = () => reject();
+        xhr.send(file);
       });
 
-      // Wait for CDN to be ready
-      await new Promise<void>((resolve) => setTimeout(resolve, 1500));
-
-      // Invalidate query to refresh from server
-      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-
-      // Once server is refreshed, clean up local state
-      setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
-      URL.revokeObjectURL(item.localUrl);
-      
-      completeBatch(item.id, true);
-    } catch (error) {
-      console.error("uploadSingleFile error:", error);
-      setPendingUploads((prev) =>
-        prev.map((upload) =>
-          upload.id === item.id
+      // Update image with real ID and URL
+      setImages(prev =>
+        prev.map(img =>
+          img.id === tmpId
             ? {
-                ...upload,
-                status: "error",
-                progress: 0,
-                _status: "error",
-                _progress: 0,
+                id: imageId,
+                url: publicUrl,
+                originalFilename: file.name,
+                width: (img as PendingImage).width,
+                height: (img as PendingImage).height,
+                commentCount: 0,
+                userStarred: false,
+                stars: []
               }
-            : upload,
-        ),
+            : img
+        )
       );
-      completeBatch(item.id, false);
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to upload image",
-        variant: "destructive",
-      });
+
+      completeBatch(addBatchId, true);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+    } catch (error) {
+      setImages(prev =>
+        prev.map(img =>
+          img.id === tmpId
+            ? { ...img as PendingImage, status: "error", progress: 0 }
+            : img
+        )
+      );
+      completeBatch(addBatchId, false);
+      console.error("Upload failed:", error);
     }
   };
 
@@ -1122,58 +1046,30 @@ export default function Gallery({
       if (acceptedFiles.length === 0) return;
 
       acceptedFiles.forEach((file) => {
+        const tmpId = nanoid();
         const localUrl = URL.createObjectURL(file);
-        const imageEl = new Image();
 
+        const imageEl = new Image();
         imageEl.onload = () => {
           const width = imageEl.naturalWidth;
           const height = imageEl.naturalHeight;
-          const pendingId = nanoid();
 
-          const newItem = {
-            id: pendingId,
-            file,
+          const newItem: ImageOrPending = {
+            id: tmpId,
             localUrl,
-            status: "uploading" as const,
+            status: "uploading",
             progress: 0,
             width,
             height,
-            uploadTimestamp: Date.now()
           };
 
-          setPendingUploads((prev) => [...prev, newItem]);
-          
-          uploadSingleFile(newItem)
-            .then(() => {
-              setPendingUploads((prev) => 
-                prev.map(upload => 
-                  upload.id === pendingId 
-                    ? { ...upload, status: "done", progress: 100 }
-                    : upload
-                )
-              );
-              
-              // Remove from pending state after a brief delay
-              setTimeout(() => {
-                setPendingUploads((prev) => prev.filter(u => u.id !== pendingId));
-                URL.revokeObjectURL(localUrl);
-              }, 500);
-            })
-            .catch((error) => {
-              setPendingUploads((prev) => 
-                prev.map(upload => 
-                  upload.id === pendingId 
-                    ? { ...upload, status: "error", progress: 0 }
-                    : upload
-                )
-              );
-              console.error("Upload failed:", error);
-            });
+          setImages((prev) => [...prev, newItem]);
+          uploadSingleFile(file, tmpId);
         };
         imageEl.src = localUrl;
       });
     },
-    [setPendingUploads, uploadSingleFile],
+    [setImages, uploadSingleFile],
   );
 
   // Modify the useDropzone configuration to disable click
@@ -1187,8 +1083,6 @@ export default function Gallery({
     noKeyboard: true,
   });
 
-  // Add upload progress placeholders to the masonry grid
-  //Removed renderUploadPlaceholders function
 
   // Memoized Values
   const breakpointCols = useMemo(
@@ -1219,7 +1113,7 @@ export default function Gallery({
     if (masonryRef.current?.layout) {
       masonryRef.current.layout();
     }
-  }, [gallery?.images, pendingUploads]);
+  }, [gallery?.images, images]);
 
   // Preload images when gallery data is available
   useEffect(() => {
@@ -1521,84 +1415,6 @@ export default function Gallery({
             <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
           </Tooltip>
 
-          {/* Filter Menu - Temporarily commented out
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200")}
-                  >
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      onClick={() => setShowStarredOnly(!showStarredOnly)}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <div className="flex items-center flex-1">
-                        <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-zinc-800")} />
-                        Show Starred
-                        <div className="ml-auto inline-flex items-center gap-1">
-                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
-                            <ArrowBigUp className="h-3 w-3" />
-                          </kbd>
-                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
-                            S
-                          </kbd>
-                        </div>
-                      </div>
-                      {showStarredOnly && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setShowWithComments(!showWithComments)}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <div className="flex items-center flex-1">
-                        <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-zinc-800")} />
-                        Show Comments
-                        <div className="ml-auto inline-flex items-center gap-1">
-                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
-                            <ArrowBigUp className="h-3 w-3" />
-                          </kbd>
-                          <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
-                            C
-                          </kbd>
-                        </div>
-                      </div>
-                      {showWithComments && <CheckCircle className={cn("w-4 h-4 text-primary")} />}
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setShowStarredOnly(false);
-                      setShowWithComments(false);
-                      }}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <div className="flex items-center flex-1">
-                      Reset Filters
-                      <div className="ml-auto inline-flex items-center gap-1">
-                        <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
-                          <ArrowBigUp className="h-3 w-3" />
-                        </kbd>
-                        <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
-                          R
-                        </kbd>
-                      </div>
-                    </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TooltipTrigger>
-            <TooltipContent>Filter Images</TooltipContent>
-          </Tooltip>
-          */}
 
           {selectMode && <></>}
 
@@ -1661,7 +1477,7 @@ export default function Gallery({
     setIsOpenShareModal,
   ]);
 
-  const renderImage = (image: Image, index: number) => (
+  const renderImage = (image: ImageOrPending, index: number) => (
     <div key={image.id === -1 ? `pending-${index}` : image.id}>
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
@@ -1717,20 +1533,20 @@ export default function Gallery({
         >
           <img
             key={`${image.id}-${image._status || "final"}`}
-            src={image._isPending && image.localUrl ? image.localUrl : image.url}
+            src={'localUrl' in image ? image.localUrl : image.url}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
               "w-full h-auto object-contain rounded-lg blur-up block transition-opacity duration-200",
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50",
-              image._isPending && "opacity-80",
-              image._status === "error" && "opacity-50",
+              'localUrl' in image && "opacity-80",
+              image.status === "error" && "opacity-50",
             )}
             loading="lazy"
             onLoad={(e) => {
               const img = e.currentTarget;
               img.classList.add("loaded");
-              if (!image._isPending && image.pendingRevoke) {
+              if (!('localUrl' in image) && image.pendingRevoke) {
                 setTimeout(() => {
                   URL.revokeObjectURL(image.pendingRevoke);
                 }, 800);
@@ -1740,13 +1556,13 @@ export default function Gallery({
               console.error("Image load failed:", {
                 id: image.id,
                 url: image.url,
-                isPending: image._isPending,
-                status: image._status,
+                isPending: 'localUrl' in image,
+                status: image.status,
                 originalFilename: image.originalFilename,
               });
-              if (!image._isPending) {
+              if (!('localUrl' in image)) {
                 e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
-                setPendingUploads((prev) =>
+                setImages((prev) =>
                   prev.map((upload) =>
                     upload.id === image.id
                       ? { ...upload, status: "error", _status: "error" }
@@ -1757,20 +1573,20 @@ export default function Gallery({
             }}
             draggable={false}
           />
-          {image._isPending && (
+          {'localUrl' in image && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
-              {image._status === "uploading" && (
+              {image.status === "uploading" && (
                 <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
                   <Loader2 className="h-4 w-4 animate-spin" />
                 </div>
               )}
-              {image._status === "error" && (
+              {image.status === "error" && (
                 <div className="absolute top-2 right-2 bg-destructive/80 backdrop-blur-sm p-2 rounded-full">
                   <AlertCircle className="h-4 w-4 text-destructive-foreground" />
                 </div>
               )}
-              {image._status === "uploading" && (
-                <Progress value={image._progress} className="w-3/4 h-1" />
+              {image.status === "uploading" && (
+                <Progress value={image.progress} className="w-3/4 h-1" />
               )}
             </div>
           )}
@@ -1919,8 +1735,8 @@ export default function Gallery({
               >
                 <motion.div
                   animate={{
-                    scale: image.starred ? 1.2 : 1,
-                    opacity: image.starred ? 1 : 0.6,
+                    scale: image.userStarred ? 1.2 : 1,
+                    opacity: image.userStarred ? 1 : 0.6,
                   }}
                   transition={{ duration: 0.2 }}
                 >
@@ -2168,7 +1984,7 @@ export default function Gallery({
             imageId: selectedImage.id,
             content,
             x: newCommentPos.x,
-            y: newCommentPos.y,
+            y: y: newCommentPos.y,
           });
 
           setIsCommentModalOpen(false);
@@ -2224,7 +2040,7 @@ export default function Gallery({
         <div className="px-4 sm:px-6 lg:px-8 py-4">
           {gallery &&
             gallery.images.length === 0 &&
-            pendingUploads.length === 0 && (
+            images.filter(i => 'localUrl' in i).length === 0 && (
               <div className="my-8 text-center">
                 <Upload className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">
@@ -2255,31 +2071,12 @@ export default function Gallery({
                   )}
                 >
                   {(() => {
-                    const pendingImages = pendingUploads.map((pu) => ({
-                      id: `pending-${pu.id}`,
-                      url: pu.localUrl,
-                      localUrl: pu.localUrl, // Ensure localUrl is set
-                      originalFilename: pu.file.name,
-                      width: pu.width || 800,
-                      height: pu.height || 600,
-                      userStarred: false,
-                      commentCount: 0,
-                      stars: [],
-                      _isPending: true,
-                      _progress: pu.progress,
-                      _status: pu.status,
-                      uploadTimestamp: pu.uploadTimestamp,
-                    }));
-                    console.log("Pending Images:", pendingImages);
-                    const allImages = [
-                      ...pendingImages,
-                      ...(gallery?.images || []),
-                    ];
+                    const allImages = [...images];
 
                     // Filter images based on current criteria
                     const filteredImages = allImages.filter((image: any) => {
-                      if (!image || !image.url) return false;
-                      if (image._isPending) return true; // Always show pending uploads
+                      if (!image || !('localUrl' in image ? image.localUrl : image.url)) return false;
+                      if ('localUrl' in image) return true; // Always show pending uploads
                       if (showStarredOnly && !image.userStarred) return false;
                       if (
                         showWithComments &&
@@ -2317,9 +2114,9 @@ export default function Gallery({
                 {(() => {
                   // Filter images based on current criteria
                   const filteredImages = combinedImages.filter((image: any) => {
-                    if (!image || !image.url) return false;
-                    if (image._isPending) return true; // Always show pending uploads
-                    if (showStarredOnly && !image.starred) return false;
+                    if (!image || !('localUrl' in image ? image.localUrl : image.url)) return false;
+                    if ('localUrl' in image) return true; // Always show pending uploads
+                    if (showStarredOnly && !image.userStarred) return false;
                     if (
                       showWithComments &&
                       (!image.commentCount || image.commentCount === 0)
@@ -2519,22 +2316,7 @@ export default function Gallery({
                 )}
 
                 <div className="flex gap-2">
-                  {/* Annotation button temporarily hidden
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200", isAnnotationMode && "bg-primary/20")}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsAnnotationMode(!isAnnotationMode);
-                    setIsCommentPlacementMode(false);
-                    setNewCommentPos(null);
-                  }}
-                  title="Toggle Drawing Mode"
-                >
-                  <Paintbrush className="h-4 w-4" />
-                </Button>
-                */}
+
                   <Button
                     variant="ghost"
                     size="icon"
@@ -2597,8 +2379,6 @@ export default function Gallery({
                   </SignedOut>
                 </div>
               </div>
-
-              {/* Settings toggles removed */}
 
               {selectedImage && (
                 <motion.div
