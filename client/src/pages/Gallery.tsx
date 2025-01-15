@@ -1018,7 +1018,7 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Transform pending item in-place
+      // Transform pending item in-place, but keep localUrl until image loads
       setPendingUploads((prev) => 
         prev.map((obj) => 
           obj.id === item.id 
@@ -1029,14 +1029,13 @@ const uploadSingleFile = async (item: {
                 _isPending: false,
                 _status: 'done',
                 progress: 100,
-                uploadTimestamp: Date.now()
+                uploadTimestamp: Date.now(),
+                pendingRevoke: item.localUrl // Store URL to revoke later
               }
             : obj
         )
       );
 
-      // Clean up local URL after transform
-      URL.revokeObjectURL(item.localUrl);
       completeBatch(item.id, true);
     } catch (error) {
       console.error('uploadSingleFile error:', error);
@@ -1609,8 +1608,11 @@ const renderGalleryControls = useCallback(() => {
             onLoad={(e) => {
               const img = e.currentTarget;
               img.classList.add('loaded');
-              if (!image._isPending) {
-                URL.revokeObjectURL(image.localUrl); // Clean up local URL after successful load
+              // Only revoke if we have a pendingRevoke URL and the image has loaded successfully
+              if (!image._isPending && image.pendingRevoke) {
+                setTimeout(() => {
+                  URL.revokeObjectURL(image.pendingRevoke);
+                }, 1000); // Add small delay for safety
               }
             }}
             onError={(e) => {
