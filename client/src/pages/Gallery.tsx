@@ -1619,26 +1619,15 @@ const renderGalleryControls = useCallback(() => {
           selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
         }}
       >
-        <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden">
-          {image._isPending && image.localUrl && (
-            <img
-              src={image.localUrl}
-              alt="Upload preview"
-              className={cn(
-                "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
-                image._status === 'done' && "opacity-0"
-              )}
-            />
-          )}
-          <img
+        <img
             key={`${image.id}-${image._status || 'final'}`}
-            src={image.url}
+            src={image._isPending && image.localUrl ? image.localUrl : image.url}
             alt={image.originalFilename || 'Uploaded image'}
             className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
+              "w-full h-auto object-contain rounded-lg blur-up block transition-opacity duration-200",
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50",
-              image._isPending && !image._status === 'done' && "opacity-0",
+              image._isPending && "opacity-80",
               image._status === 'error' && "opacity-50"
             )}
             loading="lazy"
@@ -1649,7 +1638,7 @@ const renderGalleryControls = useCallback(() => {
               if (!image._isPending && image.pendingRevoke) {
                 setTimeout(() => {
                   URL.revokeObjectURL(image.pendingRevoke);
-                }, 1000);
+                }, 1000); // Add small delay for safety
               }
             }}
             onError={(e) => {
@@ -1858,6 +1847,7 @@ const renderGalleryControls = useCallback(() => {
           </motion.div>
         )}
       </div>
+    </motion.div>
     </div>
   );
 
@@ -1866,13 +1856,6 @@ const renderGalleryControls = useCallback(() => {
       if (e.key === 'Escape' && selectMode) {
         e.preventDefault();
         setSelectedImages([]);
-        setSelectMode(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [selectMode]);
         setSelectMode(false);
       }
     };
