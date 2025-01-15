@@ -1055,18 +1055,19 @@ const uploadSingleFile = async (item: {
           id: `pending-${nanoid()}`,
           file,
           localUrl,
-          _status: 'uploading',
-          _progress: 0,
           status: 'uploading' as const,
           progress: 0,
           width,
           height,
-          uploadTimestamp: Date.now(),
           _isPending: true,
+          _status: 'uploading',
+          _progress: 0,
+          uploadTimestamp: Date.now(),
           originalFilename: file.name,
           userStarred: false,
           commentCount: 0,
-          stars: []
+          stars: [],
+          url: localUrl // Use localUrl as temporary display url
         };
 
         setPendingUploads((prev) => [...prev, newItem]);
