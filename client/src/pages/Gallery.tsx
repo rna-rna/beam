@@ -1015,7 +1015,7 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Transform the pending item to its final state in-place
+      // Transform pending item in-place
       setPendingUploads((prev) => 
         prev.map((obj) => 
           obj.id === item.id 
@@ -1028,10 +1028,12 @@ const uploadSingleFile = async (item: {
                 _status: 'done',
                 progress: 100,
                 uploadTimestamp: item.uploadTimestamp,
-                // Preserve original file info
-                file: item.file,
                 width: item.width,
-                height: item.height
+                height: item.height,
+                // Add any gallery-required fields
+                userStarred: false,
+                commentCount: 0,
+                stars: []
               }
             : obj
         )
@@ -1041,10 +1043,25 @@ const uploadSingleFile = async (item: {
       URL.revokeObjectURL(item.localUrl);
       completeBatch(item.id, true);
 
-      // Delay query invalidation slightly to allow transform to settle
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      }, 100);
+      // Optional: Merge server data without replacing pending item
+      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => {
+        if (!old) return old;
+        const existingImages = old.images.filter(img => img.id !== imageId);
+        return {
+          ...old,
+          images: [...existingImages, {
+            id: imageId,
+            url: publicUrl,
+            originalFilename: item.file.name,
+            width: item.width,
+            height: item.height,
+            uploadTimestamp: item.uploadTimestamp,
+            userStarred: false,
+            commentCount: 0,
+            stars: []
+          }]
+        };
+      });
     } catch (error) {
       console.error('uploadSingleFile error:', error);
       setPendingUploads(prev => 
