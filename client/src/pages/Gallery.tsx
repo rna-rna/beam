@@ -386,17 +386,6 @@ export default function Gallery({
   const masonryRef = useRef<any>(null);
 
   const combinedImages = useMemo(() => {
-    console.log("[Debug] Starting allImages calculation", {
-      pendingUploadsCount: pendingUploads.length,
-      galleryImagesCount: gallery?.images?.length,
-      pendingDetails: pendingUploads.map((pu) => ({
-        id: pu.id,
-        filename: pu.file.name,
-        status: pu.status,
-        progress: pu.progress,
-      })),
-    });
-
     const serverImages = gallery?.images || [];
     const pendingAsImages = pendingUploads
       .filter((pu) => pu.status === "uploading")
@@ -415,9 +404,7 @@ export default function Gallery({
         uploadTimestamp: pu.uploadTimestamp,
       }));
 
-    const combined = [...pendingAsImages, ...serverImages].sort(
-      (a, b) => (a.uploadTimestamp || 0) - (b.uploadTimestamp || 0),
-    );
+    return [...pendingAsImages, ...serverImages];
     console.log("[Debug] Combined images:", {
       totalCount: combined.length,
       pendingCount: pendingAsImages.length,
@@ -1107,36 +1094,23 @@ export default function Gallery({
       // Wait for CDN to be ready
       await new Promise<void>((resolve) => setTimeout(resolve, 1500));
 
-      // Transform pending item to final state with visual transition
+      // Update cache with the final server data
       queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
         if (!oldData) return oldData;
-
-        const updatedImages = [...oldData.images];
-        const pendingIndex = updatedImages.findIndex(
-          (img: any) => img.id === `pending-${item.id}`,
-        );
-
-        if (pendingIndex !== -1) {
-          updatedImages[pendingIndex] = {
-            ...updatedImages[pendingIndex],
+        
+        return {
+          ...oldData,
+          images: [{
             id: imageId,
             url: publicUrl,
-            _isPending: false,
-            _status: "done",
-            _progress: 100,
+            originalFilename: item.file.name,
+            width: item.width,
+            height: item.height,
             uploadTimestamp: Date.now(),
             userStarred: false,
             stars: [],
-            commentCount: 0,
-            // Keep local URL briefly for smooth transition
-            localUrl: item.localUrl,
-            transition: true
-          };
-        }
-
-        return {
-          ...oldData,
-          images: updatedImages,
+            commentCount: 0
+          }, ...oldData.images]
         };
       });
 
@@ -1207,32 +1181,15 @@ export default function Gallery({
           const pendingId = nanoid();
 
           const newItem = {
-            id: `pending-${pendingId}`,
+            id: pendingId,
             file,
             localUrl,
             status: "uploading" as const,
             progress: 0,
             width,
             height,
-            _isPending: true,
-            _status: "uploading",
-            _progress: 0,
-            uploadTimestamp: Date.now(),
-            originalFilename: file.name,
-            userStarred: false,
-            commentCount: 0,
-            stars: [],
-            url: localUrl
+            uploadTimestamp: Date.now()
           };
-
-          // Update React Query cache with pending item
-          queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => {
-            if (!old) return old;
-            return {
-              ...old,
-              images: [newItem, ...old.images]
-            };
-          });
 
           setPendingUploads((prev) => [...prev, newItem]);
           
