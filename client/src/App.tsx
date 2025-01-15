@@ -196,6 +196,14 @@ function AppContent() {
 
   return (
     <Switch>
+      <Route path="/new">
+        <SignedIn>
+          <NewGallery />
+        </SignedIn>
+        <SignedOut>
+          <Home />
+        </SignedOut>
+      </Route>
       <Route path="/">
         <SignedIn>
           <Dashboard />
