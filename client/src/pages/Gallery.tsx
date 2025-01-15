@@ -1873,6 +1873,13 @@ const renderGalleryControls = useCallback(() => {
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [selectMode]);
+        setSelectMode(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [selectMode]);
 
   useEffect(() => {
     if (selectedImageIndex >= 0) {
