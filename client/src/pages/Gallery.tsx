@@ -1486,10 +1486,12 @@ export default function Gallery({
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
-          "mb-4 image-container relative transform transition-all duration-200 ease-out",
+          "mb-4 image-container relative transform transition-all duration-200 ease-out w-full",
           isReorderMode && "cursor-grab active:cursor-grabbing",
+          "block",
         )}
         style={{
+          width: "100%",
           breakInside: "avoid"
         }}
         initial={{ opacity: 0, y: 20 }}
@@ -1498,10 +1500,9 @@ export default function Gallery({
           y: 0,
           scale: draggedItemIndex === index ? 1.1 : 1,
           zIndex: draggedItemIndex === index ? 100 : 1,
-          position: "relative",
-          transform: draggedItemIndex === index 
-            ? `translate(${dragPosition?.x || 0}px, ${dragPosition?.y || 0}px)` 
-            : "none",
+          position: draggedItemIndex === index ? "absolute" : "relative",
+          top: draggedItemIndex === index ? dragPosition?.y : "auto",
+          left: draggedItemIndex === index ? dragPosition?.x : "auto",
           transition: {
             duration: draggedItemIndex === index ? 0 : 0.25,
           },
@@ -1536,13 +1537,14 @@ export default function Gallery({
           }}
         >
           <AspectRatio ratio={image.width && image.height ? image.width / image.height : 4/3}>
-            <div className="relative h-full w-full overflow-hidden rounded-lg">
+            <div className="relative w-full h-full">
               <img
                 key={`${image.id}-${image._status || "final"}`}
                 src={'localUrl' in image ? image.localUrl : image.url}
                 alt={image.originalFilename || "Uploaded image"}
+                style={{ objectFit: "cover" }}
                 className={cn(
-                "w-full h-full object-cover transition-opacity duration-200",
+                "absolute inset-0 w-full h-full object-cover rounded-lg blur-up block transition-opacity duration-200",
                 selectMode && selectedImages.includes(image.id) && "opacity-75",
                 draggedItemIndex === index && "opacity-50",
                 'localUrl' in image && "opacity-80",
@@ -2072,9 +2074,9 @@ export default function Gallery({
                 <Masonry
                   ref={masonryRef}
                   breakpointCols={breakpointCols}
-                  className="masonrygrid"
+                  className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
                   columnClassName={cn(
-                    "masonry-column pl-4",
+                    "pl-4",
                     isDark ? "bg-black/90" : "bg-background",
                   )}
                 >
