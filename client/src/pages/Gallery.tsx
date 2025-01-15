@@ -1015,18 +1015,23 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Transform the pending upload to its final state using already destructured variables
+      // Transform the pending item to its final state in-place
       setPendingUploads((prev) => 
         prev.map((obj) => 
           obj.id === item.id 
             ? {
                 ...obj,
+                id: imageId,
+                url: publicUrl,
+                localUrl: item.localUrl,
                 _isPending: false,
                 _status: 'done',
-                id: imageId, // Adopt the server's image ID
-                url: publicUrl, // Update to final URL
                 progress: 100,
-                uploadTimestamp: item.uploadTimestamp // Preserve uploadTimestamp
+                uploadTimestamp: item.uploadTimestamp,
+                // Preserve original file info
+                file: item.file,
+                width: item.width,
+                height: item.height
               }
             : obj
         )
@@ -1069,7 +1074,7 @@ const uploadSingleFile = async (item: {
         const height = imageEl.naturalHeight;
 
         const newItem = {
-          id: nanoid(),
+          id: `pending-${nanoid()}`,
           file,
           localUrl,
           _status: 'uploading',
@@ -1078,7 +1083,12 @@ const uploadSingleFile = async (item: {
           progress: 0,
           width,
           height,
-          uploadTimestamp: Date.now()
+          uploadTimestamp: Date.now(),
+          _isPending: true,
+          originalFilename: file.name,
+          userStarred: false,
+          commentCount: 0,
+          stars: []
         };
 
         setPendingUploads((prev) => [...prev, newItem]);
