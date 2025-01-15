@@ -1013,14 +1013,31 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Remove completed upload from pending state
+      // Transform the pending upload to its final state
+      const { signedUrl, publicUrl, imageId } = urls[0];
       setPendingUploads((prev) => 
-        prev.filter(obj => obj.id !== item.id)
+        prev.map((obj) => 
+          obj.id === item.id 
+            ? {
+                ...obj,
+                _isPending: false,
+                _status: 'done',
+                id: imageId, // Adopt the server's image ID
+                url: publicUrl, // Update to final URL
+                progress: 100
+              }
+            : obj
+        )
       );
+
+      // Cleanup URL after transform
       URL.revokeObjectURL(item.localUrl);
       completeBatch(item.id, true);
 
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      // Delay query invalidation slightly to allow transform to settle
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+      }, 100);
     } catch (error) {
       console.error('uploadSingleFile error:', error);
       setPendingUploads(prev => 
