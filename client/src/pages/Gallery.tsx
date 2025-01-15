@@ -1536,7 +1536,7 @@ export default function Gallery({
               : handleImageClick(index);
           }}
         >
-          <AspectRatio ratio={image.width && image.height ? image.width / image.height : 4/3}>
+          <AspectRatio ratio={image.width && image.height ? image.width / image.height : 1}>
             <div className="relative w-full h-full">
               <img
                 key={`${image.id}-${image._status || "final"}`}
