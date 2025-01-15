@@ -2071,9 +2071,9 @@ export default function Gallery({
                 <Masonry
                   ref={masonryRef}
                   breakpointCols={breakpointCols}
-                  className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
+                  className="masonrygrid"
                   columnClassName={cn(
-                    "pl-4",
+                    "masonry-column pl-4",
                     isDark ? "bg-black/90" : "bg-background",
                   )}
                 >

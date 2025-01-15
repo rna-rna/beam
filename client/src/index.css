@@ -1,3 +1,28 @@
+
+/* Masonry grid base styles */
+.masonrygrid {
+  display: flex;
+  width: auto;
+}
+
+.masonry-column {
+  background-clip: padding-box;
+}
+
+.image-container {
+  break-inside: avoid;
+  position: relative;
+  transform-origin: center;
+  transition: transform 0.2s ease;
+}
+
+/* Ensure images maintain aspect ratio */
+.image-container img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 @import '@fontsource/geist-sans';
 @import '@fontsource/geist-mono';
 
