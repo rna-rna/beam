@@ -1095,10 +1095,9 @@ export default function Gallery({
           ...oldData,
           images: oldData.images.map((img: any) => {
             if (img.id === `pending-${item.id}`) {
-              // Maintain the same React key but update internal data
+              // Keep some properties from the pending item for smooth transition
               return {
-                id: `pending-${item.id}`, // Keep the stable key
-                serverId: imageId, // Store server ID separately
+                id: img.id.replace('pending-', ''),
                 url: img.localUrl, // Keep local URL briefly for smooth transition
                 pendingRevoke: img.localUrl, // Mark for cleanup after load
                 originalFilename: item.file.name,
@@ -1107,8 +1106,7 @@ export default function Gallery({
                 userStarred: false,
                 commentCount: 0,
                 stars: [],
-                _status: 'done',
-                _isFinal: true // Flag to indicate final state
+                _status: 'done'
               };
             }
             return img;
@@ -1694,7 +1692,7 @@ export default function Gallery({
   ]);
 
   const renderImage = (image: Image, index: number) => (
-    <div key={image._isPending ? image.id : `img-${image.id}`}>
+    <div key={image.id === -1 ? `pending-${index}` : image.id}>
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
