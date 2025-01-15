@@ -1015,53 +1015,24 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Transform pending item in-place
+      // Transform the pending item to its final state in-place
       setPendingUploads((prev) => 
         prev.map((obj) => 
           obj.id === item.id 
             ? {
                 ...obj,
-                id: imageId,
+                id: `${imageId}`, // Convert to string to match pending ID format
                 url: publicUrl,
-                localUrl: item.localUrl,
                 _isPending: false,
                 _status: 'done',
-                progress: 100,
-                uploadTimestamp: item.uploadTimestamp,
-                width: item.width,
-                height: item.height,
-                // Add any gallery-required fields
-                userStarred: false,
-                commentCount: 0,
-                stars: []
+                progress: 100
               }
             : obj
         )
       );
 
-      // Cleanup URL after transform
       URL.revokeObjectURL(item.localUrl);
       completeBatch(item.id, true);
-
-      // Optional: Merge server data without replacing pending item
-      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => {
-        if (!old) return old;
-        const existingImages = old.images.filter(img => img.id !== imageId);
-        return {
-          ...old,
-          images: [...existingImages, {
-            id: imageId,
-            url: publicUrl,
-            originalFilename: item.file.name,
-            width: item.width,
-            height: item.height,
-            uploadTimestamp: item.uploadTimestamp,
-            userStarred: false,
-            commentCount: 0,
-            stars: []
-          }]
-        };
-      });
     } catch (error) {
       console.error('uploadSingleFile error:', error);
       setPendingUploads(prev => 
