@@ -1498,9 +1498,10 @@ export default function Gallery({
           y: 0,
           scale: draggedItemIndex === index ? 1.1 : 1,
           zIndex: draggedItemIndex === index ? 100 : 1,
-          position: draggedItemIndex === index ? "absolute" : "relative",
-          top: draggedItemIndex === index ? dragPosition?.y : "auto",
-          left: draggedItemIndex === index ? dragPosition?.x : "auto",
+          position: "relative",
+          transform: draggedItemIndex === index 
+            ? `translate(${dragPosition?.x || 0}px, ${dragPosition?.y || 0}px)` 
+            : "none",
           transition: {
             duration: draggedItemIndex === index ? 0 : 0.25,
           },
