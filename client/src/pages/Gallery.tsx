@@ -1537,7 +1537,7 @@ const renderGalleryControls = useCallback(() => {
         }}
       initial={{ opacity: 0, y: 20}}
       animate={{
-        opacity: preloadedImages.has(image.id) ? 1 : 0,
+        opacity: 1,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
@@ -1571,33 +1571,31 @@ const renderGalleryControls = useCallback(() => {
           selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
         }}
       >
-        {preloadedImages.has(image.id) && (
-          <>
-            <img
-                src={image.url}
-                alt={image.originalFilename || 'Uploaded image'}
-                className={cn(
-                  "w-full h-auto object-contain rounded-lg blur-up block",
-                  selectMode && selectedImages.includes(image.id) && "opacity-75",
-                  draggedItemIndex === index && "opacity-50",
-                  image._isPending && "opacity-80"
-                )}
-                loading="lazy"
-                onLoad={(e) => {
-                  const img = e.currentTarget;
-                  img.classList.add('loaded');
-                }}
-                onError={(e) => {
-                  console.error('Image load failed:', {
-                    id: image.id,
-                    url: image.url,
-                    originalFilename: image.originalFilename
-                  });
-                  e.currentTarget.src = '/placeholder.png';
-                }}
-                draggable={false}
-              />
-            {image._isPending && (
+        <img
+            src={image.url}
+            alt={image.originalFilename || 'Uploaded image'}
+            className={cn(
+              "w-full h-auto object-contain rounded-lg blur-up block",
+              selectMode && selectedImages.includes(image.id) && "opacity-75",
+              draggedItemIndex === index && "opacity-50",
+              image._isPending && "opacity-80"
+            )}
+            loading="lazy"
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              img.classList.add('loaded');
+            }}
+            onError={(e) => {
+              console.error('Image load failed:', {
+                id: image.id,
+                url: image.url,
+                originalFilename: image.originalFilename
+              });
+              e.currentTarget.src = '/placeholder.png';
+            }}
+            draggable={false}
+          />
+        {image._isPending && (
               <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
                 {image._status === "uploading" && (
                   <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
