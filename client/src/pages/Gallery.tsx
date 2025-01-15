@@ -1018,24 +1018,33 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Transform pending item in-place, but keep localUrl until image loads
-      setPendingUploads((prev) => 
-        prev.map((obj) => 
-          obj.id === item.id 
-            ? {
-                ...obj,
-                id: `${imageId}`, // Convert to string to match ID format
-                url: publicUrl,
-                _isPending: false,
-                _status: 'done',
-                progress: 100,
-                uploadTimestamp: Date.now(),
-                pendingRevoke: item.localUrl // Store URL to revoke later
-              }
-            : obj
-        )
-      );
+      // Transform the pending item into a real server item in place
+      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => {
+        if (!old) return old;
+        const pendingIndex = old.images.findIndex((img: any) => img.id === `pending-${item.id}`);
+        if (pendingIndex === -1) return old;
 
+        const updatedImages = [...old.images];
+        updatedImages[pendingIndex] = {
+          id: imageId,
+          url: publicUrl,
+          originalFilename: item.file.name,
+          width: item.width,
+          height: item.height,
+          userStarred: false,
+          commentCount: 0,
+          stars: [],
+          uploadTimestamp: Date.now()
+        };
+
+        return {
+          ...old,
+          images: updatedImages
+        };
+      });
+
+      // Remove from pending uploads
+      setPendingUploads(prev => prev.filter(obj => obj.id !== item.id));
       completeBatch(item.id, true);
     } catch (error) {
       console.error('uploadSingleFile error:', error);
