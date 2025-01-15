@@ -1536,17 +1536,14 @@ export default function Gallery({
             image={image}
             loading={'localUrl' in image && image.status === 'uploading'}
             className={cn(
+              "group relative bg-card rounded-lg transform transition-all",
+              !isReorderMode && "hover:scale-[1.02] cursor-pointer",
+              selectMode && "hover:scale-100",
+              isReorderMode && "border-2 border-dashed border-gray-200 border-opacity-50",
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50"
             )}
           />
-          className={`group relative bg-card rounded-lg transform transition-all ${
-            !isReorderMode ? "hover:scale-[1.02] cursor-pointer" : ""
-          } ${selectMode ? "hover:scale-100" : ""} ${
-            isReorderMode
-              ? "border-2 border-dashed border-gray-200 border-opacity-50"
-              : ""
-          }`}
           onClick={(e) => {
             if (isReorderMode) {
               e.stopPropagation();
