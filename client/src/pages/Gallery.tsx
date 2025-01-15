@@ -386,32 +386,22 @@ export default function Gallery({
   const masonryRef = useRef<any>(null);
 
   const combinedImages = useMemo(() => {
-    const serverImages = gallery?.images || [];
-    const pendingAsImages = pendingUploads
-      .filter((pu) => pu.status === "uploading")
-      .map((pu) => ({
-        id: `pending-${pu.id}`,
-        url: pu.localUrl,
-        originalFilename: pu.file.name,
-        width: pu.width,
-        height: pu.height,
-        userStarred: false,
-        commentCount: 0,
-        stars: [],
-        _isPending: true,
-        _progress: pu.progress,
-        _status: pu.status,
-        uploadTimestamp: pu.uploadTimestamp,
-      }));
+    const pendingItems = pendingUploads.map((pu) => ({
+      id: `pending-${pu.id}`,
+      url: pu.localUrl,
+      originalFilename: pu.file.name,
+      width: pu.width,
+      height: pu.height,
+      userStarred: false,
+      commentCount: 0,
+      stars: [],
+      _isPending: true,
+      _progress: pu.progress,
+      _status: pu.status,
+      uploadTimestamp: pu.uploadTimestamp,
+    }));
 
-    return [...pendingAsImages, ...serverImages];
-    console.log("[Debug] Combined images:", {
-      totalCount: combined.length,
-      pendingCount: pendingAsImages.length,
-      serverCount: serverImages.length,
-    });
-
-    return combined;
+    return [...pendingItems, ...(gallery?.images || [])];
   }, [gallery?.images, pendingUploads]);
 
   useEffect(() => {
@@ -1094,28 +1084,10 @@ export default function Gallery({
       // Wait for CDN to be ready
       await new Promise<void>((resolve) => setTimeout(resolve, 1500));
 
-      // Simply invalidate the query instead of manual cache manipulation
+      // Invalidate query to refresh from server
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
 
-      // Wait for CDN propagation
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Mark as complete in pendingUploads
-      setPendingUploads((prev) =>
-        prev.map((upload) =>
-          upload.id === item.id
-            ? {
-                ...upload,
-                status: "done",
-                _status: "done",
-                progress: 100,
-                _progress: 100,
-              }
-            : upload,
-        ),
-      );
-
-      // Remove from pending state after a brief delay
+      // Remove from pending uploads after a brief delay
       setTimeout(() => {
         setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
         URL.revokeObjectURL(item.localUrl);
