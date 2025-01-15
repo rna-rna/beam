@@ -1619,15 +1619,26 @@ const renderGalleryControls = useCallback(() => {
           selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
         }}
       >
-        <img
+        <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden">
+          {image._isPending && image.localUrl && (
+            <img
+              src={image.localUrl}
+              alt="Upload preview"
+              className={cn(
+                "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
+                image._status === 'done' && "opacity-0"
+              )}
+            />
+          )}
+          <img
             key={`${image.id}-${image._status || 'final'}`}
-            src={image._isPending && image.localUrl ? image.localUrl : image.url}
+            src={image.url}
             alt={image.originalFilename || 'Uploaded image'}
             className={cn(
-              "w-full h-auto object-contain rounded-lg blur-up block transition-opacity duration-200",
+              "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50",
-              image._isPending && "opacity-80",
+              image._isPending && !image._status === 'done' && "opacity-0",
               image._status === 'error' && "opacity-50"
             )}
             loading="lazy"
@@ -1638,7 +1649,7 @@ const renderGalleryControls = useCallback(() => {
               if (!image._isPending && image.pendingRevoke) {
                 setTimeout(() => {
                   URL.revokeObjectURL(image.pendingRevoke);
-                }, 1000); // Add small delay for safety
+                }, 1000);
               }
             }}
             onError={(e) => {
