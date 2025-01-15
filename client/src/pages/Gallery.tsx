@@ -386,45 +386,22 @@ export default function Gallery({
   const masonryRef = useRef<any>(null);
 
   const combinedImages = useMemo(() => {
-    console.log("[Debug] Starting allImages calculation", {
-      pendingUploadsCount: pendingUploads.length,
-      galleryImagesCount: gallery?.images?.length,
-      pendingDetails: pendingUploads.map((pu) => ({
-        id: pu.id,
-        filename: pu.file.name,
-        status: pu.status,
-        progress: pu.progress,
-      })),
-    });
+    const pendingItems = pendingUploads.map((pu) => ({
+      id: `pending-${pu.id}`,
+      url: pu.localUrl,
+      originalFilename: pu.file.name,
+      width: pu.width,
+      height: pu.height,
+      userStarred: false,
+      commentCount: 0,
+      stars: [],
+      _isPending: true,
+      _progress: pu.progress,
+      _status: pu.status,
+      uploadTimestamp: pu.uploadTimestamp,
+    }));
 
-    const serverImages = gallery?.images || [];
-    const pendingAsImages = pendingUploads
-      .filter((pu) => pu.status === "uploading")
-      .map((pu) => ({
-        id: `pending-${pu.id}`,
-        url: pu.localUrl,
-        originalFilename: pu.file.name,
-        width: pu.width,
-        height: pu.height,
-        userStarred: false,
-        commentCount: 0,
-        stars: [],
-        _isPending: true,
-        _progress: pu.progress,
-        _status: pu.status,
-        uploadTimestamp: pu.uploadTimestamp,
-      }));
-
-    const combined = [...pendingAsImages, ...serverImages].sort(
-      (a, b) => (a.uploadTimestamp || 0) - (b.uploadTimestamp || 0),
-    );
-    console.log("[Debug] Combined images:", {
-      totalCount: combined.length,
-      pendingCount: pendingAsImages.length,
-      serverCount: serverImages.length,
-    });
-
-    return combined;
+    return [...pendingItems, ...(gallery?.images || [])];
   }, [gallery?.images, pendingUploads]);
 
   useEffect(() => {
@@ -1095,71 +1072,26 @@ export default function Gallery({
           if (xhr.status === 200) {
             resolve();
           } else {
-            reject(newError(`Failed to upload ${item.file.name}`));
+            reject(new Error(`Failed to upload ${item.file.name}`));
           }
         };
         xhr.onerror = () => {
-          reject(newError("Network error uploading file"));
+          reject(new Error("Network error uploading file"));
         };
         xhr.send(item.file);
       });
 
-      // Update React Query cache optimistically
-      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
-        if (!oldData) return oldData;
+      // Wait for CDN to be ready
+      await new Promise<void>((resolve) => setTimeout(resolve, 1500));
 
-        const updatedImages = [...oldData.images];
-        const pendingIndex = updatedImages.findIndex(
-          (img: any) => img.id === `pending-${item.id}`,
-        );
-
-        if (pendingIndex !== -1) {
-          // In-place transformation of the pending item
-          updatedImages[pendingIndex] = {
-            ...updatedImages[pendingIndex],
-            id: imageId,
-            url: publicUrl,
-            _isPending: false,
-            _status: "done",
-            _progress: 100,
-            uploadTimestamp: Date.now(),
-            userStarred: false,
-            stars: [],
-            commentCount: 0,
-          };
-        }
-
-        return {
-          ...oldData,
-          images: updatedImages,
-        };
-      });
-
-      // Update pendingUploads state to mark as done
-      setPendingUploads((prev) =>
-        prev.map((upload) =>
-          upload.id === item.id
-            ? {
-                ...upload,
-                status: "done",
-                _status: "done",
-                progress: 100,
-                _progress: 100,
-              }
-            : upload,
-        ),
-      );
-
-      // Remove from pendingUploads after a short delay to ensure smooth transition
-      setTimeout(() => {
-        setPendingUploads((prev) =>
-          prev.filter((upload) => upload.id !== item.id),
-        );
-      }, 500);
-      completeBatch(item.id, true);
-
-      // Optional: Refetch to confirm sync with server
+      // Invalidate query to refresh from server
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+
+      // Once server is refreshed, clean up local state
+      setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
+      URL.revokeObjectURL(item.localUrl);
+      
+      completeBatch(item.id, true);
     } catch (error) {
       console.error("uploadSingleFile error:", error);
       setPendingUploads((prev) =>
@@ -1190,46 +1122,58 @@ export default function Gallery({
       if (acceptedFiles.length === 0) return;
 
       acceptedFiles.forEach((file) => {
-        // Create local preview URL immediately
         const localUrl = URL.createObjectURL(file);
         const imageEl = new Image();
 
         imageEl.onload = () => {
           const width = imageEl.naturalWidth;
           const height = imageEl.naturalHeight;
+          const pendingId = nanoid();
 
           const newItem = {
-            id: `pending-${nanoid()}`,
+            id: pendingId,
             file,
             localUrl,
             status: "uploading" as const,
             progress: 0,
             width,
             height,
-            _isPending: true,
-            _status: "uploading",
-            _progress: 0,
-            uploadTimestamp: Date.now(),
-            originalFilename: file.name,
-            userStarred: false,
-            commentCount: 0,
-            stars: [],
-            url: localUrl,
-            pendingRevoke: localUrl, // Track URL to revoke later
+            uploadTimestamp: Date.now()
           };
 
           setPendingUploads((prev) => [...prev, newItem]);
-          uploadSingleFile(newItem).then(() => {
-            // Cleanup object URL after successful upload and small delay
-            setTimeout(() => {
-              URL.revokeObjectURL(localUrl);
-            }, 3000);
-          });
+          
+          uploadSingleFile(newItem)
+            .then(() => {
+              setPendingUploads((prev) => 
+                prev.map(upload => 
+                  upload.id === pendingId 
+                    ? { ...upload, status: "done", progress: 100 }
+                    : upload
+                )
+              );
+              
+              // Remove from pending state after a brief delay
+              setTimeout(() => {
+                setPendingUploads((prev) => prev.filter(u => u.id !== pendingId));
+                URL.revokeObjectURL(localUrl);
+              }, 500);
+            })
+            .catch((error) => {
+              setPendingUploads((prev) => 
+                prev.map(upload => 
+                  upload.id === pendingId 
+                    ? { ...upload, status: "error", progress: 0 }
+                    : upload
+                )
+              );
+              console.error("Upload failed:", error);
+            });
         };
         imageEl.src = localUrl;
       });
     },
-    [setPendingUploads],
+    [setPendingUploads, uploadSingleFile],
   );
 
   // Modify the useDropzone configuration to disable click
@@ -1773,9 +1717,7 @@ export default function Gallery({
         >
           <img
             key={`${image.id}-${image._status || "final"}`}
-            src={
-              image._isPending && image.localUrl ? image.localUrl : image.url
-            }
+            src={image._isPending && image.localUrl ? image.localUrl : image.url}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
               "w-full h-auto object-contain rounded-lg blur-up block transition-opacity duration-200",
@@ -1788,21 +1730,10 @@ export default function Gallery({
             onLoad={(e) => {
               const img = e.currentTarget;
               img.classList.add("loaded");
-              // Only revoke if we have a pendingRevoke URL and the image has loaded successfully
               if (!image._isPending && image.pendingRevoke) {
                 setTimeout(() => {
                   URL.revokeObjectURL(image.pendingRevoke);
-                }, 1000); // Add small delay for safety
-              }
-            }}
-            onLoad={(e) => {
-              const img = e.currentTarget;
-              img.classList.add("loaded");
-              // Only revoke if we have a pendingRevoke URL and the image has loaded successfully
-              if (!image._isPending && image.pendingRevoke) {
-                setTimeout(() => {
-                  URL.revokeObjectURL(image.pendingRevoke);
-                }, 1000); // Add small delay for safety
+                }, 800);
               }
             }}
             onError={(e) => {
@@ -1815,7 +1746,6 @@ export default function Gallery({
               });
               if (!image._isPending) {
                 e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
-                // Update pending uploads if this was a failed upload
                 setPendingUploads((prev) =>
                   prev.map((upload) =>
                     upload.id === image.id
@@ -2719,11 +2649,11 @@ export default function Gallery({
                       </div>
                     )}
 
-                    {/* Placeholder/blur-up image */}
+                    {/* Single image with fade transition */}
                     <img
                       src={getR2ImageUrl(selectedImage)}
                       alt={selectedImage.originalFilename || ""}
-                      className="blur-up"
+                      className="image-fade"
                       style={{
                         position: "absolute",
                         top: 0,
@@ -2731,41 +2661,11 @@ export default function Gallery({
                         width: "100%",
                         height: "100%",
                         objectFit: "contain",
-                        transition: "opacity 0.3s ease",
-                        opacity: isLowResLoading ? 1 : 0,
-                        pointerEvents: "none",
-                        transform: "scale(1.02)", // Slight scale for blur effect
-                      }}
-                    />
-
-                    {/* Final high-res image */}
-                    <img
-                      src={getR2ImageUrl(selectedImage)}
-                      alt={selectedImage.originalFilename || ""}
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                        transition: "opacity 0.3s ease",
-                        opacity: isLowResLoading ? 0 : 1,
                         pointerEvents: "none",
                       }}
-                      onLoad={() => {
-                        // First show the final image
+                      onLoad={(e) => {
                         setIsLowResLoading(false);
-
-                        // After a small delay, fade out the placeholder
-                        setTimeout(() => {
-                          const placeholderImg = document.querySelector(
-                            ".blur-up",
-                          ) as HTMLImageElement;
-                          if (placeholderImg) {
-                            placeholderImg.style.opacity = "0";
-                          }
-                        }, 200);
+                        e.currentTarget.classList.add('loaded');
                       }}
                     />
 
