@@ -1482,8 +1482,8 @@ export default function Gallery({
   ]);
 
   const renderImage = (image: ImageOrPending, index: number) => (
+    <div key={image.id === -1 ? `pending-${index}` : image.id}>
       <motion.div
-        key={image.id === -1 ? `pending-${index}` : image.id}
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
           "mb-4 image-container relative transform transition-all duration-200 ease-out",
@@ -1535,13 +1535,13 @@ export default function Gallery({
           }}
         >
           <AspectRatio ratio={image.width && image.height ? image.width / image.height : 4/3}>
-            <div className="relative w-full h-full">
+            <div className="relative h-full w-full overflow-hidden rounded-lg">
               <img
                 key={`${image.id}-${image._status || "final"}`}
                 src={'localUrl' in image ? image.localUrl : image.url}
                 alt={image.originalFilename || "Uploaded image"}
                 className={cn(
-                "absolute inset-0 w-full h-full object-cover rounded-lg blur-up transition-opacity duration-200",
+                "w-full h-full object-cover transition-opacity duration-200",
                 selectMode && selectedImages.includes(image.id) && "opacity-75",
                 draggedItemIndex === index && "opacity-50",
                 'localUrl' in image && "opacity-80",
@@ -1792,10 +1792,6 @@ export default function Gallery({
       </motion.div>
     </div>
   );
-};
-
-const renderImage = (image: ImageOrPending, index: number) => (
-  <>
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
