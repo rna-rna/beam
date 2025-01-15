@@ -1793,7 +1793,6 @@ export default function Gallery({
             </motion.div>
           )}
         </div>
-      </motion.div>
     </div>
   );
 
