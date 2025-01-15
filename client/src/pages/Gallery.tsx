@@ -1020,7 +1020,7 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Update React Query cache optimistically
+      // Update React Query cache optimistically 
       queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
         if (!oldData) return oldData;
 
@@ -1029,22 +1029,20 @@ const uploadSingleFile = async (item: {
           (img: any) => img.id === `pending-${item.id}`
         );
 
-        const finalImage = {
-          id: imageId,
-          url: publicUrl,
-          originalFilename: item.file.name,
-          width: item.width || 800,
-          height: item.height || 600,
-          userStarred: false,
-          stars: [],
-          commentCount: 0,
-          uploadTimestamp: Date.now()
-        };
-
         if (pendingIndex !== -1) {
-          updatedImages[pendingIndex] = finalImage;
-        } else {
-          updatedImages.push(finalImage);
+          // In-place transformation of the pending item
+          updatedImages[pendingIndex] = {
+            ...updatedImages[pendingIndex],
+            id: imageId,
+            url: publicUrl,
+            _isPending: false,
+            _status: 'done',
+            _progress: 100,
+            uploadTimestamp: Date.now(),
+            userStarred: false,
+            stars: [],
+            commentCount: 0
+          };
         }
 
         return {
@@ -1053,8 +1051,25 @@ const uploadSingleFile = async (item: {
         };
       });
 
-      // Remove from pendingUploads
-      setPendingUploads((prev) => prev.filter(upload => upload.id !== item.id));
+      // Update pendingUploads state to mark as done
+      setPendingUploads((prev) => 
+        prev.map(upload => 
+          upload.id === item.id 
+            ? {
+                ...upload,
+                status: 'done',
+                _status: 'done',
+                progress: 100,
+                _progress: 100
+              }
+            : upload
+        )
+      );
+
+      // Remove from pendingUploads after a short delay to ensure smooth transition
+      setTimeout(() => {
+        setPendingUploads((prev) => prev.filter(upload => upload.id !== item.id));
+      }, 500);
       completeBatch(item.id, true);
 
       // Optional: Refetch to confirm sync with server
