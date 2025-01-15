@@ -1,0 +1,49 @@
+Please modify the image rendering code in the Gallery component. Currently, images are being forced into a uniform aspect ratio by the AspectRatio component. I want to change this so that each image maintains its original aspect ratio. Here are the specific changes needed:
+
+In the renderImage function, find the section that renders individual images. It currently uses an AspectRatio component that looks like this:
+
+jsxCopy<AspectRatio ratio={image.width && image.height ? image.width / image.height : 4/3}>
+  <div className="relative w-full h-full">
+    <img
+      key={`${image.id}-${image._status || "final"}`}
+      src={'localUrl' in image ? image.localUrl : image.url}
+      alt={image.originalFilename || "Uploaded image"}
+      style={{ objectFit: "cover" }}
+      className={cn(
+        "absolute inset-0 w-full h-full object-cover rounded-lg blur-up block transition-opacity duration-200",
+        // ... other classNames
+      )}
+    />
+  </div>
+</AspectRatio>
+
+Replace it with this simpler structure that preserves original aspect ratios:
+
+jsxCopy<div className="relative w-full">
+  <img
+    key={`${image.id}-${image._status || "final"}`}
+    src={'localUrl' in image ? image.localUrl : image.url}
+    alt={image.originalFilename || "Uploaded image"}
+    style={{
+      width: '100%',
+      height: 'auto',
+      aspectRatio: image.width && image.height ? `${image.width}/${image.height}` : 'auto'
+    }}
+    className={cn(
+      "rounded-lg blur-up block transition-opacity duration-200",
+      // ... keep other existing classNames
+    )}
+  />
+</div>
+
+Remove any imports of the AspectRatio component if it's no longer used elsewhere in the file.
+
+The key changes are:
+
+Removing the AspectRatio wrapper component
+Removing absolute positioning from the image
+Setting width to 100% and height to auto
+Using the aspectRatio style property to maintain original proportions
+Removing object-fit: cover since we want natural dimensions
+
+This should allow the masonry grid to properly handle images of varying heights based on their original aspect ratios."
