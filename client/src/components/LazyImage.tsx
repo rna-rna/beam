@@ -19,8 +19,9 @@ export function LazyImage({ src, alt, className, ...props }: LazyImageProps) {
       <img
         src={src}
         alt={alt}
-        className={className}
+        className={cn("lazy-image", className)}
         loading="lazy"
+        onLoad={(e) => e.currentTarget.classList.add('loaded')}
         {...props}
       />
     </LazyLoad>
