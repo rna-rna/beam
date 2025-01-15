@@ -1735,6 +1735,9 @@ export default function Gallery({
               ? "border-2 border-dashed border-gray-200 border-opacity-50"
               : ""
           }`}
+          style={{
+            aspectRatio: image.width && image.height ? `${image.width}/${image.height}` : '4/3'
+          }}
           onClick={(e) => {
             if (isReorderMode) {
               e.stopPropagation();
@@ -1750,7 +1753,7 @@ export default function Gallery({
             src={image._isPending && image.localUrl ? image.localUrl : image.url}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
-              "w-full h-auto object-contain rounded-lg blur-up block transition-opacity duration-200",
+              "w-full h-full object-cover absolute inset-0 rounded-lg blur-up block transition-opacity duration-200",
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50",
               image._isPending && "opacity-80",
