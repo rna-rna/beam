@@ -669,6 +669,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // Define all mutations first
   const toggleStarMutation = useMutation({
     mutationFn: async ({ imageId, isStarred }: { imageId: number, isStarred: boolean }) => {
+      if (!Number.isInteger(Number(imageId)) || imageId.toString().startsWith('pending-')) {
+        return;
+      }
       const token = await getToken();
       const res = await fetch(`/api/images/${imageId}/star`, {
         method: isStarred ? "DELETE" : "POST",
