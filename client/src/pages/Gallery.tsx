@@ -1748,17 +1748,21 @@ export default function Gallery({
               : handleImageClick(index);
           }}
         >
-          <img
-            key={`${image.id}-${image._status || "final"}`}
-            src={image._isPending && image.localUrl ? image.localUrl : image.url}
+          <motion.img
+            key={image.id}
+            src={image._isPending ? image.localUrl : image.url}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
-              "w-full h-full object-cover absolute inset-0 rounded-lg blur-up block transition-opacity duration-200",
+              "w-full h-full object-cover absolute inset-0 rounded-lg blur-up block",
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50",
-              image._isPending && "opacity-80",
               image._status === "error" && "opacity-50",
             )}
+            initial={{ opacity: 0.3 }}
+            animate={{ 
+              opacity: image._isPending ? 0.8 : 1,
+              transition: { duration: 0.4 }
+            }}
             loading="lazy"
             onLoad={(e) => {
               const img = e.currentTarget;
@@ -1789,6 +1793,9 @@ export default function Gallery({
               }
             }}
             draggable={false}
+            style={{
+              transition: "opacity 0.4s ease-in-out"
+            }}
           />
           {image._isPending && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
