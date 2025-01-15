@@ -1013,8 +1013,7 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Transform the pending upload to its final state
-      const { signedUrl, publicUrl, imageId } = urls[0];
+      // Transform the pending upload to its final state using already destructured variables
       setPendingUploads((prev) => 
         prev.map((obj) => 
           obj.id === item.id 
