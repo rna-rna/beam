@@ -1488,6 +1488,7 @@ export default function Gallery({
         )}
         style={{
           width: "100%",
+          breakInside: "avoid"
         }}
         initial={{ opacity: 0, y: 20 }}
         animate={{
@@ -1531,11 +1532,12 @@ export default function Gallery({
               : handleImageClick(index);
           }}
         >
-          <img
-            key={`${image.id}-${image._status || "final"}`}
-            src={'localUrl' in image ? image.localUrl : image.url}
-            alt={image.originalFilename || "Uploaded image"}
-            className={cn(
+          <AspectRatio ratio={'localUrl' in image ? (image.width / image.height) : (image.width && image.height ? image.width / image.height : 4/3)}>
+            <img
+              key={`${image.id}-${image._status || "final"}`}
+              src={'localUrl' in image ? image.localUrl : image.url}
+              alt={image.originalFilename || "Uploaded image"}
+              className={cn(
               "w-full h-auto object-contain rounded-lg blur-up block transition-opacity duration-200",
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50",
@@ -1573,6 +1575,7 @@ export default function Gallery({
             }}
             draggable={false}
           />
+          </AspectRatio>
           {'localUrl' in image && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
               {image.status === "uploading" && (
