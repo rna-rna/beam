@@ -1486,9 +1486,8 @@ export default function Gallery({
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
-          "mb-4 image-container relative transform transition-all duration-200 ease-out w-full",
+          "mb-4 image-container relative transform transition-all duration-200 ease-out",
           isReorderMode && "cursor-grab active:cursor-grabbing",
-          "block",
         )}
         style={{
           width: "100%",
@@ -1519,13 +1518,12 @@ export default function Gallery({
         }
       >
         <div
-          className={`group relative bg-card rounded-lg transform transition-all ${
-            !isReorderMode ? "hover:scale-[1.02] cursor-pointer" : ""
-          } ${selectMode ? "hover:scale-100" : ""} ${
-            isReorderMode
-              ? "border-2 border-dashed border-gray-200 border-opacity-50"
-              : ""
-          }`}
+          className={cn(
+            "group relative bg-card rounded-lg transform transition-all",
+            !isReorderMode ? "hover:scale-[1.02] cursor-pointer" : "",
+            selectMode ? "hover:scale-100" : "",
+            isReorderMode ? "border-2 border-dashed border-gray-200 border-opacity-50" : ""
+          )}
           onClick={(e) => {
             if (isReorderMode) {
               e.stopPropagation();
@@ -1544,7 +1542,8 @@ export default function Gallery({
               style={{
                 width: '100%',
                 height: 'auto',
-                aspectRatio: image.width && image.height ? `${image.width}/${image.height}` : 'auto'
+                aspectRatio: image.width && image.height ? `${image.width}/${image.height}` : 'auto',
+                display: 'block'
               }}
               className={cn(
                 "rounded-lg blur-up block transition-opacity duration-200",
