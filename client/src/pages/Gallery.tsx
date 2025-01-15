@@ -1084,19 +1084,14 @@ export default function Gallery({
       // Wait for CDN to be ready
       await new Promise<void>((resolve) => setTimeout(resolve, 1500));
 
+      // Remove pending upload immediately before invalidating query
+      setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
+      URL.revokeObjectURL(item.localUrl);
+      
       // Invalidate query to refresh from server
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-
-      // Remove from pending uploads after a brief delay
-      setTimeout(() => {
-        setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
-        URL.revokeObjectURL(item.localUrl);
-      }, 500);
       
       completeBatch(item.id, true);
-
-      // Optional: Refetch to confirm sync with server
-      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
     } catch (error) {
       console.error("uploadSingleFile error:", error);
       setPendingUploads((prev) =>
