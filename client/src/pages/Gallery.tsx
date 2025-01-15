@@ -1096,8 +1096,10 @@ const uploadSingleFile = async (item: {
     if (acceptedFiles.length === 0) return;
 
     acceptedFiles.forEach((file) => {
+      // Create local preview URL immediately
       const localUrl = URL.createObjectURL(file);
       const imageEl = new Image();
+      
       imageEl.onload = () => {
         const width = imageEl.naturalWidth;
         const height = imageEl.naturalHeight;
@@ -1118,11 +1120,17 @@ const uploadSingleFile = async (item: {
           userStarred: false,
           commentCount: 0,
           stars: [],
-          url: localUrl // Use localUrl as temporary display url
+          url: localUrl,
+          pendingRevoke: localUrl // Track URL to revoke later
         };
 
         setPendingUploads((prev) => [...prev, newItem]);
-        uploadSingleFile(newItem);
+        uploadSingleFile(newItem).then(() => {
+          // Cleanup object URL after successful upload and small delay
+          setTimeout(() => {
+            URL.revokeObjectURL(localUrl);
+          }, 3000);
+        });
       };
       imageEl.src = localUrl;
     });
@@ -1643,6 +1651,16 @@ const renderGalleryControls = useCallback(() => {
               image._status === 'error' && "opacity-50"
             )}
             loading="lazy"
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              img.classList.add('loaded');
+              // Only revoke if we have a pendingRevoke URL and the image has loaded successfully
+              if (!image._isPending && image.pendingRevoke) {
+                setTimeout(() => {
+                  URL.revokeObjectURL(image.pendingRevoke);
+                }, 1000); // Add small delay for safety
+              }
+            }}
             onLoad={(e) => {
               const img = e.currentTarget;
               img.classList.add('loaded');
