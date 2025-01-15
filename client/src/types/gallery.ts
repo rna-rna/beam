@@ -12,6 +12,18 @@ export interface Image {
   createdAt?: string;
 }
 
+export interface PendingImage {
+  id: string;
+  localUrl: string;
+  status: 'uploading' | 'done' | 'error';
+  progress: number;
+  width?: number;
+  height?: number;
+  file?: File;
+}
+
+export type ImageOrPending = Image | PendingImage;
+
 export interface Gallery {
   id: number;
   slug: string;
