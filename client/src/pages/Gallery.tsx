@@ -1008,23 +1008,27 @@ export default function Gallery({
         xhr.send(file);
       });
 
-      // Update image with real ID and URL
-      setImages(prev =>
-        prev.map(img =>
-          img.id === tmpId
-            ? {
-                id: imageId,
-                url: publicUrl,
-                originalFilename: file.name,
-                width: (img as PendingImage).width,
-                height: (img as PendingImage).height,
-                commentCount: 0,
-                userStarred: false,
-                stars: []
-              }
-            : img
-        )
-      );
+      // Load the uploaded image to get final dimensions
+      const img = new Image();
+      img.onload = () => {
+        setImages(prev =>
+          prev.map(existing =>
+            existing.id === tmpId
+              ? {
+                  id: imageId,
+                  url: publicUrl,
+                  originalFilename: file.name,
+                  width: img.naturalWidth,
+                  height: img.naturalHeight,
+                  commentCount: 0,
+                  userStarred: false,
+                  stars: []
+                }
+              : existing
+          )
+        );
+      };
+      img.src = publicUrl;
 
       completeBatch(addBatchId, true);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
@@ -1532,7 +1536,7 @@ export default function Gallery({
               : handleImageClick(index);
           }}
         >
-          <AspectRatio ratio={'localUrl' in image ? (image.width / image.height) : (image.width && image.height ? image.width / image.height : 4/3)}>
+          <AspectRatio ratio={image.width && image.height ? image.width / image.height : 1}>
             <div className="relative w-full h-full">
               <img
                 key={`${image.id}-${image._status || "final"}`}
