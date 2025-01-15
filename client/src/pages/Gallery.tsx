@@ -1,7 +1,6 @@
 import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import LazyLoad from 'react-lazyload';
 import { getCloudinaryUrl } from "@/lib/cloudinary";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -345,6 +344,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     progress: number;
     width?: number;
     height?: number;
+    uploadTimestamp: number; // Added uploadTimestamp
   }[]>([]);
 
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -363,21 +363,24 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     });
 
     const serverImages = gallery?.images || [];
-    const pendingAsImages = pendingUploads.map((pu) => ({
-      id: `pending-${pu.id}`,
-      url: pu.localUrl,
-      originalFilename: pu.file.name,
-      width: pu.width,
-      height: pu.height,
-      userStarred: false,
-      commentCount: 0,
-      stars: [],
-      _isPending: true,
-      _progress: pu.progress,
-      _status: pu.status
-    }));
+    const pendingAsImages = pendingUploads
+      .filter(pu => pu.status === 'uploading')
+      .map((pu) => ({
+        id: `pending-${pu.id}`,
+        url: pu.localUrl,
+        originalFilename: pu.file.name,
+        width: pu.width,
+        height: pu.height,
+        userStarred: false,
+        commentCount: 0,
+        stars: [],
+        _isPending: true,
+        _progress: pu.progress,
+        _status: pu.status,
+        uploadTimestamp: pu.uploadTimestamp
+      }));
 
-    const combined = [...pendingAsImages, ...serverImages];
+    const combined = [...pendingAsImages, ...serverImages].sort((a, b) => (a.uploadTimestamp || 0) - (b.uploadTimestamp || 0));
     console.log('[Debug] Combined images:', { 
       totalCount: combined.length,
       pendingCount: pendingAsImages.length,
@@ -668,6 +671,9 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   // Define all mutations first
   const toggleStarMutation = useMutation({
     mutationFn: async ({ imageId, isStarred }: { imageId: number, isStarred: boolean }) => {
+      if (!Number.isInteger(Number(imageId)) || imageId.toString().startsWith('pending-')) {
+        return;
+      }
       const token = await getToken();
       const res = await fetch(`/api/images/${imageId}/star`, {
         method: isStarred ? "DELETE" : "POST",
@@ -1014,14 +1020,9 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Remove completed upload from pending state
-      setPendingUploads((prev) => 
-        prev.filter(obj => obj.id !== item.id)
-      );
-      URL.revokeObjectURL(item.localUrl);
+      // Remove completed upload from pendingUploads
+      setPendingUploads((prev) => prev.filter(upload => upload.id !== item.id));
       completeBatch(item.id, true);
-
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
     } catch (error) {
       console.error('uploadSingleFile error:', error);
       setPendingUploads(prev => 
@@ -1051,15 +1052,22 @@ const uploadSingleFile = async (item: {
         const height = imageEl.naturalHeight;
 
         const newItem = {
-          id: nanoid(),
+          id: `pending-${nanoid()}`,
           file,
           localUrl,
-          _status: 'uploading',
-          _progress: 0,
           status: 'uploading' as const,
           progress: 0,
           width,
-          height
+          height,
+          _isPending: true,
+          _status: 'uploading',
+          _progress: 0,
+          uploadTimestamp: Date.now(),
+          originalFilename: file.name,
+          userStarred: false,
+          commentCount: 0,
+          stars: [],
+          url: localUrl // Use localUrl as temporary display url
         };
 
         setPendingUploads((prev) => [...prev, newItem]);
@@ -1525,22 +1533,7 @@ const renderGalleryControls = useCallback(() => {
   ]);
 
   const renderImage = (image: Image, index: number) => (
-    <LazyLoad
-      key={image.id === -1 ? `pending-${index}` : image.id}
-      height={200}
-      offset={100}
-      placeholder={
-        <div 
-          className="w-full bg-muted animate-pulse rounded-lg ring-2 ring-purple-500/20" 
-          style={{
-            aspectRatio: image.width && image.height 
-              ? `${image.width} / ${image.height}` 
-              : '4/3',
-            minHeight: '200px'
-          }}
-        />
-      }
-    >
+    <div key={image.id === -1 ? `pending-${index}` : image.id}>
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
@@ -1553,7 +1546,7 @@ const renderGalleryControls = useCallback(() => {
         }}
       initial={{ opacity: 0, y: 20}}
       animate={{
-        opacity: preloadedImages.has(image.id) ? 1 : 0,
+        opacity: 1,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
@@ -1587,33 +1580,51 @@ const renderGalleryControls = useCallback(() => {
           selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
         }}
       >
-        {preloadedImages.has(image.id) && (
-          <>
-            <img
-                src={image.url}
-                alt={image.originalFilename || 'Uploaded image'}
-                className={cn(
-                  "w-full h-auto object-contain rounded-lg blur-up block",
-                  selectMode && selectedImages.includes(image.id) && "opacity-75",
-                  draggedItemIndex === index && "opacity-50",
-                  image._isPending && "opacity-80"
-                )}
-                loading="lazy"
-                onLoad={(e) => {
-                  const img = e.currentTarget;
-                  img.classList.add('loaded');
-                }}
-                onError={(e) => {
-                  console.error('Image load failed:', {
-                    id: image.id,
-                    url: image.url,
-                    originalFilename: image.originalFilename
-                  });
-                  e.currentTarget.src = '/placeholder.png';
-                }}
-                draggable={false}
-              />
-            {image._isPending && (
+        <img
+            key={`${image.id}-${image._status || 'final'}`}
+            src={image._isPending && image.localUrl ? image.localUrl : image.url}
+            alt={image.originalFilename || 'Uploaded image'}
+            className={cn(
+              "w-full h-auto object-contain rounded-lg blur-up block transition-opacity duration-200",
+              selectMode && selectedImages.includes(image.id) && "opacity-75",
+              draggedItemIndex === index && "opacity-50",
+              image._isPending && "opacity-80",
+              image._status === 'error' && "opacity-50"
+            )}
+            loading="lazy"
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              img.classList.add('loaded');
+              // Only revoke if we have a pendingRevoke URL and the image has loaded successfully
+              if (!image._isPending && image.pendingRevoke) {
+                setTimeout(() => {
+                  URL.revokeObjectURL(image.pendingRevoke);
+                }, 1000); // Add small delay for safety
+              }
+            }}
+            onError={(e) => {
+              console.error('Image load failed:', {
+                id: image.id,
+                url: image.url,
+                isPending: image._isPending,
+                status: image._status,
+                originalFilename: image.originalFilename
+              });
+              if (!image._isPending) {
+                e.currentTarget.src = '/placeholder.png';
+                // Update pending uploads if this was a failed upload
+                setPendingUploads(prev => 
+                  prev.map(upload => 
+                    upload.id === image.id 
+                      ? { ...upload, status: 'error', _status: 'error' } 
+                      : upload
+                  )
+                );
+              }
+            }}
+            draggable={false}
+          />
+        {image._isPending && (
               <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
                 {image._status === "uploading" && (
                   <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
@@ -1629,8 +1640,6 @@ const renderGalleryControls = useCallback(() => {
                   <Progress value={image._progress} className="w-3/4 h-1" />
                 )}
               </div>
-            )}
-          </>
         )}
 
         {/* Starred avatars in bottom left corner */}
@@ -1800,7 +1809,7 @@ const renderGalleryControls = useCallback(() => {
         )}
       </div>
     </motion.div>
-    </LazyLoad>
+    </div>
   );
 
   useEffect(() => {
@@ -2053,6 +2062,7 @@ const handleImageClick = (index: number) => {
                   const pendingImages = pendingUploads.map((pu) => ({
                     id: `pending-${pu.id}`,
                     url: pu.localUrl,
+                    localUrl: pu.localUrl, // Ensure localUrl is set
                     originalFilename: pu.file.name,
                     width: pu.width || 800,
                     height: pu.height || 600,
@@ -2061,8 +2071,10 @@ const handleImageClick = (index: number) => {
                     stars: [],
                     _isPending: true,
                     _progress: pu.progress,
-                    _status: pu.status
+                    _status: pu.status,
+                    uploadTimestamp: pu.uploadTimestamp
                   }));
+                  console.log('Pending Images:', pendingImages);
                   const allImages = [...pendingImages, ...(gallery?.images || [])];
 
                   // Filter images based on current criteria

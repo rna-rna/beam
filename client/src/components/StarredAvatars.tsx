@@ -30,6 +30,7 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
     queryKey: [`/api/images/${imageId}/stars`],
     staleTime: 5000,
     cacheTime: 10000,
+    enabled: Number.isInteger(Number(imageId)) && !imageId.toString().startsWith('pending-'),
     select: (data) => ({
       ...data,
       data: Array.from(
