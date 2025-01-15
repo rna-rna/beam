@@ -1015,22 +1015,24 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Transform the pending item to its final state in-place
+      // Transform pending item in-place
       setPendingUploads((prev) => 
         prev.map((obj) => 
           obj.id === item.id 
             ? {
                 ...obj,
-                id: `${imageId}`, // Convert to string to match pending ID format
+                id: `${imageId}`, // Convert to string to match ID format
                 url: publicUrl,
                 _isPending: false,
                 _status: 'done',
-                progress: 100
+                progress: 100,
+                uploadTimestamp: Date.now()
               }
             : obj
         )
       );
 
+      // Clean up local URL after transform
       URL.revokeObjectURL(item.localUrl);
       completeBatch(item.id, true);
     } catch (error) {
