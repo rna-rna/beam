@@ -1858,7 +1858,6 @@ const renderGalleryControls = useCallback(() => {
           </motion.div>
         )}
       </div>
-    </motion.div>
     </div>
   );
 
