@@ -1486,12 +1486,10 @@ export default function Gallery({
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
-          "mb-4 image-container relative transform transition-all duration-200 ease-out w-full",
+          "mb-4 image-container relative transform transition-all duration-200 ease-out",
           isReorderMode && "cursor-grab active:cursor-grabbing",
-          "block",
         )}
         style={{
-          width: "100%",
           breakInside: "avoid"
         }}
         initial={{ opacity: 0, y: 20 }}
@@ -1542,9 +1540,8 @@ export default function Gallery({
                 key={`${image.id}-${image._status || "final"}`}
                 src={'localUrl' in image ? image.localUrl : image.url}
                 alt={image.originalFilename || "Uploaded image"}
-                style={{ objectFit: "cover" }}
                 className={cn(
-                "absolute inset-0 w-full h-full object-cover rounded-lg blur-up block transition-opacity duration-200",
+                "absolute inset-0 w-full h-full object-cover rounded-lg blur-up transition-opacity duration-200",
                 selectMode && selectedImages.includes(image.id) && "opacity-75",
                 draggedItemIndex === index && "opacity-50",
                 'localUrl' in image && "opacity-80",
