@@ -1779,9 +1779,7 @@ export default function Gallery({
         >
           <img
             key={`${image.id}-${image._status || "final"}`}
-            src={
-              image._isPending && image.localUrl ? image.localUrl : image.url
-            }
+            src={image._isPending && image.localUrl ? image.localUrl : image.url}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
               "w-full h-auto object-contain rounded-lg blur-up block transition-opacity duration-200",
@@ -1794,11 +1792,10 @@ export default function Gallery({
             onLoad={(e) => {
               const img = e.currentTarget;
               img.classList.add("loaded");
-              // Only revoke if we have a pendingRevoke URL and the image has loaded successfully
               if (!image._isPending && image.pendingRevoke) {
                 setTimeout(() => {
                   URL.revokeObjectURL(image.pendingRevoke);
-                }, 1000); // Add small delay for safety
+                }, 800);
               }
             }}
             onError={(e) => {
@@ -1811,7 +1808,6 @@ export default function Gallery({
               });
               if (!image._isPending) {
                 e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
-                // Update pending uploads if this was a failed upload
                 setPendingUploads((prev) =>
                   prev.map((upload) =>
                     upload.id === image.id
