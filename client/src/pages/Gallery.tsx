@@ -988,22 +988,13 @@ export default function Gallery({
       status: item.status,
     });
 
-    // Add the batch when starting upload
     addBatch(item.id, item.file.size, 1);
 
     try {
       const token = await getToken();
-      console.log("[Client] Retrieved auth token:", !!token);
-
       const headers: HeadersInit = {
         Authorization: `Bearer ${token}`,
       };
-
-      console.log("[Client] Sending request to /api/galleries/${slug}/images", {
-        fileName: item.file.name,
-        fileType: item.file.type,
-        fileSize: item.file.size,
-      });
 
       const response = await fetch(`/api/galleries/${slug}/images`, {
         method: "POST",
@@ -1022,30 +1013,13 @@ export default function Gallery({
         }),
       });
 
-      console.log("[Client] Server responded with status:", response.status);
-
       if (!response.ok) {
-        console.error(
-          "[Client] Server returned error status:",
-          response.status,
-        );
         throw new Error("Failed to get upload URLs");
       }
 
       const data = await response.json();
-      console.log("[Client] Received response data:", {
-        hasUrls: !!data.urls,
-        urlCount: data.urls?.length,
-      });
-
       const { urls } = data;
       const { signedUrl, publicUrl, imageId } = urls[0];
-
-      console.log("[Client] Starting file upload to signed URL:", {
-        hasSignedUrl: !!signedUrl,
-        hasPublicUrl: !!publicUrl,
-        imageId,
-      });
 
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -1058,11 +1032,17 @@ export default function Gallery({
             updateBatchProgress(item.id, incrementBytes);
             previousProgress = ev.loaded;
 
-            setPendingUploads((prev) =>
-              prev.map((obj) =>
-                obj.id === item.id ? { ...obj, progress: newProgress } : obj,
-              ),
-            );
+            queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => {
+              if (!old) return old;
+              return {
+                ...old,
+                images: old.images.map((img: any) =>
+                  img.id === item.id
+                    ? { ...img, _progress: newProgress, _status: "uploading" }
+                    : img
+                ),
+              };
+            });
           }
         };
 
@@ -1081,32 +1061,50 @@ export default function Gallery({
         xhr.send(item.file);
       });
 
-      // Wait for CDN to be ready
       await new Promise<void>((resolve) => setTimeout(resolve, 1500));
 
-      // Invalidate query to refresh from server
-      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      // Update the existing image in the cache with the server data
+      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          images: old.images.map((img: any) =>
+            img.id === item.id
+              ? {
+                  ...img,
+                  id: imageId,
+                  url: publicUrl,
+                  _status: "done",
+                  _progress: 100,
+                  _isPending: false,
+                }
+              : img
+          ),
+        };
+      });
 
-      // Once server is refreshed, clean up local state
-      setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
+      // Clean up the temporary URL
       URL.revokeObjectURL(item.localUrl);
-      
       completeBatch(item.id, true);
     } catch (error) {
       console.error("uploadSingleFile error:", error);
-      setPendingUploads((prev) =>
-        prev.map((upload) =>
-          upload.id === item.id
-            ? {
-                ...upload,
-                status: "error",
-                progress: 0,
-                _status: "error",
-                _progress: 0,
-              }
-            : upload,
-        ),
-      );
+      
+      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          images: old.images.map((img: any) =>
+            img.id === item.id
+              ? {
+                  ...img,
+                  _status: "error",
+                  _progress: 0,
+                }
+              : img
+          ),
+        };
+      });
+
       completeBatch(item.id, false);
       toast({
         title: "Error",
