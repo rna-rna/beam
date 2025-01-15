@@ -2,11 +2,15 @@
 /* Masonry grid base styles */
 .masonrygrid {
   display: flex;
-  width: auto;
+  width: 100%;
+  margin-left: -1rem;
 }
 
 .masonry-column {
   background-clip: padding-box;
+  padding-left: 1rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .image-container {
@@ -15,6 +19,9 @@
   transform-origin: center;
   transition: transform 0.2s ease;
   z-index: 1;
+  margin-bottom: 1rem;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .image-container.dragging {
@@ -28,6 +35,7 @@
   width: 100%;
   height: auto;
   display: block;
+  vertical-align: middle;
 }
 
 @import '@fontsource/geist-sans';
