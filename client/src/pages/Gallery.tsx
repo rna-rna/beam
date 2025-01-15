@@ -1087,11 +1087,41 @@ export default function Gallery({
       // Invalidate query to refresh from server
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
 
-      // Once server is refreshed, clean up local state
-      setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
-      URL.revokeObjectURL(item.localUrl);
-      
+      // Update the query data to morph the pending item into the final item
+      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        return {
+          ...oldData,
+          images: oldData.images.map((img: any) => {
+            if (img.id === `pending-${item.id}`) {
+              // Keep some properties from the pending item for smooth transition
+              return {
+                id: img.id.replace('pending-', ''),
+                url: img.localUrl, // Keep local URL briefly for smooth transition
+                pendingRevoke: img.localUrl, // Mark for cleanup after load
+                originalFilename: item.file.name,
+                width: img.width,
+                height: img.height,
+                userStarred: false,
+                commentCount: 0,
+                stars: [],
+                _status: 'done'
+              };
+            }
+            return img;
+          })
+        };
+      });
+
+      // Start a new query to get the server data
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
       completeBatch(item.id, true);
+
+      // Clean up local preview URL after a delay to allow smooth transition
+      setTimeout(() => {
+        setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
+      }, 800);
     } catch (error) {
       console.error("uploadSingleFile error:", error);
       setPendingUploads((prev) =>
