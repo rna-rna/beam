@@ -1987,7 +1987,7 @@ export default function Gallery({
             imageId: selectedImage.id,
             content,
             x: newCommentPos.x,
-            y: y: newCommentPos.y,
+            y: newCommentPos.y,
           });
 
           setIsCommentModalOpen(false);
