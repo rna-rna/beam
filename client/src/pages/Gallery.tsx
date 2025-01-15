@@ -1020,9 +1020,45 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Remove completed upload from pendingUploads
+      // Update React Query cache optimistically
+      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
+        if (!oldData) return oldData;
+
+        const updatedImages = [...oldData.images];
+        const pendingIndex = updatedImages.findIndex(
+          (img: any) => img.id === `pending-${item.id}`
+        );
+
+        const finalImage = {
+          id: imageId,
+          url: publicUrl,
+          originalFilename: item.file.name,
+          width: item.width || 800,
+          height: item.height || 600,
+          userStarred: false,
+          stars: [],
+          commentCount: 0,
+          uploadTimestamp: Date.now()
+        };
+
+        if (pendingIndex !== -1) {
+          updatedImages[pendingIndex] = finalImage;
+        } else {
+          updatedImages.push(finalImage);
+        }
+
+        return {
+          ...oldData,
+          images: updatedImages
+        };
+      });
+
+      // Remove from pendingUploads
       setPendingUploads((prev) => prev.filter(upload => upload.id !== item.id));
       completeBatch(item.id, true);
+
+      // Optional: Refetch to confirm sync with server
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
     } catch (error) {
       console.error('uploadSingleFile error:', error);
       setPendingUploads(prev => 
