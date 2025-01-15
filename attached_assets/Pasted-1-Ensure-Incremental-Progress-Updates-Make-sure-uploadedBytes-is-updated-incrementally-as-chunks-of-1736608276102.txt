@@ -1,0 +1,59 @@
+1. Ensure Incremental Progress Updates
+Make sure uploadedBytes is updated incrementally as chunks of data are uploaded, and not set to totalSize prematurely. This happens inside the xhr.upload.onprogress event in UploadDropzone.
+
+Replace your current progress logic with this refined version:
+
+UploadDropzone.tsx (Fix for Progress Updates)
+tsx
+Copy code
+const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  if (!acceptedFiles?.length) return;
+
+  const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
+  const fileProgress = new Map<number, number>(); // Track per-file progress
+  let totalUploadedBytes = 0;
+
+  startUpload(uploadId, totalSize, acceptedFiles.length);
+
+  try {
+    const { urls } = await fetch("/api/upload-endpoint").then((res) => res.json());
+
+    for (const [index, urlData] of urls.entries()) {
+      const file = acceptedFiles[index];
+      const xhr = new XMLHttpRequest();
+
+      fileProgress.set(index, 0); // Initialize per-file progress
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const currentProgress = event.loaded;
+          const previousProgress = fileProgress.get(index) || 0;
+          const incrementBytes = currentProgress - previousProgress;
+
+          fileProgress.set(index, currentProgress);
+          totalUploadedBytes += incrementBytes;
+
+          // Update overall progress
+          updateProgress(totalUploadedBytes);
+        }
+      };
+
+      xhr.open('PUT', urlData.signedUrl, true);
+      xhr.setRequestHeader('Content-Type', file.type);
+
+      await new Promise((resolve, reject) => {
+        xhr.onload = () => (xhr.status === 200 ? resolve(xhr.response) : reject(xhr.statusText));
+        xhr.onerror = () => reject(new Error(`Failed to upload ${file.name}`));
+        xhr.send(file);
+      });
+    }
+
+    onUpload();
+
+  } catch (error) {
+    console.error("[Upload Error]:", error);
+  } finally {
+    completeUpload(uploadId);
+  }
+}, [onUpload, startUpload, updateProgress, completeUpload]);

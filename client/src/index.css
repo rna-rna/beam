@@ -14,3 +14,21 @@
     @apply font-geist antialiased bg-background text-foreground;
   }
 }
+
+/* Blur-up effect */
+.blur-up {
+  filter: blur(20px);
+  transition: filter 0.5s ease-in-out;
+}
+.blur-up.loaded {
+  filter: blur(0);
+}
+
+.blur-up {
+  filter: blur(20px);
+  transition: filter 0.5s ease-in-out;
+}
+
+.blur-up.loaded {
+  filter: blur(0);
+}

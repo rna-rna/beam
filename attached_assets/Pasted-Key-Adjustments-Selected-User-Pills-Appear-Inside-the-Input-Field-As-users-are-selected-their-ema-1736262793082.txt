@@ -1,0 +1,201 @@
+Key Adjustments:
+Selected User Pills Appear Inside the Input Field
+
+As users are selected, their email appears as a pill within the input.
+Once the Invite button is clicked, the pill disappears, and the user is added to the "Who has access" list below.
+Dynamic Invite Button
+
+The button next to the input starts as Invite when a valid email/user is selected.
+Clicking Invite triggers the invite process, clears the pill from the input, and allows for adding more users.
+Persist Previous Invites
+
+When the modal opens, it fetches and displays previously invited users.
+Updated Implementation (Adjusted for Figma/Google-style Flow):
+tsx
+Copy code
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Copy, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface ShareModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  galleryUrl: string;
+  slug: string;
+  isPublic: boolean;
+  onVisibilityChange: (checked: boolean) => void;
+}
+
+interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  avatarUrl?: string | null;
+  role: string;
+}
+
+export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisibilityChange }: ShareModalProps) {
+  const [email, setEmail] = useState("");
+  const [userSuggestions, setUserSuggestions] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [invitedUsers, setInvitedUsers] = useState<User[]>([]);
+  const [linkPermission, setLinkPermission] = useState(isPublic ? "view" : "none");
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch existing invited users when the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetch(`/api/galleries/${slug}/permissions`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setInvitedUsers(data.users);
+          }
+        })
+        .catch(() => console.error("Failed to load existing permissions"));
+    }
+  }, [isOpen, slug]);
+
+  // Update link permission dynamically
+  useEffect(() => {
+    setLinkPermission(isPublic ? "view" : "none");
+  }, [isPublic]);
+
+  // Debounced user lookup
+  useEffect(() => {
+    const timeout = setTimeout(async () => {
+      if (email.length < 3) {
+        setUserSuggestions([]);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/users/search?email=${email}`);
+        const data = await res.json();
+        if (data.success) {
+          setUserSuggestions(data.users || []);
+        }
+      } catch (error) {
+        console.error("User lookup failed:", error);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [email]);
+
+  // Handle selecting a user from suggestions
+  const handleSelectUser = (user: User) => {
+    setSelectedUser(user);
+    setEmail(""); // Clear input, pill now represents the user inside the field
+    setUserSuggestions([]);
+  };
+
+  // Handle inviting the selected user
+  const handleSendInvite = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const res = await fetch(`/api/galleries/${slug}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: selectedUser.email,
+          role: "View",
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to send invite");
+
+      toast({
+        title: "Success",
+        description: "Invite sent successfully",
+      });
+
+      // Move user from input to "Who has access" section
+      setInvitedUsers((prev) => [...prev, { ...selectedUser, role: "View" }]);
+      setSelectedUser(null); // Clear pill from input field
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send invite. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Share Gallery</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          {/* Link Permission Section */}
+          <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
+            <p>Anyone with the link</p>
+            <Select
+              value={linkPermission}
+              onValueChange={setLinkPermission}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="view">Can view</SelectItem>
+                <SelectItem value="comment">Can comment</SelectItem>
+                <SelectItem value="none">Restricted</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Email Input */}
+          <div className="relative">
+            <Label>Add people</Label>
+            <div className="flex gap-2 items-center">
+              {selectedUser ? (
+                <div className="flex items-center space-x-2 px-2 py-1 bg-secondary rounded-full">
+                  <p>{selectedUser.email}</p>
+                  <X
+                    className="cursor-pointer"
+                    onClick={() => setSelectedUser(null)}
+                  />
+                </div>
+              ) : (
+                <Input
+                  type="email"
+                  placeholder="Enter email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              )}
+              <Button onClick={handleSendInvite} disabled={!selectedUser}>
+                Invite
+              </Button>
+            </div>
+          </div>
+
+          {/* List of Invited Users */}
+          {invitedUsers.map((user) => (
+            <div key={user.id} className="flex items-center justify-between p-2 bg-secondary/20 rounded-lg">
+              <p>{user.fullName || user.email}</p>
+              <p>{user.role}</p>
+            </div>
+          ))}
+
+          {/* Copy Link Button */}
+          <div className="flex justify-end">
+            <Button onClick={handleCopyLink}>
+              {copied ? "Copied!" : "Copy link"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

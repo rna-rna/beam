@@ -1,0 +1,191 @@
+Here's how we can implement this in the ShareModal to provide real-time feedback while typing an email:
+
+Overview of the Solution:
+As the user types an email, perform a real-time lookup against Clerk.
+If a match exists:
+Display the user's avatar and name.
+If no match is found:
+Show a default avatar and label the invite as a new user.
+Partial Matches:
+As the user types, show dropdown suggestions for existing relationships or collaborators.
+How It Works:
+User begins typing an email.
+A debounced API request is sent to Clerk’s /users endpoint with email_address_query.
+Results are displayed as suggestions (auto-complete).
+If no match is found, display:
+"Invite as new user" label.
+Default user avatar (like a grey circle).
+Step 1: Update the ShareModal (Frontend):
+Modify the ShareModal.tsx to implement real-time user lookup and visual indication.
+
+tsx
+Copy code
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { debounce } from "lodash";
+
+interface ShareModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  isPublic: boolean;
+  onVisibilityChange: (checked: boolean) => void;
+  galleryUrl: string;
+  slug: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  avatarUrl: string | null;
+}
+
+export function ShareModal({ 
+  isOpen, 
+  onClose, 
+  isPublic: initialIsPublic, 
+  onVisibilityChange, 
+  galleryUrl,
+  slug 
+}: ShareModalProps) {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("View");
+  const [userSuggestions, setUserSuggestions] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Debounced function for real-time user lookup
+  const lookupUser = debounce(async (query: string) => {
+    if (!query || query.length < 3) {
+      setUserSuggestions([]);
+      return;
+    }
+    setLoading(true);
+
+    try {
+      const res = await fetch(`/api/users/search?email=${query}`);
+      const data = await res.json();
+      setUserSuggestions(data.users || []);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, 300);
+
+  // Trigger lookup as the user types
+  useEffect(() => {
+    lookupUser(email);
+  }, [email]);
+
+  const handleSelectUser = (user: User) => {
+    setSelectedUser(user);
+    setEmail(user.email);
+    setUserSuggestions([]);
+  };
+
+  const inviteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/galleries/${slug}/invite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, role }),
+      });
+
+      if (!res.ok) throw new Error("Failed to send invite");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invite sent",
+        description: `Invitation sent to ${email}`,
+      });
+      setEmail("");
+      setSelectedUser(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to send invite",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleInvite = (e: React.FormEvent) => {
+    e.preventDefault();
+    inviteMutation.mutate();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Share Gallery</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          <form onSubmit={handleInvite} className="space-y-4">
+            
+            <div className="relative">
+              <Label htmlFor="email-input">Invite by email</Label>
+              <Input
+                id="email-input"
+                type="email"
+                placeholder="Enter email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              {loading && <p>Searching...</p>}
+
+              {userSuggestions.length > 0 && (
+                <div className="absolute bg-white shadow rounded mt-2 w-full">
+                  {userSuggestions.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center space-x-3 p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => handleSelectUser(user)}
+                    >
+                      <Avatar>
+                        {user.avatarUrl ? (
+                          <AvatarImage src={user.avatarUrl} />
+                        ) : (
+                          <AvatarFallback>{user.fullName[0]}</AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div>
+                        <p className="text-sm">{user.fullName}</p>
+                        <p className="text-xs text-gray-500">{user.email}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {email && !selectedUser && (
+                <div className="flex items-center space-x-3 mt-4">
+                  <Avatar>
+                    <AvatarFallback>?</AvatarFallback>
+                  </Avatar>
+                  <p className="text-sm">Invite <strong>{email}</strong> as a new user</p>
+                </div>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full">
+              {inviteMutation.isPending ? "Sending..." : "Send Invite"}
+            </Button>
+          </form>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import pusherAuthRouter from "./routes/pusherAuth";
 import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
 
 // Validate environment variables
@@ -12,9 +14,31 @@ if (!process.env.CLERK_PUBLISHABLE_KEY) {
   throw new Error('CLERK_PUBLISHABLE_KEY is required. Please add it to your environment variables.');
 }
 
+// Log R2 environment variables
+console.log('Environment Variables:', {
+  VITE_R2_PUBLIC_URL: process.env.VITE_R2_PUBLIC_URL,
+  R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
+});
+
 const app = express();
+
+// Enable CORS with comprehensive options
+app.use(cors({
+  origin: process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Pusher-Library', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  credentials: true,
+  maxAge: 86400,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Ensure Pusher auth route is handled before static files
+app.use(pusherAuthRouter);
 
 // Request logging middleware
 app.use((req, res, next) => {

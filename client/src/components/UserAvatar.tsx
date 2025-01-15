@@ -1,15 +1,16 @@
-
 import { useUser } from "@clerk/clerk-react";
 import { useMemo } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
   name?: string;
   imageUrl?: string;
   className?: string;
+  isActive?: boolean;
 }
 
-export function UserAvatar({ name: propName, imageUrl, className = "" }: UserAvatarProps) {
+export function UserAvatar({ name: propName, imageUrl, className = "", isActive = false }: UserAvatarProps) {
   const { user } = useUser();
   const name = propName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
   
@@ -22,11 +23,16 @@ export function UserAvatar({ name: propName, imageUrl, className = "" }: UserAva
   }, [user?.publicMetadata?.avatarColor]);
 
   return (
-    <Avatar className={className}>
-      {imageUrl && <AvatarImage src={imageUrl} alt={name} />}
-      <AvatarFallback style={{ backgroundColor, color: 'white' }}>
-        {initial}
-      </AvatarFallback>
-    </Avatar>
+    <div className="relative group">
+      <Avatar className={cn(className)}>
+        {imageUrl && <AvatarImage src={imageUrl} alt={name || 'User'} />}
+        <AvatarFallback style={{ backgroundColor, color: 'white' }}>
+          {initial}
+        </AvatarFallback>
+      </Avatar>
+      {isActive && (
+        <span className="absolute bottom-[2px] right-[2px] block h-2 w-2 rounded-full bg-green-500 group-hover:translate-y-[-2px] transition-transform" />
+      )}
+    </div>
   );
 }

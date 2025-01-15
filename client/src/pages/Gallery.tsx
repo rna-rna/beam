@@ -1,6 +1,9 @@
 import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import LazyLoad from 'react-lazyload';
+import { getCloudinaryUrl } from "@/lib/cloudinary";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Upload,
   Grid,
@@ -26,15 +29,21 @@ import {
   ChevronRight,
   Paintbrush,
   MessageCircle,
-  PencilRuler
+  PencilRuler,
+  Eye,
+  EyeOff,
+  Lock
 } from "lucide-react";
-import { Circle } from "lucide-react";
+
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 // UI Components
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
+import LightboxDialogContent from "@/components/dialog/LightboxDialogContent";
+import { StarredUsersFilter } from "@/components/StarredUsersFilter";
 import { Progress } from "@/components/ui/progress";
 import { Switch as SwitchComponent } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -59,6 +68,10 @@ import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from 'react-dropzone';
 import { Textarea } from "@/components/ui/textarea";
+
+
+
+
 import { Label } from "@/components/ui/label";
 import { MobileGalleryView } from "@/components/MobileGalleryView";
 import type { Image, Gallery as GalleryType, Comment, Annotation, UploadProgress } from "@/types/gallery";
@@ -69,17 +82,38 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { ShareModal } from "@/components/ShareModal";
 import { FloatingToolbar } from "@/components/FloatingToolbar";
-import { Lock } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Toggle } from "@/components/ui/toggle";
 import { useAuth } from "@clerk/clerk-react";
 import { CommentModal } from "@/components/CommentModal";
-import { useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
+import { useUser, useClerk, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/LoginModal";
-import { LoginButton } from "@/components/LoginButton";
+import { useUpload } from "@/context/UploadContext";
 import { StarredAvatars } from "@/components/StarredAvatars";
+import { LoginButton } from "@/components/LoginButton";
+import { Logo } from "@/components/Logo";
+import { UserAvatar } from "@/components/UserAvatar";
+import { SignUpModal } from "@/components/SignUpModal";
+import PusherClient from "pusher-js";
+import { nanoid } from "nanoid";
 
+// Initialize Pusher client
+const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
+  cluster: import.meta.env.VITE_PUSHER_CLUSTER,
+  appId: import.meta.env.VITE_PUSHER_APP_ID,
+  authEndpoint: "/pusher/auth",
+  forceTLS: true,
+  encrypted: true,
+  withCredentials: true,
+  enabledTransports: ["ws", "wss", "xhr_streaming", "xhr_polling"],
+  disabledTransports: []
+});
+
+// Validate required environment variables
+if (!import.meta.env.VITE_PUSHER_KEY || !import.meta.env.VITE_PUSHER_CLUSTER || !import.meta.env.VITE_PUSHER_APP_ID) {
+  console.error('Missing required Pusher environment variables');
+}
 
 interface GalleryProps {
   slug?: string;
@@ -92,15 +126,190 @@ interface ImageDimensions {
   height: number;
 }
 
+import { Helmet } from 'react-helmet';
+
 export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
-  // URL Parameters and Global Hooks
+  // URL Parameters and Global Hooks first
   const params = useParams();
   const slug = propSlug || params?.slug;
+
+  const getR2ImageUrl = useCallback((image: Image | null | undefined) => {
+    if (!image?.url) {
+      return '/fallback-image.jpg';
+    }
+    return image.url;
+  }, []);
+
+  // Query must be declared before being used in useMemo
+  const { data: gallery, isLoading: isGalleryLoading, error } = useQuery<GalleryType>({
+    queryKey: [`/api/galleries/${slug}`],
+    queryFn: async () => {
+      // ... existing query logic ...
+    },
+    enabled: !!slug
+  });
+
+  const processedImages = useMemo(() => {
+    if (!gallery?.images) return [];
+    return gallery.images
+      .filter(image => image && image.url)
+      .map(image => ({
+        ...image,
+        displayUrl: getR2ImageUrl(image),
+        aspectRatio: (image.width && image.height) ? image.width / image.height : 1.33,
+      }));
+  }, [gallery?.images, getR2ImageUrl]);
+
+  const beamOverlayTransform = 'l_beam-bar_q6desn,g_center,x_0,y_0';
+  const [presenceMembers, setPresenceMembers] = useState<{[key: string]: any}>({});
+  const [activeUsers, setActiveUsers] = useState<any[]>([]);
+  const { session } = useClerk();
+
+  // Refresh Clerk session if expired
+  useEffect(() => {
+    if (session?.status === 'expired') {
+      session
+        .refresh()
+        .then(() => console.log('Clerk session refreshed successfully'))
+        .catch((error) => console.error('Failed to refresh Clerk session:', error));
+    }
+  }, [session]);
+
+  // Log active users when they change
+  useEffect(() => {
+    console.log("Active Users:", activeUsers.map(user => ({
+      userId: user.userId,
+      name: user.name,
+      avatar: user.avatar,
+      lastActive: user.lastActive
+    })));
+  }, [activeUsers]);
+
+  // Pusher presence channel subscription
+  useEffect(() => {
+    if (!slug) return;
+
+    const channelName = `presence-gallery-${slug}`;
+    console.log('Attempting to subscribe to channel:', channelName);
+
+    const channel = pusherClient.subscribe(channelName);
+    console.log('Channel details:', {
+      name: channel.name,
+      state: channel.state,
+      subscribed: channel.subscribed,
+    });
+
+    channel.bind('pusher:subscription_succeeded', (members: any) => {
+      const activeMembers: any[] = [];
+      const currentUserId = user?.id;
+
+      members.each((member: any) => {
+        const userInfo = member.info || member.user_info || {};
+
+        // Skip if this is the current user
+        if (member.id === currentUserId) return;
+
+        console.log("Processing member:", member);
+
+        activeMembers.push({
+          userId: member.id,
+          name: userInfo.name || "Anonymous",
+          avatar: userInfo.avatar || "/fallback-avatar.png",
+          lastActive: new Date().toISOString()
+        });
+      });
+
+      console.log('Subscription succeeded:', {
+        channelName: channel.name,
+        totalMembers: members.count,
+        currentUserId: members.myID,
+        activeMembers
+      });
+
+      setPresenceMembers(members.members);
+      setActiveUsers(activeMembers);
+    });
+
+    channel.bind('pusher:subscription_error', (status: any) => {
+      console.error('Subscription error:', {
+        status,
+        channel: channel.name,
+        state: channel.state,
+        responseStatus: status?.status,
+        responseText: status?.error,
+        timestamp: new Date().toISOString()
+      });
+
+      if (status?.status === 200) {
+        console.log('Unexpected HTML Response from Auth:', status.error);
+      }
+    });
+
+    channel.bind('pusher:member_added', (member: any) => {
+      console.log('Member added:', member);
+
+      // Skip if this is the current user
+      if (member.id === user?.id) return;
+
+      setActiveUsers(prev => {
+        const isPresent = prev.some(user => user.userId === member.id);
+        if (isPresent) return prev;
+
+        const userInfo = member.info || {};
+        return [
+          ...prev,
+          {
+            userId: member.id,
+            name: userInfo.name || "Anonymous",
+            avatar: userInfo.avatar || "/fallback-avatar.png",
+            lastActive: new Date().toISOString()
+          }
+        ];
+      });
+    });
+
+    channel.bind('pusher:member_removed', (member: any) => {
+      console.log('Member removed:', {
+        id: member.id,
+        channelData: member
+      });
+      setActiveUsers(prev => prev.filter(user => user.user_id !== member.id));
+    });
+
+    return () => {
+      console.log('Cleaning up Pusher subscription');
+      channel.unbind_all();
+      channel.unsubscribe();
+    };
+  }, [slug]);
   const { toast } = useToast();
+  const [guestGalleryCount, setGuestGalleryCount] = useState(
+    Number(sessionStorage.getItem("guestGalleryCount")) || 0
+  );
+
+  const handleGuestUpload = async (files: File[]) => {
+    if (guestGalleryCount >= 1) {
+      window.location.href = "/sign-up";
+      return;
+    }
+    console.log("Uploading guest gallery with guestUpload flag...");
+    setGuestGalleryCount(1);
+    sessionStorage.setItem("guestGalleryCount", "1");
+
+    if (files?.length) {
+      // uploadMutation.mutate(files); // Removed
+    }
+  };
+
+
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const { user } = useUser();
   const { isDark } = useTheme();
+
+  const toggleGridView = () => {
+    setIsMasonry(!isMasonry);
+  };
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
@@ -114,22 +323,105 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
   const [showFilename, setShowFilename] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLowResLoading, setIsLowResLoading] = useState(true);
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileView, setShowMobileView] = useState(false);
   const [mobileViewIndex, setMobileViewIndex] = useState(-1);
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
+  //const [uploadProgress, setUploadProgress] = useState<UploadProgress>({}); //Removed
   const [isMasonry, setIsMasonry] = useState(true);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
+  const [userRole, setUserRole] = useState<string>("Viewer");
+  const [pendingUploads, setPendingUploads] = useState<{
+    id: string;
+    file: File;
+    localUrl: string;
+    status: 'uploading' | 'done' | 'error';
+    progress: number;
+    width?: number;
+    height?: number;
+  }[]>([]);
+
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const masonryRef = useRef<any>(null);
+
+  const combinedImages = useMemo(() => {
+    console.log('[Debug] Starting allImages calculation', {
+      pendingUploadsCount: pendingUploads.length,
+      galleryImagesCount: gallery?.images?.length,
+      pendingDetails: pendingUploads.map(pu => ({
+        id: pu.id,
+        filename: pu.file.name,
+        status: pu.status,
+        progress: pu.progress
+      }))
+    });
+
+    const serverImages = gallery?.images || [];
+    const pendingAsImages = pendingUploads.map((pu) => ({
+      id: `pending-${pu.id}`,
+      url: pu.localUrl,
+      originalFilename: pu.file.name,
+      width: pu.width,
+      height: pu.height,
+      userStarred: false,
+      commentCount: 0,
+      stars: [],
+      _isPending: true,
+      _progress: pu.progress,
+      _status: pu.status
+    }));
+
+    const combined = [...pendingAsImages, ...serverImages];
+    console.log('[Debug] Combined images:', { 
+      totalCount: combined.length,
+      pendingCount: pendingAsImages.length,
+      serverCount: serverImages.length
+    });
+
+    return combined;
+  }, [gallery?.images, pendingUploads]);
+
+  useEffect(() => {
+    if (slug) {
+      fetch(`/api/galleries/${slug}/permissions`)
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Permissions API Response:", {
+            data,
+            currentUserEmail: user?.primaryEmailAddress?.emailAddress,
+            foundUser: data.users.find(u => u.email === user?.primaryEmailAddress?.emailAddress),
+            allEmails: data.users.map(u => u.email)
+          });
+
+          const currentUserRole = data.users.find(
+            (u) => u.email === user?.primaryEmailAddress?.emailAddress
+          )?.role || "Viewer";
+
+          console.log("Role Assignment:", {
+            assignedRole: currentUserRole,
+            userEmail: user?.primaryEmailAddress?.emailAddress,
+            isOwner: data.users.some(u => 
+              u.email === user?.primaryEmailAddress?.emailAddress && 
+              u.role === "Editor"
+            )
+          });
+
+          setUserRole(currentUserRole);
+        })
+        .catch((error) => console.error("Failed to load permissions:", error));
+    }
+  }, [slug, user]);
   const [isOpenShareModal, setIsOpenShareModal] = useState(false);
   const [isPrivateGallery, setIsPrivateGallery] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
 
   // Title update mutation
   const titleUpdateMutation = useMutation({
@@ -206,8 +498,29 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   };
 
-  // Queries
-  const { data: gallery, isLoading, error } = useQuery<GalleryType>({
+  // Update gallery query reference
+  useQuery({
+    onSuccess: (data) => {
+      console.log('Gallery Data:', {
+        galleryId: data?.id,
+        imageCount: data?.images?.length,
+        title: data?.title,
+        slug: data?.slug,
+        isPublic: data?.isPublic
+      });
+
+      console.log('Image Details:', data?.images?.map(image => ({
+        id: image.id,
+        originalFilename: image.originalFilename,
+        url: image.url,
+        width: image.width,
+        height: image.height,
+        publicId: image.publicId,
+        stars: image.stars?.length,
+        userStarred: image.userStarred,
+        commentCount: image.commentCount
+      })));
+    },
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
       console.log('Starting gallery fetch for slug:', slug, {
@@ -246,13 +559,53 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       }
 
       const data = await res.json();
-      console.log('Gallery fetch response:', {
+      console.log('Gallery API Response:', {
         status: res.status,
         ok: res.ok,
-        data,
-        hasImages: data?.images?.length > 0,
+        galleryId: data?.id,
+        title: data?.title,
+        slug: data?.slug,
+        imageCount: data?.images?.length,
+        sampleImage: data?.images?.[0] ? {
+          id: data.images[0].id,
+          originalFilename: data.images[0].originalFilename,
+          url: data.images[0].url,
+          width: data.images[0].width,
+          height: data.images[0].height
+        } : null,
         timestamp: new Date().toISOString()
       });
+      console.log('Gallery API Response:', {
+        status: res.status,
+        ok: res.ok,
+        galleryId: data?.id,
+        title: data?.title,
+        slug: data?.slug,
+        imageCount: data?.images?.length,
+        sampleImage: data?.images?.[0] ? {
+          id: data.images[0].id,
+          originalFilename: data.images[0].originalFilename,
+          url: data.images[0].url,
+          width: data.images[0].width,
+          height: data.images[0].height
+        } : null,
+        timestamp: new Date().toISOString()
+      });
+
+      // Validate required image fields
+      if (data?.images) {
+        const missingFields = data.images.some((img: any) => 
+          !img.originalFilename || !img.url || !img.id
+        );
+
+        if (missingFields) {
+          console.error('Invalid image data detected:', 
+            data.images.filter((img: any) => 
+              !img.originalFilename || !img.url || !img.id
+            )
+          );
+        }
+      }
 
       if (!data) {
         throw new Error('Gallery returned null or undefined');
@@ -279,14 +632,12 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   });
 
-  const selectedImage = gallery?.images?.[selectedImageIndex] ?? null;
+  const [selectedImage, setSelectedImage] = useState<Image | null>(null);
+  useEffect(() => {
+    setSelectedImage(gallery?.images?.[selectedImageIndex] ?? null);
+  }, [selectedImageIndex, gallery?.images]);
 
-  console.log("Fetched gallery:", {
-    hasGallery: !!gallery,
-    imageCount: gallery?.images?.length,
-    selectedImageIndex,
-    selectedImage
-  });
+
 
   const { data: annotations = [] } = useQuery<Annotation[]>({
     queryKey: [`/api/images/${selectedImage?.id}/annotations`],
@@ -316,23 +667,77 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   // Define all mutations first
   const toggleStarMutation = useMutation({
-    mutationFn: async (imageId: number) => {
+    mutationFn: async ({ imageId, isStarred }: { imageId: number, isStarred: boolean }) => {
+      const token = await getToken();
       const res = await fetch(`/api/images/${imageId}/star`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: isStarred ? "DELETE" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        credentials: 'include'
       });
-      if (!res.ok) throw new Error("Failed to toggle star");
-      return res.json();
+
+      const result = await res.json();
+      if (!res.ok || result?.success === false) {
+        throw new Error(result.message || 'Failed to update star status');
+      }
+
+      return { ...result, imageId };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+    onMutate: async ({ imageId, isStarred }) => {
+      await queryClient.cancelQueries([`/api/galleries/${slug}`]);
+      await queryClient.cancelQueries([`/api/images/${imageId}/stars`]);
+      const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
+      const previousStars = queryClient.getQueryData([`/api/images/${imageId}/stars`]);
+
+      // Update Lightbox Image (if open)
+      setSelectedImage((prev) =>
+        prev?.id === imageId ? { ...prev, userStarred: !isStarred } : prev
+      );
+
+      // Update Gallery Grid
+      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          images: oldData.images.map((image: any) =>
+            image.id === imageId ? { ...image, userStarred: !isStarred } : image
+          ),
+        };
+      });
+
+      // Update stars data
+      queryClient.setQueryData([`/api/images/${imageId}/stars`], (old: any) => {
+        if (!old) return { success: true, data: [] };
+        const updatedData = isStarred
+          ? old.data.filter((star: any) => star.userId !== user?.id)
+          : [...old.data, {
+              userId: user?.id,
+              imageId,
+              user: {
+                firstName: user?.firstName,
+                lastName: user?.lastName,
+                imageUrl: user?.imageUrl
+              }
+            }];
+        return { ...old, data: updatedData };
+      });
+
+      return { previousGallery, previousStars };
     },
-    onError: () => {
+    onError: (err, variables, context) => {
+      if (context?.previousGallery) {
+        queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
+      }
       toast({
         title: "Error",
-        description: "Failed to toggle star. Please try again.",
+        description: "Failed to update star status. Please try again.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
     },
   });
 
@@ -402,75 +807,10 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
   });
 
-  const uploadMutation = useMutation({
-    mutationFn: async (files: File[]) => {
-      setIsUploading(true);
-      const formData = new FormData();
-
-      const progressMap: UploadProgress = {};
-      files.forEach((file) => {
-        formData.append("images", file);
-        progressMap[file.name] = 0;
-      });
-      setUploadProgress(progressMap);
-
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const progress = (event.loaded / event.total) * 100;
-            setUploadProgress(prev => {
-              const newProgress = { ...prev };
-              Object.keys(newProgress).forEach(key => {
-                newProgress[key] = progress;
-              });
-              return newProgress;
-            });
-          }
-        };
-
-        xhr.open('POST', `/api/galleries/${slug}/images`);
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const response = JSON.parse(xhr.response);
-              resolve(response);
-            } catch (error) {
-              reject(new Error('Invalid server response'));
-            }
-          } else {
-            reject(new Error('Upload failed'));
-          }
-        };
-
-        xhr.onerror = () => {
-          reject(new Error('Network error during upload'));
-        };
-
-        xhr.send(formData);
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-      setIsUploading(false);
-      setUploadProgress({});
-      toast({
-        title: "Success",
-        description: "Images uploaded successfully",
-      });
-    },
-    onError: (error: Error) => {
-      setIsUploading(false);
-      setUploadProgress({});
-      toast({
-        title: "Error",
-        description: `Failed to upload images: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
+  const handleUploadComplete = () => {
+    queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+    queryClient.refetchQueries({ queryKey: [`/api/galleries/${slug}`] });
+  };
 
   const createCommentMutation = useMutation({
     mutationFn: async ({
@@ -566,13 +906,168 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     },
   });
 
-  const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      if (selectedImageIndex >= 0 || selectMode) return;
-      uploadMutation.mutate(acceptedFiles);
-    },
-    [uploadMutation, selectedImageIndex, selectMode]
-  );
+
+  const { addBatch, updateBatchProgress, completeBatch } = useUpload();
+
+const uploadSingleFile = async (item: {
+    id: string;
+    file: File;
+    localUrl: string;
+    status: 'uploading' | 'done' | 'error';
+    progress: number;
+  }) => {
+    console.log("[Client] Starting uploadSingleFile with item:", {
+      id: item.id,
+      fileName: item.file.name,
+      fileSize: item.file.size,
+      fileType: item.file.type,
+      status: item.status
+    });
+    
+    // Add the batch when starting upload
+    addBatch(item.id, item.file.size, 1);
+
+    try {
+      const token = await getToken();
+      console.log("[Client] Retrieved auth token:", !!token);
+
+      const headers: HeadersInit = {
+        'Authorization': `Bearer ${token}`
+      };
+
+      console.log("[Client] Sending request to /api/galleries/${slug}/images", {
+        fileName: item.file.name,
+        fileType: item.file.type,
+        fileSize: item.file.size
+      });
+
+      const response = await fetch(`/api/galleries/${slug}/images`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          files: [{
+            name: item.file.name,
+            type: item.file.type,
+            size: item.file.size
+          }]
+        })
+      });
+
+      console.log("[Client] Server responded with status:", response.status);
+
+      if (!response.ok) {
+        console.error("[Client] Server returned error status:", response.status);
+        throw new Error('Failed to get upload URLs');
+      }
+
+      const data = await response.json();
+      console.log("[Client] Received response data:", {
+        hasUrls: !!data.urls,
+        urlCount: data.urls?.length
+      });
+
+      const { urls } = data;
+      const { signedUrl, publicUrl, imageId } = urls[0];
+
+      console.log("[Client] Starting file upload to signed URL:", {
+        hasSignedUrl: !!signedUrl,
+        hasPublicUrl: !!publicUrl,
+        imageId
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        let previousProgress = 0;
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) {
+            const fraction = ev.loaded / ev.total;
+            const newProgress = fraction * 100;
+            const incrementBytes = ev.loaded - previousProgress;
+            updateBatchProgress(item.id, incrementBytes);
+            previousProgress = ev.loaded;
+            
+            setPendingUploads((prev) =>
+              prev.map((obj) =>
+                obj.id === item.id
+                  ? { ...obj, progress: newProgress }
+                  : obj
+              )
+            );
+          }
+        };
+
+        xhr.open('PUT', signedUrl, true);
+        xhr.setRequestHeader('Content-Type', item.file.type);
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            resolve();
+          } else {
+            reject(newError(`Failed to upload ${item.file.name}`));
+          }
+        };
+        xhr.onerror = () => {
+          reject(newError('Network error uploading file'));
+        };
+        xhr.send(item.file);
+      });
+
+      // Remove completed upload from pending state
+      setPendingUploads((prev) => 
+        prev.filter(obj => obj.id !== item.id)
+      );
+      URL.revokeObjectURL(item.localUrl);
+      completeBatch(item.id, true);
+
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+    } catch (error) {
+      console.error('uploadSingleFile error:', error);
+      setPendingUploads(prev => 
+        prev.map(upload => 
+          upload.id === item.id 
+            ? { ...upload, status: 'error', progress: 0, _status: 'error', _progress: 0 } 
+            : upload
+        )
+      );
+      completeBatch(item.id, false);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+
+    acceptedFiles.forEach((file) => {
+      const localUrl = URL.createObjectURL(file);
+      const imageEl = new Image();
+      imageEl.onload = () => {
+        const width = imageEl.naturalWidth;
+        const height = imageEl.naturalHeight;
+
+        const newItem = {
+          id: nanoid(),
+          file,
+          localUrl,
+          _status: 'uploading',
+          _progress: 0,
+          status: 'uploading' as const,
+          progress: 0,
+          width,
+          height
+        };
+
+        setPendingUploads((prev) => [...prev, newItem]);
+        uploadSingleFile(newItem);
+      };
+      imageEl.src = localUrl;
+    });
+  }, [setPendingUploads]);
 
   // Modify the useDropzone configuration to disable click
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -580,33 +1075,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
-    disabled: isUploading || selectMode,
+    disabled: isUploading || selectMode || selectedImageIndex >= 0,
     noClick: true,
     noKeyboard: true
   });
 
   // Add upload progress placeholders to the masonry grid
-  const renderUploadPlaceholders = () => {
-    if (!Object.keys(uploadProgress).length) return null;
-
-    return Object.entries(uploadProgress).map(([filename, progress]) => (
-      <motion.div
-        key={filename}
-        initial={{ opacity: 0.5, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.3 }}
-        className="mb-4 bg-gray-200 rounded-lg overflow-hidden relative"
-      >
-        <div className="w-full aspect-[4/3] flex items-center justify-center">
-          <span className="text-gray-500">{filename}</span>
-        </div>
-        <div className="absolute inset-0 flex flex-col justify-end">
-          <Progress value={progress} className="h-1" />
-        </div>
-      </motion.div>
-    ));
-  };
+  //Removed renderUploadPlaceholders function
 
   // Memoized Values
   const breakpointCols = useMemo(
@@ -624,20 +1099,27 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   );
 
   // Preload image function
-  const preloadImage = useCallback((url: string, imageId: number) => {
+  const preloadImage = useCallback((image: Image, imageId: number) => {
     const img = new Image();
-    img.src = url;
+    img.src = getR2ImageUrl(image);
     img.onload = () => {
       setPreloadedImages(prev => new Set([...Array.from(prev), imageId]));
     };
   }, []);
+
+  // Reflow Masonry layout when images or uploads change
+  useEffect(() => {
+    if (masonryRef.current?.layout) {
+      masonryRef.current.layout();
+    }
+  }, [gallery?.images, pendingUploads]);
 
   // Preload images when gallery data is available
   useEffect(() => {
     if (gallery?.images) {
       gallery.images.forEach(image => {
         if (!preloadedImages.has(image.id)) {
-          preloadImage(image.url, image.id);
+          preloadImage(image, image.id);
         }
       });
     }
@@ -656,7 +1138,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       toast({
         title: "Preparing Download",
         description: "Creating ZIP file of all images...",
-      });
+});
 
       const zip = new JSZip();
       const imagePromises = gallery!.images.map(async (image, index) => {
@@ -830,14 +1312,76 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     // Add your dark mode logic here, e.g., toggle a class on the body element
   };
 
-  const renderGalleryControls = useCallback(() => {
+  const [selectedStarredUsers, setSelectedStarredUsers] = useState<string[]>([]);
+
+const getUniqueStarredUsers = useMemo(() => {
+  if (!gallery?.images) return [];
+  const usersSet = new Set<string>();
+  const users: { userId: string; firstName: string | null; lastName: string | null; imageUrl: string | null; }[] = [];
+
+  gallery.images.forEach(image => {
+    image.stars?.forEach(star => {
+      if (!usersSet.has(star.userId)) {
+        usersSet.add(star.userId);
+        users.push({
+          userId: star.userId,
+          firstName: star.firstName || null,
+          lastName: star.lastName || null,
+          imageUrl: star.imageUrl || null
+        });
+      }
+    });
+  });
+
+  return users;
+}, [gallery?.images]);
+
+const renderGalleryControls = useCallback(() => {
     if (!gallery) return null;
 
     return (
-      <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
+      <div className={cn("flex items-center justify-between gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
+        <div className="flex items-center gap-4">
+          {/* Presence Avatars */}
+          <div className="flex -space-x-2">
+            {activeUsers.map((member) => (
+              <UserAvatar
+                key={member.userId}
+                name={member.name}
+                imageUrl={member.avatar}
+                isActive={true}
+                className="w-8 h-8 border-2 border-white/40 dark:border-black hover:translate-y-[-2px] transition-transform"
+              />
+            ))}
+          </div>
+        </div>
         <TooltipProvider>
+          <StarredUsersFilter
+            users={getUniqueStarredUsers}
+            selectedUsers={selectedStarredUsers}
+            onSelectionChange={setSelectedStarredUsers}
+          />
 
-          {/* Filter Menu */}
+          {/* Grid View Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={toggleGridView}
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200", !isMasonry && "bg-primary/20")}
+              >
+                {isMasonry ? (
+                  <Grid className="h-4 w-4" />
+                ) : (
+                  <LayoutGrid className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
+          </Tooltip>
+
+          {/* Filter Menu - Temporarily commented out
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenu>
@@ -845,7 +1389,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   <Button
                     size="icon"
                     variant="ghost"
-                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200")}
                   >
                     <Filter className="h-4 w-4" />
                   </Button>
@@ -857,7 +1401,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       <div className="flex items-center flex-1">
-                        <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-gray-800")} />
+                        <Star className={cn("w-4 h-4 mr-2", showStarredOnly ? "fill-yellow-400 text-yellow-400" : isDark ? "text-white" : "text-zinc-800")} />
                         Show Starred
                         <div className="ml-auto inline-flex items-center gap-1">
                           <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
@@ -875,7 +1419,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       <div className="flex items-center flex-1">
-                        <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-gray-800")} />
+                        <MessageSquare className={cn("w-4 h-4 mr-2", showWithComments ? "text-primary" : isDark ? "text-white" : "text-zinc-800")} />
                         Show Comments
                         <div className="ml-auto inline-flex items-center gap-1">
                           <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
@@ -894,7 +1438,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     onClick={() => {
                       setShowStarredOnly(false);
                       setShowWithComments(false);
-                    }}
+                      }}
                     className="flex items-center gap-2 cursor-pointer"
                   >
                     <div className="flex items-center flex-1">
@@ -914,16 +1458,13 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             </TooltipTrigger>
             <TooltipContent>Filter Images</TooltipContent>
           </Tooltip>
+          */}
 
-          {isUploading && (
-            <div className="flex items-center gap-4">
-              <Progress value={undefined} className="w-24" />
-              <span className={cn("text-sm", isDark ? "text-white/70" :"text-gray-600")}>Uploading...</span>
-            </div>
-          )}
+
 
           {selectMode && (
             <>
+
 
 
             </>
@@ -945,20 +1486,27 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <TooltipContent>Share Gallery</TooltipContent>
           </Tooltip>
 
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
-                onClick={toggleSelectMode}
-              >
-                <PencilRuler className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
-          </Tooltip>
+
+          {userRole === "Editor" && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Toggle
+                  size="sm"
+                  pressed={selectMode}
+                  onPressedChange={toggleSelectMode}
+                  className={cn(
+                    "h-9 w-9",
+                    isDark 
+                      ? "text-white hover:bg-white/10 data-[state=on]:bg-white/20 data-[state=on]:text-white data-[state=on]:ring-2 data-[state=on]:ring-white/20" 
+                      : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent/30 data-[state=on]:text-accent-foreground data-[state=on]:ring-2 data-[state=on]:ring-accent"
+                  )}
+                >
+                  <PencilRuler className="h-4 w-4" />
+                </Toggle>
+              </TooltipTrigger>
+              <TooltipContent>{selectMode ? "Done" : "Select Images"}</TooltipContent>
+            </Tooltip>
+          )}
         </TooltipProvider>
       </div>
     );
@@ -977,88 +1525,282 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   ]);
 
   const renderImage = (image: Image, index: number) => (
-    <motion.div
-      key={image.id}
-      layout={draggedItemIndex === index ? false : "position"}
-      className={`mb-4 image-container relative ${
-        !isMasonry ? 'aspect-[4/3]' : ''
-      } transform transition-all duration-200 ease-out ${
-        isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''
-      }`}
-      initial={{ opacity: 0, y: 20}}      
+    <LazyLoad
+      key={image.id === -1 ? `pending-${index}` : image.id}
+      height={200}
+      offset={100}
+      placeholder={
+        <div 
+          className="w-full bg-muted animate-pulse rounded-lg ring-2 ring-purple-500/20" 
+          style={{
+            aspectRatio: image.width && image.height 
+              ? `${image.width} / ${image.height}` 
+              : '4/3',
+            minHeight: '200px'
+          }}
+        />
+      }
+    >
+      <motion.div
+        layout={draggedItemIndex === index ? false : "position"}
+        className={cn(
+          "mb-4 image-container relative transform transition-all duration-200 ease-out w-full",
+          isReorderMode && "cursor-grab active:cursor-grabbing",
+          "block"
+        )}
+        style={{
+          width: '100%'
+        }}
+      initial={{ opacity: 0, y: 20}}
       animate={{
         opacity: preloadedImages.has(image.id) ? 1 : 0,
         y: 0,
         scale: draggedItemIndex === index ? 1.1 : 1,
         zIndex: draggedItemIndex === index ? 100 : 1,
+        position: draggedItemIndex === index ? "absolute" : "relative",
+        top: draggedItemIndex === index ? dragPosition?.y : "auto",
+        left: draggedItemIndex === index ? dragPosition?.x : "auto",
         transition: {
           duration: draggedItemIndex === index ? 0 : 0.25,
         }
       }}
-      style={{
-        position: draggedItemIndex === index ? "absolute" : "relative",
-        top: draggedItemIndex === index ? dragPosition?.y : "auto",
-        left: draggedItemIndex === index ? dragPosition?.x : "auto",
-      }}
       drag={isReorderMode}
-      dragConstraints={false}
-      onDragStart={() => {
-        setDraggedItemIndex(index);
+      dragMomentum={false}
+      dragElastic={0.1}
+      onDragStart={() => setDraggedItemIndex(index)}
+      onDrag={(_, info) => {
+        setDragPosition({ x: info.point.x, y: info.point.y });
       }}
-      onDragEnd={(e: any, info: any) => handleDragEnd(e, index, info)}
+      onDragEnd={(event, info) => handleDragEnd(event as PointerEvent, index, info)}
     >
-      <div className="group relative w-full h-full">
-        <AspectRatio ratio={4/3}>
-          <img
-            src={image.url}
-            alt={image.originalFilename || `Image ${index + 1}`}
-            className={cn(
-              "object-cover w-full h-full rounded-lg transition-all duration-200",
-              selectMode && "cursor-pointer hover:opacity-90"
-            )}
-            onClick={(e) => handleImageSelect(image.id, e)}
-            loading="lazy"
-          />
-        </AspectRatio>
-
-        {/* Show starred avatars */}
-        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <StarredAvatars imageId={image.id} />
-        </div>
-
-        {/* Show star button on hover */}
-        <Button
-          size="icon"
-          variant="ghost"
-          className={cn(
-            "absolute bottom-2 right-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-            image.starred && "text-yellow-400 opacity-100"
-          )}
-          onClick={(e) => {
+      <div
+        className={`group relative bg-card rounded-lg transform transition-all ${
+          !isReorderMode ? 'hover:scale-[1.02] cursor-pointer' : ''
+        } ${selectMode ? 'hover:scale-100' : ''} ${
+          isReorderMode ? 'border-2 border-dashed border-gray-200 border-opacity-50' : ''
+        }`}
+        onClick={(e) => {
+          if (isReorderMode) {
             e.stopPropagation();
-            toggleStarMutation.mutate(image.id);
-          }}
-        >
-          <Star className={cn("h-5 w-5", image.starred && "fill-current")} />
-        </Button>
+            return;
+          }
+          selectMode ? handleImageSelect(image.id, e) : handleImageClick(index);
+        }}
+      >
+        {preloadedImages.has(image.id) && (
+          <>
+            <img
+                src={image.url}
+                alt={image.originalFilename || 'Uploaded image'}
+                className={cn(
+                  "w-full h-auto object-contain rounded-lg blur-up block",
+                  selectMode && selectedImages.includes(image.id) && "opacity-75",
+                  draggedItemIndex === index && "opacity-50",
+                  image._isPending && "opacity-80"
+                )}
+                loading="lazy"
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  img.classList.add('loaded');
+                }}
+                onError={(e) => {
+                  console.error('Image load failed:', {
+                    id: image.id,
+                    url: image.url,
+                    originalFilename: image.originalFilename
+                  });
+                  e.currentTarget.src = '/placeholder.png';
+                }}
+                draggable={false}
+              />
+            {image._isPending && (
+              <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
+                {image._status === "uploading" && (
+                  <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                )}
+                {image._status === "error" && (
+                  <div className="absolute top-2 right-2 bg-destructive/80 backdrop-blur-sm p-2 rounded-full">
+                    <AlertCircle className="h-4 w-4 text-destructive-foreground" />
+                  </div>
+                )}
+                {image._status === "uploading" && (
+                  <Progress value={image._progress} className="w-3/4 h-1" />
+                )}
+              </div>
+            )}
+          </>
+        )}
 
-        {selectMode && (
-          <div className="absolute inset-0 bg-black/5 transition-colors hover:bg-black/10">
-            <div className="absolute top-2 right-2">
-              {selectedImages.includes(image.id) ? (
-                <div className="bg-primary text-primary-foreground rounded-full p-1">
-                  <CheckCircle className="h-5 w-5" />
-                </div>
-              ) : (
-                <div className="border-2 border-muted-foreground rounded-full p-1">
-                  <Circle className="h-5 w-5" />
-                </div>
+        {/* Starred avatars in bottom left corner */}
+        {!selectMode && (
+          <div className="absolute bottom-2 left-2 z-10">
+            <StarredAvatars imageId={image.id} />
+          </div>
+        )}
+
+        {/* Star button in bottom right corner */}
+        {!selectMode && (
+          <motion.div
+            className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            animate={{ scale: 1 }}
+            whileTap={{ scale: 0.8 }}
+          >
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+
+                if (!user) {
+                  setShowSignUpModal(true);
+                  return;
+                }
+
+                // Use image.userStarred for optimistic updates
+                const hasUserStarred = image.userStarred;
+
+                // Optimistic UI update for selected image  
+                setSelectedImageIndex((prevIndex) => {
+                  if (prevIndex >= 0) {
+                    setSelectedImage((prev) =>
+                      prev ? { ...prev, userStarred: !hasUserStarred } : prev
+                    );
+                  }
+                  return prevIndex;
+                });
+
+                // Update gallery data optimistically
+                queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
+                  ...old,
+                  images: old.images.map((img: Image) =>
+                    img.id === image.id ? { ...img, userStarred: !hasUserStarred } : img
+                  )
+                }));
+
+                // Update star list optimistically
+                queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
+                  if (!old) return { success: true, data: [] };
+
+                  const updatedStars = hasUserStarred
+                    ? old.data.filter((star: any) => star.userId !== user?.id)
+                    : [
+                        ...old.data,
+                        {
+                          userId: user?.id,
+                          imageId: image.id,
+                          user: {
+                            firstName: user?.firstName,
+                            lastName: user?.lastName,
+                            imageUrl: user?.imageUrl
+                          }
+                        }
+                      ];
+
+                  return { ...old, data: updatedStars };
+                });
+
+                // Perform mutation to sync with backend
+                toggleStarMutation.mutate(
+                  { imageId: image.id, isStarred: hasUserStarred },
+                  {
+                    onError: () => {
+                      // Revert optimistic UI
+                      queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
+                        ...old,
+                        images: old.images.map((img: Image) =>
+                          img.id === image.id ? { ...img, starred: hasUserStarred } : img
+                        )
+                      }));
+
+                      // Revert star list
+                      queryClient.setQueryData([`/api/images/${image.id}/stars`], (old: any) => {
+                        if (!old) return { success: true, data: [] };
+                        return {
+                          ...old,
+                          data: hasUserStarred
+                            ? [...old.data, {
+                              userId: user?.id,
+                              imageId: image.id,
+                              user: {
+                                firstName: user?.firstName,
+                                lastName: user?.lastName,
+                                imageUrl: user?.imageUrl
+                              }
+                            }]
+                            : old.data.filter((star: any) => star.userId !== user?.id)
+                        };
+                      });
+
+                      // Revert selected image if in lightbox
+                      if (selectedImage?.id === image.id) {
+                        setSelectedImage((prev) =>
+                          prev ? { ...prev, starred: hasUserStarred } : prev
+                        );
+                      }
+
+                      toast({
+                        title: "Error",
+                        description: "Failed to update star status. Please try again.",
+                        variant: "destructive",
+                      });
+                    }
+                  }
+                );
+              }}
+            >
+              <motion.div
+                animate={{
+                  scale: image.starred ? 1.2 : 1,
+                  opacity: image.starred ? 1 : 0.6
+                }}
+                transition={{ duration: 0.2 }}
+              >
+                {image.userStarred ? (
+                  <Star className="h-4 w-4 fill-black dark:fill-white transition-all duration-300" />
+                ) : (
+                  <Star className="h-4 w-4 stroke-black dark:stroke-white fill-transparent transition-all duration-300" />
+                )}
+              </motion.div>
+            </Button>
+          </motion.div>
+        )}
+
+        {/* Comment count badge */}
+        {!selectMode && image.commentCount! > 0 && (
+          <Badge
+            className="absolute top-2 right-2 bg-primary text-primary-foreground flex items-center gap-1"
+            variant="secondary"
+          >
+            <MessageSquare className="w-3 h-3" />
+            {image.commentCount}          </Badge>
+        )}
+
+        {/* Selection checkbox */}
+        {selectMode && !isReorderMode && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-2 right-2 z-10"
+          >
+            <div
+              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                selectedImages.includes(image.id)
+                  ? 'bg-primary border-primary'
+                  : 'bg-background/80 border-background/80'
+              }`}
+            >
+              {selectedImages.includes(image.id) && (
+                <CheckCircle className="w-4 h-4 text-primary-foreground" />
               )}
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     </motion.div>
+    </LazyLoad>
   );
 
   useEffect(() => {
@@ -1067,21 +1809,6 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         e.preventDefault();
         setSelectedImages([]);
         setSelectMode(false);
-        return;
-      }
-
-      if (e.shiftKey) {
-        if (e.key.toLowerCase() === 's') {
-          e.preventDefault();
-          setShowStarredOnly(prev => !prev);
-        } else if (e.key.toLowerCase() === 'c') {
-          e.preventDefault();
-          setShowWithComments(prev => !prev);
-        } else if (e.key.toLowerCase() === 'r') {
-          e.preventDefault();
-          setShowStarredOnly(false);
-          setShowWithComments(false);
-        }
       }
     };
 
@@ -1098,14 +1825,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         } else if (e.key === "ArrowRight") {
           setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
         } else if (selectedImage && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")) {
-          toggleStarMutation.mutate(selectedImage.id);
+          toggleStarMutation.mutate({
+            imageId: selectedImage.id,
+            isStarred: selectedImage.userStarred
+          });
         }
       };
 
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [selectedImageIndex, gallery?.images?.length, selectedImage?.id, toggleStarMutation]);
+  }, [selectedImageIndex, gallery?.images?.length, selectedImage, toggleStarMutation]);
 
   useEffect(() => {
     const controls = renderGalleryControls();
@@ -1114,43 +1844,34 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
 
   if (isPrivateGallery) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <Lock className="h-12 w-12 text-muted-foreground" />
-              <h1 className="text-2xl font-semibold">Private Gallery</h1>
-              <p className="text-muted-foreground">
-                This gallery is private and can only be accessed by its owner.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Alert variant="destructive" className="w-full max-w-md border-destructive">
+          <Lock className="h-12 w-12 mb-2" />
+          <AlertTitle className="text-2xl mb-2">Sorry, This Beam Project is private!</AlertTitle>
+          <AlertDescription className="text-base">
+            This gallery can only be accessed by its owner.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle className="h-12 w-12 text-destructive" />
-              <h1 className="text-2xl font-semibold">Gallery Not Found</h1>
-              <p className="text-muted-foreground">
-                {error instanceof Error ? error.message : 'The gallery you are looking for does not exist or has been removed.'}
-              </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => setLocation('/dashboard')}
-              >
-                Return to Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Alert variant="destructive" className="w-full max-w-md">
+          <AlertCircle className="h-12 w-12 mb-2" />
+          <AlertTitle className="text2xl mb-2">Gallery Not Found</AlertTitle>
+          <AlertDescription className="text-base mb-4">
+            {error instanceof Error ? error.message : 'The gallery you are looking for does not exist or has been removed.'}
+          </AlertDescription>
+          <Button
+            variant="outline"
+            onClick={() => setLocation('/dashboard')}
+          >
+            Return to Dashboard
+          </Button>
+        </Alert>
       </div>
     );
   }
@@ -1189,19 +1910,33 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     );
   }
 
-  if (gallery && gallery.images.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <h1 className="text-xl text-muted-foreground">
-          This gallery is empty. Upload images to get started.
-        </h1>
-      </div>
-    );
-  }
 
-  // Modify the image click handler in the gallery grid
-  const handleImageClick = (index: number) => {
-    console.log('handleImageClick:', { isCommentPlacementMode }); // Debug log
+
+  // Image preloading logic
+  const preloadAdjacentImages = (index: number) => {
+    if (!gallery?.images) return;
+
+    const preloadCount = 2;
+    const images = gallery.images;
+
+    for (let i = 1; i <= preloadCount; i++) {
+      const nextIndex = (index+ i) % images.length;
+      const prevIndex = (index - i + images.length) % images.length;
+
+      [nextIndex, prevIndex].forEach((idx) => {
+        if (images[idx]?.publicId) {
+          const img = new Image();
+          img.src = getR2ImageUrl(images[idx], slug);
+        }
+      });
+    }
+  };
+
+  // Preload adjacent images when lightbox opens
+
+
+const handleImageClick = (index: number) => {
+    console.log('handleImageClick:', { isCommentPlacementMode });
 
     if (isMobile) {
       setMobileViewIndex(index);
@@ -1210,23 +1945,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     }
 
     setSelectedImageIndex(index);
+    preloadAdjacentImages(index);
   };
 
-  // Add layout toggle handler
-  const toggleGridView = () => {
-    setIsMasonry(!isMasonry);
-  };
+
 
   // Add comment position handler
   const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
-    console.log('handleImageComment triggered'); // Debug log
+    console.log('handleImageComment triggered');
     if (!isCommentPlacementMode) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
 
-    console.log('Setting comment position:', { x, y }); // Debug log
+    console.log('Setting comment position:', { x, y });
     setNewCommentPos({ x, y });
     setIsCommentModalOpen(true);
   };
@@ -1242,11 +1975,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         onClose={() => {
           setIsCommentModalOpen(false);
           setNewCommentPos(null);
-          console.log('Comment modal closed'); // Debug log
+          console.log('Comment modal closed');
         }}
         onSubmit={(content) => {
           if (!user) {
-            console.log('User not authenticated, cannot submit comment'); // Debug log
+            console.log('User not authenticated, cannot submit comment');
             return;
           }
 
@@ -1267,7 +2000,20 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
   };
 
   return (
-    <div className={cn("min-h-screen relative", isDark ? "bg-black/90" : "bg-background")} {...getRootProps()}>
+    <>
+      {gallery && (
+        <Helmet>
+          <meta property="og:title" content={gallery.title || "Beam Gallery"} />
+          <meta property="og:description" content="Explore stunning galleries!" />
+          <meta property="og:image" content={gallery.ogImageUrl ? getR2ImageUrl(gallery.ogImage, slug) : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`} />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={window.location.href} />
+          <meta name="twitter:card" content="summary_large_image" />
+        </Helmet>
+      )}
+      <div className={cn("min-h-screen relative", isDark ? "bg-black/90" : "bg-background")} {...getRootProps()}>
       <input {...getInputProps()} />
       {isDragActive && !selectMode && (
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -1275,10 +2021,19 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white">Drop images here</h3>
           </div>
-        </div>
-      )}
+        </div>      )}
 
       <div className="px-4 sm:px-6 lg:px-8 py-4">
+        {gallery && gallery.images.length === 0 && pendingUploads.length === 0 && (
+          <div className="my-8 text-center">
+            <Upload className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No images yet</h3>
+            <p className="text-sm text-muted-foreground">
+              Drag and drop images here to start your gallery
+            </p>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           {isMasonry ? (
             <motion.div
@@ -1289,18 +2044,41 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
               transition={{ duration: 0.3 }}
             >
               <Masonry
+                ref={masonryRef}
                 breakpointCols={breakpointCols}
                 className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
-                columnClassName="pl-4 bg-background"
+                columnClassName={cn("pl-4", isDark ? "bg-black/90" : "bg-background")}
               >
-                {renderUploadPlaceholders()}
-                {gallery?.images
-                  .filter((image: Image) => {
-                    if (showStarredOnly && !image.starred) return false;
+                {(() => {
+                  const pendingImages = pendingUploads.map((pu) => ({
+                    id: `pending-${pu.id}`,
+                    url: pu.localUrl,
+                    originalFilename: pu.file.name,
+                    width: pu.width || 800,
+                    height: pu.height || 600,
+                    userStarred: false,
+                    commentCount: 0,
+                    stars: [],
+                    _isPending: true,
+                    _progress: pu.progress,
+                    _status: pu.status
+                  }));
+                  const allImages = [...pendingImages, ...(gallery?.images || [])];
+
+                  // Filter images based on current criteria
+                  const filteredImages = allImages.filter((image: any) => {
+                    if (!image || !image.url) return false;
+                    if (image._isPending) return true; // Always show pending uploads
+                    if (showStarredOnly && !image.userStarred) return false;
                     if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                    if (selectedStarredUsers.length > 0) {
+                      return image.stars?.some(star => selectedStarredUsers.includes(star.userId)) || false;
+                    }
                     return true;
-                  })
-                  .map((image: Image, index: number) => renderImage(image, index))}
+                  });
+
+                  return filteredImages.map((image: any, index: number) => renderImage(image, index));
+                })()}
               </Masonry>
             </motion.div>
           ) : (
@@ -1315,15 +2093,21 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 gridTemplateColumns: `repeat(${breakpointCols.default}, minmax(0, 1fr))`,
               }}
             >
-              {renderUploadPlaceholders()}
-              {gallery?.images
-                .filter((image: Image) => {
-                  if (showStarredOnly && !image.starred) return false;
-                  if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
-                  if (showApproved && !image.approved) return false;
-                  return true;
-                })
-                .map((image: Image, index: number) => renderImage(image, index))}
+              {(() => {
+                  // Filter images based on current criteria
+                  const filteredImages = combinedImages.filter((image: any) => {
+                    if (!image || !image.url) return false;
+                    if (image._isPending) return true; // Always show pending uploads
+                    if (showStarredOnly && !image.starred) return false;
+                    if (showWithComments && (!image.commentCount || image.commentCount === 0)) return false;
+                    if (selectedStarredUsers.length > 0) {
+                      return image.stars?.some(star => selectedStarredUsers.includes(star.userId)) || false;
+                    }
+                    return true;
+                  });
+
+                  return filteredImages.map((image: any, index: number) => renderImage(image, index));
+                })()}
             </motion.div>
           )}
         </AnimatePresence>
@@ -1359,23 +2143,14 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         </motion.div>
       )}
 
-      {/* Grid View Toggle Button */}
-      <div className="fixed bottom-6 left-6 z-50">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={toggleGridView}
-          className={`h-10 w-10 rounded-full bg-background/95 backdrop-blur-sm hover:bg-background shadow-lg text-white ${
-            !isMasonry ? "bg-primary/20" : ""
-          }`}
-          title={`Switch to ${isMasonry ? "grid" : "masonry"} view`}
-        >
-          {isMasonry ? (
-            <Grid className="h-5 w-5" />
-          ) : (
-            <LayoutGrid className="h5 w-5" />
-          )}
-        </Button>
+
+
+      {/* Logo */}
+      <div 
+        className="fixed bottom-6 left-6 z-50 opacity-30 hover:opacity-60 transition-opacity cursor-pointer" 
+        onClick={() => window.location.href = '/'}
+      >
+        <Logo size="sm" />
       </div>
 
       {/* Scale Slider */}
@@ -1413,9 +2188,16 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             setNewCommentPos(null);
           }
         }}>
-          <DialogContent
-            className="max-w-[90vw] h-[90vh] p-6 bg-background/95 backdrop-blur border-none overflow-hidden dark:bg-black/90"
+          <LightboxDialogContent 
             aria-describedby="gallery-lightbox-description"
+            selectedImage={selectedImage}
+            setSelectedImage={setSelectedImage}
+            onOpenChange={(open) => {
+              if (!open) {
+                setSelectedImageIndex(-1);
+                setNewCommentPos(null);
+              }
+            }}
           >
             <div id="gallery-lightbox-description" className="sr-only">
               Image viewer with annotation and commenting capabilities
@@ -1432,53 +2214,72 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
             <Button
               variant="ghost"
               size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 dark:text-white"
+              className={cn("absolute left-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9", 
+                isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
               onClick={() => {
                 if (!gallery?.images?.length) return;
-                setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+                setSelectedImageIndex((prev) => {
+                  const newIndex = prev <= 0 ? gallery.images.length - 1 : prev - 1;
+                  preloadAdjacentImages(newIndex);
+                  return newIndex;
+                });
               }}
             >
-              <ChevronLeft className="h-8 w-8" />
+              <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 dark:text-white"
+              className={cn("absolute right-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9",
+                isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
               onClick={() => {
                 if (!gallery?.images?.length) return;
-                setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+                setSelectedImageIndex((prev) => {
+                  const newIndex = prev >= gallery.images.length - 1 ? 0 : prev + 1;
+                  preloadAdjacentImages(newIndex);
+                  return newIndex;
+                });
               }}
             >
-              <ChevronRight className="h-8 w-8" />
+              <ChevronRight className="h-4 w-4" />
             </Button>
 
             {/* Controls */}
-            <div className="absolute right-4 top-4 flex items-center gap-2 z-50">
+            <div className="absolute right-16 top-4 flex items-center gap-2 z-50">
               {selectedImage && (
                 <Button
-                  variant="secondary"
+                  variant="ghost"
                   size="icon"
-                  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg dark:text-white"
+                  className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleStarMutation.mutate(selectedImage.id);
+
+                    // Optimistic UI update for selected image
+                    setSelectedImage((prev) =>
+                      prev ? { ...prev, userStarred: !prev.userStarred } : prev
+                    );
+
+                    // Perform mutation to sync with backend
+                    toggleStarMutation.mutate({
+                      imageId: selectedImage.id,
+                      isStarred: selectedImage.userStarred
+                    });
                   }}
                 >
-                  {selectedImage.starred ? (
-                    <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+                  {selectedImage.userStarred ? (
+                    <Star className="h-5 w-5 fill-black dark:fill-white transition-all duration-300 scale-110" />
                   ) : (
-                    <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+                    <Star className="h-5 w-5 stroke-black dark:stroke-white fill-transparent transition-all duration-300 hover:scale-110" />
                   )}
                 </Button>
               )}
 
               <div className="flex gap-2">
+                {/* Annotation button temporarily hidden
                 <Button
-                  variant="secondary"
+                  variant="ghost"
                   size="icon"
-                  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
-                    isAnnotationMode ? "bg-primary/20" : ""
-                  }`}
+                  className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200", isAnnotationMode && "bg-primary/20")}
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsAnnotationMode(!isAnnotationMode);
@@ -1487,19 +2288,27 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   }}
                   title="Toggle Drawing Mode"
                 >
-                  <Paintbrush
-                    className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                      isAnnotationMode ? "text-primary" : ""
-                    }`}
-                  />
+                  <Paintbrush className="h-4 w-4" />
+                </Button>
+                */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-200")}
+                  onClick={() => setShowAnnotations(!showAnnotations)}
+                  title={showAnnotations ? "Hide Comments" : "Show Comments"}
+                >
+                  {showAnnotations ? (
+                    <Eye className="h-4 w-4" />
+                  ) : (
+                    <EyeOff className="h-4 w-4" />
+                  )}
                 </Button>
                 <SignedIn>
                   <Button
-                    variant="secondary"
+                    variant="ghost"
                     size="icon"
-                    className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
-                      isCommentPlacementMode ? "bg-primary/20" : ""
-                    }`}
+                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200", isCommentPlacementMode && "bg-primary/20")}
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsCommentPlacementMode(!isCommentPlacementMode);
@@ -1508,41 +2317,25 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                     }}
                     title="Add Comment"
                   >
-                    <MessageSquare
-                      className={`h-8 w-8 transition-all duration-300 hover:scale-110 ${
-                        isCommentPlacementMode ? "text-primary" : ""
-                      }`}
-                    />
+                    <MessageSquare className="h-4 w-4" />
                   </Button>
                 </SignedIn>
                 <SignedOut>
                   <Button
-                    variant="secondary"
+                    variant="ghost"
                     size="icon"
-                    className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white"
+                    className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200")}
                     onClick={() => setShowLoginModal(true)}
                     title="Sign in to comment"
                   >
-                    <MessageSquare className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+                    <MessageSquare className="h-4 w-4" />
                   </Button>
                   <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
                 </SignedOut>
               </div>
             </div>
 
-            {/* Settings toggles */}
-            <div className="absolute bottom-6 right-6 flex items-center gap-4 z-50">
-              <div className="flex gap-4 bg-background/80 backdrop-blur-sm rounded-lg p-2">
-                <div className="flex items-center gap-2">
-                  <SwitchComponent
-                    checked={showAnnotations}
-                    onCheckedChange={setShowAnnotations}
-                    className="data-[state=checked]:bg-primary h-5 w-9"
-                  />
-                  <span className="text-xs font-medium">Comments</span>
-                </div>
-              </div>
-            </div>
+            {/* Settings toggles removed */}
 
             {selectedImage && (
               <motion.div
@@ -1572,21 +2365,39 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                   setIsCommentPlacementMode(false);
                 }}
               >
-                <div className="relative">
-                  {/* Image with onLoad handler */}
+                <div className="w-full h-full flex items-center justify-center relative">
+                  {isLowResLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="h-12 w-12 animate-spin text-zinc-400" />
+                    </div>
+                  )}
+
                   <motion.img
-                    src={selectedImage.url}
-                    alt=""
-                    className="max-h-[calc(90vh-3rem)] max-w-[calc(90vw-3rem)] w-auto h-auto object-contain"
+                    src={getR2ImageUrl(selectedImage)}
+                    data-src={getR2ImageUrl(selectedImage)}
+                    alt={selectedImage.originalFilename || ''}
+                    className={`max-w-full max-h-full w-auto h-auto object-contain lightbox-img blur-up ${
+                      isLowResLoading ? 'opacity-0' : 'opacity-100'
+                    }`}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                     onLoad={(e) => {
+                      setIsLowResLoading(false);
+                      setIsLoading(false);
+
                       const img = e.currentTarget;
+                      img.src = img.dataset.src || img.src;
+                      img.classList.add('loaded');
+
                       setImageDimensions({
                         width: img.clientWidth,
                         height: img.clientHeight,
                       });
+                    }}
+                    onError={() => {
+                      setIsLoading(false);
+                      setIsLowResLoading(false);
                     }}
                   />
 
@@ -1655,7 +2466,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
                 </div>
               </motion.div>
             )}
-          </DialogContent>
+          </LightboxDialogContent>
         </Dialog>
       )}
 
@@ -1673,17 +2484,17 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         />
       )}
       {/* Share Modal */}
-      {isOpenShareModal && (
+      {isOpenShareModal && gallery && (
         <ShareModal
           isOpen={isOpenShareModal}
           onClose={() => setIsOpenShareModal(false)}
           isPublic={gallery?.isPublic || false}
           onVisibilityChange={(checked) => toggleVisibilityMutation.mutate(checked)}
           galleryUrl={window.location.href}
+          slug={slug}
         />
       )}
       {renderCommentDialog()}
-      
 
       <AnimatePresence>
         {selectMode && selectedImages.length > 0 && (
@@ -1701,6 +2512,8 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
         )}
       </AnimatePresence>
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+      <SignUpModal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)} />
     </div>
+    </>
   );
 }

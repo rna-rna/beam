@@ -1,0 +1,81 @@
+Configure Multipart Upload Endpoint
+Add an endpoint to initialize and handle multipart uploads. This involves:
+
+Initiating the Upload: Request an upload ID from R2.
+Uploading Parts: Generate pre-signed URLs for each chunk.
+Completing the Upload: Combine uploaded parts into a single file.
+Backend Example:
+
+typescript
+Copy code
+import { S3 } from 'aws-sdk';
+
+const s3 = new S3({
+  endpoint: process.env.VITE_R2_PUBLIC_URL,
+  accessKeyId: process.env.R2_ACCESS_KEY,
+  secretAccessKey: process.env.R2_SECRET_KEY,
+  region: 'auto',
+  signatureVersion: 'v4',
+});
+
+// Initiate Multipart Upload
+app.post('/api/multipart/start', async (req, res) => {
+  const { fileName, contentType } = req.body;
+
+  try {
+    const upload = await s3.createMultipartUpload({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: `uploads/${fileName}`,
+      ContentType: contentType,
+    }).promise();
+
+    res.json({ uploadId: upload.UploadId });
+  } catch (err) {
+    console.error('Error initiating multipart upload:', err);
+    res.status(500).json({ error: 'Failed to start multipart upload' });
+  }
+});
+
+// Generate Pre-Signed URLs for Parts
+app.post('/api/multipart/presigned-urls', async (req, res) => {
+  const { uploadId, fileName, parts } = req.body; // `parts` = total parts (e.g., 5MB chunks)
+
+  try {
+    const urls = await Promise.all(
+      Array.from({ length: parts }, (_, i) =>
+        s3.getSignedUrlPromise('uploadPart', {
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: `uploads/${fileName}`,
+          UploadId: uploadId,
+          PartNumber: i + 1,
+        })
+      )
+    );
+
+    res.json({ urls });
+  } catch (err) {
+    console.error('Error generating presigned URLs:', err);
+    res.status(500).json({ error: 'Failed to generate presigned URLs' });
+  }
+});
+
+// Complete Multipart Upload
+app.post('/api/multipart/complete', async (req, res) => {
+  const { uploadId, fileName, parts } = req.body;
+
+  try {
+    await s3.completeMultipartUpload({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: `uploads/${fileName}`,
+      UploadId: uploadId,
+      MultipartUpload: {
+        Parts: parts.map(({ ETag, PartNumber }) => ({ ETag, PartNumber })),
+      },
+    }).promise();
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error completing multipart upload:', err);
+    res.status(500).json({ error: 'Failed to complete multipart upload' });
+  }
+});

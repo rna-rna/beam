@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { SignedIn, SignedOut, useUser, useAuth } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
@@ -12,6 +12,9 @@ import { useState, ReactNode, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import About from "@/pages/About"; // Added import for About page
+import { UploadProvider } from "./context/UploadContext"; // Import UploadProvider
+import GlobalUploadProgress from "./components/GlobalUploadProgress";
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
@@ -46,38 +49,28 @@ function AppContent() {
   const [, setLocation] = useLocation();
   const { isSignedIn, user } = useUser();
   const { getToken } = useAuth();
-  const [location] = useLocation();
+  const { signOut, session } = useClerk();
 
-  // Title update mutation
-  const handleTitleUpdate = async (newTitle: string) => {
-    if (!gallerySlug) return;
-    
-    try {
-      const token = await getToken();
-      const res = await fetch(`/api/galleries/${gallerySlug}/title`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        body: JSON.stringify({ title: newTitle }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to update title');
-      }
-
-      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update title. Please try again.",
-        variant: "destructive",
-      });
+  useEffect(() => {
+    if (session?.status === "expired") {
+      session.refresh()
+        .then(() => {
+          console.log("Session refreshed successfully");
+          queryClient.invalidateQueries();
+        })
+        .catch((error) => {
+          console.error("Session refresh failed:", error);
+          toast({
+            title: "Session Expired",
+            description: "Please sign in again",
+            variant: "destructive"
+          });
+          signOut();
+          setLocation("/");
+        });
     }
-  };
+  }, [session, signOut, setLocation, queryClient, toast]);
+  const [location] = useLocation();
 
   // Get gallery slug from URL if we're on a gallery page
   const gallerySlug = location.startsWith('/g/') ? location.split('/')[2] : null;
@@ -117,6 +110,49 @@ function AppContent() {
     refetchOnMount: true,
     refetchOnWindowFocus: true
   });
+
+  useEffect(() => {
+    if (gallerySlug && gallery?.title) {
+      document.title = `${gallery.title} | Beam`;
+    } else {
+      document.title = 'Beam';
+    }
+
+    return () => {
+      document.title = 'Beam';
+    };
+  }, [gallerySlug, gallery?.title]);
+
+  // Title update mutation
+  const handleTitleUpdate = async (newTitle: string) => {
+    if (!gallerySlug) return;
+
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/galleries/${gallerySlug}/title`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        body: JSON.stringify({ title: newTitle }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update title');
+      }
+
+      queryClient.invalidateQueries({ queryKey: [`/api/galleries/${gallerySlug}`] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update title. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Handle redirect on auth state change - only redirect from root path
   useEffect(() => {
@@ -208,6 +244,9 @@ function AppContent() {
           </Layout>
         )}
       </Route>
+      <Route path="/about"> {/* Added About route */}
+        <About />
+      </Route>
     </Switch>
   );
 }
@@ -223,5 +262,10 @@ export default function App() {
     );
   }
 
-  return <AppContent />;
+  return (
+    <UploadProvider>
+      <GlobalUploadProgress />
+      <AppContent />
+    </UploadProvider>
+  );
 }

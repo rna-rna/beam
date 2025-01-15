@@ -1,0 +1,62 @@
+Modify toggleStarMutation to Only Trigger Toast on Actual Failures (Gallery.tsx):
+The current logic may throw errors unnecessarily due to incomplete parsing of the response.
+Updated Mutation:
+
+tsx
+Copy code
+const toggleStarMutation = useMutation({
+  mutationFn: async ({ imageId, isStarred }) => {
+    const token = await getToken();
+    const res = await fetch(`/api/images/${imageId}/star`, {
+      method: isStarred ? 'DELETE' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    // Parse response and handle errors
+    const result = await res.json();
+    console.log('Star API Response:', result);
+
+    // Throw error only if the backend explicitly returns success: false
+    if (!res.ok || result?.success === false) {
+      throw new Error(result?.message || 'Failed to update star status');
+    }
+
+    return result;  // Return result directly to sync with optimistic update
+  },
+  onMutate: async ({ imageId, isStarred }) => {
+    await queryClient.cancelQueries({ queryKey: [`/api/galleries/${slug}`] });
+
+    const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
+
+    // Optimistic update for gallery images
+    queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => ({
+      ...old,
+      images: old?.images.map((img: Image) =>
+        img.id === imageId ? { ...img, starred: !isStarred } : img
+      )
+    }));
+
+    return { previousGallery };
+  },
+  onError: (err, variables, context) => {
+    // Rollback on error
+    if (context?.previousGallery) {
+      queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
+    }
+    toast({
+      title: "Error",
+      description: err.message || "Failed to update star status. Please try again.",
+      variant: "destructive",
+    });
+  },
+  onSuccess: (_, variables) => {
+    // Invalidate only star queries to avoid full gallery refetch
+    queryClient.invalidateQueries({ queryKey: [`/api/images/${variables.imageId}/stars`] });
+  },
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
+  }
+});

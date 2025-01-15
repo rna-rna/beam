@@ -1,0 +1,57 @@
+Step 2: Backend Updates
+Modify the /api/galleries/:slug/images endpoint to:
+
+Return a single pre-signed URL for files ≤ 5MB.
+Return pre-signed URLs for each chunk for files > 5MB.
+Backend Logic:
+javascript
+Copy code
+app.post('/api/galleries/:slug/images', async (req, res) => {
+    const { files } = req.body; // Array of file metadata (name, type)
+    const slug = req.params.slug;
+
+    try {
+        const gallery = await db.query.galleries.findFirst({
+            where: eq(galleries.slug, slug),
+        });
+
+        if (!gallery) {
+            return res.status(404).json({ message: 'Gallery not found' });
+        }
+
+        // Generate pre-signed URLs
+        const preSignedUrls = await Promise.all(
+            files.map(async (file) => {
+                const isMultipart = file.size > USE_MULTIPART_THRESHOLD;
+                const chunkUrls = isMultipart
+                    ? await Promise.all(
+                          new Array(Math.ceil(file.size / USE_MULTIPART_THRESHOLD)).fill(0).map((_, index) => {
+                              const chunkKey = `uploads/${Date.now()}-${file.name}-chunk-${index}`;
+                              return generateSignedUrlForUpload({
+                                  key: chunkKey,
+                                  contentType: 'application/octet-stream',
+                              });
+                          })
+                      )
+                    : [
+                          await generateSignedUrlForUpload({
+                              key: `uploads/${Date.now()}-${file.name}`,
+                              contentType: file.type,
+                          }),
+                      ];
+
+                return chunkUrls.map((url, index) => ({
+                    fileName: file.name,
+                    key: isMultipart ? `uploads/${Date.now()}-${file.name}-chunk-${index}` : `uploads/${Date.now()}-${file.name}`,
+                    signedUrl: url,
+                    publicUrl: `${process.env.VITE_R2_PUBLIC_URL}/${isMultipart ? `${file.name}-chunk-${index}` : file.name}`,
+                }));
+            })
+        );
+
+        res.json({ success: true, urls: preSignedUrls.flat() });
+    } catch (error) {
+        console.error('[Signed URL Generation Error]', error);
+        res.status(500).json({ message: 'Failed to generate signed URLs', error: error.message });
+    }
+});

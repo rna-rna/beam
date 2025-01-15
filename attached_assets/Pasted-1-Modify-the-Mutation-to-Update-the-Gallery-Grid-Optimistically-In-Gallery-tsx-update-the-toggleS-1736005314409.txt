@@ -1,0 +1,71 @@
+1. Modify the Mutation to Update the Gallery Grid Optimistically:
+In Gallery.tsx, update the toggleStarMutation logic to loop through the gallery images and update the star status when toggled from the lightbox.
+
+Updated Mutation (Gallery.tsx):
+
+tsx
+Copy code
+const toggleStarMutation = useMutation({
+  mutationFn: async ({ imageId, isStarred }) => {
+    const token = await getToken();
+    const res = await fetch(`/api/images/${imageId}/star`, {
+      method: isStarred ? "DELETE" : "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+
+    const result = await res.json();
+    if (!res.ok || result?.success === false) {
+      throw new Error(result.message || "Failed to update star status");
+    }
+
+    return { ...result, imageId };
+  },
+  
+  // Optimistic Update for Both Lightbox and Gallery
+  onMutate: async ({ imageId, isStarred }) => {
+    await queryClient.cancelQueries([`/api/galleries/${slug}`]);
+    const previousGallery = queryClient.getQueryData([`/api/galleries/${slug}`]);
+
+    // Update Lightbox Image (if open)
+    setSelectedImage((prev) =>
+      prev?.id === imageId ? { ...prev, userStarred: !isStarred } : prev
+    );
+
+    // Update Gallery Grid (Loop through and modify the starred state)
+    queryClient.setQueryData([`/api/galleries/${slug}`], (oldData) => {
+      if (!oldData) return oldData;
+      
+      return {
+        ...oldData,
+        images: oldData.images.map((image) =>
+          image.id === imageId
+            ? { ...image, userStarred: !isStarred }
+            : image
+        ),
+      };
+    });
+
+    return { previousGallery };
+  },
+
+  onError: (err, variables, context) => {
+    toast({
+      title: "Error",
+      description: "Failed to update star status. Please try again.",
+      variant: "destructive",
+    });
+
+    // Revert Gallery and Lightbox States on Error
+    if (context?.previousGallery) {
+      queryClient.setQueryData([`/api/galleries/${slug}`], context.previousGallery);
+    }
+  },
+
+  // After mutation, ensure the star status is synced across components
+  onSettled: () => {
+    queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+  },
+});

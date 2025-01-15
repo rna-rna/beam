@@ -88,18 +88,19 @@ export async function extractUserInfo(req: any) {
     email || 
     'Unknown User';
 
-  // Get user's profile image if available
-  const userImageUrl = user.imageUrl || user.profileImageUrl;
+  // Get user's profile image directly from Clerk user object
+  const userImageUrl = user.imageUrl || null;
 
   console.log('Debug - Extracted user info:', {
     userId: req.auth.userId,
     userName,
-    hasImage: !!userImageUrl
+    hasImage: !!userImageUrl,
+    imageUrl: userImageUrl
   });
 
   return {
     userId: req.auth.userId,
     userName,
-    userImageUrl
+    userImageUrl: userImageUrl // Using primary imageUrl from Clerk
   };
 }

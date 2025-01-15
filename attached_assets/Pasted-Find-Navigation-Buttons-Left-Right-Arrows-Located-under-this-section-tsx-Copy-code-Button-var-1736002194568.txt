@@ -1,0 +1,121 @@
+Find Navigation Buttons (Left/Right Arrows):
+Located under this section:
+tsx
+Copy code
+<Button
+  variant="ghost"
+  size="icon"
+  className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 dark:text-white"
+  onClick={() => {
+    if (!gallery?.images?.length) return;
+    setSelectedImageIndex((prev) => (prev <= 0 ? gallery.images.length - 1 : prev - 1));
+  }}
+>
+  <ChevronLeft className="h-8 w-8" />
+</Button>
+<Button
+  variant="ghost"
+  size="icon"
+  className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-background/20 hover:bg-background/40 dark:text-white"
+  onClick={() => {
+    if (!gallery?.images?.length) return;
+    setSelectedImageIndex((prev) => (prev >= gallery.images.length - 1 ? 0 : prev + 1));
+  }}
+>
+  <ChevronRight className="h-8 w-8" />
+</Button>
+Apply Header Button Styling:
+Replace the className values with the following:
+tsx
+Copy code
+className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+For both left and right buttons, it should look like this:
+
+tsx
+Copy code
+<Button
+  variant="ghost"
+  size="icon"
+  className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+>
+  <ChevronLeft className="h-5 w-5" />
+</Button>
+<Button
+  variant="ghost"
+  size="icon"
+  className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+>
+  <ChevronRight className="h-5 w-5" />
+</Button>
+Star Button (Top Right of Lightbox):
+Locate this section:
+tsx
+Copy code
+<Button
+  variant="secondary"
+  size="icon"
+  className="h-12 w-12 bg-background/95 hover:bg-background shadow-lg dark:text-white"
+  onClick={(e) => {
+    e.stopPropagation();
+    toggleStarMutation.mutate(selectedImage.id);
+  }}
+>
+  {selectedImage.starred ? (
+    <Star className="h-8 w-8 fill-yellow-400 text-yellow-400 transition-all duration-300 scale-110" />
+  ) : (
+    <Star className="h-8 w-8 transition-all duration-300 hover:scale-110" />
+  )}
+</Button>
+Apply Header Button Styling to Star Button:
+Update the className to match the header styling:
+tsx
+Copy code
+className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+Resulting in:
+
+tsx
+Copy code
+<Button
+  variant="secondary"
+  size="icon"
+  className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+>
+  {selectedImage.starred ? (
+    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+  ) : (
+    <Star className="h-5 w-5" />
+  )}
+</Button>
+Annotation and Comment Buttons:
+Located in the same section, under:
+tsx
+Copy code
+<Button
+  variant="secondary"
+  size="icon"
+  className={`h-12 w-12 bg-background/95 hover:bg-background shadow-lg text-white ${
+    isAnnotationMode ? "bg-primary/20" : ""
+  }`}
+>
+  <Paintbrush className="h-8 w-8" />
+</Button>
+Apply Header Button Styling to These Buttons:
+Replace the className with:
+tsx
+Copy code
+className={`h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+  isAnnotationMode ? "bg-primary/20" : ""
+}`}
+Resulting in:
+
+tsx
+Copy code
+<Button
+  variant="secondary"
+  size="icon"
+  className={`h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+    isAnnotationMode ? "bg-primary/20" : ""
+  }`}
+>
+  <Paintbrush className="h-5 w-5" />
+</Button>

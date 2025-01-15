@@ -1,0 +1,388 @@
+2:26:44 PM [express] GET /api/galleries/Va36MvpaCN/permissions 200 in 257ms :: {"success":true,"user…
+2:26:44 PM [express] GET /api/galleries/Va36MvpaCN/permissions 304 in 148ms :: {"success":true,"user…
+[Upload Request Files] {
+  requestId: 'Va36MvpaCN-1736692009302-zpydvo7ss',
+  files: [ { name: '3-5.jpg', size: 341524, hash: '3-5.jpg-341524' } ]
+}
+[File Deduplication] {
+  requestId: 'Va36MvpaCN-1736692009302-zpydvo7ss',
+  totalFiles: 1,
+  duplicateFiles: 0,
+  newFiles: [ '3-5.jpg' ]
+}
+[File Deduplication] {
+  requestId: 'Va36MvpaCN-1736692009302-zpydvo7ss',
+  totalFiles: 1,
+  duplicateFiles: 0,
+  duplicates: [],
+  newFiles: [ '3-5.jpg' ]
+}
+[Upload Request] {
+  requestId: 'Va36MvpaCN-1736692009302-zpydvo7ss',
+  slug: 'Va36MvpaCN',
+  filesCount: 1,
+  auth: 'authenticated',
+  timestamp: '2025-01-12T14:26:49.362Z'
+}
+[Upload] Starting request: {
+  slug: 'Va36MvpaCN',
+  filesCount: 1,
+  files: [ { name: '3-5.jpg', type: 'image/jpeg', size: '0.33MB' } ]
+}
+[Generating presigned URLs] {
+  batchId: '1736692009399-qnndhwskd',
+  filesCount: 1,
+  files: [ { name: '3-5.jpg', type: 'image/jpeg', size: 341524 } ]
+}
+[Generated presigned URL] {
+  batchId: '1736692009399-qnndhwskd',
+  fileName: '3-5.jpg',
+  imageId: 1041,
+  key: 'uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg'
+}
+[Upload] Signed URLs generated: {
+  slug: 'Va36MvpaCN',
+  totalUrls: 1,
+  timestamp: '2025-01-12T14:26:49.461Z'
+}
+2:26:49 PM [express] POST /api/galleries/Va36MvpaCN/images 200 in 162ms :: {"success":true,"urls":[{…
+Gallery fetch request: {
+  slug: 'Va36MvpaCN',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2341,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 1041,
+    originalFilename: '3-5.jpg',
+    hasOriginalFilename: true,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg'
+  },
+  missingFilenames: 0
+}
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 1041,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    slug: 'Va36MvpaCN',
+    originalFilename: '3-5.jpg',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+2:26:55 PM [express] GET /api/galleries/Va36MvpaCN 200 in 105ms :: {"id":2341,"slug":"Va36MvpaCN","t…
+Gallery fetch request: {
+  slug: 'Va36MvpaCN',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2341,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 1041,
+    originalFilename: '3-5.jpg',
+    hasOriginalFilename: true,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg'
+  },
+  missingFilenames: 0
+}
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 1041,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    slug: 'Va36MvpaCN',
+    originalFilename: '3-5.jpg',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+2:26:56 PM [express] GET /api/galleries/Va36MvpaCN 200 in 94ms :: {"id":2341,"slug":"Va36MvpaCN","ti…
+2:26:56 PM [express] GET /api/images/1041/stars 200 in 193ms :: {"success":true,"data":[],"userStarr…
+Gallery fetch request: {
+  slug: 'Va36MvpaCN',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2341,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 1041,
+    originalFilename: '3-5.jpg',
+    hasOriginalFilename: true,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg'
+  },
+  missingFilenames: 0
+}
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 1041,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    slug: 'Va36MvpaCN',
+    originalFilename: '3-5.jpg',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+2:26:56 PM [express] GET /api/galleries/Va36MvpaCN 200 in 97ms :: {"id":2341,"slug":"Va36MvpaCN","ti…
+Gallery fetch request: {
+  slug: 'Va36MvpaCN',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2341,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 1041,
+    originalFilename: '3-5.jpg',
+    hasOriginalFilename: true,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg'
+  },
+  missingFilenames: 0
+}
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 1041,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    slug: 'Va36MvpaCN',
+    originalFilename: '3-5.jpg',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+2:26:56 PM [express] GET /api/galleries/Va36MvpaCN 200 in 92ms :: {"id":2341,"slug":"Va36MvpaCN","ti…
+[Upload Request Files] {
+  requestId: 'Va36MvpaCN-1736692016885-x1tmbuxz5',
+  files: [ { name: '3-5.jpg', size: 341524, hash: '3-5.jpg-341524' } ]
+}
+Gallery fetch request: {
+  slug: 'Va36MvpaCN',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch request: {
+  slug: 'Va36MvpaCN',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2341,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 1041,
+    originalFilename: '3-5.jpg',
+    hasOriginalFilename: true,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg'
+  },
+  missingFilenames: 0
+}
+[File Deduplication] {
+  requestId: 'Va36MvpaCN-1736692016885-x1tmbuxz5',
+  totalFiles: 1,
+  duplicateFiles: 1,
+  newFiles: []
+}
+[File Deduplication] {
+  requestId: 'Va36MvpaCN-1736692016885-x1tmbuxz5',
+  totalFiles: 1,
+  duplicateFiles: 1,
+  duplicates: [ '3-5.jpg' ],
+  newFiles: []
+}
+2:26:56 PM [express] POST /api/galleries/Va36MvpaCN/images 400 in 64ms :: {"success":false,"message"…
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 1041,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    slug: 'Va36MvpaCN',
+    originalFilename: '3-5.jpg',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+2:26:56 PM [express] GET /api/galleries/Va36MvpaCN 200 in 92ms :: {"id":2341,"slug":"Va36MvpaCN","ti…
+Gallery fetch result: {
+  found: true,
+  galleryId: 2341,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 1041,
+    originalFilename: '3-5.jpg',
+    hasOriginalFilename: true,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg'
+  },
+  missingFilenames: 0
+}
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 1041,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    slug: 'Va36MvpaCN',
+    originalFilename: '3-5.jpg',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+2:26:57 PM [express] GET /api/galleries/Va36MvpaCN 200 in 201ms :: {"id":2341,"slug":"Va36MvpaCN","t…
+Gallery fetch request: {
+  slug: 'Va36MvpaCN',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2341,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 1041,
+    originalFilename: '3-5.jpg',
+    hasOriginalFilename: true,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg'
+  },
+  missingFilenames: 0
+}
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 1041,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    slug: 'Va36MvpaCN',
+    originalFilename: '3-5.jpg',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+2:27:16 PM [express] GET /api/galleries/Va36MvpaCN 200 in 218ms :: {"id":2341,"slug":"Va36MvpaCN","t…
+Gallery fetch request: {
+  slug: 'Va36MvpaCN',
+  authenticatedUserId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK',
+  hasAuth: true
+}
+Gallery fetch result: {
+  found: true,
+  galleryId: 2341,
+  isGuestUpload: false,
+  isPublic: false,
+  ownerId: 'user_2qnftMeTNbz5mLvROjoSB4dPnkK'
+}
+Gallery Images Data: {
+  count: 1,
+  sampleImage: {
+    id: 1041,
+    originalFilename: '3-5.jpg',
+    hasOriginalFilename: true,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg'
+  },
+  missingFilenames: 0
+}
+Processed Images: {
+  total: 1,
+  withFilenames: 1,
+  sample: {
+    id: 1041,
+    url: 'https://cdn.beam.ms/uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    width: 800,
+    height: 600,
+    aspectRatio: 1.3333333333333333,
+    publicId: 'uploads/originals/1736692009399-1736692009399-qnndhwskd-3-5.jpg',
+    slug: 'Va36MvpaCN',
+    originalFilename: '3-5.jpg',
+    userStarred: false,
+    stars: [],
+    commentCount: 0
+  }
+}
+2:27:38 PM [express] GET /api/galleries/Va36MvpaCN 200 in 227ms :: {"id":2341,"slug":"Va36MvpaCN","t…
+[Upload Request Timeout] { requestId: 'Va36MvpaCN-1736692009302-zpydvo7ss' }

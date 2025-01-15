@@ -1,0 +1,56 @@
+1. Install and Import the Shadcn Hovercard Component:
+If you haven't installed Shadcn components yet, install them by running:
+bash
+Copy code
+npm install shadcn-ui
+Import the hovercard component into Gallery.tsx or StarredAvatars.tsx:
+tsx
+Copy code
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
+2. Modify the Avatar Section to Include Hovercard Logic:
+Wrap each avatar (or the avatar group) in the HoverCard component.
+Display all users who have starred the image inside the hovercard.
+Updated Code (StarredAvatars.tsx):
+tsx
+Copy code
+const StarredAvatars = ({ imageId }: { imageId: number }) => {
+  const { data: stars = [] } = useQuery([`/api/images/${imageId}/stars`]);
+
+  if (!stars.length) return null;
+
+  const visibleStars = stars.slice(0, 3);  // Show 3 avatars, others will show in hovercard
+  const remainingStars = stars.length - visibleStars.length;
+
+  return (
+    <HoverCard>
+      <HoverCardTrigger className="flex -space-x-2">
+        {visibleStars.map((star) => (
+          <img
+            key={star.userId}
+            src={star.user.imageUrl}
+            alt={star.user.firstName}
+            className="h-8 w-8 rounded-full border-2 border-white"
+          />
+        ))}
+        {remainingStars > 0 && (
+          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-sm">
+            +{remainingStars}
+          </div>
+        )}
+      </HoverCardTrigger>
+      <HoverCardContent className="w-64 p-4">
+        <h4 className="text-sm font-semibold mb-2">Favorited by:</h4>
+        <div className="space-y-2">
+          {stars.map((star) => (
+            <div key={star.userId} className="flex items-center space-x-3">
+              <img src={star.user.imageUrl} alt={star.user.firstName} className="h-8 w-8 rounded-full" />
+              <div className="text-sm">
+                {star.user.firstName} {star.user.lastName}
+              </div>
+            </div>
+          ))}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+};

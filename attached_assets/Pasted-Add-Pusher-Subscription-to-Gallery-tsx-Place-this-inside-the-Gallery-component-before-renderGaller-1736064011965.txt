@@ -1,0 +1,88 @@
+Add Pusher Subscription to Gallery.tsx:
+Place this inside the Gallery component, before renderGalleryControls:
+
+tsx
+Copy code
+import Pusher from "pusher-js";
+import { useState, useEffect } from "react";
+
+const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
+  cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
+  authEndpoint: "/pusher/auth",  // Auth endpoint for presence channels
+});
+
+const [activeUsers, setActiveUsers] = useState([]);
+
+useEffect(() => {
+  const channel = pusher.subscribe("presence-gallery");
+
+  channel.bind("pusher:subscription_succeeded", (members) => {
+    setActiveUsers(Object.values(members.members));
+  });
+
+  channel.bind("pusher:member_added", (member) => {
+    setActiveUsers((prev) => [...prev, member.info]);
+  });
+
+  channel.bind("pusher:member_removed", (member) => {
+    setActiveUsers((prev) =>
+      prev.filter((user) => user.user_id !== member.id)
+    );
+  });
+
+  return () => {
+    pusher.unsubscribe("presence-gallery");
+  };
+}, []);
+3. Render Avatars in Header (Before Starred Users Filter):
+Modify the renderGalleryControls function to display presence avatars to the left of the filter and toggle buttons:
+
+tsx
+Copy code
+const renderGalleryControls = useCallback(() => {
+    if (!gallery) return null;
+
+    return (
+      <div className={cn("flex items-center gap-2 p-2 rounded-lg", isDark ? "bg-black/90" : "bg-white/90")}>
+        <TooltipProvider>
+          {/* Presence Indicators */}
+          <div className="flex items-center mr-4">
+            {activeUsers.map((user) => (
+              <img
+                key={user.user_id}
+                src={user.avatar}
+                alt={user.name}
+                className="w-8 h-8 rounded-full border-2 border-white"
+              />
+            ))}
+          </div>
+
+          {/* Starred Users Filter */}
+          <StarredUsersFilter
+            users={getUniqueStarredUsers}
+            selectedUsers={selectedStarredUsers}
+            onSelectionChange={setSelectedStarredUsers}
+          />
+
+          {/* Grid View Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={toggleGridView}
+                className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200", !isMasonry && "bg-primary/20")}
+              >
+                {isMasonry ? (
+                  <Grid className="h-4 w-4" />
+                ) : (
+                  <LayoutGrid className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    );
+}, [gallery, isMasonry, toggleGridView, activeUsers]);

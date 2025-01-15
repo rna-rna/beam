@@ -1,18 +1,22 @@
-
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { LoginButton } from "@/components/LoginButton";
+import { SignUpButton } from "@/components/SignUpButton";
 import { useState } from "react";
 import UploadDropzone from "@/components/UploadDropzone";
 import { UserNav } from "@/components/UserNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
+import { Logo } from "@/components/Logo";
+import { WelcomeModal } from "@/components/WelcomeModal"; // Added import
+import GuestUploadCard from "@/components/GuestUploadCard";
 
 export default function Home() {
   const { isDark } = useTheme();
   const [guestGalleryCount, setGuestGalleryCount] = useState(
     Number(sessionStorage.getItem("guestGalleryCount")) || 0
   );
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(true); // Added state for modal
 
   const handleGuestUpload = async (files: File[]) => {
     if (guestGalleryCount >= 1) {
@@ -28,7 +32,9 @@ export default function Home() {
     <div className="min-h-screen">
       <div className={cn("sticky top-0 z-10 backdrop-blur-sm border-b", isDark ? "bg-black/80" : "bg-background/80")}>
         <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4">
-          <h1 className="text-l font-semibold">Image Gallery Hub</h1>
+          <div className="flex items-center gap-2">
+            <Logo size="sm" />
+          </div>
           <div className="ml-auto flex items-center gap-4">
             <ThemeToggle />
             <SignedIn>
@@ -37,22 +43,24 @@ export default function Home() {
             <SignedOut>
               <div className="flex items-center gap-2">
                 <LoginButton />
+                <SignUpButton />
               </div>
             </SignedOut>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full h-[calc(100vh-4.1rem)] flex">
         <SignedOut>
-          <div className="flex flex-col items-center justify-center min-h-[80vh]">
-            <h1 className="text-3xl font-bold mb-6">Upload Your Gallery</h1>
-            <UploadDropzone onUpload={handleGuestUpload} />
-            <p className="text-sm text-muted-foreground mt-4">
-              Create one gallery as a guest. Sign up to upload more.
-            </p>
-          </div>
-        </SignedOut>
+            <div className="flex flex-col items-center justify-center w-full h-full relative">
+              <UploadDropzone onUpload={handleGuestUpload} />
+              
+              {/* Floating Guest Upload Card */}
+              <div className="absolute bottom-6 right-6 z-50">
+                <GuestUploadCard />
+              </div>
+            </div>
+          </SignedOut>
 
         <SignedIn>
           <div className="flex flex-col items-center justify-center min-h-[80vh]">
@@ -62,6 +70,7 @@ export default function Home() {
             </p>
           </div>
         </SignedIn>
+        <WelcomeModal isOpen={isWelcomeOpen} onOpenChange={setIsWelcomeOpen} /> {/*Added WelcomeModal*/}
       </div>
     </div>
   );

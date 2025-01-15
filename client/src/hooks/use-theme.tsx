@@ -15,10 +15,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    // Check if user has a theme preference
-    const isDarkMode = localStorage.getItem("theme") === "dark" || 
-      (!localStorage.getItem("theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    
+    // Set dark mode as default, only override if explicitly set to light
+    const isDarkMode = localStorage.getItem("theme") !== "light";
     setIsDark(isDarkMode);
     document.documentElement.classList.toggle("dark", isDarkMode);
   }, []);

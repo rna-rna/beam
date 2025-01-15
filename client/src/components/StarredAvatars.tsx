@@ -1,74 +1,99 @@
 import { useQuery } from "@tanstack/react-query";
+import { HoverCard, HoverCardTrigger, HoverCardContent, HoverCardPortal } from "@/components/ui/hover-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { User } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Star } from "lucide-react";
 
-interface StarredUser {
+interface StarData {
+  id: number;
   userId: string;
-  userName: string;
-  userImageUrl?: string;
+  imageId: number;
+  createdAt: string;
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    imageUrl?: string;
+  };
 }
 
 interface StarredAvatarsProps {
   imageId: number;
-  className?: string;
-  maxAvatars?: number;
+  size?: "default" | "lg";
 }
 
-export function StarredAvatars({ imageId, className, maxAvatars = 3 }: StarredAvatarsProps) {
-  const { data: starredUsers = [], isLoading } = useQuery<StarredUser[]>({
+interface StarResponse {
+  success: boolean;
+  data: StarData[];
+}
+
+export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProps) {
+  const { data: response } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
-    enabled: !!imageId,
+    staleTime: 5000,
+    cacheTime: 10000,
+    select: (data) => ({
+      ...data,
+      data: Array.from(
+        new Map(
+          (data?.data || []).map(star => [star.userId, star])
+        ).values()
+      )
+    })
   });
 
-  if (isLoading || starredUsers.length === 0) return null;
+  const stars = response?.data || [];
+  const visibleStars = stars.slice(0, 3);
+  const remainingCount = Math.max(0, stars.length - visibleStars.length);
 
-  const visibleUsers = starredUsers.slice(0, maxAvatars);
-  const remainingCount = Math.max(0, starredUsers.length - maxAvatars);
+  if (stars.length === 0) return null;
+
+  const getInitials = (user?: StarData['user']) => {
+    if (!user) return '?';
+    const first = user.firstName?.charAt(0) || '';
+    const last = user.lastName?.charAt(0) || '';
+    return (first + last).toUpperCase() || '?';
+  };
 
   return (
-    <div className={cn("flex items-center -space-x-2", className)}>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center">
-              {visibleUsers.map((user, index) => (
-                <Avatar
-                  key={user.userId}
-                  className={cn(
-                    "h-6 w-6 border-2 border-background",
-                    index > 0 && "-ml-2"
-                  )}
-                >
-                  {user.userImageUrl ? (
-                    <AvatarImage src={user.userImageUrl} alt={user.userName} />
-                  ) : (
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-              ))}
-              {remainingCount > 0 && (
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium -ml-2 border-2 border-background">
-                  +{remainingCount}
-                </div>
-              )}
+    <HoverCard>
+      <HoverCardTrigger asChild>
+        <div className="relative flex items-center cursor-pointer">
+          {visibleStars.map((star, index) => (
+            <Avatar
+              key={star.userId}
+              className={`${size === "lg" ? "w-7 h-7" : "w-5 h-5"} shadow-sm ${index > 0 ? '-ml-2' : ''}`}
+            >
+              {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
+              <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
+            </Avatar>
+          ))}
+          {remainingCount > 0 && (
+            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium -ml-2">
+              +{remainingCount}
             </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-sm">
-              {starredUsers.map(user => user.userName).join(", ")}
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
+          )}
+        </div>
+      </HoverCardTrigger>
+      <HoverCardPortal>
+        <HoverCardContent className="w-56 p-4 shadow-lg">
+        <h4 className="text-sm font-medium text-zinc-700 mb-2 flex items-center gap-1">
+          <Star className="w-3 h-3" />
+          Favorited by
+        </h4>
+        <div className="space-y-2">
+          {stars.map((star) => (
+            <div key={star.userId} className="flex items-center space-x-3">
+              <Avatar className="h-8 w-8">
+                {star.user?.imageUrl && <AvatarImage src={star.user.imageUrl} />}
+                <AvatarFallback>{getInitials(star.user)}</AvatarFallback>
+              </Avatar>
+              <div className="text-sm font-medium">
+                {star.user?.firstName} {star.user?.lastName}
+              </div>
+            </div>
+          ))}
+        </div>
+      </HoverCardContent>
+      </HoverCardPortal>
+    </HoverCard>
   );
 }
