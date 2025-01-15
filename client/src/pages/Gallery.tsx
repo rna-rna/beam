@@ -997,7 +997,7 @@ export default function Gallery({
                   : img
               )
             );
-            updateBatchProgress(addBatchId, evloaded - ev.total);
+            updateBatchProgress(addBatchId, ev.loaded - ev.total);
           }
         };
 
