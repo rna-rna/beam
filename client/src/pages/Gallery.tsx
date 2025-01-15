@@ -1107,7 +1107,7 @@ export default function Gallery({
       // Wait for CDN to be ready
       await new Promise<void>((resolve) => setTimeout(resolve, 1500));
 
-      // Update React Query cache optimistically
+      // Transform pending item to final state in React Query cache
       queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
         if (!oldData) return oldData;
 
@@ -1117,7 +1117,7 @@ export default function Gallery({
         );
 
         if (pendingIndex !== -1) {
-          // In-place transformation of the pending item
+          // Transform the pending item in-place
           updatedImages[pendingIndex] = {
             ...updatedImages[pendingIndex],
             id: imageId,
@@ -1138,7 +1138,7 @@ export default function Gallery({
         };
       });
 
-      // Update pendingUploads state to mark as done
+      // Mark as complete in pendingUploads
       setPendingUploads((prev) =>
         prev.map((upload) =>
           upload.id === item.id
@@ -1153,14 +1153,11 @@ export default function Gallery({
         ),
       );
 
-      // Clean up with longer delay to ensure CDN propagation
+      // Remove from pending state after a brief delay
       setTimeout(() => {
-        setPendingUploads((prev) =>
-          prev.filter((upload) => upload.id !== item.id),
-        );
-        // Cleanup local URL
+        setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
         URL.revokeObjectURL(item.localUrl);
-      }, 800);
+      }, 500);
       
       completeBatch(item.id, true);
 
