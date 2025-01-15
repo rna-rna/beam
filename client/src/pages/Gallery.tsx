@@ -2445,7 +2445,6 @@ const handleImageClick = (index: number) => {
                     </div>
                   )}
 
-                  {/* Placeholder/low-res image */}
                   {/* Placeholder/blur-up image */}
                   <img
                     src={getR2ImageUrl(selectedImage)}
@@ -2461,6 +2460,7 @@ const handleImageClick = (index: number) => {
                       transition: 'opacity 0.3s ease',
                       opacity: isLowResLoading ? 1 : 0,
                       pointerEvents: 'none',
+                      transform: 'scale(1.02)', // Slight scale for blur effect
                     }}
                   />
 
@@ -2480,7 +2480,16 @@ const handleImageClick = (index: number) => {
                       pointerEvents: 'none',
                     }}
                     onLoad={() => {
+                      // First show the final image
                       setIsLowResLoading(false);
+                      
+                      // After a small delay, fade out the placeholder
+                      setTimeout(() => {
+                        const placeholderImg = document.querySelector('.blur-up') as HTMLImageElement;
+                        if (placeholderImg) {
+                          placeholderImg.style.opacity = '0';
+                        }
+                      }, 200);
                     }}
                   />
 
