@@ -1107,7 +1107,7 @@ export default function Gallery({
       // Wait for CDN to be ready
       await new Promise<void>((resolve) => setTimeout(resolve, 1500));
 
-      // Transform pending item to final state in React Query cache
+      // Transform pending item to final state with visual transition
       queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
         if (!oldData) return oldData;
 
@@ -1117,7 +1117,6 @@ export default function Gallery({
         );
 
         if (pendingIndex !== -1) {
-          // Transform the pending item in-place
           updatedImages[pendingIndex] = {
             ...updatedImages[pendingIndex],
             id: imageId,
@@ -1129,6 +1128,9 @@ export default function Gallery({
             userStarred: false,
             stars: [],
             commentCount: 0,
+            // Keep local URL briefly for smooth transition
+            localUrl: item.localUrl,
+            transition: true
           };
         }
 
@@ -1137,6 +1139,9 @@ export default function Gallery({
           images: updatedImages,
         };
       });
+
+      // Wait for CDN propagation
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Mark as complete in pendingUploads
       setPendingUploads((prev) =>
@@ -1193,16 +1198,16 @@ export default function Gallery({
       if (acceptedFiles.length === 0) return;
 
       acceptedFiles.forEach((file) => {
-        // Create local preview URL immediately
         const localUrl = URL.createObjectURL(file);
         const imageEl = new Image();
 
         imageEl.onload = () => {
           const width = imageEl.naturalWidth;
           const height = imageEl.naturalHeight;
+          const pendingId = nanoid();
 
           const newItem = {
-            id: `pending-${nanoid()}`,
+            id: `pending-${pendingId}`,
             file,
             localUrl,
             status: "uploading" as const,
@@ -1217,22 +1222,32 @@ export default function Gallery({
             userStarred: false,
             commentCount: 0,
             stars: [],
-            url: localUrl,
-            pendingRevoke: localUrl, // Track URL to revoke later
+            url: localUrl
           };
 
+          // Update React Query cache with pending item
+          queryClient.setQueryData([`/api/galleries/${slug}`], (old: any) => {
+            if (!old) return old;
+            return {
+              ...old,
+              images: [newItem, ...old.images]
+            };
+          });
+
           setPendingUploads((prev) => [...prev, newItem]);
+          
           uploadSingleFile(newItem).then(() => {
-            // Cleanup object URL after successful upload and small delay
+            // Keep local preview URL active briefly after upload
             setTimeout(() => {
+              setPendingUploads((prev) => prev.filter(u => u.id !== newItem.id));
               URL.revokeObjectURL(localUrl);
-            }, 3000);
+            }, 500);
           });
         };
         imageEl.src = localUrl;
       });
     },
-    [setPendingUploads],
+    [setPendingUploads, queryClient, slug],
   );
 
   // Modify the useDropzone configuration to disable click
