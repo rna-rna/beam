@@ -1095,14 +1095,17 @@ export default function Gallery({
           if (xhr.status === 200) {
             resolve();
           } else {
-            reject(newError(`Failed to upload ${item.file.name}`));
+            reject(new Error(`Failed to upload ${item.file.name}`));
           }
         };
         xhr.onerror = () => {
-          reject(newError("Network error uploading file"));
+          reject(new Error("Network error uploading file"));
         };
         xhr.send(item.file);
       });
+
+      // Wait for CDN to be ready
+      await new Promise<void>((resolve) => setTimeout(resolve, 1500));
 
       // Update React Query cache optimistically
       queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
@@ -1150,12 +1153,15 @@ export default function Gallery({
         ),
       );
 
-      // Remove from pendingUploads after a short delay to ensure smooth transition
+      // Clean up with longer delay to ensure CDN propagation
       setTimeout(() => {
         setPendingUploads((prev) =>
           prev.filter((upload) => upload.id !== item.id),
         );
-      }, 500);
+        // Cleanup local URL
+        URL.revokeObjectURL(item.localUrl);
+      }, 800);
+      
       completeBatch(item.id, true);
 
       // Optional: Refetch to confirm sync with server
