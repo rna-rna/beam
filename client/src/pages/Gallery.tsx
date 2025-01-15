@@ -1485,26 +1485,26 @@ export default function Gallery({
     <div 
       key={image.id === -1 ? `pending-${index}` : image.id}
       className="mb-4 w-full"
-      style={{ breakInside: "avoid" }}
+      style={{ breakInside: "avoid", position: "relative" }}
     >
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
-          "image-container relative transform transition-all duration-200 ease-out w-full",
+          "image-container transform transition-all duration-200 ease-out w-full",
           isReorderMode && "cursor-grab active:cursor-grabbing",
+          draggedItemIndex === index ? "fixed" : "relative",
           "block",
         )}
         initial={{ opacity: 0, y: 20 }}
         animate={{
           opacity: 1,
           y: 0,
-          scale: draggedItemIndex === index ? 1.1 : 1,
+          scale: draggedItemIndex === index ? 1.05 : 1,
           zIndex: draggedItemIndex === index ? 100 : 1,
-          position: draggedItemIndex === index ? "absolute" : "relative",
-          top: draggedItemIndex === index ? dragPosition?.y : "auto",
-          left: draggedItemIndex === index ? dragPosition?.x : "auto",
           transition: {
-            duration: draggedItemIndex === index ? 0 : 0.25,
+            type: "spring",
+            stiffness: 300,
+            damping: 25,
           },
         }}
         drag={isReorderMode}
