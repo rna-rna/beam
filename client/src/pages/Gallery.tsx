@@ -2708,11 +2708,11 @@ export default function Gallery({
                       </div>
                     )}
 
-                    {/* Placeholder/blur-up image */}
+                    {/* Single image with fade transition */}
                     <img
                       src={getR2ImageUrl(selectedImage)}
                       alt={selectedImage.originalFilename || ""}
-                      className="blur-up"
+                      className="image-fade"
                       style={{
                         position: "absolute",
                         top: 0,
@@ -2720,41 +2720,11 @@ export default function Gallery({
                         width: "100%",
                         height: "100%",
                         objectFit: "contain",
-                        transition: "opacity 0.3s ease",
-                        opacity: isLowResLoading ? 1 : 0,
-                        pointerEvents: "none",
-                        transform: "scale(1.02)", // Slight scale for blur effect
-                      }}
-                    />
-
-                    {/* Final high-res image */}
-                    <img
-                      src={getR2ImageUrl(selectedImage)}
-                      alt={selectedImage.originalFilename || ""}
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                        transition: "opacity 0.3s ease",
-                        opacity: isLowResLoading ? 0 : 1,
                         pointerEvents: "none",
                       }}
-                      onLoad={() => {
-                        // First show the final image
+                      onLoad={(e) => {
                         setIsLowResLoading(false);
-
-                        // After a small delay, fade out the placeholder
-                        setTimeout(() => {
-                          const placeholderImg = document.querySelector(
-                            ".blur-up",
-                          ) as HTMLImageElement;
-                          if (placeholderImg) {
-                            placeholderImg.style.opacity = "0";
-                          }
-                        }, 200);
+                        e.currentTarget.classList.add('loaded');
                       }}
                     />
 
