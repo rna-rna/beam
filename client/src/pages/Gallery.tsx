@@ -1662,7 +1662,7 @@ const renderGalleryControls = useCallback(() => {
                 originalFilename: image.originalFilename
               });
               if (!image._isPending) {
-                e.currentTarget.src = '/placeholder.png';
+                e.currentTarget.src = 'https://cdn.beam.ms/placeholder.jpg';
                 // Update pending uploads if this was a failed upload
                 setPendingUploads(prev => 
                   prev.map(upload => 
