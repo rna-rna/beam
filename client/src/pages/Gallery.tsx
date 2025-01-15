@@ -1084,12 +1084,12 @@ export default function Gallery({
       // Wait for CDN to be ready
       await new Promise<void>((resolve) => setTimeout(resolve, 1500));
 
-      // Remove pending upload immediately before invalidating query
-      setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
-      URL.revokeObjectURL(item.localUrl);
-      
       // Invalidate query to refresh from server
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+
+      // Once server is refreshed, clean up local state
+      setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
+      URL.revokeObjectURL(item.localUrl);
       
       completeBatch(item.id, true);
     } catch (error) {
