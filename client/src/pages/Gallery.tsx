@@ -1,7 +1,6 @@
 import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import LazyLoad from 'react-lazyload';
 import { getCloudinaryUrl } from "@/lib/cloudinary";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -1525,22 +1524,7 @@ const renderGalleryControls = useCallback(() => {
   ]);
 
   const renderImage = (image: Image, index: number) => (
-    <LazyLoad
-      key={image.id === -1 ? `pending-${index}` : image.id}
-      height={200}
-      offset={100}
-      placeholder={
-        <div 
-          className="w-full bg-muted animate-pulse rounded-lg ring-2 ring-purple-500/20" 
-          style={{
-            aspectRatio: image.width && image.height 
-              ? `${image.width} / ${image.height}` 
-              : '4/3',
-            minHeight: '200px'
-          }}
-        />
-      }
-    >
+    <div key={image.id === -1 ? `pending-${index}` : image.id}>
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
@@ -1800,7 +1784,7 @@ const renderGalleryControls = useCallback(() => {
         )}
       </div>
     </motion.div>
-    </LazyLoad>
+    </div>
   );
 
   useEffect(() => {
