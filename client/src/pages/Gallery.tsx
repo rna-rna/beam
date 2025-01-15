@@ -994,7 +994,7 @@ export default function Gallery({
               prev.map(img => 
                 img.id === tmpId 
                   ? { ...img, progress } 
-                                    : img
+                  : img
               )
             );
             updateBatchProgress(addBatchId, ev.loaded - ev.total);
@@ -1536,55 +1536,53 @@ export default function Gallery({
               : handleImageClick(index);
           }}
         >
-          <div className="relative w-full">
-            <img
-              key={`${image.id}-${image._status || "final"}`}
-              src={'localUrl' in image ? image.localUrl : image.url}
-              alt={image.originalFilename || "Uploaded image"}
-              style={{
-                width: '100%',
-                height: 'auto',
-                aspectRatio: image.width && image.height ? `${image.width}/${image.height}` : 'auto'
-              }}
-              className={cn(
-                "rounded-lg blur-up block transition-opacity duration-200",
+          <AspectRatio ratio={image.width && image.height ? image.width / image.height : 4/3}>
+            <div className="relative w-full h-full">
+              <img
+                key={`${image.id}-${image._status || "final"}`}
+                src={'localUrl' in image ? image.localUrl : image.url}
+                alt={image.originalFilename || "Uploaded image"}
+                style={{ objectFit: "cover" }}
+                className={cn(
+                "absolute inset-0 w-full h-full object-cover rounded-lg blur-up block transition-opacity duration-200",
                 selectMode && selectedImages.includes(image.id) && "opacity-75",
                 draggedItemIndex === index && "opacity-50",
                 'localUrl' in image && "opacity-80",
                 image.status === "error" && "opacity-50",
               )}
-              loading="lazy"
-              onLoad={(e) => {
-                const img = e.currentTarget;
-                img.classList.add("loaded");
-                if (!('localUrl' in image) && image.pendingRevoke) {
-                  setTimeout(() => {
-                    URL.revokeObjectURL(image.pendingRevoke);
-                  }, 800);
-                }
-              }}
-              onError={(e) => {
-                console.error("Image load failed:", {
-                  id: image.id,
-                  url: image.url,
-                  isPending: 'localUrl' in image,
-                  status: image.status,
-                  originalFilename: image.originalFilename,
-                });
-                if (!('localUrl' in image)) {
-                  e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
-                  setImages((prev) =>
-                    prev.map((upload) =>
-                      upload.id === image.id
-                        ? { ...upload, status: "error", _status: "error" }
-                        : upload,
-                    ),
-                  );
-                }
-              }}
-              draggable={false}
-            />
-          </div>
+            loading="lazy"
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              img.classList.add("loaded");
+              if (!('localUrl' in image) && image.pendingRevoke) {
+                setTimeout(() => {
+                  URL.revokeObjectURL(image.pendingRevoke);
+                }, 800);
+              }
+            }}
+            onError={(e) => {
+              console.error("Image load failed:", {
+                id: image.id,
+                url: image.url,
+                isPending: 'localUrl' in image,
+                status: image.status,
+                originalFilename: image.originalFilename,
+              });
+              if (!('localUrl' in image)) {
+                e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
+                setImages((prev) =>
+                  prev.map((upload) =>
+                    upload.id === image.id
+                      ? { ...upload, status: "error", _status: "error" }
+                      : upload,
+                  ),
+                );
+              }
+            }}
+            draggable={false}
+          />
+            </div>
+          </AspectRatio>
           {'localUrl' in image && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
               {image.status === "uploading" && (
@@ -2632,4 +2630,3 @@ export default function Gallery({
     </>
   );
 }
-The changes were identical to the original code; the JSX error is likely elsewhere in the file.
