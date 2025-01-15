@@ -1537,12 +1537,14 @@ export default function Gallery({
           }}
         >
           <AspectRatio ratio={image.width && image.height ? image.width / image.height : 4/3}>
-            <img
+            <div className="relative w-full h-full">
+              <img
                 key={`${image.id}-${image._status || "final"}`}
                 src={'localUrl' in image ? image.localUrl : image.url}
                 alt={image.originalFilename || "Uploaded image"}
+                style={{ objectFit: "cover" }}
                 className={cn(
-                "w-full h-full rounded-lg blur-up block transition-opacity duration-200",
+                "absolute inset-0 w-full h-full object-cover rounded-lg blur-up block transition-opacity duration-200",
                 selectMode && selectedImages.includes(image.id) && "opacity-75",
                 draggedItemIndex === index && "opacity-50",
                 'localUrl' in image && "opacity-80",
