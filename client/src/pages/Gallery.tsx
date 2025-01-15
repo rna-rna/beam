@@ -1792,6 +1792,10 @@ export default function Gallery({
       </motion.div>
     </div>
   );
+};
+
+const renderImage = (image: ImageOrPending, index: number) => (
+  <>
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
