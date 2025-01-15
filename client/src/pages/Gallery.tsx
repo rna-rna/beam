@@ -344,6 +344,7 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     progress: number;
     width?: number;
     height?: number;
+    uploadTimestamp: number; // Added uploadTimestamp
   }[]>([]);
 
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -373,10 +374,11 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
       stars: [],
       _isPending: true,
       _progress: pu.progress,
-      _status: pu.status
+      _status: pu.status,
+      uploadTimestamp: pu.uploadTimestamp // Added uploadTimestamp
     }));
 
-    const combined = [...pendingAsImages, ...serverImages];
+    const combined = [...pendingAsImages, ...serverImages].sort((a, b) => (a.uploadTimestamp || 0) - (b.uploadTimestamp || 0));
     console.log('[Debug] Combined images:', { 
       totalCount: combined.length,
       pendingCount: pendingAsImages.length,
@@ -1023,7 +1025,8 @@ const uploadSingleFile = async (item: {
                 _status: 'done',
                 id: imageId, // Adopt the server's image ID
                 url: publicUrl, // Update to final URL
-                progress: 100
+                progress: 100,
+                uploadTimestamp: item.uploadTimestamp // Preserve uploadTimestamp
               }
             : obj
         )
@@ -1074,7 +1077,8 @@ const uploadSingleFile = async (item: {
           status: 'uploading' as const,
           progress: 0,
           width,
-          height
+          height,
+          uploadTimestamp: Date.now()
         };
 
         setPendingUploads((prev) => [...prev, newItem]);
