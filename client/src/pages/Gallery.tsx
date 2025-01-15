@@ -1540,7 +1540,6 @@ export default function Gallery({
               draggedItemIndex === index && "opacity-50"
             )}
           />
-        <div
           className={`group relative bg-card rounded-lg transform transition-all ${
             !isReorderMode ? "hover:scale-[1.02] cursor-pointer" : ""
           } ${selectMode ? "hover:scale-100" : ""} ${
