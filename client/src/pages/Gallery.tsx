@@ -363,20 +363,22 @@ export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }
     });
 
     const serverImages = gallery?.images || [];
-    const pendingAsImages = pendingUploads.map((pu) => ({
-      id: `pending-${pu.id}`,
-      url: pu.localUrl,
-      originalFilename: pu.file.name,
-      width: pu.width,
-      height: pu.height,
-      userStarred: false,
-      commentCount: 0,
-      stars: [],
-      _isPending: true,
-      _progress: pu.progress,
-      _status: pu.status,
-      uploadTimestamp: pu.uploadTimestamp // Added uploadTimestamp
-    }));
+    const pendingAsImages = pendingUploads
+      .filter(pu => pu.status === 'uploading')
+      .map((pu) => ({
+        id: `pending-${pu.id}`,
+        url: pu.localUrl,
+        originalFilename: pu.file.name,
+        width: pu.width,
+        height: pu.height,
+        userStarred: false,
+        commentCount: 0,
+        stars: [],
+        _isPending: true,
+        _progress: pu.progress,
+        _status: pu.status,
+        uploadTimestamp: pu.uploadTimestamp
+      }));
 
     const combined = [...pendingAsImages, ...serverImages].sort((a, b) => (a.uploadTimestamp || 0) - (b.uploadTimestamp || 0));
     console.log('[Debug] Combined images:', { 
@@ -1018,28 +1020,8 @@ const uploadSingleFile = async (item: {
         xhr.send(item.file);
       });
 
-      // Transform the pending item in-place
-      setPendingUploads((prev) => 
-        prev.map((obj) =>
-          obj.id === item.id 
-            ? {
-                ...obj,
-                id: String(imageId), // Convert to string to match ID format
-                url: publicUrl,
-                originalFilename: item.file.name,
-                width: item.width || 800,
-                height: item.height || 600,
-                _isPending: false,
-                _status: 'done',
-                progress: 100,
-                userStarred: false,
-                stars: [],
-                commentCount: 0,
-                uploadTimestamp: Date.now()
-              }
-            : obj
-        )
-      );
+      // Remove completed upload from pendingUploads
+      setPendingUploads((prev) => prev.filter(upload => upload.id !== item.id));
       completeBatch(item.id, true);
     } catch (error) {
       console.error('uploadSingleFile error:', error);
