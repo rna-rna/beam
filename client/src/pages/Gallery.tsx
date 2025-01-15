@@ -1532,6 +1532,32 @@ export default function Gallery({
               : handleImageClick(index);
           }}
         >
+          <ImageDisplay 
+            image={image}
+            loading={'localUrl' in image && image.status === 'uploading'}
+            className={cn(
+              selectMode && selectedImages.includes(image.id) && "opacity-75",
+              draggedItemIndex === index && "opacity-50"
+            )}
+          />
+        <div
+          className={`group relative bg-card rounded-lg transform transition-all ${
+            !isReorderMode ? "hover:scale-[1.02] cursor-pointer" : ""
+          } ${selectMode ? "hover:scale-100" : ""} ${
+            isReorderMode
+              ? "border-2 border-dashed border-gray-200 border-opacity-50"
+              : ""
+          }`}
+          onClick={(e) => {
+            if (isReorderMode) {
+              e.stopPropagation();
+              return;
+            }
+            selectMode
+              ? handleImageSelect(image.id, e)
+              : handleImageClick(index);
+          }}
+        >
           <AspectRatio ratio={'localUrl' in image ? (image.width / image.height) : (image.width && image.height ? image.width / image.height : 4/3)}>
             <div className="relative w-full h-full">
               <img
