@@ -1611,8 +1611,6 @@ const renderGalleryControls = useCallback(() => {
                   <Progress value={image._progress} className="w-3/4 h-1" />
                 )}
               </div>
-            )}
-          </>
         )}
 
         {/* Starred avatars in bottom left corner */}
