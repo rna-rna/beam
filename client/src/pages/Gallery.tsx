@@ -1801,16 +1801,6 @@ export default function Gallery({
                 }, 1000); // Add small delay for safety
               }
             }}
-            onLoad={(e) => {
-              const img = e.currentTarget;
-              img.classList.add("loaded");
-              // Only revoke if we have a pendingRevoke URL and the image has loaded successfully
-              if (!image._isPending && image.pendingRevoke) {
-                setTimeout(() => {
-                  URL.revokeObjectURL(image.pendingRevoke);
-                }, 1000); // Add small delay for safety
-              }
-            }}
             onError={(e) => {
               console.error("Image load failed:", {
                 id: image.id,
