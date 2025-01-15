@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import About from "@/pages/About"; // Added import for About page
+import NewGallery from "@/pages/NewGallery";
 import { UploadProvider } from "./context/UploadContext"; // Import UploadProvider
 import GlobalUploadProgress from "./components/GlobalUploadProgress";
 
