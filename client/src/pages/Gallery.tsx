@@ -1482,8 +1482,8 @@ export default function Gallery({
   ]);
 
   const renderImage = (image: ImageOrPending, index: number) => (
-    <div key={image.id === -1 ? `pending-${index}` : image.id}>
       <motion.div
+        key={image.id === -1 ? `pending-${index}` : image.id}
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
           "mb-4 image-container relative transform transition-all duration-200 ease-out",
