@@ -44,3 +44,13 @@
 .blur-up.loaded {
   opacity: 1;
 }
+
+.masonrygrid {
+  display: flex;
+  width: auto;
+}
+
+.masonrygrid > * {
+  break-inside: avoid;
+  margin-bottom: 1rem;
+}

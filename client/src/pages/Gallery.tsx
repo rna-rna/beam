@@ -1482,18 +1482,18 @@ export default function Gallery({
   ]);
 
   const renderImage = (image: ImageOrPending, index: number) => (
-    <div key={image.id === -1 ? `pending-${index}` : image.id}>
+    <div 
+      key={image.id === -1 ? `pending-${index}` : image.id}
+      className="mb-4 w-full"
+      style={{ breakInside: "avoid" }}
+    >
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
-          "mb-4 image-container relative transform transition-all duration-200 ease-out w-full",
+          "image-container relative transform transition-all duration-200 ease-out w-full",
           isReorderMode && "cursor-grab active:cursor-grabbing",
           "block",
         )}
-        style={{
-          width: "100%",
-          breakInside: "avoid"
-        }}
         initial={{ opacity: 0, y: 20 }}
         animate={{
           opacity: 1,
