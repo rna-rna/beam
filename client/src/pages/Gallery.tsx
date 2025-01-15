@@ -1094,25 +1094,8 @@ export default function Gallery({
       // Wait for CDN to be ready
       await new Promise<void>((resolve) => setTimeout(resolve, 1500));
 
-      // Update cache with the final server data
-      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
-        if (!oldData) return oldData;
-        
-        return {
-          ...oldData,
-          images: [{
-            id: imageId,
-            url: publicUrl,
-            originalFilename: item.file.name,
-            width: item.width,
-            height: item.height,
-            uploadTimestamp: Date.now(),
-            userStarred: false,
-            stars: [],
-            commentCount: 0
-          }, ...oldData.images]
-        };
-      });
+      // Simply invalidate the query instead of manual cache manipulation
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
 
       // Wait for CDN propagation
       await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -1193,18 +1176,37 @@ export default function Gallery({
 
           setPendingUploads((prev) => [...prev, newItem]);
           
-          uploadSingleFile(newItem).then(() => {
-            // Keep local preview URL active briefly after upload
-            setTimeout(() => {
-              setPendingUploads((prev) => prev.filter(u => u.id !== newItem.id));
-              URL.revokeObjectURL(localUrl);
-            }, 500);
-          });
+          uploadSingleFile(newItem)
+            .then(() => {
+              setPendingUploads((prev) => 
+                prev.map(upload => 
+                  upload.id === pendingId 
+                    ? { ...upload, status: "done", progress: 100 }
+                    : upload
+                )
+              );
+              
+              // Remove from pending state after a brief delay
+              setTimeout(() => {
+                setPendingUploads((prev) => prev.filter(u => u.id !== pendingId));
+                URL.revokeObjectURL(localUrl);
+              }, 500);
+            })
+            .catch((error) => {
+              setPendingUploads((prev) => 
+                prev.map(upload => 
+                  upload.id === pendingId 
+                    ? { ...upload, status: "error", progress: 0 }
+                    : upload
+                )
+              );
+              console.error("Upload failed:", error);
+            });
         };
         imageEl.src = localUrl;
       });
     },
-    [setPendingUploads, queryClient, slug],
+    [setPendingUploads, uploadSingleFile],
   );
 
   // Modify the useDropzone configuration to disable click
