@@ -1592,26 +1592,43 @@ const renderGalleryControls = useCallback(() => {
         }}
       >
         <img
-            src={image.url}
+            key={`${image.id}-${image._status || 'final'}`}
+            src={image._isPending ? image.localUrl : image.url}
             alt={image.originalFilename || 'Uploaded image'}
             className={cn(
-              "w-full h-auto object-contain rounded-lg blur-up block",
+              "w-full h-auto object-contain rounded-lg blur-up block transition-opacity duration-200",
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50",
-              image._isPending && "opacity-80"
+              image._isPending && "opacity-80",
+              image._status === 'error' && "opacity-50"
             )}
             loading="lazy"
             onLoad={(e) => {
               const img = e.currentTarget;
               img.classList.add('loaded');
+              if (!image._isPending) {
+                URL.revokeObjectURL(image.localUrl); // Clean up local URL after successful load
+              }
             }}
             onError={(e) => {
               console.error('Image load failed:', {
                 id: image.id,
                 url: image.url,
+                isPending: image._isPending,
+                status: image._status,
                 originalFilename: image.originalFilename
               });
-              e.currentTarget.src = '/placeholder.png';
+              if (!image._isPending) {
+                e.currentTarget.src = '/placeholder.png';
+                // Update pending uploads if this was a failed upload
+                setPendingUploads(prev => 
+                  prev.map(upload => 
+                    upload.id === image.id 
+                      ? { ...upload, status: 'error', _status: 'error' } 
+                      : upload
+                  )
+                );
+              }
             }}
             draggable={false}
           />
