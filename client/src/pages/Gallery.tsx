@@ -919,6 +919,8 @@ const uploadSingleFile = async (item: {
     id: string;
     file: File;
     localUrl: string;
+    width?: number;
+    height?: number;
     status: 'uploading' | 'done' | 'error';
     progress: number;
   }) => {
@@ -1029,22 +1031,17 @@ const uploadSingleFile = async (item: {
           (img: any) => img.id === `pending-${item.id}`
         );
 
-        const finalImage = {
-          id: imageId,
-          url: publicUrl,
-          originalFilename: item.file.name,
-          width: item.width || 800,
-          height: item.height || 600,
-          userStarred: false,
-          stars: [],
-          commentCount: 0,
-          uploadTimestamp: Date.now()
-        };
-
         if (pendingIndex !== -1) {
-          updatedImages[pendingIndex] = finalImage;
-        } else {
-          updatedImages.push(finalImage);
+          // Update the existing pending item with final data
+          updatedImages[pendingIndex] = {
+            ...updatedImages[pendingIndex],
+            id: imageId,
+            url: publicUrl,
+            _isPending: false,
+            _status: 'done',
+            _progress: 100,
+            uploadTimestamp: Date.now()
+          };
         }
 
         return {
@@ -1053,8 +1050,14 @@ const uploadSingleFile = async (item: {
         };
       });
 
-      // Remove from pendingUploads
-      setPendingUploads((prev) => prev.filter(upload => upload.id !== item.id));
+      // Update pending upload status
+      setPendingUploads((prev) => 
+        prev.map(upload => 
+          upload.id === item.id 
+            ? { ...upload, status: 'done', progress: 100 }
+            : upload
+        )
+      );
       completeBatch(item.id, true);
 
       // Optional: Refetch to confirm sync with server
