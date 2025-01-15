@@ -2446,6 +2446,7 @@ const handleImageClick = (index: number) => {
                   )}
 
                   {/* Placeholder/low-res image */}
+                  {/* Placeholder/blur-up image */}
                   <img
                     src={getR2ImageUrl(selectedImage)}
                     alt={selectedImage.originalFilename || ''}
@@ -2460,6 +2461,26 @@ const handleImageClick = (index: number) => {
                       transition: 'opacity 0.3s ease',
                       opacity: isLowResLoading ? 1 : 0,
                       pointerEvents: 'none',
+                    }}
+                  />
+
+                  {/* Final high-res image */}
+                  <img
+                    src={getR2ImageUrl(selectedImage)}
+                    alt={selectedImage.originalFilename || ''}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      transition: 'opacity 0.3s ease',
+                      opacity: isLowResLoading ? 0 : 1,
+                      pointerEvents: 'none',
+                    }}
+                    onLoad={() => {
+                      setIsLowResLoading(false);
                     }}
                   />
 
