@@ -2428,20 +2428,57 @@ const handleImageClick = (index: number) => {
                   setIsCommentPlacementMode(false);
                 }}
               >
-                <div className="w-full h-full flex items-center justify-center relative">
+                <div 
+                  className="w-full h-full flex items-center justify-center"
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: selectedImage?.width && selectedImage?.height 
+                      ? `${selectedImage.width}/${selectedImage.height}` 
+                      : '16/9',
+                    overflow: 'hidden',
+                  }}
+                >
                   {isLowResLoading && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Loader2 className="h-12 w-12 animate-spin text-zinc-400" />
                     </div>
                   )}
 
+                  {/* Placeholder/low-res image */}
+                  <img
+                    src={getR2ImageUrl(selectedImage)}
+                    alt={selectedImage.originalFilename || ''}
+                    className="blur-up"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      transition: 'opacity 0.3s ease',
+                      opacity: isLowResLoading ? 1 : 0,
+                      pointerEvents: 'none',
+                    }}
+                  />
+
+                  {/* Final high-res image */}
                   <motion.img
                     src={getR2ImageUrl(selectedImage)}
                     data-src={getR2ImageUrl(selectedImage)}
                     alt={selectedImage.originalFilename || ''}
-                    className={`max-w-full max-h-full w-auto h-auto object-contain lightbox-img blur-up ${
-                      isLowResLoading ? 'opacity-0' : 'opacity-100'
-                    }`}
+                    className="lightbox-img"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      opacity: isLowResLoading ? 0 : 1,
+                      transition: 'opacity 0.3s ease',
+                    }}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
