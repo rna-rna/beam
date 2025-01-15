@@ -1593,7 +1593,7 @@ const renderGalleryControls = useCallback(() => {
       >
         <img
             key={`${image.id}-${image._status || 'final'}`}
-            src={image._isPending ? image.localUrl : image.url}
+            src={image._isPending && image.localUrl ? image.localUrl : image.url}
             alt={image.originalFilename || 'Uploaded image'}
             className={cn(
               "w-full h-auto object-contain rounded-lg blur-up block transition-opacity duration-200",
@@ -2070,6 +2070,7 @@ const handleImageClick = (index: number) => {
                   const pendingImages = pendingUploads.map((pu) => ({
                     id: `pending-${pu.id}`,
                     url: pu.localUrl,
+                    localUrl: pu.localUrl, // Ensure localUrl is set
                     originalFilename: pu.file.name,
                     width: pu.width || 800,
                     height: pu.height || 600,
@@ -2078,8 +2079,10 @@ const handleImageClick = (index: number) => {
                     stars: [],
                     _isPending: true,
                     _progress: pu.progress,
-                    _status: pu.status
+                    _status: pu.status,
+                    uploadTimestamp: pu.uploadTimestamp
                   }));
+                  console.log('Pending Images:', pendingImages);
                   const allImages = [...pendingImages, ...(gallery?.images || [])];
 
                   // Filter images based on current criteria
