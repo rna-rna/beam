@@ -1087,41 +1087,11 @@ export default function Gallery({
       // Invalidate query to refresh from server
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
 
-      // Update the query data to morph the pending item into the final item
-      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
-        if (!oldData) return oldData;
-        
-        return {
-          ...oldData,
-          images: oldData.images.map((img: any) => {
-            if (img.id === `pending-${item.id}`) {
-              // Keep some properties from the pending item for smooth transition
-              return {
-                id: img.id.replace('pending-', ''),
-                url: img.localUrl, // Keep local URL briefly for smooth transition
-                pendingRevoke: img.localUrl, // Mark for cleanup after load
-                originalFilename: item.file.name,
-                width: img.width,
-                height: img.height,
-                userStarred: false,
-                commentCount: 0,
-                stars: [],
-                _status: 'done'
-              };
-            }
-            return img;
-          })
-        };
-      });
-
-      // Start a new query to get the server data
-      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      // Once server is refreshed, clean up local state
+      setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
+      URL.revokeObjectURL(item.localUrl);
+      
       completeBatch(item.id, true);
-
-      // Clean up local preview URL after a delay to allow smooth transition
-      setTimeout(() => {
-        setPendingUploads((prev) => prev.filter((u) => u.id !== item.id));
-      }, 800);
     } catch (error) {
       console.error("uploadSingleFile error:", error);
       setPendingUploads((prev) =>
@@ -1735,9 +1705,6 @@ export default function Gallery({
               ? "border-2 border-dashed border-gray-200 border-opacity-50"
               : ""
           }`}
-          style={{
-            aspectRatio: image.width && image.height ? `${image.width}/${image.height}` : '4/3'
-          }}
           onClick={(e) => {
             if (isReorderMode) {
               e.stopPropagation();
@@ -1748,21 +1715,17 @@ export default function Gallery({
               : handleImageClick(index);
           }}
         >
-          <motion.img
-            key={image.id}
-            src={image._isPending ? image.localUrl : image.url}
+          <img
+            key={`${image.id}-${image._status || "final"}`}
+            src={image._isPending && image.localUrl ? image.localUrl : image.url}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
-              "w-full h-full object-cover absolute inset-0 rounded-lg blur-up block",
+              "w-full h-auto object-contain rounded-lg blur-up block transition-opacity duration-200",
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50",
+              image._isPending && "opacity-80",
               image._status === "error" && "opacity-50",
             )}
-            initial={{ opacity: 0.3 }}
-            animate={{ 
-              opacity: image._isPending ? 0.8 : 1,
-              transition: { duration: 0.4 }
-            }}
             loading="lazy"
             onLoad={(e) => {
               const img = e.currentTarget;
@@ -1793,9 +1756,6 @@ export default function Gallery({
               }
             }}
             draggable={false}
-            style={{
-              transition: "opacity 0.4s ease-in-out"
-            }}
           />
           {image._isPending && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
