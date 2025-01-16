@@ -1,6 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
 import { SignedIn, SignedOut, useUser, useAuth, useClerk } from "@clerk/clerk-react";
-import { AnimatePresence } from "framer-motion";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
@@ -20,9 +19,6 @@ import GlobalUploadProgress from "./components/GlobalUploadProgress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card"; // Added import for Card and CardContent
 import { AlertCircle } from "lucide-react";
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
@@ -171,15 +167,9 @@ function AppContent() {
 
   if (gallerySlug && isGalleryLoading) {
     return (
-      <Layout
-        title="Loading Gallery..."
-        onTitleChange={handleTitleUpdate}
-        actions={headerActions}
-      >
-        <div className="min-h-[50vh] flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </Layout>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
@@ -209,22 +199,15 @@ function AppContent() {
   }
 
   return (
-    <Layout
-      title={gallery?.title}
-      onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
-      actions={headerActions}
-    >
-      <div className="min-h-screen w-full">
-          <AnimatePresence mode="wait">
-            <Switch>
-        <Route path="/new">
-          <SignedIn>
-            <NewGallery />
-          </SignedIn>
-          <SignedOut>
-            <Home />
-          </SignedOut>
-          </Route>
+    <Switch>
+      <Route path="/new">
+        <SignedIn>
+          <NewGallery />
+        </SignedIn>
+        <SignedOut>
+          <Home />
+        </SignedOut>
+      </Route>
       <Route path="/">
         <SignedIn>
           <Dashboard />
@@ -245,7 +228,9 @@ function AppContent() {
 
       <Route path="/settings">
         <ProtectedRoute>
-          <Settings />
+          <Layout>
+            <Settings />
+          </Layout>
         </ProtectedRoute>
       </Route>
 
@@ -257,23 +242,24 @@ function AppContent() {
 
       <Route path="/g/:slug">
         {(params) => (
-          <Gallery
-            slug={params.slug}
-            onHeaderActionsChange={setHeaderActions}
+          <Layout
             title={gallery?.title || "Loading Gallery..."}
+            actions={headerActions}
             onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
-          />
+          >
+            <Gallery
+              slug={params.slug}
+              onHeaderActionsChange={setHeaderActions}
+              title={gallery?.title || "Loading Gallery..."}
+              onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
+            />
+          </Layout>
         )}
       </Route>
-      <Route path="/about">
+      <Route path="/about"> {/* Added About route */}
         <About />
       </Route>
-
-      
-        </Switch>
-          </AnimatePresence>
-      </div>
-    </Layout>
+    </Switch>
   );
 }
 
@@ -291,9 +277,7 @@ export default function App() {
   return (
     <UploadProvider>
       <GlobalUploadProgress />
-      <DndProvider backend={HTML5Backend}>
-        <AppContent />
-      </DndProvider>
+      <AppContent />
     </UploadProvider>
   );
 }
