@@ -95,7 +95,7 @@ export function DashboardSidebar() {
               <Button
                 variant="ghost"
                 className="w-full justify-start group-hover:pr-8"
-                onClick={() => setLocation(`?folder=${folder.id}`)}
+                onClick={() => setLocation(`/dashboard?folder=${folder.id}`)}
               >
                 <FolderOpen className="mr-2 h-4 w-4" />
                 {folder.name}
