@@ -11,7 +11,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { FolderOpen, FolderPlus, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function MainContentV2() {
+export function MainContent() {
   const [, setLocation] = useLocation();
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState("created");
@@ -35,12 +35,12 @@ export function MainContentV2() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folderId })
       });
-      
+
       if (!res.ok) throw new Error('Failed to move gallery');
-      
+
       await queryClient.invalidateQueries(['/api/galleries']);
       await queryClient.invalidateQueries(['/api/folders']);
-      
+
       toast({
         title: "Gallery moved",
         description: "Gallery has been moved to the selected folder"
@@ -79,7 +79,6 @@ export function MainContentV2() {
       const bTime = b.lastViewedAt ? new Date(b.lastViewedAt).getTime() : 0;
       const aTime = a.lastViewedAt ? new Date(a.lastViewedAt).getTime() : 0;
       if (bTime === 0 && aTime === 0) {
-        // If neither has been viewed, fall back to creation date
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
       return bTime - aTime;
@@ -94,13 +93,11 @@ export function MainContentV2() {
 
   const handleGalleryClick = async (gallery: Gallery, event: React.MouseEvent) => {
     event.preventDefault();
-    
+
     if (clickTimerRef.current) {
-      // Double click detected
       clearTimeout(clickTimerRef.current);
       clickTimerRef.current = null;
-      
-      // Update last viewed timestamp
+
       try {
         await fetch(`/api/galleries/${gallery.slug}/view`, {
           method: 'POST',
@@ -110,13 +107,12 @@ export function MainContentV2() {
       } catch (error) {
         console.error('Failed to update view timestamp:', error);
       }
-      
+
       setLocation(`/g/${gallery.slug}`);
     } else {
-      // Set timer for single click
       clickTimerRef.current = setTimeout(() => {
         if (event.shiftKey || event.metaKey || event.ctrlKey) {
-          setSelectedGalleries(prev => 
+          setSelectedGalleries(prev =>
             prev.includes(gallery.id) ? prev.filter(gid => gid !== gallery.id) : [...prev, gallery.id]
           );
         } else {
@@ -195,7 +191,6 @@ export function MainContentV2() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {/* New Gallery Card */}
               <Card className="group hover:shadow-lg transition-all duration-200 bg-muted/50">
                 <Button
                   variant="ghost"
@@ -227,8 +222,8 @@ export function MainContentV2() {
                     ref={dragRef}
                     key={gallery.id}
                     className={`overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer ${
-                      selectedGalleries.includes(gallery.id) 
-                        ? "ring-2 ring-blue-500 shadow-lg shadow-blue-500/20" 
+                      selectedGalleries.includes(gallery.id)
+                        ? "ring-2 ring-blue-500 shadow-lg shadow-blue-500/20"
                         : "hover:ring-1 hover:ring-blue-500/20"
                     } ${isDragging ? "opacity-50" : ""}`}
                     onClick={(e) => handleGalleryClick(gallery, e)}
