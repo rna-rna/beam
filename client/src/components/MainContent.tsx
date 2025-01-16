@@ -6,7 +6,14 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FolderOpen, FolderPlus, Clock, Image as ImageIcon } from "lucide-react";
+import { FolderOpen, FolderPlus, Clock, Image as ImageIcon, Share, Pencil, Trash2 } from "lucide-react";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import { CustomDragLayer } from "./CustomDragLayer";
 
@@ -15,6 +22,10 @@ export function MainContent() {
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState("created");
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedGalleryId, setSelectedGalleryId] = useState<number | null>(null);
   const params = new URLSearchParams(location.split("?")[1] || "");
   const folderParam = params.get("folder");
   const currentFolder = folderParam ? parseInt(folderParam, 10) : null;
@@ -152,10 +163,12 @@ export function MainContent() {
                   }), [selectedGalleries]);
 
                   return (
-                    <Card
-                      ref={dragRef}
-                      key={gallery.id}
-                      onClick={(e) => {
+                    <ContextMenu>
+                      <ContextMenuTrigger>
+                        <Card
+                          ref={dragRef}
+                          key={gallery.id}
+                          onClick={(e) => {
                         if (!e.shiftKey) {
                           setSelectedGalleries([gallery.id]);
                           setLastSelectedId(gallery.id);
@@ -202,6 +215,42 @@ export function MainContent() {
                         <p className="text-sm text-muted-foreground">{gallery.imageCount} images</p>
                       </div>
                     </Card>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem onSelect={() => setLocation(`/g/${gallery.slug}`)}>
+                          <FolderOpen className="mr-2 h-4 w-4" />
+                          Open
+                        </ContextMenuItem>
+                        <ContextMenuItem onSelect={() => {
+                          // Trigger share modal via state
+                          setShareModalOpen(true);
+                          setSelectedGalleryId(gallery.id);
+                        }}>
+                          <Share className="mr-2 h-4 w-4" />
+                          Share
+                        </ContextMenuItem>
+                        <ContextMenuItem onSelect={() => {
+                          // Trigger rename modal via state
+                          setRenameModalOpen(true);
+                          setSelectedGalleryId(gallery.id);
+                        }}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Rename
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                          onSelect={() => {
+                            // Trigger delete modal via state
+                            setDeleteModalOpen(true);
+                            setSelectedGalleryId(gallery.id);
+                          }}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
                   );
                 })}
               </div>
