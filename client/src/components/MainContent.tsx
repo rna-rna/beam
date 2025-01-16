@@ -14,6 +14,8 @@ export function MainContent() {
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState("created");
+  const [selectedImages, setSelectedImages] = useState<number[]>([]); // Added
+  const [selectMode, setSelectMode] = useState(false); // Added
   const params = new URLSearchParams(location.split("?")[1] || "");
   const folderParam = params.get("folder");
   const currentFolder = folderParam ? parseInt(folderParam, 10) : null;
@@ -67,9 +69,9 @@ export function MainContent() {
 
   const [{ isOver }, dropRef] = useDrop({
     accept: "GALLERY",
-    drop: (item: { id: number }) => {
+    drop: (item: { selectedIds: number[] }) => { // Updated drop type
       if (currentFolder) {
-        handleMoveGallery(item.id, currentFolder);
+        handleMoveGallery(item.selectedIds, currentFolder); // Updated
       }
     },
     collect: (monitor) => ({
@@ -77,15 +79,17 @@ export function MainContent() {
     })
   });
 
-  const handleMoveGallery = async (galleryId: number, folderId: number) => {
+  const handleMoveGallery = async (galleryIds: number[], folderId: number) => { // Updated
     try {
-      const res = await fetch(`/api/galleries/${galleryId}/move`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderId })
-      });
+      await Promise.all(galleryIds.map(async (galleryId) => { // Updated for multiple galleries
+        const res = await fetch(`/api/galleries/${galleryId}/move`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderId })
+        });
 
-      if (!res.ok) throw new Error('Failed to move gallery');
+        if (!res.ok) throw new Error('Failed to move gallery');
+      }));
       await queryClient.invalidateQueries(['/api/galleries']);
     } catch (error) {
       console.error('Failed to move gallery:', error);
@@ -130,7 +134,10 @@ export function MainContent() {
                 {displayedGalleries.map((gallery) => {
                   const [{ isDragging }, dragRef] = useDrag(() => ({
                     type: "GALLERY",
-                    item: { id: gallery.id },
+                    canDrag: () => selectedImages.includes(gallery.id) || !selectMode,
+                    item: () => ({
+                      selectedIds: selectedImages.includes(gallery.id) ? selectedImages : [gallery.id]
+                    }),
                     collect: (monitor) => ({
                       isDragging: monitor.isDragging(),
                     }),
@@ -152,8 +159,8 @@ export function MainContent() {
                           const rangeIds = galleries.slice(start, end + 1).map(g => g.id);
                           setSelectedGalleries(rangeIds);
                         } else {
-                          setSelectedGalleries(prev => 
-                            prev.includes(gallery.id) 
+                          setSelectedGalleries(prev =>
+                            prev.includes(gallery.id)
                               ? prev.filter(id => id !== gallery.id)
                               : [...prev, gallery.id]
                           );
