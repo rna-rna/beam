@@ -26,7 +26,7 @@ export function RenameGalleryModal({ isOpen, onClose, galleryId, currentTitle }:
     setIsRenaming(true);
     
     try {
-      const res = await fetch(`/api/galleries/${galleryId}/title`, {
+      const res = await fetch(`/api/galleries/${gallery.slug}/title`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim() }),
