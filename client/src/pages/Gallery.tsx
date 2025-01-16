@@ -1073,7 +1073,8 @@ export default function Gallery({
             height,
           };
 
-          setImages((prev) => [...prev, newItem]);
+          // Always add new uploads at the start
+          setImages((prev) => [newItem, ...prev]);
           uploadSingleFile(file, tmpId);
         };
         imageEl.src = localUrl;
