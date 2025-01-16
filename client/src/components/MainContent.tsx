@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
@@ -65,7 +64,7 @@ export function MainContent() {
       }
     },
     collect: (monitor) => ({
-      isOver: monitor.isDragging()
+      isOver: monitor.isOver()
     })
   });
 
