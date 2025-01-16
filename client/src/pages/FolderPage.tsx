@@ -54,23 +54,21 @@ export function FolderPage() {
   }
 
   return (
+    <Layout
+      title={folder.name}
+      onTitleChange={async (newName) => {
+        const res = await fetch(`/api/folders/${folder.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName })
+        });
+        if (!res.ok) throw new Error('Failed to update folder name');
+      }}
+    >
     <div className="flex h-screen overflow-hidden">
       <DashboardSidebar />
       <div className="flex-1 flex flex-col overflow-auto">
-        <header className="border-b px-6 py-4">
-          <InlineEdit
-            value={folder.name}
-            onSave={async (newName) => {
-              const res = await fetch(`/api/folders/${folder.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newName })
-              });
-              if (!res.ok) throw new Error('Failed to update folder name');
-            }}
-            className="text-2xl font-semibold"
-          />
-        </header>
+        <div className="p-6">
 
         <div className="p-6">
           {folderGalleries.length === 0 ? (
@@ -104,5 +102,6 @@ export function FolderPage() {
         </div>
       </div>
     </div>
+    </Layout>
   );
 }
