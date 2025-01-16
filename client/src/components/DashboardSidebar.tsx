@@ -19,23 +19,53 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export function DashboardSidebar() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
-  const [{ isOver }, dropRef] = useDrop(() => ({
+  const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
+    try {
+      await Promise.all(galleryIds.map(async (galleryId) => {
+        const res = await fetch(`/api/galleries/${galleryId}/move`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderId })
+        });
+
+        if (!res.ok) throw new Error('Failed to move gallery');
+      }));
+      
+      await queryClient.invalidateQueries(['/api/galleries']);
+      toast({
+        title: "Success",
+        description: "Galleries moved successfully"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to move galleries",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const [{ isOver }, dropRef] = useDrop({
     accept: "GALLERY",
-    drop: (item: { id: number }) => {
-      console.log(`Gallery ${item.id} dropped into folder`);
-      // TODO: Implement gallery move logic
+    drop: (item: { selectedIds: number[] }, monitor) => {
+      if (folder?.id) {
+        handleMoveGallery(item.selectedIds, folder.id);
+      }
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
-  }));
+      isOver: monitor.isOver()
+    })
+  });
 
   const { data: folders } = useQuery({
     queryKey: ['folders'],
@@ -77,7 +107,10 @@ export function DashboardSidebar() {
   });
 
   return (
-    <div className="w-64 bg-card border-r border-border h-screen flex flex-col" ref={dropRef}>
+    <div ref={dropRef} className={cn(
+      "w-64 bg-card border-r border-border h-screen flex flex-col",
+      isOver && "bg-accent/20"
+    )}>
       <div className="shrink-0 p-4 border-b border-border">
         <Button 
           variant="ghost" 
@@ -161,61 +194,6 @@ export function DashboardSidebar() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-import { useDrop } from "react-dnd";
-import { useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-
-export function DashboardSidebar() {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  
-  const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
-    try {
-      await Promise.all(galleryIds.map(async (galleryId) => {
-        const res = await fetch(`/api/galleries/${galleryId}/move`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folderId })
-        });
-
-        if (!res.ok) throw new Error('Failed to move gallery');
-      }));
-      
-      await queryClient.invalidateQueries(['/api/galleries']);
-      toast({
-        title: "Success",
-        description: "Galleries moved successfully"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to move galleries",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const [{ isOver }, dropRef] = useDrop({
-    accept: "GALLERY",
-    drop: (item: { selectedIds: number[] }, monitor) => {
-      if (folder?.id) {
-        handleMoveGallery(item.selectedIds, folder.id);
-      }
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver()
-    })
-  });
-
-  return (
-    <div ref={dropRef} className={cn(
-      "pb-12 w-64 border-r bg-background",
-      isOver && "bg-accent/20"
-    )}>
-      {/* Existing sidebar content */}
     </div>
   );
 }
