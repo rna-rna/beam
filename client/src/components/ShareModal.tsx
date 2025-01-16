@@ -173,9 +173,24 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
             <p>Anyone with the link</p>
             <Select
               value={linkPermission}
-              onValueChange={(value) => {
+              onValueChange={async (value) => {
                 setLinkPermission(value);
-                onVisibilityChange(value !== "none");
+                try {
+                  const res = await fetch(`/api/galleries/${slug}/visibility`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isPublic: value !== "none" })
+                  });
+                  
+                  if (!res.ok) throw new Error('Failed to update visibility');
+                  onVisibilityChange(value !== "none");
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description: "Failed to update gallery visibility",
+                    variant: "destructive"
+                  });
+                }
               }}
             >
               <SelectTrigger className="w-32">

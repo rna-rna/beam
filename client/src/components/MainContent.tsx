@@ -6,15 +6,29 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FolderOpen, FolderPlus, Clock, Image as ImageIcon } from "lucide-react";
+import { FolderOpen, FolderPlus, Clock, Image as ImageIcon, Share, Pencil, Trash2 } from "lucide-react";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import { CustomDragLayer } from "./CustomDragLayer";
+import { ShareModal } from "./ShareModal";
+import { RenameGalleryModal } from "./RenameGalleryModal";
+import { DeleteGalleryModal } from "./DeleteGalleryModal";
 
 export function MainContent() {
   const [location, setLocation] = useLocation();
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState("created");
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedGallery, setSelectedGallery] = useState<{ id: number; title: string; slug: string } | null>(null);
   const params = new URLSearchParams(location.split("?")[1] || "");
   const folderParam = params.get("folder");
   const currentFolder = folderParam ? parseInt(folderParam, 10) : null;
@@ -60,9 +74,13 @@ export function MainContent() {
     return 0;
   });
 
-  const displayedGalleries = currentFolder
-    ? sortedGalleries.filter((gallery) => gallery.folderId === currentFolder)
-    : sortedGalleries;
+  const view = params.get("view");
+
+  const displayedGalleries = view === "trash" 
+    ? sortedGalleries.filter(gallery => gallery.deleted_at)
+    : currentFolder
+      ? sortedGalleries.filter((gallery) => gallery.folderId === currentFolder && !gallery.deleted_at)
+      : sortedGalleries.filter(gallery => !gallery.deleted_at);
 
 
 
@@ -125,8 +143,17 @@ export function MainContent() {
             {displayedGalleries.length === 0 ? (
               <div className="flex items-center justify-center h-[calc(100vh-200px)]">
                 <div className="text-center text-muted-foreground">
-                  <FolderPlus className="w-12 h-12 mx-auto mb-4" />
-                  <p>This folder is empty</p>
+                  {view === "trash" ? (
+                    <>
+                      <Trash2 className="w-12 h-12 mx-auto mb-4" />
+                      <p>Trash is empty</p>
+                    </>
+                  ) : (
+                    <>
+                      <FolderPlus className="w-12 h-12 mx-auto mb-4" />
+                      <p>This folder is empty</p>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (
@@ -152,10 +179,12 @@ export function MainContent() {
                   }), [selectedGalleries]);
 
                   return (
-                    <Card
-                      ref={dragRef}
-                      key={gallery.id}
-                      onClick={(e) => {
+                    <ContextMenu>
+                      <ContextMenuTrigger>
+                        <Card
+                          ref={dragRef}
+                          key={gallery.id}
+                          onClick={(e) => {
                         if (!e.shiftKey) {
                           setSelectedGalleries([gallery.id]);
                           setLastSelectedId(gallery.id);
@@ -202,6 +231,39 @@ export function MainContent() {
                         <p className="text-sm text-muted-foreground">{gallery.imageCount} images</p>
                       </div>
                     </Card>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem onSelect={() => setLocation(`/g/${gallery.slug}`)}>
+                          <FolderOpen className="mr-2 h-4 w-4" />
+                          Open
+                        </ContextMenuItem>
+                        <ContextMenuItem onSelect={() => {
+                          setShareModalOpen(true);
+                          setSelectedGallery({ id: gallery.id, title: gallery.title, slug: gallery.slug });
+                        }}>
+                          <Share className="mr-2 h-4 w-4" />
+                          Share
+                        </ContextMenuItem>
+                        <ContextMenuItem onSelect={() => {
+                          setRenameModalOpen(true);
+                          setSelectedGallery({ id: gallery.id, title: gallery.title, slug: gallery.slug });
+                        }}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Rename
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                          onSelect={() => {
+                            setDeleteModalOpen(true);
+                            setSelectedGallery({ id: gallery.id, title: gallery.title, slug: gallery.slug });
+                          }}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
                   );
                 })}
               </div>
@@ -212,5 +274,46 @@ export function MainContent() {
     );
   };
 
-  return renderContent();
+  return (
+    <>
+      {renderContent()}
+
+      {selectedGallery && (
+        <>
+          <ShareModal 
+            isOpen={shareModalOpen}
+            onClose={() => {
+              setShareModalOpen(false);
+              setSelectedGallery(null);
+            }}
+            galleryUrl={`${window.location.origin}/g/${selectedGallery.slug}`}
+            slug={selectedGallery.slug}
+            isPublic={false}
+            onVisibilityChange={() => {}}
+          />
+
+          <RenameGalleryModal
+            isOpen={renameModalOpen}
+            onClose={() => {
+              setRenameModalOpen(false);
+              setSelectedGallery(null);
+            }}
+            galleryId={selectedGallery.id}
+            currentTitle={selectedGallery.title}
+            slug={selectedGallery.slug}
+          />
+
+          <DeleteGalleryModal
+            isOpen={deleteModalOpen}
+            onClose={() => {
+              setDeleteModalOpen(false);
+              setSelectedGallery(null);
+            }}
+            gallerySlug={selectedGallery.slug}
+            galleryTitle={selectedGallery.title}
+          />
+        </>
+      )}
+    </>
+  );
 }

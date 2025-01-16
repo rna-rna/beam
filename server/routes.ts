@@ -946,21 +946,10 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Delete the gallery and all associated records
-      await db.transaction(async (tx) => {
-        // Delete recently viewed records first
-        await tx.execute(
-          sql`DELETE FROM recently_viewed_galleries WHERE gallery_id = ${gallery.id}`
-        );
-
-        // Delete all images in the gallery
-        await tx.delete(images)
-          .where(eq(images.galleryId, gallery.id));
-
-        // Finally delete the gallery itself
-        await tx.delete(galleries)
-          .where(eq(galleries.id, gallery.id));
-      });
+      // Soft delete by setting deleted_at timestamp
+      await db.update(galleries)
+        .set({ deleted_at: new Date().toISOString() })
+        .where(eq(galleries.id, gallery.id));
 
       res.json({ success: true });
     } catch (error) {
