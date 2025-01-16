@@ -1027,15 +1027,24 @@ export default function Gallery({
         );
 
         // Invalidate the query and check for server item
-        queryClient.invalidateQueries([`/api/galleries/${slug}`], {
-          onSuccess: (data: GalleryType) => {
-            if (data?.images?.some(img => img.id === imageId)) {
-              // Server has the new image, safe to remove placeholder
-              setImages(prev => prev.filter(item => item.id !== tmpId));
-              completeBatch(addBatchId, true);
-            }
-          }
-        });
+        // Replace the placeholder with the real image data
+        setImages(prev => 
+          prev.map(item => 
+            item.id === tmpId
+              ? {
+                  ...item,
+                  id: imageId,
+                  url: publicUrl,
+                  status: 'complete',
+                  _status: 'complete'
+                }
+              : item
+          )
+        );
+        
+        // Still invalidate queries to get any server-side updates
+        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+        completeBatch(addBatchId, true);
       };
       img.src = publicUrl;
 
