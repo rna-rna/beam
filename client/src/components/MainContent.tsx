@@ -13,9 +13,17 @@ export function MainContent() {
   const [location, setLocation] = useLocation();
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState("created");
-  const params = new URLSearchParams(location.split("?")[1]);
+  const params = new URLSearchParams(location.split("?")[1] || "");
   const folderParam = params.get("folder");
   const currentFolder = folderParam ? parseInt(folderParam, 10) : null;
+
+  // Debug logging
+  console.log({
+    location,
+    folderParam,
+    currentFolder,
+    displayedGalleries: galleries?.filter(g => g.folderId === currentFolder)
+  });
   const queryClient = useQueryClient();
 
   const { data: folders = [] } = useQuery({
@@ -54,7 +62,7 @@ export function MainContent() {
     ? sortedGalleries.filter((gallery) => gallery.folderId === currentFolder)
     : sortedGalleries;
 
-  
+
 
   const [{ isOver }, dropRef] = useDrop({
     accept: "GALLERY",
