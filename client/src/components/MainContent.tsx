@@ -309,7 +309,7 @@ export function MainContent() {
               setDeleteModalOpen(false);
               setSelectedGallery(null);
             }}
-            galleryId={selectedGallery.id}
+            gallerySlug={selectedGallery.slug}
             galleryTitle={selectedGallery.title}
           />
         </>

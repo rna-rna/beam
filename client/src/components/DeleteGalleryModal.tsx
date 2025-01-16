@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react";
 interface DeleteGalleryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  galleryId: number;
+  gallerySlug: string;
   galleryTitle: string;
 }
 
@@ -21,7 +21,7 @@ export function DeleteGalleryModal({ isOpen, onClose, galleryId, galleryTitle }:
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/galleries/${galleryId}`, {
+      const res = await fetch(`/api/galleries/${galleryTitle}`, {
         method: "DELETE",
       });
 
