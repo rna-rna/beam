@@ -14,8 +14,6 @@ export function MainContent() {
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState("created");
-  const [selectedImages, setSelectedImages] = useState<number[]>([]); // Added
-  const [selectMode, setSelectMode] = useState(false); // Added
   const params = new URLSearchParams(location.split("?")[1] || "");
   const folderParam = params.get("folder");
   const currentFolder = folderParam ? parseInt(folderParam, 10) : null;
@@ -134,14 +132,14 @@ export function MainContent() {
                 {displayedGalleries.map((gallery) => {
                   const [{ isDragging }, dragRef] = useDrag(() => ({
                     type: "GALLERY",
-                    canDrag: () => selectedImages.includes(gallery.id) || !selectMode,
+                    canDrag: () => selectedGalleries.includes(gallery.id) || selectedGalleries.length === 0,
                     item: () => ({
-                      selectedIds: selectedImages.includes(gallery.id) ? selectedImages : [gallery.id]
+                      selectedIds: selectedGalleries.includes(gallery.id) ? selectedGalleries : [gallery.id]
                     }),
                     collect: (monitor) => ({
                       isDragging: monitor.isDragging(),
                     }),
-                  }));
+                  }), [selectedGalleries]);
 
                   return (
                     <Card
