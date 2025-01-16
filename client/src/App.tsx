@@ -89,7 +89,7 @@ function AppContent() {
     queryKey: gallerySlug ? ['gallery', gallerySlug] : null,
     queryFn: async ({ queryKey }) => {
       const slug = queryKey[1];
-      if (!slug) return null;
+      if (!slug) return { id: 0, slug: '', title: '', images: [] };
       
       const token = await getToken();
       const headers: HeadersInit = {
@@ -99,27 +99,32 @@ function AppContent() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const res = await fetch(`/api/galleries/${slug}`, {
-        headers,
-        cache: 'no-store',
-        credentials: 'include'
-      });
       
-      if (!res.ok) {
-        if (res.status === 404) {
-          throw new Error('Gallery not found');
+      try {
+        const res = await fetch(`/api/galleries/${slug}`, {
+          headers,
+          cache: 'no-store',
+          credentials: 'include'
+        });
+        
+        if (!res.ok) {
+          if (res.status === 404) {
+            throw new Error('Gallery not found');
+          }
+          if (res.status === 403) {
+            throw new Error('This gallery is private');
+          }
+          throw new Error('Failed to fetch gallery');
         }
-        if (res.status === 403) {
-          throw new Error('This gallery is private');
+        
+        const data = await res.json();
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid gallery data received');
         }
-        throw new Error('Failed to fetch gallery');
+        return data;
+      } catch (error) {
+        throw error;
       }
-      
-      const data = await res.json();
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid gallery data received');
-      }
-      return data;
     },
     enabled: !!gallerySlug,
     staleTime: 0, 
