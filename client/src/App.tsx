@@ -86,9 +86,10 @@ function AppContent() {
 
   // Query for specific gallery when on gallery page
   const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
-    queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : null,
+    queryKey: gallerySlug ? ['gallery', gallerySlug] : null,
     queryFn: async ({ queryKey }) => {
       const [_, slug] = queryKey;
+      if (!slug) return null;
       const token = await getToken();
       const headers: HeadersInit = {
         'Cache-Control': 'no-cache',
@@ -97,7 +98,7 @@ function AppContent() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const res = await fetch(`/api/galleries/${slug}`, {
+      const res = await fetch(`/api/galleries/${gallerySlug}`, {
         headers,
         cache: 'no-store',
         credentials: 'include'
