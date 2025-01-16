@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { AnimatePresence } from "framer-motion";
 import { SquarePlus, Home } from "lucide-react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { LoginButton } from "@/components/LoginButton";
 import { InlineEdit } from "@/components/InlineEdit";
@@ -29,6 +30,7 @@ export function Layout({
   toggleSelectMode 
 }: LayoutProps) {
   const { isDark } = useTheme();
+  const [, setLocation] = useLocation();
 
   return (
     <div className={cn("min-h-screen w-full", isDark ? "bg-black" : "bg-white")}>
@@ -62,7 +64,7 @@ export function Layout({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => window.location.href = "/new"}
+              onClick={() => setLocation("/new")}
               title="Create new gallery"
             >
               <SquarePlus className="h-4 w-4" />
@@ -70,7 +72,7 @@ export function Layout({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => window.location.href = "/dashboard"}
+              onClick={() => setLocation("/dashboard")}
               title="Go to dashboard"
             >
               <Home className="h-4 w-4" />
@@ -83,7 +85,7 @@ export function Layout({
               <div className="flex items-center gap-2">
                 <Button 
                   variant="secondary" 
-                  onClick={() => window.location.href = "/sign-up"}
+                  onClick={() => setLocation("/sign-up")}
                   className="text-sm"
                 >
                   Sign Up
