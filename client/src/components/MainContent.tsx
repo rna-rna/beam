@@ -16,14 +16,6 @@ export function MainContent() {
   const params = new URLSearchParams(location.split("?")[1] || "");
   const folderParam = params.get("folder");
   const currentFolder = folderParam ? parseInt(folderParam, 10) : null;
-
-  // Debug logging
-  console.log({
-    location,
-    folderParam,
-    currentFolder,
-    displayedGalleries: galleries?.filter(g => g.folderId === currentFolder)
-  });
   const queryClient = useQueryClient();
 
   const { data: folders = [] } = useQuery({
@@ -42,6 +34,14 @@ export function MainContent() {
       if (!res.ok) throw new Error("Failed to fetch galleries");
       return res.json();
     },
+  });
+
+  // Debug logging
+  console.log({
+    location,
+    folderParam,
+    currentFolder,
+    displayedGalleries: galleries?.filter(g => g.folderId === currentFolder)
   });
 
   const sortedGalleries = [...(galleries || [])].sort((a, b) => {
