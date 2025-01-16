@@ -10,10 +10,9 @@ import { FolderOpen, FolderPlus, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function MainContent() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState("created");
-  const [location] = useLocation();
   const params = new URLSearchParams(location.split("?")[1]);
   const folderParam = params.get("folder");
   const currentFolder = folderParam ? parseInt(folderParam, 10) : null;
