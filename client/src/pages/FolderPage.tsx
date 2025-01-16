@@ -1,5 +1,6 @@
 
 import { useRoute } from "wouter";
+import { InlineEdit } from "@/components/InlineEdit";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { Card } from "@/components/ui/card";
@@ -57,7 +58,18 @@ export function FolderPage() {
       <DashboardSidebar />
       <div className="flex-1 flex flex-col">
         <header className="border-b px-6 py-4">
-          <h1 className="text-2xl font-semibold">{folder.name}</h1>
+          <InlineEdit
+            value={folder.name}
+            onSave={async (newName) => {
+              const res = await fetch(`/api/folders/${folder.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+              });
+              if (!res.ok) throw new Error('Failed to update folder name');
+            }}
+            className="text-2xl font-semibold"
+          />
         </header>
 
         <div className="p-6">
