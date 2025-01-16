@@ -4,7 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images, comments, stars } from '@db/schema';
+import { galleries, images, comments, stars, folders, galleryFolders } from '@db/schema';
 import { eq, and, sql, inArray, or, desc } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { clerkClient } from '@clerk/clerk-sdk-node';
@@ -1940,6 +1940,134 @@ export function registerRoutes(app: Express): Server {
         error: 'Failed to generate upload URL',
         details: err instanceof Error ? err.message : 'Unknown error',
       });
+    }
+  });
+
+  // Folder endpoints
+  protectedRouter.post('/folders', async (req, res) => {
+    try {
+      const { name } = req.body;
+      const userId = req.auth.userId;
+
+      const [folder] = await db.insert(folders)
+        .values({ name, userId })
+        .returning();
+
+      res.json(folder);
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+      res.status(500).json({ message: 'Failed to create folder' });
+    }
+  });
+
+  protectedRouter.get('/folders', async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+      const userFolders = await db.query.folders.findMany({
+        where: eq(folders.userId, userId),
+        orderBy: (folders, { desc }) => [desc(folders.createdAt)]
+      });
+
+      const foldersWithCounts = await Promise.all(
+        userFolders.map(async (folder) => {
+          const count = await db.select({ count: sql<number>`count(*)` })
+            .from(galleryFolders)
+            .where(eq(galleryFolders.folderId, folder.id));
+          
+          return {
+            ...folder,
+            galleryCount: Number(count[0].count)
+          };
+        })
+      );
+
+      res.json(foldersWithCounts);
+    } catch (error) {
+      console.error('Failed to fetch folders:', error);
+      res.status(500).json({ message: 'Failed to fetch folders' });
+    }
+  });
+
+  protectedRouter.put('/folders/:id', async (req, res) => {
+    try {
+      const { name } = req.body;
+      const userId = req.auth.userId;
+      const folderId = parseInt(req.params.id);
+
+      const [updated] = await db.update(folders)
+        .set({ name })
+        .where(and(
+          eq(folders.id, folderId),
+          eq(folders.userId, userId)
+        ))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: 'Folder not found' });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Failed to update folder:', error);
+      res.status(500).json({ message: 'Failed to update folder' });
+    }
+  });
+
+  protectedRouter.delete('/folders/:id', async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+      const folderId = parseInt(req.params.id);
+
+      await db.transaction(async (tx) => {
+        await tx.delete(galleryFolders)
+          .where(eq(galleryFolders.folderId, folderId));
+
+        const [deleted] = await tx.delete(folders)
+          .where(and(
+            eq(folders.id, folderId),
+            eq(folders.userId, userId)
+          ))
+          .returning();
+
+        if (!deleted) {
+          throw new Error('Folder not found');
+        }
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to delete folder:', error);
+      res.status(500).json({ message: 'Failed to delete folder' });
+    }
+  });
+
+  // Gallery folder assignment endpoints
+  protectedRouter.post('/galleries/:id/folder/:folderId', async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+      const galleryId = parseInt(req.params.id);
+      const folderId = parseInt(req.params.folderId);
+
+      // Verify ownership
+      const folder = await db.query.folders.findFirst({
+        where: and(
+          eq(folders.id, folderId),
+          eq(folders.userId, userId)
+        )
+      });
+
+      if (!folder) {
+        return res.status(404).json({ message: 'Folder not found' });
+      }
+
+      const [assignment] = await db.insert(galleryFolders)
+        .values({ galleryId, folderId })
+        .returning();
+
+      res.json(assignment);
+    } catch (error) {
+      console.error('Failed to assign gallery to folder:', error);
+      res.status(500).json({ message: 'Failed to assign gallery to folder' });
     }
   });
 

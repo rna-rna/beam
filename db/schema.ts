@@ -10,9 +10,12 @@ export const galleries = pgTable('galleries', {
   isPublic: boolean('is_public').default(false).notNull(),
   guestUpload: boolean('guest_upload').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  lastViewedAt: timestamp('last_viewed_at'),
   ogImageUrl: text('og_image_url'),
+  folderId: integer('folder_id').references(() => folders.id),
 }, (table) => ({
-  userIdIdx: index('galleries_user_id_idx').on(table.userId)
+  userIdIdx: index('galleries_user_id_idx').on(table.userId),
+  folderIdIdx: index('galleries_folder_id_idx').on(table.folderId)
 }));
 
 export const images = pgTable('images', {
@@ -118,6 +121,20 @@ export type Star = typeof stars.$inferSelect;
 export type NewStar = typeof stars.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
+
+export const folders = pgTable('folders', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  userId: text('user_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
+export const galleryFolders = pgTable('gallery_folders', {
+  id: serial('id').primaryKey(), 
+  galleryId: integer('gallery_id').references(() => galleries.id).notNull(),
+  folderId: integer('folder_id').references(() => folders.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
 
 export const invites = pgTable('invites', {
   id: serial('id').primaryKey(),

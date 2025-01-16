@@ -1,5 +1,6 @@
 import { Switch, Route, useLocation } from "wouter";
 import { SignedIn, SignedOut, useUser, useAuth, useClerk } from "@clerk/clerk-react";
+import { AnimatePresence } from "framer-motion";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
@@ -167,9 +168,15 @@ function AppContent() {
 
   if (gallerySlug && isGalleryLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <Layout
+        title="Loading Gallery..."
+        onTitleChange={handleTitleUpdate}
+        actions={headerActions}
+      >
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
     );
   }
 
@@ -199,15 +206,22 @@ function AppContent() {
   }
 
   return (
-    <Switch>
-      <Route path="/new">
-        <SignedIn>
-          <NewGallery />
-        </SignedIn>
-        <SignedOut>
-          <Home />
-        </SignedOut>
-      </Route>
+    <Layout
+      title={gallery?.title}
+      onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
+      actions={headerActions}
+    >
+      <div className="min-h-screen w-full">
+          <AnimatePresence mode="wait">
+            <Switch>
+        <Route path="/new">
+          <SignedIn>
+            <NewGallery />
+          </SignedIn>
+          <SignedOut>
+            <Home />
+          </SignedOut>
+          </Route>
       <Route path="/">
         <SignedIn>
           <Dashboard />
@@ -228,9 +242,7 @@ function AppContent() {
 
       <Route path="/settings">
         <ProtectedRoute>
-          <Layout>
-            <Settings />
-          </Layout>
+          <Settings />
         </ProtectedRoute>
       </Route>
 
@@ -242,24 +254,21 @@ function AppContent() {
 
       <Route path="/g/:slug">
         {(params) => (
-          <Layout
+          <Gallery
+            slug={params.slug}
+            onHeaderActionsChange={setHeaderActions}
             title={gallery?.title || "Loading Gallery..."}
-            actions={headerActions}
             onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
-          >
-            <Gallery
-              slug={params.slug}
-              onHeaderActionsChange={setHeaderActions}
-              title={gallery?.title || "Loading Gallery..."}
-              onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
-            />
-          </Layout>
+          />
         )}
       </Route>
       <Route path="/about"> {/* Added About route */}
         <About />
       </Route>
-    </Switch>
+        </Switch>
+          </AnimatePresence>
+      </div>
+    </Layout>
   );
 }
 

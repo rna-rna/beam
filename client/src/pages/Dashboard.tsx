@@ -28,13 +28,13 @@ import { useToast } from "@/hooks/use-toast";
 import type { Gallery } from "@db/schema";
 import { formatRelativeDate } from "@/lib/format-date";
 import { motion, AnimatePresence } from "framer-motion";
+import { DashboardSidebar } from "@/components/DashboardSidebar";
 
 interface GalleryWithThumbnail extends Gallery {
   thumbnailUrl: string | null;
   imageCount: number;
 }
 
-// Placeholder for LoginModal component.  Replace with your actual component.
 const LoginModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
   return (
@@ -47,7 +47,6 @@ const LoginModal = ({ isOpen, onClose }) => {
   );
 };
 
-
 export default function Dashboard() {
   const { user } = useUser();
   const { getToken } = useAuth();
@@ -56,9 +55,8 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [galleryToDelete, setGalleryToDelete] = useState<GalleryWithThumbnail | null>(null);
   const [isCreatingGallery, setIsCreatingGallery] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false); // Added state for LoginModal
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // Query galleries
   const { data: galleries = [], isLoading } = useQuery<GalleryWithThumbnail[]>({
     queryKey: ['/api/galleries'],
     queryFn: async () => {
@@ -92,7 +90,6 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // Create gallery mutation
   const createGalleryMutation = useMutation({
     mutationFn: async () => {
       setIsCreatingGallery(true);
@@ -115,10 +112,7 @@ export default function Dashboard() {
     },
     onSuccess: async (data) => {
       try {
-        // Invalidate galleries query to refresh the dashboard
         await queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
-
-        // Prefetch the new gallery data before navigation
         await queryClient.prefetchQuery({
           queryKey: [`/api/galleries/${data.slug}`],
           queryFn: async () => {
@@ -135,7 +129,6 @@ export default function Dashboard() {
           }
         });
 
-        // Navigate to the new gallery
         setLocation(`/g/${data.slug}`);
         toast({
           title: "Success",
@@ -163,7 +156,6 @@ export default function Dashboard() {
     },
   });
 
-  // Delete gallery mutation
   const deleteGalleryMutation = useMutation({
     mutationFn: async (gallery: GalleryWithThumbnail) => {
       const token = await getToken();
@@ -200,128 +192,119 @@ export default function Dashboard() {
 
   return (
     <AnimatedLayout title="My Galleries">
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {/* Create New Gallery Card */}
-          <Card className="group hover:shadow-lg transition-all duration-200">
-            <div className="aspect-[4/3] relative">
+      <div className="flex h-screen overflow-hidden">
+        <DashboardSidebar />
+        <div className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <Card className="group hover:shadow-lg transition-all duration-200 bg-muted/50">
               <Button
                 variant="ghost"
-                className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4 hover:bg-muted/50"
+                className="h-full w-full p-6"
                 onClick={() => createGalleryMutation.mutate()}
                 disabled={isCreatingGallery || createGalleryMutation.isPending}
               >
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  {isCreatingGallery ? (
-                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                  ) : (
-                    <Plus className="h-8 w-8 text-primary" />
-                  )}
-                </div>
-                <div className="text-center">
-                  <h3 className="font-semibold text-lg">
-                    {isCreatingGallery ? "Creating Gallery..." : "Create New Gallery"}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {isCreatingGallery ? "Please wait..." : "Start a new collection of images"}
-                  </p>
+                <div className="flex flex-col items-center justify-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    {isCreatingGallery ? (
+                      <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                    ) : (
+                      <Plus className="h-6 w-6 text-primary" />
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <h3 className="font-medium">
+                      {isCreatingGallery ? "Creating..." : "New Gallery"}
+                    </h3>
+                  </div>
                 </div>
               </Button>
-            </div>
-          </Card>
-
-          {/* Gallery Cards */}
-          {galleries.map((gallery) => (
-            <Card
-              key={gallery.id}
-              className="group hover:shadow-lg transition-all duration-200"
-            >
-              <div
-                className="cursor-pointer"
-                onClick={() => setLocation(`/g/${gallery.slug}`)}
-              >
-                <div className="aspect-[4/3] relative overflow-hidden">
-                  {gallery.thumbnailUrl ? (
-                    <img
-                      src={gallery.thumbnailUrl}
-                      alt={gallery.title}
-                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-                <CardContent className="pt-4">
-                  <h3 className="text-lg font-semibold line-clamp-1 mb-1">
-                    {gallery.title}
-                  </h3>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Grid className="w-4 h-4" />
-                    <span>{gallery.imageCount} images</span>
-                    <span className="mx-2">•</span>
-                    <Clock className="w-4 h-4" />
-                    <span>{formatRelativeDate(gallery.createdAt)}</span>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setGalleryToDelete(gallery);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Gallery</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{gallery.title}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel onClick={(e) => {
-                            e.stopPropagation();
-                            setGalleryToDelete(null);
-                          }}>
-                            Cancel
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteGalleryMutation.mutate(gallery);
-                            }}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </CardContent>
-              </div>
             </Card>
-          ))}
-        </div>
 
-        {/* Empty State */}
-        {galleries.length === 0 && !isLoading && (
-          <div className="text-center mt-12">
-            <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
-            <h3 className="mt-4 text-lg font-medium text-foreground">No galleries yet</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Create your first gallery to start organizing your images.
-            </p>
+            {galleries.map((gallery) => (
+              <Card
+                key={gallery.id}
+                className="overflow-hidden hover:shadow-lg transition-all duration-200"
+              >
+                <div 
+                  className="cursor-pointer"
+                  onClick={() => setLocation(`/g/${gallery.slug}`)}
+                >
+                  <div className="aspect-square relative bg-muted">
+                    {gallery.thumbnailUrl ? (
+                      <img
+                        src={gallery.thumbnailUrl}
+                        alt={gallery.title}
+                        className="object-cover w-full h-full"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                      </div>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setGalleryToDelete(gallery);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-medium line-clamp-1 mb-2">{gallery.title}</h3>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Grid className="w-4 h-4" />
+                        <span>{gallery.imageCount}</span>
+                      </div>
+                      <span className="text-muted-foreground/50">•</span>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{formatRelativeDate(gallery.createdAt)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </div>
+                <AlertDialog>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Gallery</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{gallery.title}"?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setGalleryToDelete(null)}>
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteGalleryMutation.mutate(gallery)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </Card>
+            ))}
           </div>
-        )}
-        <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} /> {/* Added LoginModal */}
+
+          {galleries.length === 0 && !isLoading && (
+            <div className="text-center mt-12">
+              <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
+              <h3 className="mt-4 text-lg font-medium text-foreground">No galleries yet</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Create your first gallery to start organizing your images.
+              </p>
+            </div>
+          )}
+          <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+        </div>
       </div>
     </AnimatedLayout>
   );
