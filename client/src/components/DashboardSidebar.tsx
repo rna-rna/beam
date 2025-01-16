@@ -63,13 +63,15 @@ export function DashboardSidebar({ folder }: DashboardSidebarProps) {
 
   const [{ isOver }, dropRef] = useDrop({
     accept: "GALLERY",
-    drop: (item: { id: number }, monitor) => {
+    drop: (item: { id: number; selectedIds: number[] }, monitor) => {
       if (folder?.id) {
-        handleMoveGallery(item.id, folder.id);
+        const galleryId = item.selectedIds?.length > 0 ? item.selectedIds[0] : item.id;
+        handleMoveGallery(galleryId, folder.id);
       }
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver()
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop()
     })
   });
 

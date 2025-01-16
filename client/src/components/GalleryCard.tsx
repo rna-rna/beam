@@ -4,7 +4,7 @@ export function GalleryCard({ gallery, selected, onSelect }) {
   const [{ isDragging }, dragRef] = useDrag({
     type: "GALLERY",
     item: () => ({
-      galleryId: gallery.id, // Changed to galleryId
+      id: gallery.id,
       selectedIds: selected ? selectedGalleries : [gallery.id]
     }),
     collect: (monitor) => ({
