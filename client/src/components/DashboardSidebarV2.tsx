@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { FolderPlus, Clock, FolderOpen } from "lucide-react";
@@ -13,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDrop } from "react-dnd";
 
-export function DashboardSidebarV2({ onFolderSelect }: { onFolderSelect: (id: number | null) => void }) {
+export function DashboardSidebar({ onFolderSelect }: { onFolderSelect: (id: number | null) => void }) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const queryClient = useQueryClient();

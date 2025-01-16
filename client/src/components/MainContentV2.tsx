@@ -10,7 +10,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { FolderOpen, FolderPlus, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function MainContentV2() {
+export function MainContent() {
   const [, setLocation] = useLocation();
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState("created");
@@ -115,7 +115,7 @@ export function MainContentV2() {
       // Set timer for single click
       clickTimerRef.current = setTimeout(() => {
         if (event.shiftKey || event.metaKey || event.ctrlKey) {
-          setSelectedGalleries(prev => 
+          setSelectedGalleries(prev =>
             prev.includes(gallery.id) ? prev.filter(gid => gid !== gallery.id) : [...prev, gallery.id]
           );
         } else {
@@ -226,8 +226,8 @@ export function MainContentV2() {
                     ref={dragRef}
                     key={gallery.id}
                     className={`overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer ${
-                      selectedGalleries.includes(gallery.id) 
-                        ? "ring-2 ring-blue-500 shadow-lg shadow-blue-500/20" 
+                      selectedGalleries.includes(gallery.id)
+                        ? "ring-2 ring-blue-500 shadow-lg shadow-blue-500/20"
                         : "hover:ring-1 hover:ring-blue-500/20"
                     } ${isDragging ? "opacity-50" : ""}`}
                     onClick={(e) => handleGalleryClick(gallery, e)}
