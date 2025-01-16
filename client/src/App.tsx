@@ -60,15 +60,6 @@ function AppContent() {
   const { getToken } = useAuth();
   const { signOut, session } = useClerk();
 
-  const { data: folders } = useQuery({
-    queryKey: ['folders'],
-    queryFn: async () => {
-      const res = await fetch('/api/folders');
-      if (!res.ok) throw new Error('Failed to fetch folders');
-      return res.json();
-    }
-  });
-
   useEffect(() => {
     if (session?.status === "expired") {
       session.refresh()
@@ -275,25 +266,7 @@ function AppContent() {
           />
         )}
       </Route>
-      <Route path="/f/:folderSlug">
-        {(params) => (
-          <Layout
-            title={folders?.find(f => f.slug === params.folderSlug)?.name || "Loading..."}
-            onTitleChange={(newTitle) => {
-              const folder = folders?.find(f => f.slug === params.folderSlug);
-              if (folder) {
-                fetch(`/api/folders/${folder.id}`, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ name: newTitle })
-                });
-              }
-            }}
-          >
-            <FolderPage />
-          </Layout>
-        )}
-      </Route>
+      <Route path="/f/:folderSlug" component={FolderPage} />
       <Route path="/about">
         <About />
       </Route>

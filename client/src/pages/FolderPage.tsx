@@ -1,15 +1,14 @@
+
 import { useRoute } from "wouter";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { InlineEdit } from "@/components/InlineEdit";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { Card } from "@/components/ui/card";
 import { FolderOpen } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 export function FolderPage() {
   const [match, params] = useRoute("/f/:folderSlug");
   const folderSlug = match ? params.folderSlug : null;
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const { data: folder, isLoading } = useQuery({
     queryKey: ["folder", folderSlug],
@@ -33,17 +32,46 @@ export function FolderPage() {
   const folderGalleries = galleries.filter(g => g.folderId === folder?.id && !g.deleted_at);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex h-full">
+        <DashboardSidebar />
+        <div className="flex-1 p-6 flex items-center justify-center">
+          <div className="animate-pulse">Loading folder...</div>
+        </div>
+      </div>
+    );
   }
 
   if (!folder) {
-    return <div>Folder not found</div>;
+    return (
+      <div className="flex h-full">
+        <DashboardSidebar />
+        <div className="flex-1 p-6 flex items-center justify-center">
+          <div>Folder not found</div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="flex h-screen overflow-hidden">
       <DashboardSidebar />
       <div className="flex-1 flex flex-col overflow-auto">
+        <header className="border-b px-6 py-4">
+          <InlineEdit
+            value={folder.name}
+            onSave={async (newName) => {
+              const res = await fetch(`/api/folders/${folder.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+              });
+              if (!res.ok) throw new Error('Failed to update folder name');
+            }}
+            className="text-2xl font-semibold"
+          />
+        </header>
+
         <div className="p-6">
           {folderGalleries.length === 0 ? (
             <div className="flex items-center justify-center h-[calc(100vh-200px)]">
