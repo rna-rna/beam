@@ -47,13 +47,11 @@
 
 .masonrygrid {
   display: flex;
-  width: auto;
 }
 
 .masonrygrid > * {
   break-inside: avoid;
   margin-bottom: 1rem;
-  transform: translate3d(0, 0, 0);
 }
 
 .image-container.fixed {

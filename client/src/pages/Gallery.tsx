@@ -1549,7 +1549,7 @@ export default function Gallery({
               src={'localUrl' in image ? image.localUrl : image.url}
               alt={image.originalFilename || "Uploaded image"}
               className={cn(
-                "w-full h-full rounded-lg blur-up transition-opacity duration-200 object-cover",
+                "w-full h-full rounded-lg blur-up transition-opacity duration-200 object-contain",
                 selectMode && selectedImages.includes(image.id) && "opacity-75",
                 draggedItemIndex === index && "opacity-50",
                 'localUrl' in image && "opacity-80",
