@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FolderOpen, FolderPlus, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CustomDragLayer } from "./CustomDragLayer";
 
 export function MainContent() {
   const [location, setLocation] = useLocation();
@@ -67,9 +68,9 @@ export function MainContent() {
 
   const [{ isOver }, dropRef] = useDrop({
     accept: "GALLERY",
-    drop: (item: { id: number }) => {
+    drop: (item: { selectedIds: number[] }) => {
       if (currentFolder) {
-        handleMoveGallery(item.id, currentFolder);
+        handleMoveGallery(item.selectedIds, currentFolder);
       }
     },
     collect: (monitor) => ({
@@ -77,15 +78,17 @@ export function MainContent() {
     })
   });
 
-  const handleMoveGallery = async (galleryId: number, folderId: number) => {
+  const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
     try {
-      const res = await fetch(`/api/galleries/${galleryId}/move`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderId })
-      });
+      await Promise.all(galleryIds.map(async (galleryId) => {
+        const res = await fetch(`/api/galleries/${galleryId}/move`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderId })
+        });
 
-      if (!res.ok) throw new Error('Failed to move gallery');
+        if (!res.ok) throw new Error('Failed to move gallery');
+      }));
       await queryClient.invalidateQueries(['/api/galleries']);
     } catch (error) {
       console.error('Failed to move gallery:', error);
@@ -103,6 +106,7 @@ export function MainContent() {
 
     return (
       <DndProvider backend={HTML5Backend}>
+        <CustomDragLayer />
         <div className="flex h-full">
           <div className="flex-1 p-6">
             <div className="flex justify-end mb-6">
@@ -130,11 +134,14 @@ export function MainContent() {
                 {displayedGalleries.map((gallery) => {
                   const [{ isDragging }, dragRef] = useDrag(() => ({
                     type: "GALLERY",
-                    item: { id: gallery.id },
+                    canDrag: () => selectedGalleries.includes(gallery.id) || selectedGalleries.length === 0,
+                    item: () => ({
+                      selectedIds: selectedGalleries.includes(gallery.id) ? selectedGalleries : [gallery.id]
+                    }),
                     collect: (monitor) => ({
                       isDragging: monitor.isDragging(),
                     }),
-                  }));
+                  }), [selectedGalleries]);
 
                   return (
                     <Card
@@ -152,8 +159,8 @@ export function MainContent() {
                           const rangeIds = galleries.slice(start, end + 1).map(g => g.id);
                           setSelectedGalleries(rangeIds);
                         } else {
-                          setSelectedGalleries(prev => 
-                            prev.includes(gallery.id) 
+                          setSelectedGalleries(prev =>
+                            prev.includes(gallery.id)
                               ? prev.filter(id => id !== gallery.id)
                               : [...prev, gallery.id]
                           );
