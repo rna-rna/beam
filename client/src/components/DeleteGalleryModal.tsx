@@ -9,11 +9,11 @@ import { Loader2 } from "lucide-react";
 interface DeleteGalleryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  gallerySlug: string;
-  galleryTitle: string;
+  gallerySlug: string;          // we actually want to delete by slug
+  galleryTitle: string;         // used only for the dialog's text
 }
 
-export function DeleteGalleryModal({ isOpen, onClose, galleryId, galleryTitle }: DeleteGalleryModalProps) {
+export function DeleteGalleryModal({ isOpen, onClose, gallerySlug, galleryTitle }: DeleteGalleryModalProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -21,7 +21,7 @@ export function DeleteGalleryModal({ isOpen, onClose, galleryId, galleryTitle }:
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/galleries/${galleryTitle}`, {
+      const res = await fetch(`/api/galleries/${gallerySlug}`, {
         method: "DELETE",
       });
 
