@@ -184,7 +184,7 @@ function AppContent() {
     );
   }
 
-  if (gallerySlug && galleryError) {
+  if (gallerySlug && (galleryError || !gallery)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md mx-4">
