@@ -54,9 +54,7 @@ export function MainContent() {
     ? sortedGalleries.filter((gallery) => gallery.folderId === currentFolder)
     : sortedGalleries;
 
-  const handleFolderClick = (folderId: number | null) => {
-    setCurrentFolder(folderId);
-  };
+  
 
   const [{ isOver }, dropRef] = useDrop({
     accept: "GALLERY",
