@@ -5,15 +5,28 @@ import { Plus, Grid, Image as ImageIcon, Clock } from "lucide-react";
 import { useLocation } from "wouter";
 import { formatRelativeDate } from "@/lib/format-date";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
 import type { Gallery } from "@db/schema";
+import { useQuery } from "@tanstack/react-query";
 
-interface MainContentV2Props {
-  galleries: Gallery[];
-}
-
-export function MainContentV2({ galleries }: MainContentV2Props) {
+export function MainContentV2() {
   const [, setLocation] = useLocation();
+  
+  const { data: galleries = [], isLoading } = useQuery({
+    queryKey: ["/api/galleries"],
+    queryFn: async () => {
+      const res = await fetch("/api/galleries");
+      if (!res.ok) throw new Error("Failed to fetch galleries");
+      return res.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-pulse">Loading galleries...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -44,7 +57,7 @@ export function MainContentV2({ galleries }: MainContentV2Props) {
               exit={{ opacity: 0, y: -20 }}
             >
               <Card 
-                className="overflow-hidden hover:shadow-lg transition-all duration-200"
+                className="overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer"
                 onClick={() => setLocation(`/g/${gallery.slug}`)}
               >
                 <div className="aspect-square relative bg-muted">
