@@ -1,15 +1,16 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FolderPlus, FolderOpen, Clock, ChevronRight, MoreVertical } from 'lucide-react';
+import { FolderPlus, Clock, ChevronRight, MoreVertical, FolderOpen } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useDrop } from 'react-dnd';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarProvider,
-} from '@/components/ui/sidebar';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,13 +18,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export function DashboardSidebar() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const queryClient = useQueryClient();
+
+  const [{ isOver }, dropRef] = useDrop(() => ({
+    accept: "GALLERY",
+    drop: (item: { id: number }) => {
+      console.log(`Gallery ${item.id} dropped into folder`);
+      // TODO: Implement gallery move logic
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  }));
 
   const { data: folders } = useQuery({
     queryKey: ['folders'],
@@ -65,71 +75,81 @@ export function DashboardSidebar() {
   });
 
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader className="border-b">
-          <div className="px-2 py-2">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => setIsCreateOpen(true)}
-            >
-              <FolderPlus className="mr-2 h-4 w-4" />
-              New Folder
-            </Button>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton>
-                <Clock className="h-4 w-4" />
-                <span>Recent</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            {folders?.map((folder) => (
-              <SidebarMenuItem key={folder.id}>
-                <SidebarMenuButton className="group relative">
-                  <FolderOpen className="h-4 w-4" />
-                  <span>{folder.name}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {folder.galleryCount}
-                  </span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100">
-                      <MoreVertical className="h-4 w-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => deleteFolderMutation.mutate(folder.id)}>
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarContent>
+    <div className="w-64 bg-card border-r border-border h-full flex flex-col" ref={dropRef}>
+      <div className="p-4 border-b border-border">
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start"
+        >
+          <Clock className="mr-2 h-4 w-4" />
+          Recents
+        </Button>
+      </div>
 
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Folder</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              createFolderMutation.mutate(newFolderName);
-            }}>
-              <Input
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="Folder name"
-              />
-              <Button type="submit" className="mt-4">Create</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </Sidebar>
-    </SidebarProvider>
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-2">
+          {folders?.map((folder) => (
+            <div key={folder.id} className="group relative">
+              <Button
+                variant="ghost"
+                className="w-full justify-start group-hover:pr-8"
+              >
+                <FolderOpen className="mr-2 h-4 w-4" />
+                {folder.name}
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {folder.galleryCount}
+                </span>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 h-6 w-6"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => deleteFolderMutation.mutate(folder.id)}>
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+
+      <div className="p-4 border-t border-border">
+        <Button 
+          variant="outline" 
+          className="w-full justify-start"
+          onClick={() => setIsCreateOpen(true)}
+        >
+          <FolderPlus className="mr-2 h-4 w-4" />
+          Add Folder
+        </Button>
+      </div>
+
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Folder</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            createFolderMutation.mutate(newFolderName);
+          }}>
+            <Input
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="Folder name"
+            />
+            <Button type="submit" className="mt-4">Create</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
