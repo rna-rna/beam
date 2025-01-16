@@ -1,0 +1,111 @@
+Step 2: Add Multi-Selection and Drag-and-Drop
+Enable users to select multiple galleries and drag them into folders in the sidebar.
+
+Instructions:
+Install react-dnd:
+
+Run:
+bash
+Copy
+Edit
+npm install react-dnd react-dnd-html5-backend
+Update MainContentV2 for Multi-Selection:
+
+Add useState to track selected galleries.
+Add Shift and Ctrl/Cmd key logic for multi-selection.
+Wrap gallery cards with a draggable context.
+Code Update:
+
+tsx
+Copy
+Edit
+import React, { useState } from "react";
+import { useDrag, useDrop, DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+
+export const MainContentV2 = () => {
+  const [selectedGalleries, setSelectedGalleries] = useState([]);
+  const { data: galleries = [], isLoading } = useQuery({
+    queryKey: ["/api/galleries"],
+    queryFn: async () => {
+      const res = await fetch("/api/galleries");
+      if (!res.ok) throw new Error("Failed to fetch galleries");
+      return res.json();
+    },
+  });
+
+  const toggleSelection = (id) => {
+    setSelectedGalleries((prev) =>
+      prev.includes(id) ? prev.filter((gid) => gid !== id) : [...prev, id]
+    );
+  };
+
+  const [, dropRef] = useDrop({
+    accept: "GALLERY",
+    drop: (item) => {
+      console.log(`Dropped gallery ${item.id}`);
+      // TODO: Handle moving galleries to a folder
+    },
+  });
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div ref={dropRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {galleries.map((gallery) => {
+          const [, dragRef] = useDrag({
+            type: "GALLERY",
+            item: { id: gallery.id },
+          });
+
+          return (
+            <div
+              key={gallery.id}
+              ref={dragRef}
+              className={`group bg-white shadow-md rounded-lg overflow-hidden ${
+                selectedGalleries.includes(gallery.id) ? "border-2 border-blue-500" : ""
+              }`}
+              onClick={() => toggleSelection(gallery.id)}
+            >
+              <div className="aspect-w-4 aspect-h-3 bg-gray-200">
+                <img
+                  src={gallery.thumbnailUrl || ""}
+                  alt={gallery.title}
+                  className="object-cover w-full h-full group-hover:scale-105 transition-transform"
+                />
+              </div>
+              <div className="p-4">
+                <h3 className="font-semibold text-lg">{gallery.title}</h3>
+                <p className="text-sm text-gray-600">{gallery.imageCount} images</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </DndProvider>
+  );
+};
+Update DashboardSidebarV2 to Accept Drops:
+
+tsx
+Copy
+Edit
+const [{ isOver }, dropRef] = useDrop({
+  accept: "GALLERY",
+  drop: (item) => {
+    console.log(`Gallery ${item.id} dropped into folder`);
+    // TODO: API call to move gallery to folder
+  },
+  collect: (monitor) => ({
+    isOver: monitor.isOver(),
+  }),
+});
+
+return (
+  <div ref={dropRef} className={`p-4 ${isOver ? "bg-gray-100" : ""}`}>
+    {/* Folder Content */}
+  </div>
+);
