@@ -86,10 +86,9 @@ function AppContent() {
 
   // Query for specific gallery when on gallery page
   const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
-    queryKey: gallerySlug ? ['gallery', gallerySlug] : null,
-    queryFn: async ({ queryKey }) => {
-      const slug = queryKey[1];
-      if (!slug) return { id: 0, slug: '', title: '', images: [] };
+    queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : null,
+    queryFn: async () => {
+      if (!gallerySlug) return { id: 0, slug: '', title: '', images: [] };
       
       const token = await getToken();
       const headers: HeadersInit = {
