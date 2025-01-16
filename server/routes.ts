@@ -2112,6 +2112,26 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Track gallery views
+  protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
+    try {
+      const userId = req.auth.userId;
+      const [updated] = await db.update(galleries)
+        .set({ lastViewedAt: new Date() })
+        .where(eq(galleries.slug, req.params.slug))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Failed to update view timestamp:', error);
+      res.status(500).json({ message: 'Failed to update view timestamp' });
+    }
+  });
+
   // Mount protected routes
   app.use('/api', protectedRouter);
 

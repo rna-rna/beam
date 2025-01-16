@@ -75,7 +75,15 @@ export function MainContentV2() {
 
   const sortedGalleries = [...(galleries || [])].sort((a, b) => {
     if (sortOrder === "created") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    if (sortOrder === "lastViewed") return (b.lastViewedAt ? new Date(b.lastViewedAt).getTime() : 0) - (a.lastViewedAt ? new Date(a.lastViewedAt).getTime() : 0);
+    if (sortOrder === "lastViewed") {
+      const bTime = b.lastViewedAt ? new Date(b.lastViewedAt).getTime() : 0;
+      const aTime = a.lastViewedAt ? new Date(a.lastViewedAt).getTime() : 0;
+      if (bTime === 0 && aTime === 0) {
+        // If neither has been viewed, fall back to creation date
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      return bTime - aTime;
+    }
     if (sortOrder === "alphabetical") return a.title.localeCompare(b.title);
     return 0;
   });
@@ -84,13 +92,25 @@ export function MainContentV2() {
     ? sortedGalleries.filter((gallery) => gallery.folderId === currentFolder)
     : sortedGalleries;
 
-  const handleGalleryClick = (gallery: Gallery, event: React.MouseEvent) => {
+  const handleGalleryClick = async (gallery: Gallery, event: React.MouseEvent) => {
     event.preventDefault();
     
     if (clickTimerRef.current) {
       // Double click detected
       clearTimeout(clickTimerRef.current);
       clickTimerRef.current = null;
+      
+      // Update last viewed timestamp
+      try {
+        await fetch(`/api/galleries/${gallery.slug}/view`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        queryClient.invalidateQueries(['/api/galleries']);
+      } catch (error) {
+        console.error('Failed to update view timestamp:', error);
+      }
+      
       setLocation(`/g/${gallery.slug}`);
     } else {
       // Set timer for single click
