@@ -2,6 +2,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { useLocation } from "wouter";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
