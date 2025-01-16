@@ -19,6 +19,15 @@ export function MainContentV2() {
   const [currentFolder, setCurrentFolder] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
+  const { data: folders = [] } = useQuery({
+    queryKey: ['/api/folders'],
+    queryFn: async () => {
+      const res = await fetch('/api/folders');
+      if (!res.ok) throw new Error('Failed to fetch folders');
+      return res.json();
+    }
+  });
+
   const handleMoveGallery = async (galleryId: number, folderId: number) => {
     try {
       const res = await fetch(`/api/galleries/${galleryId}/move`, {
@@ -142,7 +151,10 @@ export function MainContentV2() {
           <div className="w-64 border-r bg-background/95 p-4">
             <div className="space-y-2">
               <button
-                onClick={() => setCurrentFolder(null)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setCurrentFolder(null);
+                }}
                 className={cn(
                   "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
                   !currentFolder ? "bg-primary/10 text-primary" : "hover:bg-muted"
@@ -154,7 +166,10 @@ export function MainContentV2() {
               {folders.map((folder) => (
                 <div
                   key={folder.id}
-                  onClick={() => setCurrentFolder(folder.id)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setCurrentFolder(folder.id);
+                  }}
                   ref={dropRef}
                   className={cn(
                     "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors cursor-pointer",
