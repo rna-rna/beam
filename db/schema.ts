@@ -10,9 +10,12 @@ export const galleries = pgTable('galleries', {
   isPublic: boolean('is_public').default(false).notNull(),
   guestUpload: boolean('guest_upload').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  lastViewedAt: timestamp('last_viewed_at'),
   ogImageUrl: text('og_image_url'),
+  folderId: integer('folder_id').references(() => folders.id),
 }, (table) => ({
-  userIdIdx: index('galleries_user_id_idx').on(table.userId)
+  userIdIdx: index('galleries_user_id_idx').on(table.userId),
+  folderIdIdx: index('galleries_folder_id_idx').on(table.folderId)
 }));
 
 export const images = pgTable('images', {
