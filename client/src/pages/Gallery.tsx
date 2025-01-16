@@ -1012,11 +1012,12 @@ export default function Gallery({
       // Load the uploaded image to get final dimensions
       const img = new Image();
       img.onload = () => {
-        // Remove the pending item immediately
-        setImages(prev => prev.filter(existing => existing.id !== tmpId));
-        
-        // Let the gallery query handle adding the new image
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+        // Only remove the pending item when gallery query succeeds
+        queryClient.invalidateQueries([`/api/galleries/${slug}`], {
+          onSuccess: () => {
+            setImages(prev => prev.filter(existing => existing.id !== tmpId));
+          }
+        });
       };
       img.src = publicUrl;
 
@@ -1057,8 +1058,8 @@ export default function Gallery({
             height,
           };
 
-          // Always add new uploads at the start
-          setImages((prev) => [newItem, ...prev]);
+          // Add new uploads at the end to maintain order
+          setImages((prev) => [...prev, newItem]);
           uploadSingleFile(file, tmpId);
         };
         imageEl.src = localUrl;
