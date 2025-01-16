@@ -21,6 +21,9 @@ import GlobalUploadProgress from "./components/GlobalUploadProgress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card"; // Added import for Card and CardContent
 import { AlertCircle } from "lucide-react";
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
@@ -293,7 +296,9 @@ export default function App() {
   return (
     <UploadProvider>
       <GlobalUploadProgress />
-      <AppContent />
+      <DndProvider backend={HTML5Backend}>
+        <AppContent />
+      </DndProvider>
     </UploadProvider>
   );
 }
