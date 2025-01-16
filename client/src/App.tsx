@@ -266,7 +266,25 @@ function AppContent() {
           />
         )}
       </Route>
-      <Route path="/f/:folderSlug" component={FolderPage} />
+      <Route path="/f/:folderSlug">
+        {(params) => (
+          <Layout
+            title={folders?.find(f => f.slug === params.folderSlug)?.name || "Loading..."}
+            onTitleChange={(newTitle) => {
+              const folder = folders?.find(f => f.slug === params.folderSlug);
+              if (folder) {
+                fetch(`/api/folders/${folder.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: newTitle })
+                });
+              }
+            }}
+          >
+            <FolderPage />
+          </Layout>
+        )}
+      </Route>
       <Route path="/about">
         <About />
       </Route>

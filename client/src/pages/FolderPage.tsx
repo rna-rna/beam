@@ -66,16 +66,10 @@ export function FolderPage() {
   }
 
   return (
-    <Layout
-      title={folder.name}
-      onTitleChange={async (newName) => {
-        updateFolderMutation.mutate(newName);
-      }}
-    >
-      <div className="flex h-screen overflow-hidden">
-        <DashboardSidebar />
-        <div className="flex-1 flex flex-col overflow-auto">
-          <div className="p-6">
+    <div className="flex h-screen overflow-hidden">
+      <DashboardSidebar />
+      <div className="flex-1 flex flex-col overflow-auto">
+        <div className="p-6">
             {folderGalleries.length === 0 ? (
               <div className="flex items-center justify-center h-[calc(100vh-200px)]">
                 <div className="text-center text-muted-foreground">
@@ -105,8 +99,7 @@ export function FolderPage() {
               </div>
             )}
           </div>
-        </div>
       </div>
-    </Layout>
+    </div>
   );
 }
