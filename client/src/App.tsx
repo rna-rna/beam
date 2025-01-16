@@ -240,12 +240,18 @@ function AppContent() {
 
       <Route path="/g/:slug">
         {(params) => (
-          <Gallery
-            slug={params.slug}
-            onHeaderActionsChange={setHeaderActions}
+          <Layout
             title={gallery?.title || "Loading Gallery..."}
             onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
-          />
+            actions={headerActions}
+          >
+            <Gallery
+              slug={params.slug}
+              onHeaderActionsChange={setHeaderActions}
+              title={gallery?.title || "Loading Gallery..."}
+              onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
+            />
+          </Layout>
         )}
       </Route>
       <Route path="/about"> {/* Added About route */}
