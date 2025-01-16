@@ -984,6 +984,20 @@ export default function Gallery({
 
       const { urls } = await response.json();
       const { signedUrl, publicUrl, imageId } = urls[0];
+      
+      // Immediately update the placeholder with the real ID
+      setImages(prev => 
+        prev.map(img => 
+          img.id === tmpId 
+            ? { 
+                ...img,
+                id: imageId,
+                status: 'uploading',
+                progress: 0
+              }
+            : img
+        )
+      );
 
       // Upload to R2
       await new Promise<void>((resolve, reject) => {
@@ -993,7 +1007,7 @@ export default function Gallery({
             const progress = (ev.loaded / ev.total) * 100;
             setImages(prev => 
               prev.map(img => 
-                img.id === tmpId 
+                img.id === imageId
                   ? { ...img, progress } 
                   : img
               )
@@ -1012,15 +1026,14 @@ export default function Gallery({
       // Load the uploaded image to get final dimensions
       const img = new Image();
       img.onload = () => {
-        // Mark as finalizing first
+        // Update status to finalizing
         setImages(prev => 
           prev.map(img => 
-            img.id === tmpId 
+            img.id === imageId
               ? { 
                   ...img as PendingImage,
                   status: "finalizing",
-                  progress: 100,
-                  imageId
+                  progress: 100
                 } 
               : img
           )
