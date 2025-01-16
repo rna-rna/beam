@@ -33,3 +33,31 @@
 .lazy-image.loaded {
   opacity: 1;
 }
+
+.blur-up {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.3s ease;
+}
+
+.blur-up.loaded {
+  opacity: 1;
+}
+
+.masonrygrid {
+  display: flex;
+  width: auto;
+}
+
+.masonrygrid > * {
+  break-inside: avoid;
+  margin-bottom: 1rem;
+  transform: translate3d(0, 0, 0);
+}
+
+.image-container.fixed {
+  position: fixed;
+  pointer-events: none;
+  will-change: transform;
+}

@@ -1015,6 +1015,10 @@ export default function Gallery({
           prev.map(existing =>
             existing.id === tmpId
               ? {
+                  ...existing,
+                  _status: 'final',
+                  status: 'done',
+                  progress: 100,
                   id: imageId,
                   url: publicUrl,
                   originalFilename: file.name,
@@ -1022,7 +1026,9 @@ export default function Gallery({
                   height: img.naturalHeight,
                   commentCount: 0,
                   userStarred: false,
-                  stars: []
+                  stars: [],
+                  // Maintain any other existing properties
+                  localUrl: undefined
                 }
               : existing
           )
@@ -1067,7 +1073,8 @@ export default function Gallery({
             height,
           };
 
-          setImages((prev) => [...prev, newItem]);
+          // Always add new uploads at the start
+          setImages((prev) => [newItem, ...prev]);
           uploadSingleFile(file, tmpId);
         };
         imageEl.src = localUrl;
@@ -1482,29 +1489,29 @@ export default function Gallery({
   ]);
 
   const renderImage = (image: ImageOrPending, index: number) => (
-    <div key={image.id === -1 ? `pending-${index}` : image.id}>
+    <div 
+      key={image.id === -1 ? `pending-${index}` : image.id}
+      className="mb-4 w-full"
+      style={{ breakInside: "avoid", position: "relative" }}
+    >
       <motion.div
         layout={draggedItemIndex === index ? false : "position"}
         className={cn(
-          "mb-4 image-container relative transform transition-all duration-200 ease-out w-full",
+          "image-container transform transition-all duration-200 ease-out w-full",
           isReorderMode && "cursor-grab active:cursor-grabbing",
+          draggedItemIndex === index ? "fixed" : "relative",
           "block",
         )}
-        style={{
-          width: "100%",
-          breakInside: "avoid"
-        }}
         initial={{ opacity: 0, y: 20 }}
         animate={{
           opacity: 1,
           y: 0,
-          scale: draggedItemIndex === index ? 1.1 : 1,
+          scale: draggedItemIndex === index ? 1.05 : 1,
           zIndex: draggedItemIndex === index ? 100 : 1,
-          position: draggedItemIndex === index ? "absolute" : "relative",
-          top: draggedItemIndex === index ? dragPosition?.y : "auto",
-          left: draggedItemIndex === index ? dragPosition?.x : "auto",
           transition: {
-            duration: draggedItemIndex === index ? 0 : 0.25,
+            type: "spring",
+            stiffness: 300,
+            damping: 25,
           },
         }}
         drag={isReorderMode}
@@ -1537,51 +1544,48 @@ export default function Gallery({
           }}
         >
           <AspectRatio ratio={image.width && image.height ? image.width / image.height : 4/3}>
-            <div className="relative w-full h-full">
-              <img
-                key={`${image.id}-${image._status || "final"}`}
-                src={'localUrl' in image ? image.localUrl : image.url}
-                alt={image.originalFilename || "Uploaded image"}
-                style={{ objectFit: "cover" }}
-                className={cn(
-                "absolute inset-0 w-full h-full object-cover rounded-lg blur-up block transition-opacity duration-200",
+            <img
+              key={`${image.id}-${image._status || "final"}`}
+              src={'localUrl' in image ? image.localUrl : image.url}
+              alt={image.originalFilename || "Uploaded image"}
+              className={cn(
+                "w-full h-full rounded-lg blur-up transition-opacity duration-200 object-cover",
                 selectMode && selectedImages.includes(image.id) && "opacity-75",
                 draggedItemIndex === index && "opacity-50",
                 'localUrl' in image && "opacity-80",
-                image.status === "error" && "opacity-50",
+                image.status === "error" && "opacity-50"
               )}
-            loading="lazy"
-            onLoad={(e) => {
-              const img = e.currentTarget;
-              img.classList.add("loaded");
-              if (!('localUrl' in image) && image.pendingRevoke) {
-                setTimeout(() => {
-                  URL.revokeObjectURL(image.pendingRevoke);
-                }, 800);
-              }
-            }}
-            onError={(e) => {
-              console.error("Image load failed:", {
-                id: image.id,
-                url: image.url,
-                isPending: 'localUrl' in image,
-                status: image.status,
-                originalFilename: image.originalFilename,
-              });
-              if (!('localUrl' in image)) {
-                e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
-                setImages((prev) =>
-                  prev.map((upload) =>
-                    upload.id === image.id
-                      ? { ...upload, status: "error", _status: "error" }
-                      : upload,
-                  ),
-                );
-              }
-            }}
-            draggable={false}
-          />
-            </div>
+              loading="lazy"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                img.classList.add('loaded');
+                if (!('localUrl' in image) && image.pendingRevoke) {
+                  setTimeout(() => {
+                    URL.revokeObjectURL(image.pendingRevoke);
+                  }, 800);
+                }
+              }}
+              onError={(e) => {
+                console.error("Image load failed:", {
+                  id: image.id,
+                  url: image.url,
+                  isPending: 'localUrl' in image,
+                  status: image.status,
+                  originalFilename: image.originalFilename,
+                });
+                if (!('localUrl' in image)) {
+                  e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
+                  setImages((prev) =>
+                    prev.map((upload) =>
+                      upload.id === image.id
+                        ? { ...upload, status: "error", _status: "error" }
+                        : upload,
+                    ),
+                  );
+                }
+              }}
+              draggable={false}
+            />
           </AspectRatio>
           {'localUrl' in image && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
