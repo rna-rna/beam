@@ -13,7 +13,10 @@ export function MainContent() {
   const [, setLocation] = useLocation();
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState("created");
-  const [currentFolder, setCurrentFolder] = useState<number | null>(null);
+  const [location] = useLocation();
+  const params = new URLSearchParams(location.split("?")[1]);
+  const folderParam = params.get("folder");
+  const currentFolder = folderParam ? parseInt(folderParam, 10) : null;
   const queryClient = useQueryClient();
 
   const { data: folders = [] } = useQuery({
