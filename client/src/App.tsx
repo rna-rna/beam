@@ -60,6 +60,15 @@ function AppContent() {
   const { getToken } = useAuth();
   const { signOut, session } = useClerk();
 
+  const { data: folders } = useQuery({
+    queryKey: ['folders'],
+    queryFn: async () => {
+      const res = await fetch('/api/folders');
+      if (!res.ok) throw new Error('Failed to fetch folders');
+      return res.json();
+    }
+  });
+
   useEffect(() => {
     if (session?.status === "expired") {
       session.refresh()
