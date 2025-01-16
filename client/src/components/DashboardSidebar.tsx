@@ -37,27 +37,25 @@ export function DashboardSidebar({ folder }: DashboardSidebarProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
+  const handleMoveGallery = async (galleryId: number, folderId: number) => {
     try {
-      await Promise.all(galleryIds.map(async (galleryId) => {
-        const res = await fetch(`/api/galleries/${galleryId}/move`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folderId })
-        });
+      const res = await fetch(`/api/galleries/${galleryId}/move`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId })
+      });
 
-        if (!res.ok) throw new Error('Failed to move gallery');
-      }));
+      if (!res.ok) throw new Error('Failed to move gallery');
       
       await queryClient.invalidateQueries(['/api/galleries']);
       toast({
         title: "Success",
-        description: "Galleries moved successfully"
+        description: "Gallery moved successfully"
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to move galleries",
+        description: "Failed to move gallery",
         variant: "destructive"
       });
     }
@@ -65,9 +63,9 @@ export function DashboardSidebar({ folder }: DashboardSidebarProps) {
 
   const [{ isOver }, dropRef] = useDrop({
     accept: "GALLERY",
-    drop: (item: { selectedIds: number[] }, monitor) => {
+    drop: (item: { id: number }, monitor) => {
       if (folder?.id) {
-        handleMoveGallery(item.selectedIds, folder.id);
+        handleMoveGallery(item.id, folder.id);
       }
     },
     collect: (monitor) => ({
