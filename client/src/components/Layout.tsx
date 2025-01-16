@@ -1,7 +1,7 @@
 
 import { ReactNode } from "react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
-import { SquarePlus } from "lucide-react";
+import { SquarePlus, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoginButton } from "@/components/LoginButton";
 import { InlineEdit } from "@/components/InlineEdit";
@@ -58,6 +58,14 @@ export function Layout({
               </Button>
             )}
             {actions}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.location.href = "/dashboard"}
+              title="Go to dashboard"
+            >
+              <Home className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
