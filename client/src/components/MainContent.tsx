@@ -1,19 +1,19 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
-import { useLocation } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FolderOpen, FolderPlus, Clock, Image as ImageIcon, Share, Pencil, Trash2 } from "lucide-react";
-import {
+import { 
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
-  ContextMenuTrigger,
   ContextMenuSeparator,
+  ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FolderOpen, FolderPlus, Clock, Image as ImageIcon, Share, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CustomDragLayer } from "./CustomDragLayer";
 import { ShareModal } from "./ShareModal";
@@ -22,6 +22,7 @@ import { DeleteGalleryModal } from "./DeleteGalleryModal";
 
 export function MainContent() {
   const [location, setLocation] = useLocation();
+  const [match, params] = useRoute("/f/:folderSlug");
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState("created");
@@ -29,35 +30,36 @@ export function MainContent() {
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedGallery, setSelectedGallery] = useState<{ id: number; title: string; slug: string } | null>(null);
-  const params = new URLSearchParams(location.split("?")[1] || "");
-  const folderParam = params.get("folder");
-  const currentFolder = folderParam ? parseInt(folderParam, 10) : null;
   const queryClient = useQueryClient();
 
-  const { data: folders = [] } = useQuery({
-    queryKey: ["/api/folders"],
+  // Fetch current folder if we have a slug
+  const { data: currentFolder } = useQuery({
+    queryKey: ['/api/folders', params?.folderSlug],
     queryFn: async () => {
-      const res = await fetch("/api/folders");
-      if (!res.ok) throw new Error("Failed to fetch folders");
+      if (!params?.folderSlug) return null;
+      const res = await fetch(`/api/folders/${params.folderSlug}`);
+      if (!res.ok) throw new Error('Failed to fetch folder');
+      return res.json();
+    },
+    enabled: !!params?.folderSlug
+  });
+
+  const { data: folders = [] } = useQuery({
+    queryKey: ['/api/folders'],
+    queryFn: async () => {
+      const res = await fetch('/api/folders');
+      if (!res.ok) throw new Error('Failed to fetch folders');
       return res.json();
     }
   });
 
   const { data: galleries = [], isLoading } = useQuery({
-    queryKey: ["/api/galleries"],
+    queryKey: ['/api/galleries'],
     queryFn: async () => {
-      const res = await fetch("/api/galleries");
-      if (!res.ok) throw new Error("Failed to fetch galleries");
+      const res = await fetch('/api/galleries');
+      if (!res.ok) throw new Error('Failed to fetch galleries');
       return res.json();
-    },
-  });
-
-  // Debug logging
-  console.log({
-    location,
-    folderParam,
-    currentFolder,
-    displayedGalleries: galleries?.filter(g => g.folderId === currentFolder)
+    }
   });
 
   const sortedGalleries = [...(galleries || [])].sort((a, b) => {
@@ -74,30 +76,20 @@ export function MainContent() {
     return 0;
   });
 
-  const view = params.get("view");
+  const view = location.includes('/trash') ? 'trash' : 'normal';
 
   const displayedGalleries = view === "trash" 
     ? sortedGalleries.filter(gallery => gallery.deleted_at)
     : currentFolder
-      ? sortedGalleries.filter((gallery) => gallery.folderId === currentFolder && !gallery.deleted_at)
+      ? sortedGalleries.filter(gallery => gallery.folderId === currentFolder.id && !gallery.deleted_at)
       : sortedGalleries.filter(gallery => !gallery.deleted_at);
-
-  console.log(
-    "debug displayedGalleries:",
-    displayedGalleries,
-    "folderParam:",
-    folderParam,
-    "currentFolder:",
-    currentFolder
-  );
-
 
 
   const [{ isOver }, dropRef] = useDrop({
     accept: "GALLERY",
     drop: (item: { selectedIds: number[] }) => {
       if (currentFolder) {
-        handleMoveGallery(item.selectedIds, currentFolder);
+        handleMoveGallery(item.selectedIds, currentFolder.id);
       }
     },
     collect: (monitor) => ({
@@ -194,52 +186,52 @@ export function MainContent() {
                           ref={dragRef}
                           key={gallery.id}
                           onClick={(e) => {
-                        if (!e.shiftKey) {
-                          setSelectedGalleries([gallery.id]);
-                          setLastSelectedId(gallery.id);
-                        } else if (lastSelectedId) {
-                          const galleries = sortedGalleries;
-                          const currentIndex = galleries.findIndex(g => g.id === gallery.id);
-                          const lastIndex = galleries.findIndex(g => g.id === lastSelectedId);
-                          const [start, end] = [Math.min(currentIndex, lastIndex), Math.max(currentIndex, lastIndex)];
-                          const rangeIds = galleries.slice(start, end + 1).map(g => g.id);
-                          setSelectedGalleries(rangeIds);
-                        } else {
-                          setSelectedGalleries(prev =>
-                            prev.includes(gallery.id)
-                              ? prev.filter(id => id !== gallery.id)
-                              : [...prev, gallery.id]
-                          );
-                          setLastSelectedId(gallery.id);
-                        }
-                      }}
-                      onDoubleClick={() => setLocation(`/g/${gallery.slug}`)}
-                      className={cn(
-                        "overflow-hidden transition-all duration-200 cursor-pointer",
-                        isDragging && "opacity-50",
-                        selectedGalleries.includes(gallery.id) && "outline outline-2 outline-blue-500 outline-offset-[-2px]",
-                        "hover:shadow-lg"
-                      )}
-                    >
-                      <div className="aspect-video relative bg-muted">
-                        {gallery.thumbnailUrl ? (
-                          <img
-                            src={gallery.thumbnailUrl}
-                            alt={gallery.title}
-                            className="object-cover w-full h-full"
-                            draggable={false}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                            <ImageIcon className="w-12 h-12" />
+                            if (!e.shiftKey) {
+                              setSelectedGalleries([gallery.id]);
+                              setLastSelectedId(gallery.id);
+                            } else if (lastSelectedId) {
+                              const galleries = sortedGalleries;
+                              const currentIndex = galleries.findIndex(g => g.id === gallery.id);
+                              const lastIndex = galleries.findIndex(g => g.id === lastSelectedId);
+                              const [start, end] = [Math.min(currentIndex, lastIndex), Math.max(currentIndex, lastIndex)];
+                              const rangeIds = galleries.slice(start, end + 1).map(g => g.id);
+                              setSelectedGalleries(rangeIds);
+                            } else {
+                              setSelectedGalleries(prev =>
+                                prev.includes(gallery.id)
+                                  ? prev.filter(id => id !== gallery.id)
+                                  : [...prev, gallery.id]
+                              );
+                              setLastSelectedId(gallery.id);
+                            }
+                          }}
+                          onDoubleClick={() => setLocation(`/g/${gallery.slug}`)}
+                          className={cn(
+                            "overflow-hidden transition-all duration-200 cursor-pointer",
+                            isDragging && "opacity-50",
+                            selectedGalleries.includes(gallery.id) && "outline outline-2 outline-blue-500 outline-offset-[-2px]",
+                            "hover:shadow-lg"
+                          )}
+                        >
+                          <div className="aspect-video relative bg-muted">
+                            {gallery.thumbnailUrl ? (
+                              <img
+                                src={gallery.thumbnailUrl}
+                                alt={gallery.title}
+                                className="object-cover w-full h-full"
+                                draggable={false}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                <ImageIcon className="w-12 h-12" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <h3 className="font-semibold">{gallery.title}</h3>
-                        <p className="text-sm text-muted-foreground">{gallery.imageCount} images</p>
-                      </div>
-                    </Card>
+                          <div className="p-4">
+                            <h3 className="font-semibold">{gallery.title}</h3>
+                            <p className="text-sm text-muted-foreground">{gallery.imageCount} images</p>
+                          </div>
+                        </Card>
                       </ContextMenuTrigger>
                       <ContextMenuContent>
                         <ContextMenuItem onSelect={() => setLocation(`/g/${gallery.slug}`)}>

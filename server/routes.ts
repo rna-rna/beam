@@ -1821,6 +1821,24 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get folder by slug
+  app.get('/api/folders/:slug', async (req, res) => {
+    try {
+      const folder = await db.query.folders.findFirst({
+        where: eq(folders.slug, req.params.slug)
+      });
+
+      if (!folder) {
+        return res.status(404).json({ message: 'Folder not found' });
+      }
+
+      res.json(folder);
+    } catch (error) {
+      console.error('Failed to fetch folder:', error);
+      res.status(500).json({ message: 'Failed to fetch folder' });
+    }
+  });
+
   // User search endpoint
   app.get('/api/users/search', async (req, res) => {
     try {
@@ -1937,10 +1955,24 @@ export function registerRoutes(app: Express): Server {
     try {
       const { name } = req.body;
       const userId = req.auth.userId;
+      
+      // Generate a unique 8-character slug for the folder
+      const slug = nanoid(8);
 
       const [folder] = await db.insert(folders)
-        .values({ name, userId })
+        .values({ 
+          name, 
+          userId, 
+          slug,
+          createdAt: new Date() 
+        })
         .returning();
+
+      console.log('Created folder:', {
+        id: folder.id,
+        name: folder.name,
+        slug: folder.slug
+      });
 
       res.json(folder);
     } catch (error) {
@@ -1964,7 +1996,11 @@ export function registerRoutes(app: Express): Server {
             .where(eq(galleryFolders.folderId, folder.id));
           
           return {
-            ...folder,
+            id: folder.id,
+            name: folder.name,
+            slug: folder.slug,
+            userId: folder.userId,
+            createdAt: folder.createdAt,
             galleryCount: Number(count[0].count)
           };
         })
@@ -2067,23 +2103,36 @@ export function registerRoutes(app: Express): Server {
     try {
       const userId = req.auth.userId;
       const galleryId = parseInt(req.params.id);
-      const { folderId } = req.body;
+      const { folderId, folderSlug } = req.body;
 
-      // Verify folder ownership
-      const folder = await db.query.folders.findFirst({
-        where: and(
-          eq(folders.id, folderId),
-          eq(folders.userId, userId)
-        )
-      });
+      let targetFolder;
+      
+      // Find folder by ID or slug
+      if (folderId) {
+        targetFolder = await db.query.folders.findFirst({
+          where: and(
+            eq(folders.id, folderId),
+            eq(folders.userId, userId)
+          )
+        });
+      } else if (folderSlug) {
+        targetFolder = await db.query.folders.findFirst({
+          where: and(
+            eq(folders.slug, folderSlug),
+            eq(folders.userId, userId)
+          )
+        });
+      } else {
+        return res.status(400).json({ message: 'Either folderId or folderSlug is required' });
+      }
 
-      if (!folder) {
+      if (!targetFolder) {
         return res.status(404).json({ message: 'Folder not found' });
       }
 
       // Update gallery
       const [updated] = await db.update(galleries)
-        .set({ folderId })
+        .set({ folderId: targetFolder.id })
         .where(and(
           eq(galleries.id, galleryId),
           eq(galleries.userId, userId)

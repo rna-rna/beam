@@ -1,0 +1,3 @@
+
+ALTER TABLE folders
+ALTER COLUMN slug SET NOT NULL;
