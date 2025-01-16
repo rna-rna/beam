@@ -78,21 +78,13 @@ export function DashboardSidebar() {
 
   return (
     <div className="w-64 bg-card border-r border-border h-screen flex flex-col" ref={dropRef}>
-      <div className="shrink-0 p-4 border-b border-border space-y-2">
+      <div className="shrink-0 p-4 border-b border-border">
         <Button 
           variant="ghost" 
           className="w-full justify-start"
         >
           <Clock className="mr-2 h-4 w-4" />
           Recents
-        </Button>
-        <Button
-          variant="ghost"
-          className="w-full justify-start"
-          onClick={() => setLocation("/dashboard?view=trash")}
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Trash
         </Button>
       </div>
 
@@ -129,17 +121,25 @@ export function DashboardSidebar() {
               </DropdownMenu>
             </div>
           ))}
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-muted-foreground hover:text-foreground"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <FolderPlus className="mr-2 h-4 w-4" />
+            Add Folder
+          </Button>
         </div>
       </ScrollArea>
 
       <div className="shrink-0 p-4 border-t border-border">
-        <Button 
-          variant="outline" 
-          className="w-full justify-start"
-          onClick={() => setIsCreateOpen(true)}
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-muted-foreground hover:text-foreground"
+          onClick={() => setLocation("/dashboard?view=trash")}
         >
-          <FolderPlus className="mr-2 h-4 w-4" />
-          Add Folder
+          <Trash2 className="mr-2 h-4 w-4" />
+          Trash
         </Button>
       </div>
 
