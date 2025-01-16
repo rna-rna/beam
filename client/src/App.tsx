@@ -204,7 +204,9 @@ function AppContent() {
       onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
       actions={headerActions}
     >
-      <Switch>
+      <div className="min-h-screen w-full">
+        <AnimatePresence mode="wait">
+          <Switch>
         <Route path="/new">
           <SignedIn>
             <NewGallery />
@@ -256,7 +258,9 @@ function AppContent() {
       <Route path="/about"> {/* Added About route */}
         <About />
       </Route>
-    </Switch>
+        </Switch>
+      </AnimatePresence>
+      </div>
     </Layout>
   );
 }
