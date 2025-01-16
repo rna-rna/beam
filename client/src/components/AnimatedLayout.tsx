@@ -14,19 +14,17 @@ export function AnimatedLayout({ children, title, onTitleChange, actions }: Anim
   const [location] = useLocation();
 
   return (
-    <Layout title={title} onTitleChange={onTitleChange} actions={actions}>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={location}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="w-full"
-        >
-          {children}
-        </motion.div>
-      </AnimatePresence>
-    </Layout>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="w-full"
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
   );
 }

@@ -199,15 +199,20 @@ function AppContent() {
   }
 
   return (
-    <Switch>
-      <Route path="/new">
-        <SignedIn>
-          <NewGallery />
-        </SignedIn>
-        <SignedOut>
-          <Home />
-        </SignedOut>
-      </Route>
+    <Layout
+      title={gallery?.title}
+      onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
+      actions={headerActions}
+    >
+      <Switch>
+        <Route path="/new">
+          <SignedIn>
+            <NewGallery />
+          </SignedIn>
+          <SignedOut>
+            <Home />
+          </SignedOut>
+          </Route>
       <Route path="/">
         <SignedIn>
           <Dashboard />
@@ -240,24 +245,19 @@ function AppContent() {
 
       <Route path="/g/:slug">
         {(params) => (
-          <Layout
+          <Gallery
+            slug={params.slug}
+            onHeaderActionsChange={setHeaderActions}
             title={gallery?.title || "Loading Gallery..."}
             onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
-            actions={headerActions}
-          >
-            <Gallery
-              slug={params.slug}
-              onHeaderActionsChange={setHeaderActions}
-              title={gallery?.title || "Loading Gallery..."}
-              onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
-            />
-          </Layout>
+          />
         )}
       </Route>
       <Route path="/about"> {/* Added About route */}
         <About />
       </Route>
     </Switch>
+    </Layout>
   );
 }
 
