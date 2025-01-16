@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 export function MainContent() {
   const [location, setLocation] = useLocation();
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
+  const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState("created");
   const params = new URLSearchParams(location.split("?")[1] || "");
   const folderParam = params.get("folder");
@@ -139,9 +140,31 @@ export function MainContent() {
                     <Card
                       ref={dragRef}
                       key={gallery.id}
+                      onClick={(e) => {
+                        if (!e.shiftKey) {
+                          setSelectedGalleries([gallery.id]);
+                          setLastSelectedId(gallery.id);
+                        } else if (lastSelectedId) {
+                          const galleries = sortedGalleries;
+                          const currentIndex = galleries.findIndex(g => g.id === gallery.id);
+                          const lastIndex = galleries.findIndex(g => g.id === lastSelectedId);
+                          const [start, end] = [Math.min(currentIndex, lastIndex), Math.max(currentIndex, lastIndex)];
+                          const rangeIds = galleries.slice(start, end + 1).map(g => g.id);
+                          setSelectedGalleries(rangeIds);
+                        } else {
+                          setSelectedGalleries(prev => 
+                            prev.includes(gallery.id) 
+                              ? prev.filter(id => id !== gallery.id)
+                              : [...prev, gallery.id]
+                          );
+                          setLastSelectedId(gallery.id);
+                        }
+                      }}
                       className={cn(
-                        "overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer",
-                        isDragging && "opacity-50"
+                        "overflow-hidden transition-all duration-200 cursor-pointer",
+                        isDragging && "opacity-50",
+                        selectedGalleries.includes(gallery.id) && "outline outline-2 outline-blue-500 outline-offset-[-2px]",
+                        "hover:shadow-lg"
                       )}
                     >
                       <div className="aspect-video relative bg-muted">
