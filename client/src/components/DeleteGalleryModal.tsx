@@ -13,7 +13,7 @@ interface DeleteGalleryModalProps {
   galleryTitle: string;
 }
 
-export function DeleteGalleryModal({ isOpen, onClose, galleryId, galleryTitle }: DeleteGalleryModalProps) {
+export function DeleteGalleryModal({ isOpen, onClose, gallerySlug, galleryTitle }: DeleteGalleryModalProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
