@@ -74,9 +74,14 @@ export function MainContent() {
     return 0;
   });
 
-  const displayedGalleries = currentFolder
-    ? sortedGalleries.filter((gallery) => gallery.folderId === currentFolder)
-    : sortedGalleries;
+  const params = new URLSearchParams(location.split("?")[1] || "");
+  const view = params.get("view");
+
+  const displayedGalleries = view === "trash" 
+    ? sortedGalleries.filter(gallery => gallery.deleted_at)
+    : currentFolder
+      ? sortedGalleries.filter((gallery) => gallery.folderId === currentFolder && !gallery.deleted_at)
+      : sortedGalleries.filter(gallery => !gallery.deleted_at);
 
 
 
@@ -139,8 +144,17 @@ export function MainContent() {
             {displayedGalleries.length === 0 ? (
               <div className="flex items-center justify-center h-[calc(100vh-200px)]">
                 <div className="text-center text-muted-foreground">
-                  <FolderPlus className="w-12 h-12 mx-auto mb-4" />
-                  <p>This folder is empty</p>
+                  {view === "trash" ? (
+                    <>
+                      <Trash2 className="w-12 h-12 mx-auto mb-4" />
+                      <p>Trash is empty</p>
+                    </>
+                  ) : (
+                    <>
+                      <FolderPlus className="w-12 h-12 mx-auto mb-4" />
+                      <p>This folder is empty</p>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (

@@ -1,6 +1,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FolderPlus, Clock, ChevronRight, MoreVertical, FolderOpen } from 'lucide-react';
+import { FolderPlus, Clock, ChevronRight, MoreVertical, FolderOpen, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -78,13 +78,21 @@ export function DashboardSidebar() {
 
   return (
     <div className="w-64 bg-card border-r border-border h-full flex flex-col" ref={dropRef}>
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-border space-y-2">
         <Button 
           variant="ghost" 
           className="w-full justify-start"
         >
           <Clock className="mr-2 h-4 w-4" />
           Recents
+        </Button>
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={() => setLocation("/dashboard?view=trash")}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Trash
         </Button>
       </div>
 
