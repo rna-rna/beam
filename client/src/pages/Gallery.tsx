@@ -1012,7 +1012,21 @@ export default function Gallery({
       // Load the uploaded image to get final dimensions
       const img = new Image();
       img.onload = () => {
-        // Only remove the pending item when gallery query succeeds
+        // Mark upload as complete but keep local URL until query refresh
+        setImages(prev => 
+          prev.map(img => 
+            img.id === tmpId 
+              ? { 
+                  ...img as PendingImage,
+                  status: "complete",
+                  progress: 100,
+                  finalUrl: publicUrl // Store final URL but don't use it yet
+                } 
+              : img
+          )
+        );
+        
+        // Wait for query invalidation to complete before removing pending item
         queryClient.invalidateQueries([`/api/galleries/${slug}`], {
           onSuccess: () => {
             setImages(prev => prev.filter(existing => existing.id !== tmpId));
