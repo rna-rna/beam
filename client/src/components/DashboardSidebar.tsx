@@ -22,7 +22,15 @@ import { Input } from '@/components/ui/input';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-export function DashboardSidebar() {
+interface DashboardSidebarProps {
+  folder?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+}
+
+export function DashboardSidebar({ folder }: DashboardSidebarProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const queryClient = useQueryClient();
