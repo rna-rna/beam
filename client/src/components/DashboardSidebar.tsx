@@ -164,3 +164,58 @@ export function DashboardSidebar() {
     </div>
   );
 }
+import { useDrop } from "react-dnd";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+
+export function DashboardSidebar() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
+    try {
+      await Promise.all(galleryIds.map(async (galleryId) => {
+        const res = await fetch(`/api/galleries/${galleryId}/move`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderId })
+        });
+
+        if (!res.ok) throw new Error('Failed to move gallery');
+      }));
+      
+      await queryClient.invalidateQueries(['/api/galleries']);
+      toast({
+        title: "Success",
+        description: "Galleries moved successfully"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to move galleries",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const [{ isOver }, dropRef] = useDrop({
+    accept: "GALLERY",
+    drop: (item: { selectedIds: number[] }, monitor) => {
+      if (folder?.id) {
+        handleMoveGallery(item.selectedIds, folder.id);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver()
+    })
+  });
+
+  return (
+    <div ref={dropRef} className={cn(
+      "pb-12 w-64 border-r bg-background",
+      isOver && "bg-accent/20"
+    )}>
+      {/* Existing sidebar content */}
+    </div>
+  );
+}

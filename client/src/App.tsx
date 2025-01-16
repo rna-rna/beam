@@ -281,6 +281,7 @@ function AppContent() {
 
 export default function App() {
   const { isLoaded } = useUser();
+  const queryClient = new QueryClient();
 
   if (!isLoaded) {
     return (
@@ -291,11 +292,13 @@ export default function App() {
   }
 
   return (
-    <UploadProvider>
-      <GlobalUploadProgress />
+    <QueryClientProvider client={queryClient}>
       <DndProvider backend={HTML5Backend}>
-        <AppContent />
+        <UploadProvider>
+          <GlobalUploadProgress />
+          <AppContent />
+        </UploadProvider>
       </DndProvider>
-    </UploadProvider>
+    </QueryClientProvider>
   );
 }
