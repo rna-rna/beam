@@ -1978,7 +1978,11 @@ export function registerRoutes(app: Express): Server {
             .where(eq(galleryFolders.folderId, folder.id));
           
           return {
-            ...folder,
+            id: folder.id,
+            name: folder.name,
+            slug: folder.slug,
+            userId: folder.userId,
+            createdAt: folder.createdAt,
             galleryCount: Number(count[0].count)
           };
         })
