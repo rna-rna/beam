@@ -21,14 +21,6 @@ import { RenameGalleryModal } from "./RenameGalleryModal";
 import { DeleteGalleryModal } from "./DeleteGalleryModal";
 
 export function MainContent() {
-  return (
-    <DndProvider backend={HTML5Backend}>
-      <MainContentInner />
-    </DndProvider>
-  );
-}
-
-function MainContentInner() {
   const [location, setLocation] = useLocation();
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
@@ -61,9 +53,6 @@ function MainContentInner() {
   });
 
   // Debug logging
-  console.log('folderParam:', folderParam);
-  console.log('currentFolder:', currentFolder);
-  console.log('all galleries:', galleries);
   console.log({
     location,
     folderParam,
@@ -134,6 +123,7 @@ function MainContentInner() {
     }
 
     return (
+      <DndProvider backend={HTML5Backend}>
         <div className="flex h-full relative">
           <CustomDragLayer />
           <div className="flex-1 p-6">
@@ -286,9 +276,7 @@ function MainContentInner() {
 
   return (
     <>
-      <DndProvider backend={HTML5Backend}>
-        <MainContentInner />
-      </DndProvider>
+      {renderContent()}
 
       {selectedGallery && (
         <>
@@ -327,6 +315,5 @@ function MainContentInner() {
         </>
       )}
     </>
-  );
   );
 }
