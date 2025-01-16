@@ -70,116 +70,120 @@ export function MainContentV2() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-pulse">Loading galleries...</div>
-      </div>
-    );
-  }
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-pulse">Loading galleries...</div>
+        </div>
+      );
+    }
 
-  return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="flex h-full">
-        <div className="w-64 border-r bg-background/95 p-4">
-          <div className="space-y-2">
-            <button
-              onClick={() => setCurrentFolder(null)}
-              className={cn(
-                "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
-                !currentFolder ? "bg-primary/10 text-primary" : "hover:bg-muted"
-              )}
-            >
-              <Clock className="h-4 w-4" />
-              <span>All Galleries</span>
-            </button>
-            {folders.map((folder) => (
+    return (
+      <DndProvider backend={HTML5Backend}>
+        <div className="flex h-full">
+          <div className="w-64 border-r bg-background/95 p-4">
+            <div className="space-y-2">
               <button
-                key={folder.id}
-                onClick={() => setCurrentFolder(folder.id)}
+                onClick={() => setCurrentFolder(null)}
                 className={cn(
                   "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
-                  currentFolder === folder.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                  !currentFolder ? "bg-primary/10 text-primary" : "hover:bg-muted"
                 )}
               >
-                <FolderOpen className="h-4 w-4" />
-                <span>{folder.name}</span>
+                <Clock className="h-4 w-4" />
+                <span>All Galleries</span>
               </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex-1 p-6">
-          <div className="flex justify-end mb-6">
-            <Select value={sortOrder} onValueChange={setSortOrder}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sort by..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="created">Created Date</SelectItem>
-                <SelectItem value="lastViewed">Last Viewed</SelectItem>
-                <SelectItem value="alphabetical">Alphabetical</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {/* New Gallery Card */}
-            <Card className="group hover:shadow-lg transition-all duration-200 bg-muted/50">
-              <Button
-                variant="ghost"
-                className="h-full w-full p-6"
-                onClick={() => setLocation("/new")}
-              >
-                <div className="flex flex-col items-center justify-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <FolderPlus className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="text-center">
-                    <h3 className="font-medium">New Gallery</h3>
-                  </div>
-                </div>
-              </Button>
-            </Card>
-
-            {displayedGalleries.map((gallery) => {
-              const [{ isDragging }, dragRef] = useDrag(() => ({
-                type: "GALLERY",
-                item: { id: gallery.id },
-                collect: (monitor) => ({
-                  isDragging: monitor.isDragging(),
-                }),
-              }));
-
-              return (
-                <Card
-                  ref={dragRef}
-                  key={gallery.id}
-                  className={`overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer ${
-                    selectedGalleries.includes(gallery.id) 
-                      ? "ring-2 ring-blue-500 shadow-lg shadow-blue-500/20" 
-                      : "hover:ring-1 hover:ring-blue-500/20"
-                  } ${isDragging ? "opacity-50" : ""}`}
-                  onClick={(e) => handleGalleryClick(gallery, e)}
+              {folders.map((folder) => (
+                <button
+                  key={folder.id}
+                  onClick={() => setCurrentFolder(folder.id)}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
+                    currentFolder === folder.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                  )}
                 >
-                  <div className="aspect-video relative bg-muted">
-                    <img
-                      src={gallery.thumbnailUrl || ""}
-                      alt={gallery.title}
-                      className="object-cover w-full h-full"
-                      draggable={false}
-                    />
+                  <FolderOpen className="h-4 w-4" />
+                  <span>{folder.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 p-6">
+            <div className="flex justify-end mb-6">
+              <Select value={sortOrder} onValueChange={setSortOrder}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Sort by..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created">Created Date</SelectItem>
+                  <SelectItem value="lastViewed">Last Viewed</SelectItem>
+                  <SelectItem value="alphabetical">Alphabetical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {/* New Gallery Card */}
+              <Card className="group hover:shadow-lg transition-all duration-200 bg-muted/50">
+                <Button
+                  variant="ghost"
+                  className="h-full w-full p-6"
+                  onClick={() => setLocation("/new")}
+                >
+                  <div className="flex flex-col items-center justify-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <FolderPlus className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="font-medium">New Gallery</h3>
+                    </div>
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold">{gallery.title}</h3>
-                    <p className="text-sm text-muted-foreground">{gallery.imageCount} images</p>
-                  </div>
-                </Card>
-              );
-            })}
+                </Button>
+              </Card>
+
+              {displayedGalleries.map((gallery) => {
+                const [{ isDragging }, dragRef] = useDrag(() => ({
+                  type: "GALLERY",
+                  item: { id: gallery.id },
+                  collect: (monitor) => ({
+                    isDragging: monitor.isDragging(),
+                  }),
+                }));
+
+                return (
+                  <Card
+                    ref={dragRef}
+                    key={gallery.id}
+                    className={`overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer ${
+                      selectedGalleries.includes(gallery.id) 
+                        ? "ring-2 ring-blue-500 shadow-lg shadow-blue-500/20" 
+                        : "hover:ring-1 hover:ring-blue-500/20"
+                    } ${isDragging ? "opacity-50" : ""}`}
+                    onClick={(e) => handleGalleryClick(gallery, e)}
+                  >
+                    <div className="aspect-video relative bg-muted">
+                      <img
+                        src={gallery.thumbnailUrl || ""}
+                        alt={gallery.title}
+                        className="object-cover w-full h-full"
+                        draggable={false}
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold">{gallery.title}</h3>
+                      <p className="text-sm text-muted-foreground">{gallery.imageCount} images</p>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
-    </DndProvider>
-  );
+      </DndProvider>
+    );
+  };
+
+  return renderContent();
 }
