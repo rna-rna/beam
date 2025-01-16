@@ -6,7 +6,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FolderOpen, FolderPlus, Clock } from "lucide-react";
+import { FolderOpen, FolderPlus, Clock, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CustomDragLayer } from "./CustomDragLayer";
 
@@ -106,8 +106,8 @@ export function MainContent() {
 
     return (
       <DndProvider backend={HTML5Backend}>
-        <CustomDragLayer />
-        <div className="flex h-full">
+        <div className="flex h-full relative">
+          <CustomDragLayer />
           <div className="flex-1 p-6">
             <div className="flex justify-end mb-6">
               <Select value={sortOrder} onValueChange={setSortOrder}>
@@ -141,6 +141,14 @@ export function MainContent() {
                     collect: (monitor) => ({
                       isDragging: monitor.isDragging(),
                     }),
+                    options: {
+                      dropEffect: 'move',
+                      dragPreviewOptions: { 
+                        captureDraggingState: true,
+                        offsetX: 0,
+                        offsetY: 0
+                      }
+                    }
                   }), [selectedGalleries]);
 
                   return (
@@ -176,12 +184,18 @@ export function MainContent() {
                       )}
                     >
                       <div className="aspect-video relative bg-muted">
-                        <img
-                          src={gallery.thumbnailUrl || ""}
-                          alt={gallery.title}
-                          className="object-cover w-full h-full"
-                          draggable={false}
-                        />
+                        {gallery.thumbnailUrl ? (
+                          <img
+                            src={gallery.thumbnailUrl}
+                            alt={gallery.title}
+                            className="object-cover w-full h-full"
+                            draggable={false}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                            <ImageIcon className="w-12 h-12" />
+                          </div>
+                        )}
                       </div>
                       <div className="p-4">
                         <h3 className="font-semibold">{gallery.title}</h3>
