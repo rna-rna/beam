@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FolderOpen, FolderPlus, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CustomDragLayer } from "./CustomDragLayer";
 
 export function MainContent() {
   const [location, setLocation] = useLocation();
@@ -105,6 +106,7 @@ export function MainContent() {
 
     return (
       <DndProvider backend={HTML5Backend}>
+        <CustomDragLayer />
         <div className="flex h-full">
           <div className="flex-1 p-6">
             <div className="flex justify-end mb-6">
