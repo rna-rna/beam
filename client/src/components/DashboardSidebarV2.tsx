@@ -44,41 +44,39 @@ export function DashboardSidebarV2() {
   });
 
   return (
-    <div className="w-64 border-r border-border h-full flex flex-col bg-card">
-      <div className="p-4 border-b">
+    <div className="w-64 bg-card border-r border-border h-full flex flex-col">
+      <div className="p-4 border-b border-border">
+        <Button variant="ghost" className="w-full justify-start">
+          <Clock className="mr-2 h-4 w-4" />
+          Recents
+        </Button>
+      </div>
+      
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-2">
+          {folders?.map((folder) => (
+            <Button
+              key={folder.id}
+              variant="ghost"
+              className="w-full justify-start"
+            >
+              <FolderPlus className="mr-2 h-4 w-4" />
+              {folder.name}
+            </Button>
+          ))}
+        </div>
+      </ScrollArea>
+
+      <div className="p-4 border-t border-border">
         <Button 
           variant="outline" 
           className="w-full justify-start"
           onClick={() => setIsCreateOpen(true)}
         >
           <FolderPlus className="mr-2 h-4 w-4" />
-          New Folder
+          Add Folder
         </Button>
       </div>
-      
-      <ScrollArea className="flex-1">
-        <div className="p-2">
-          <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-            Folders
-          </div>
-          <div className="space-y-1">
-            <Button variant="ghost" className="w-full justify-start">
-              <Clock className="mr-2 h-4 w-4" />
-              Recent
-            </Button>
-            {folders?.map((folder) => (
-              <Button
-                key={folder.id}
-                variant="ghost"
-                className="w-full justify-start"
-              >
-                <FolderPlus className="mr-2 h-4 w-4" />
-                {folder.name}
-              </Button>
-            ))}
-          </div>
-        </div>
-      </ScrollArea>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent>
