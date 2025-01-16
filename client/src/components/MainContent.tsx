@@ -82,6 +82,15 @@ export function MainContent() {
       ? sortedGalleries.filter((gallery) => gallery.folderId === currentFolder && !gallery.deleted_at)
       : sortedGalleries.filter(gallery => !gallery.deleted_at);
 
+  console.log(
+    "debug displayedGalleries:",
+    displayedGalleries,
+    "folderParam:",
+    folderParam,
+    "currentFolder:",
+    currentFolder
+  );
+
 
 
   const [{ isOver }, dropRef] = useDrop({
