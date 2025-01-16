@@ -1436,7 +1436,7 @@ export default function Gallery({
     return (
       <div
         className={cn(
-          "flex items-center justify-between gap-2 p-2 rounded-lg",
+          "flex items-center justify-between gap-2 rounded-lg",
           isDark ? "bg-black/90" : "bg-white/90",
         )}
       >
