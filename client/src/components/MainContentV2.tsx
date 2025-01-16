@@ -112,7 +112,9 @@ export function MainContentV2() {
                 ref={dragRef}
                 key={gallery.id}
                 className={`overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer ${
-                  selectedGalleries.includes(gallery.id) ? "ring-2 ring-primary" : ""
+                  selectedGalleries.includes(gallery.id) 
+                    ? "ring-2 ring-blue-500 shadow-lg shadow-blue-500/20" 
+                    : "hover:ring-1 hover:ring-blue-500/20"
                 } ${isDragging ? "opacity-50" : ""}`}
                 onClick={(e) => handleGalleryClick(gallery, e)}
               >
