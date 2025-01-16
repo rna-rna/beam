@@ -53,12 +53,20 @@
 .image-container {
   width: 100%;
   break-inside: avoid;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.image-container.loaded {
+  opacity: 1;
 }
 
 .image-container img {
   width: 100%;
   height: auto;
   display: block;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .image-container.fixed {

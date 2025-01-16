@@ -1495,24 +1495,20 @@ export default function Gallery({
       style={{ breakInside: "avoid", position: "relative" }}
     >
       <motion.div
-        layout={draggedItemIndex === index ? false : "position"}
+        layout={false}
         className={cn(
-          "image-container transform transition-all duration-200 ease-out w-full",
+          "image-container transform transition-opacity duration-200 w-full",
           isReorderMode && "cursor-grab active:cursor-grabbing",
           draggedItemIndex === index ? "fixed" : "relative",
+          'localUrl' in image && "opacity-80",
           "block",
         )}
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0 }}
         animate={{
           opacity: 1,
-          y: 0,
-          scale: draggedItemIndex === index ? 1.05 : 1,
-          zIndex: draggedItemIndex === index ? 100 : 1,
           transition: {
-            type: "spring",
-            stiffness: 300,
-            damping: 25,
-          },
+            duration: 0.2
+          }
         }}
         drag={isReorderMode}
         dragMomentum={false}
