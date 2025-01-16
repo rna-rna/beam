@@ -77,7 +77,7 @@ export function DashboardSidebar() {
   });
 
   return (
-    <div className="w-64 bg-card border-r border-border h-full flex flex-col" ref={dropRef}>
+    <div className="w-64 bg-card border-r border-border h-screen flex flex-col overflow-hidden" ref={dropRef}>
       <div className="p-4 border-b border-border space-y-2">
         <Button 
           variant="ghost" 
@@ -96,7 +96,7 @@ export function DashboardSidebar() {
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-4 overflow-hidden">
         <div className="space-y-2">
           {folders?.map((folder) => (
             <div key={folder.id} className="group relative">
