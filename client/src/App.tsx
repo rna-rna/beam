@@ -6,6 +6,7 @@ import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
 import SignUpPage from "@/pages/SignUp";
 import Dashboard from "@/pages/Dashboard";
+import DashboardV2 from "@/pages/DashboardV2";
 import Settings from "@/pages/Settings";
 import { Layout } from "@/components/Layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
