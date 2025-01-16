@@ -53,6 +53,9 @@ export function MainContent() {
   });
 
   // Debug logging
+  console.log('folderParam:', folderParam);
+  console.log('currentFolder:', currentFolder);
+  console.log('all galleries:', galleries);
   console.log({
     location,
     folderParam,
