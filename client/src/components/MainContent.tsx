@@ -106,8 +106,8 @@ export function MainContent() {
 
     return (
       <DndProvider backend={HTML5Backend}>
-        <CustomDragLayer />
-        <div className="flex h-full">
+        <div className="flex h-full relative">
+          <CustomDragLayer />
           <div className="flex-1 p-6">
             <div className="flex justify-end mb-6">
               <Select value={sortOrder} onValueChange={setSortOrder}>
@@ -141,6 +141,14 @@ export function MainContent() {
                     collect: (monitor) => ({
                       isDragging: monitor.isDragging(),
                     }),
+                    options: {
+                      dropEffect: 'move',
+                      dragPreviewOptions: { 
+                        captureDraggingState: true,
+                        offsetX: 0,
+                        offsetY: 0
+                      }
+                    }
                   }), [selectedGalleries]);
 
                   return (
