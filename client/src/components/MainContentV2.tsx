@@ -51,7 +51,6 @@ export function MainContentV2() {
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
       <div className="p-6">
         <div className="flex justify-end mb-6">
           <Select value={sortOrder} onValueChange={setSortOrder}>
