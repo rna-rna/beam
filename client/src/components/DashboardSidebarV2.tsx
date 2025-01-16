@@ -1,6 +1,7 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { FolderPlus, Clock } from "lucide-react";
+import { FolderPlus, Clock, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -10,28 +11,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useDrop } from 'react-dnd';
+import { useDrop } from "react-dnd";
 
-export function DashboardSidebarV2() {
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-
-  const [{ isOver }, dropRef] = useDrop(() => ({
-    accept: "GALLERY",
-    drop: (item: { id: number }) => {
-      console.log(`Gallery ${item.id} dropped into folder`);
-      // TODO: Implement gallery move logic
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
-  }));
-
+export function DashboardSidebarV2({ onFolderSelect }: { onFolderSelect: (id: number | null) => void }) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderName, setNewFolderName] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: folders } = useQuery({
-    queryKey: ['folders'],
+  const { data: folders = [] } = useQuery({
+    queryKey: ['/api/folders'],
     queryFn: async () => {
       const res = await fetch('/api/folders');
       if (!res.ok) throw new Error('Failed to fetch folders');
@@ -50,37 +38,45 @@ export function DashboardSidebarV2() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/folders'] });
       setIsCreateOpen(false);
       setNewFolderName('');
     }
   });
 
+  const [{ isOver }, dropRef] = useDrop({
+    accept: "GALLERY",
+    drop: (item: { id: number }) => {
+      console.log(`Gallery ${item.id} dropped into folder`);
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver()
+    })
+  });
+
   return (
-    <div className="w-64 bg-card border-r border-border h-full flex flex-col" ref={dropRef}>
-      <div className="p-4 border-b border-border">
-        <Button variant="ghost" className="w-full justify-start">
-          <Clock className="mr-2 h-4 w-4" />
-          Recents
-        </Button>
+    <div className="w-64 border-r bg-background/95 p-4" ref={dropRef}>
+      <div className="space-y-2">
+        <button
+          onClick={() => onFolderSelect(null)}
+          className="w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors hover:bg-muted"
+        >
+          <Clock className="h-4 w-4" />
+          <span>All Galleries</span>
+        </button>
+        {folders.map((folder) => (
+          <button
+            key={folder.id}
+            onClick={() => onFolderSelect(folder.id)}
+            className="w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors hover:bg-muted"
+          >
+            <FolderOpen className="h-4 w-4" />
+            <span>{folder.name}</span>
+          </button>
+        ))}
       </div>
 
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-2">
-          {folders?.map((folder) => (
-            <Button
-              key={folder.id}
-              variant="ghost"
-              className="w-full justify-start"
-            >
-              <FolderPlus className="mr-2 h-4 w-4" />
-              {folder.name}
-            </Button>
-          ))}
-        </div>
-      </ScrollArea>
-
-      <div className="p-4 border-t border-border">
+      <div className="mt-4">
         <Button 
           variant="outline" 
           className="w-full justify-start"

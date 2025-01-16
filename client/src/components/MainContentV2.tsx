@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Gallery } from "@db/schema";
 import { useLocation } from "wouter";
@@ -35,12 +34,12 @@ export function MainContentV2() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folderId })
       });
-      
+
       if (!res.ok) throw new Error('Failed to move gallery');
-      
+
       await queryClient.invalidateQueries(['/api/galleries']);
       await queryClient.invalidateQueries(['/api/folders']);
-      
+
       toast({
         title: "Gallery moved",
         description: "Gallery has been moved to the selected folder"
@@ -94,12 +93,12 @@ export function MainContentV2() {
 
   const handleGalleryClick = async (gallery: Gallery, event: React.MouseEvent) => {
     event.preventDefault();
-    
+
     if (clickTimerRef.current) {
       // Double click detected
       clearTimeout(clickTimerRef.current);
       clickTimerRef.current = null;
-      
+
       // Update last viewed timestamp
       try {
         await fetch(`/api/galleries/${gallery.slug}/view`, {
@@ -110,7 +109,7 @@ export function MainContentV2() {
       } catch (error) {
         console.error('Failed to update view timestamp:', error);
       }
-      
+
       setLocation(`/g/${gallery.slug}`);
     } else {
       // Set timer for single click
