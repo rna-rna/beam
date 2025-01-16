@@ -1543,13 +1543,13 @@ export default function Gallery({
               : handleImageClick(index);
           }}
         >
-          <div className="relative">
+          <AspectRatio ratio={image.width && image.height ? image.width / image.height : 4/3}>
             <img
               key={`${image.id}-${image._status || "final"}`}
               src={'localUrl' in image ? image.localUrl : image.url}
               alt={image.originalFilename || "Uploaded image"}
               className={cn(
-                "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
+                "w-full h-full rounded-lg blur-up transition-opacity duration-200 object-cover",
                 selectMode && selectedImages.includes(image.id) && "opacity-75",
                 draggedItemIndex === index && "opacity-50",
                 'localUrl' in image && "opacity-80",
@@ -1586,6 +1586,7 @@ export default function Gallery({
               }}
               draggable={false}
             />
+          </AspectRatio>
           {'localUrl' in image && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
               {image.status === "uploading" && (
