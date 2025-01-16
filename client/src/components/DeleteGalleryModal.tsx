@@ -9,8 +9,8 @@ import { Loader2 } from "lucide-react";
 interface DeleteGalleryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  gallerySlug: string;
-  galleryTitle: string;
+  gallerySlug: string;          // we actually want to delete by slug
+  galleryTitle: string;         // used only for the dialog's text
 }
 
 export function DeleteGalleryModal({ isOpen, onClose, gallerySlug, galleryTitle }: DeleteGalleryModalProps) {
