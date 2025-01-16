@@ -88,7 +88,9 @@ function AppContent() {
   const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
     queryKey: gallerySlug ? ['gallery', gallerySlug] : null,
     queryFn: async ({ queryKey }) => {
-      if (!queryKey[1]) return null;
+      const slug = queryKey[1];
+      if (!slug) return null;
+      
       const token = await getToken();
       const headers: HeadersInit = {
         'Cache-Control': 'no-cache',
@@ -97,11 +99,12 @@ function AppContent() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const res = await fetch(`/api/galleries/${gallerySlug}`, {
+      const res = await fetch(`/api/galleries/${slug}`, {
         headers,
         cache: 'no-store',
         credentials: 'include'
       });
+      
       if (!res.ok) {
         if (res.status === 404) {
           throw new Error('Gallery not found');
@@ -111,9 +114,10 @@ function AppContent() {
         }
         throw new Error('Failed to fetch gallery');
       }
+      
       const data = await res.json();
-      if (!data) {
-        throw new Error('Gallery data is undefined');
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid gallery data received');
       }
       return data;
     },
