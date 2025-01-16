@@ -1649,17 +1649,23 @@ export default function Gallery({
           {'localUrl' in image && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
               {image.status === "uploading" && (
-                <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                <>
+                  <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                  <Progress value={image.progress} className="w-3/4 h-1" />
+                </>
+              )}
+              {image.status === "finalizing" && (
+                <div className="absolute top-2 right-2 flex items-center gap-2 bg-background/80 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span className="text-xs font-medium">Finalizing...</span>
                 </div>
               )}
               {image.status === "error" && (
                 <div className="absolute top-2 right-2 bg-destructive/80 backdrop-blur-sm p-2 rounded-full">
                   <AlertCircle className="h-4 w-4 text-destructive-foreground" />
                 </div>
-              )}
-              {image.status === "uploading" && (
-                <Progress value={image.progress} className="w-3/4 h-1" />
               )}
             </div>
           )}
