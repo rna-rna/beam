@@ -61,18 +61,18 @@ export function Layout({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => window.location.href = "/dashboard"}
-              title="Go to dashboard"
-            >
-              <Home className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
               onClick={() => window.location.href = "/new"}
               title="Create new gallery"
             >
               <SquarePlus className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.location.href = "/dashboard"}
+              title="Go to dashboard"
+            >
+              <Home className="h-4 w-4" />
             </Button>
             <ThemeToggle />
             <SignedIn>
