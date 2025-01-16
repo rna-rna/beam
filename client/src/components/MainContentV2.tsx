@@ -7,7 +7,7 @@ import { formatRelativeDate } from "@/lib/format-date";
 import { useQuery } from "@tanstack/react-query";
 import type { Gallery } from "@db/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 
@@ -15,6 +15,7 @@ export function MainContentV2() {
   const [, setLocation] = useLocation();
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState("created");
+  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: galleries = [], isLoading } = useQuery({
     queryKey: ["/api/galleries"],
@@ -32,13 +33,26 @@ export function MainContentV2() {
     return 0;
   });
 
-  const toggleSelection = (id: number, event: React.MouseEvent) => {
-    if (event.shiftKey || event.metaKey || event.ctrlKey) {
-      setSelectedGalleries(prev => 
-        prev.includes(id) ? prev.filter(gid => gid !== id) : [...prev, id]
-      );
+  const handleGalleryClick = (gallery: Gallery, event: React.MouseEvent) => {
+    event.preventDefault();
+    
+    if (clickTimerRef.current) {
+      // Double click detected
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+      setLocation(`/g/${gallery.slug}`);
     } else {
-      setSelectedGalleries([id]);
+      // Set timer for single click
+      clickTimerRef.current = setTimeout(() => {
+        if (event.shiftKey || event.metaKey || event.ctrlKey) {
+          setSelectedGalleries(prev => 
+            prev.includes(gallery.id) ? prev.filter(gid => gid !== gallery.id) : [...prev, gallery.id]
+          );
+        } else {
+          setSelectedGalleries([gallery.id]);
+        }
+        clickTimerRef.current = null;
+      }, 250);
     }
   };
 
@@ -100,18 +114,14 @@ export function MainContentV2() {
                 className={`overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer ${
                   selectedGalleries.includes(gallery.id) ? "ring-2 ring-primary" : ""
                 } ${isDragging ? "opacity-50" : ""}`}
-                onClick={(e) => {
-                  if (e.target === e.currentTarget) {
-                    toggleSelection(gallery.id, e);
-                  }
-                }}
+                onClick={(e) => handleGalleryClick(gallery, e)}
               >
                 <div className="aspect-video relative bg-muted">
                   <img
                     src={gallery.thumbnailUrl || ""}
                     alt={gallery.title}
                     className="object-cover w-full h-full"
-                    onClick={() => setLocation(`/g/${gallery.slug}`)}
+                    draggable={false}
                   />
                 </div>
                 <div className="p-4">
