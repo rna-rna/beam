@@ -54,9 +54,9 @@ export function FolderPage() {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-screen overflow-hidden">
       <DashboardSidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-auto">
         <header className="border-b px-6 py-4">
           <InlineEdit
             value={folder.name}

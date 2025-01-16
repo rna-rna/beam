@@ -33,9 +33,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-screen overflow-hidden">
       <DashboardSidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-auto">
         <MainContent />
       </div>
     </div>
