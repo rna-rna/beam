@@ -88,8 +88,7 @@ function AppContent() {
   const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
     queryKey: gallerySlug ? ['gallery', gallerySlug] : null,
     queryFn: async ({ queryKey }) => {
-      const [_, slug] = queryKey;
-      if (!slug) return null;
+      if (!queryKey[1]) return null;
       const token = await getToken();
       const headers: HeadersInit = {
         'Cache-Control': 'no-cache',
@@ -284,9 +283,18 @@ function AppContent() {
   );
 }
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: true,
+      staleTime: 0
+    }
+  }
+});
+
 export default function App() {
   const { isLoaded } = useUser();
-  const queryClient = new QueryClient();
 
   if (!isLoaded) {
     return (
