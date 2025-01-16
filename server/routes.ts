@@ -1937,9 +1937,10 @@ export function registerRoutes(app: Express): Server {
     try {
       const { name } = req.body;
       const userId = req.auth.userId;
+      const slug = nanoid(8);
 
       const [folder] = await db.insert(folders)
-        .values({ name, userId })
+        .values({ name, userId, slug })
         .returning();
 
       res.json(folder);
