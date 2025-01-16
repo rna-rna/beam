@@ -1,6 +1,5 @@
-
 import { useRoute } from "wouter";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { Card } from "@/components/ui/card";
 import { FolderOpen } from "lucide-react";
@@ -28,28 +27,6 @@ export function FolderPage() {
       const res = await fetch('/api/galleries');
       if (!res.ok) throw new Error('Failed to fetch galleries');
       return res.json();
-    }
-  });
-
-  const updateFolderMutation = useMutation({
-    mutationFn: async (newName: string) => {
-      const res = await fetch(`/api/folders/${folder?.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName })
-      });
-      if (!res.ok) throw new Error('Failed to update folder name');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["folder", folderSlug]);
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update folder name",
-        variant: "destructive"
-      });
     }
   });
 
