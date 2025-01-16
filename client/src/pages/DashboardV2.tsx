@@ -34,10 +34,7 @@ export default function DashboardV2() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <DashboardSidebarV2 />
-      <div className="flex-1 overflow-auto">
-        <MainContentV2 galleries={galleries} />
-      </div>
+      <MainContentV2 galleries={galleries} />
     </div>
   );
 }
