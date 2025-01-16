@@ -228,9 +228,7 @@ function AppContent() {
 
       <Route path="/settings">
         <ProtectedRoute>
-          <Layout>
-            <Settings />
-          </Layout>
+          <Settings />
         </ProtectedRoute>
       </Route>
 
@@ -242,18 +240,12 @@ function AppContent() {
 
       <Route path="/g/:slug">
         {(params) => (
-          <Layout
+          <Gallery
+            slug={params.slug}
+            onHeaderActionsChange={setHeaderActions}
             title={gallery?.title || "Loading Gallery..."}
-            actions={headerActions}
             onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
-          >
-            <Gallery
-              slug={params.slug}
-              onHeaderActionsChange={setHeaderActions}
-              title={gallery?.title || "Loading Gallery..."}
-              onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
-            />
-          </Layout>
+          />
         )}
       </Route>
       <Route path="/about"> {/* Added About route */}
@@ -277,7 +269,9 @@ export default function App() {
   return (
     <UploadProvider>
       <GlobalUploadProgress />
-      <AppContent />
+      <Layout>
+        <AppContent />
+      </Layout>
     </UploadProvider>
   );
 }
