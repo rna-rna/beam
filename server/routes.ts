@@ -2073,6 +2073,45 @@ export function registerRoutes(app: Express): Server {
 
   // Direct upload endpoints only
 
+  // Move gallery to folder
+  protectedRouter.patch('/galleries/:id/move', async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+      const galleryId = parseInt(req.params.id);
+      const { folderId } = req.body;
+
+      // Verify folder ownership
+      const folder = await db.query.folders.findFirst({
+        where: and(
+          eq(folders.id, folderId),
+          eq(folders.userId, userId)
+        )
+      });
+
+      if (!folder) {
+        return res.status(404).json({ message: 'Folder not found' });
+      }
+
+      // Update gallery
+      const [updated] = await db.update(galleries)
+        .set({ folderId })
+        .where(and(
+          eq(galleries.id, galleryId),
+          eq(galleries.userId, userId)
+        ))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Failed to move gallery:', error);
+      res.status(500).json({ message: 'Failed to move gallery' });
+    }
+  });
+
   // Mount protected routes
   app.use('/api', protectedRouter);
 

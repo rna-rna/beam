@@ -17,6 +17,43 @@ export function MainContentV2() {
   const [sortOrder, setSortOrder] = useState("created");
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [currentFolder, setCurrentFolder] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+
+  const handleMoveGallery = async (galleryId: number, folderId: number) => {
+    try {
+      const res = await fetch(`/api/galleries/${galleryId}/move`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId })
+      });
+      
+      if (!res.ok) throw new Error('Failed to move gallery');
+      
+      await queryClient.invalidateQueries(['/api/galleries']);
+      await queryClient.invalidateQueries(['/api/folders']);
+      
+      toast({
+        title: "Gallery moved",
+        description: "Gallery has been moved to the selected folder"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to move gallery",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const [{ isOver }, dropRef] = useDrop({
+    accept: "GALLERY",
+    drop: (item: { id: number }) => {
+      handleMoveGallery(item.id, folder.id);
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver()
+    })
+  });
 
   const { data: galleries = [], isLoading } = useQuery({
     queryKey: ["/api/galleries"],
@@ -95,17 +132,24 @@ export function MainContentV2() {
                 <span>All Galleries</span>
               </button>
               {folders.map((folder) => (
-                <button
+                <div
                   key={folder.id}
                   onClick={() => setCurrentFolder(folder.id)}
+                  ref={dropRef}
                   className={cn(
-                    "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
-                    currentFolder === folder.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                    "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors cursor-pointer",
+                    currentFolder === folder.id ? "bg-primary/10 text-primary" : "hover:bg-muted",
+                    isOver && "ring-2 ring-primary/50 bg-primary/5"
                   )}
                 >
                   <FolderOpen className="h-4 w-4" />
                   <span>{folder.name}</span>
-                </button>
+                  {isOver && (
+                    <div className="ml-auto text-xs text-muted-foreground">
+                      Drop here
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
