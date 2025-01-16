@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FolderPlus, Clock, ChevronRight, MoreVertical, FolderOpen } from 'lucide-react';
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useDrop } from 'react-dnd';
@@ -23,6 +24,7 @@ export function DashboardSidebar() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const [{ isOver }, dropRef] = useDrop(() => ({
     accept: "GALLERY",
@@ -93,6 +95,7 @@ export function DashboardSidebar() {
               <Button
                 variant="ghost"
                 className="w-full justify-start group-hover:pr-8"
+                onClick={() => setLocation(`?folder=${folder.id}`)}
               >
                 <FolderOpen className="mr-2 h-4 w-4" />
                 {folder.name}
