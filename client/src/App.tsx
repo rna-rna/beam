@@ -262,8 +262,14 @@ function AppContent() {
           />
         )}
       </Route>
-      <Route path="/about"> {/* Added About route */}
+      <Route path="/about">
         <About />
+      </Route>
+
+      <Route path="/dashboardv2">
+        <ProtectedRoute>
+          <DashboardV2 />
+        </ProtectedRoute>
       </Route>
         </Switch>
           </AnimatePresence>
