@@ -376,10 +376,8 @@ export default function Gallery({
   useEffect(() => {
     if (gallery?.images) {
       setImages(prev => {
-        // Get IDs of images that are still pending upload
-        const pendingImages = prev.filter(img => 'localUrl' in img && img.status === 'uploading');
-        // Combine pending uploads with server images, ensuring no duplicates
-        return [...pendingImages, ...gallery.images];
+        const pendingIds = new Set(prev.filter(img => 'localUrl' in img).map(img => img.id));
+        return [...prev.filter(img => pendingIds.has(img.id)), ...gallery.images];
       });
     }
   }, [gallery?.images]);
@@ -1013,14 +1011,28 @@ export default function Gallery({
       // Load the uploaded image to get final dimensions
       const img = new Image();
       img.onload = () => {
-        setImages(prev => 
-          prev.filter(existing => 
-            existing.id !== tmpId || ('localUrl' in existing && existing.status === 'uploading')
+        setImages(prev =>
+          prev.map(existing =>
+            existing.id === tmpId
+              ? {
+                  ...existing,
+                  _status: 'final',
+                  status: 'done',
+                  progress: 100,
+                  id: imageId,
+                  url: publicUrl,
+                  originalFilename: file.name,
+                  width: img.naturalWidth,
+                  height: img.naturalHeight,
+                  commentCount: 0,
+                  userStarred: false,
+                  stars: [],
+                  // Maintain any other existing properties
+                  localUrl: undefined
+                }
+              : existing
           )
         );
-        
-        // Let the gallery query handle adding the new image
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
       };
       img.src = publicUrl;
 
