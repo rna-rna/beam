@@ -933,8 +933,7 @@ export function registerRoutes(app: Express): Server {
       const gallery = await db.query.galleries.findFirst({
         where: and(
           eq(galleries.slug, req.params.slug),
-          eq(galleries.userId, userId),
-          eq(galleries.deleted_at, null)
+          eq(galleries.userId, userId)
         ),
       });
 
@@ -949,7 +948,7 @@ export function registerRoutes(app: Express): Server {
 
       // Soft delete by setting deleted_at timestamp
       await db.update(galleries)
-        .set({ deleted_at: new Date() })
+        .set({ deleted_at: new Date().toISOString() })
         .where(eq(galleries.id, gallery.id));
 
       res.json({ success: true });
