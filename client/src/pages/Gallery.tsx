@@ -1093,11 +1093,6 @@ export default function Gallery({
         pollForFinalImage().finally(() => {
           completeBatch(addBatchId, true);
         });
-
-        // Start the retry check process
-        checkImageAvailable().finally(() => {
-          completeBatch(addBatchId, true);
-        });
       };
       img.src = publicUrl;
 
