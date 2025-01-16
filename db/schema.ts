@@ -124,7 +124,6 @@ export type NewComment = typeof comments.$inferInsert;
 
 export const folders = pgTable('folders', {
   id: serial('id').primaryKey(),
-  slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
   userId: text('user_id').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
