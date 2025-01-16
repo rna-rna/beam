@@ -95,36 +95,6 @@ export function MainContent() {
     return (
       <DndProvider backend={HTML5Backend}>
         <div className="flex h-full">
-          <div className="w-64 border-r bg-background/95 p-4">
-            <div className="space-y-2">
-              <button
-                onClick={() => handleFolderClick(null)}
-                className={cn(
-                  "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
-                  !currentFolder ? "bg-primary/10 text-primary" : "hover:bg-muted"
-                )}
-              >
-                <Clock className="h-4 w-4" />
-                <span>All Galleries</span>
-              </button>
-              {folders.map((folder) => (
-                <div
-                  key={folder.id}
-                  onClick={() => handleFolderClick(folder.id)}
-                  ref={dropRef}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors cursor-pointer",
-                    currentFolder === folder.id ? "bg-primary/10 text-primary" : "hover:bg-muted",
-                    isOver && "ring-2 ring-primary/50 bg-primary/5"
-                  )}
-                >
-                  <FolderOpen className="h-4 w-4" />
-                  <span>{folder.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="flex-1 p-6">
             <div className="flex justify-end mb-6">
               <Select value={sortOrder} onValueChange={setSortOrder}>
