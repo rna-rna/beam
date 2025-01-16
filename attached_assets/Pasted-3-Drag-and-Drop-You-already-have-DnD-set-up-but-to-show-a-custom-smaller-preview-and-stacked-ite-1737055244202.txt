@@ -1,0 +1,91 @@
+3. Drag and Drop
+You already have DnD set up, but to show a custom, smaller preview (and stacked items if you’re dragging multiple), you need a custom drag preview. In React DnD, you can use useDragLayer to render a specialized drag layer that shows exactly what you want during dragging.
+
+Implementing a Custom Drag Layer
+Somewhere at a top level (e.g. inside your MainContent), create a <CustomDragLayer /> component. It will do something like:
+
+tsx
+Copy
+import { useDragLayer } from "react-dnd";
+
+function CustomDragLayer() {
+  const {
+    isDragging,
+    item,
+    currentOffset,
+  } = useDragLayer((monitor) => ({
+    item: monitor.getItem(),
+    isDragging: monitor.isDragging(),
+    currentOffset: monitor.getSourceClientOffset()
+  }));
+
+  if (!isDragging || !currentOffset) {
+    return null;
+  }
+
+  // The item could be a single ID or an array of IDs, depending on your design
+  // Let's assume item.selectedIds is an array of gallery IDs being dragged
+
+  return (
+    <div
+      className="pointer-events-none fixed inset-0 z-50"
+      style={{ /* optional: pointerEvents: 'none' so it doesn't block clicks */ }}
+    >
+      <div
+        style={{
+          transform: `translate(${currentOffset.x}px, ${currentOffset.y}px)`,
+        }}
+      >
+        {item.selectedIds && item.selectedIds.length > 1 ? (
+          /* Render a "stack" for multiple items */
+          <StackedPreviews count={item.selectedIds.length} />
+        ) : (
+          /* Render a single small preview */
+          <SinglePreview galleryId={item.selectedIds?.[0]} />
+        )}
+      </div>
+    </div>
+  );
+}
+Now, you can define StackedPreviews or SinglePreview to be something small. For example, you might show a tiny thumbnail or just a stack-of-cards icon.
+
+Then, in your main component:
+
+tsx
+Copy
+<DndProvider backend={HTML5Backend}>
+  {/* ...all your content... */}
+  <CustomDragLayer />
+</DndProvider>
+Passing the Selected Items to useDrag
+In your card code, you might do something like:
+
+tsx
+Copy
+const [{ isDragging }, dragRef] = useDrag(() => ({
+  type: "GALLERY",
+  canDrag: () => selectedGalleryIds.includes(gallery.id),
+  item: () => {
+    // If the user is dragging this card, we want to pass *all selected items* to the drag
+    // so the custom preview knows we’re dragging multiple
+    return {
+      selectedIds: selectedGalleryIds,
+    };
+  },
+  collect: (monitor) => ({
+    isDragging: monitor.isDragging(),
+  }),
+}), [selectedGalleryIds]);
+Now your custom drag layer will receive item.selectedIds = [...].
+
+Note: If you allow dragging unselected items too, you’ll need different logic. But commonly, you only let the user drag the items that are selected.
+
+Dropping to a Folder
+Your folder drop logic is fine, but note that if you’re dragging multiple items, you might have something like:
+
+tsx
+Copy
+drop: (item: { selectedIds: number[] }) => {
+  // For each selected ID, move it to the folder
+  item.selectedIds.forEach((id) => handleMoveGallery(id, folder.id));
+},

@@ -160,7 +160,7 @@ export function MainContent() {
                           setLastSelectedId(gallery.id);
                         }
                       }}
-                      onDoubleClick={() => setLocation(`/gallery/${gallery.slug}`)}
+                      onDoubleClick={() => setLocation(`/g/${gallery.slug}`)}
                       className={cn(
                         "overflow-hidden transition-all duration-200 cursor-pointer",
                         isDragging && "opacity-50",
