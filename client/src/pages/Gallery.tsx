@@ -1585,7 +1585,6 @@ export default function Gallery({
               }}
               draggable={false}
             />
-          </AspectRatio>
           {'localUrl' in image && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
               {image.status === "uploading" && (
