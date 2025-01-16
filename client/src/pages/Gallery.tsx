@@ -1015,6 +1015,10 @@ export default function Gallery({
           prev.map(existing =>
             existing.id === tmpId
               ? {
+                  ...existing,
+                  _status: 'final',
+                  status: 'done',
+                  progress: 100,
                   id: imageId,
                   url: publicUrl,
                   originalFilename: file.name,
@@ -1022,7 +1026,9 @@ export default function Gallery({
                   height: img.naturalHeight,
                   commentCount: 0,
                   userStarred: false,
-                  stars: []
+                  stars: [],
+                  // Maintain any other existing properties
+                  localUrl: undefined
                 }
               : existing
           )
