@@ -376,8 +376,9 @@ export default function Gallery({
   useEffect(() => {
     if (gallery?.images) {
       setImages(prev => {
-        const pendingIds = new Set(prev.filter(img => 'localUrl' in img).map(img => img.id));
-        return [...prev.filter(img => pendingIds.has(img.id)), ...gallery.images];
+        // Only keep actively uploading items
+        const uploading = prev.filter(img => 'localUrl' in img && img.status === 'uploading');
+        return [...uploading, ...gallery.images];
       });
     }
   }, [gallery?.images]);
@@ -983,6 +984,20 @@ export default function Gallery({
 
       const { urls } = await response.json();
       const { signedUrl, publicUrl, imageId } = urls[0];
+      
+      // Immediately update the placeholder with the real ID
+      setImages(prev => 
+        prev.map(img => 
+          img.id === tmpId 
+            ? { 
+                ...img,
+                id: imageId,
+                status: 'uploading',
+                progress: 0
+              }
+            : img
+        )
+      );
 
       // Upload to R2
       await new Promise<void>((resolve, reject) => {
@@ -992,7 +1007,7 @@ export default function Gallery({
             const progress = (ev.loaded / ev.total) * 100;
             setImages(prev => 
               prev.map(img => 
-                img.id === tmpId 
+                img.id === imageId
                   ? { ...img, progress } 
                   : img
               )
@@ -1011,28 +1026,73 @@ export default function Gallery({
       // Load the uploaded image to get final dimensions
       const img = new Image();
       img.onload = () => {
-        setImages(prev =>
-          prev.map(existing =>
-            existing.id === tmpId
-              ? {
-                  ...existing,
-                  _status: 'final',
-                  status: 'done',
-                  progress: 100,
-                  id: imageId,
-                  url: publicUrl,
-                  originalFilename: file.name,
-                  width: img.naturalWidth,
-                  height: img.naturalHeight,
-                  commentCount: 0,
-                  userStarred: false,
-                  stars: [],
-                  // Maintain any other existing properties
-                  localUrl: undefined
-                }
-              : existing
+        // Update status to finalizing
+        setImages(prev => 
+          prev.map(img => 
+            img.id === imageId
+              ? { 
+                  ...img as PendingImage,
+                  status: "finalizing",
+                  progress: 100
+                } 
+              : img
           )
         );
+
+        // Add retry logic with delay
+        const pollForFinalImage = async (attempt = 0, maxAttempts = 5) => {
+          if (attempt >= maxAttempts) {
+            console.warn('Max polling attempts reached waiting for image', {
+              imageId,
+              attempts: attempt
+            });
+            // Keep the current state but mark as error
+            setImages(prev => 
+              prev.map(item => 
+                item.id === imageId
+                  ? { ...item, status: 'error', _status: 'error' }
+                  : item
+              )
+            );
+            return;
+          }
+
+          // Wait between attempts
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          try {
+            await queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+            const galleryData = await queryClient.getQueryData([`/api/galleries/${slug}`]);
+            
+            // Check if image exists in gallery data
+            const serverImage = galleryData?.images?.find(img => img.id === imageId);
+            if (serverImage) {
+              setImages(prev => 
+                prev.map(item => 
+                  item.id === imageId
+                    ? {
+                        ...serverImage,
+                        status: 'complete',
+                        _status: 'complete'
+                      }
+                    : item
+                )
+              );
+              return;
+            }
+            
+            // If not found, continue polling
+            await pollForFinalImage(attempt + 1, maxAttempts);
+          } catch (error) {
+            console.error('Error polling for image:', error);
+            await pollForFinalImage(attempt + 1, maxAttempts);
+          }
+        };
+
+        // Start polling after image is uploaded
+        pollForFinalImage().finally(() => {
+          completeBatch(addBatchId, true);
+        });
       };
       img.src = publicUrl;
 
@@ -1073,8 +1133,8 @@ export default function Gallery({
             height,
           };
 
-          // Always add new uploads at the start
-          setImages((prev) => [newItem, ...prev]);
+          // Add new uploads at the end to maintain order
+          setImages((prev) => [...prev, newItem]);
           uploadSingleFile(file, tmpId);
         };
         imageEl.src = localUrl;
@@ -1495,24 +1555,20 @@ export default function Gallery({
       style={{ breakInside: "avoid", position: "relative" }}
     >
       <motion.div
-        layout={draggedItemIndex === index ? false : "position"}
+        layout={false}
         className={cn(
-          "image-container transform transition-all duration-200 ease-out w-full",
+          "image-container transform transition-opacity duration-200 w-full",
           isReorderMode && "cursor-grab active:cursor-grabbing",
           draggedItemIndex === index ? "fixed" : "relative",
+          'localUrl' in image && "opacity-80",
           "block",
         )}
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0 }}
         animate={{
           opacity: 1,
-          y: 0,
-          scale: draggedItemIndex === index ? 1.05 : 1,
-          zIndex: draggedItemIndex === index ? 100 : 1,
           transition: {
-            type: "spring",
-            stiffness: 300,
-            damping: 25,
-          },
+            duration: 0.2
+          }
         }}
         drag={isReorderMode}
         dragMomentum={false}
@@ -1543,13 +1599,12 @@ export default function Gallery({
               : handleImageClick(index);
           }}
         >
-          <AspectRatio ratio={image.width && image.height ? image.width / image.height : 4/3}>
-            <img
+          <img
               key={`${image.id}-${image._status || "final"}`}
               src={'localUrl' in image ? image.localUrl : image.url}
               alt={image.originalFilename || "Uploaded image"}
               className={cn(
-                "w-full h-full rounded-lg blur-up transition-opacity duration-200 object-cover",
+                "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
                 selectMode && selectedImages.includes(image.id) && "opacity-75",
                 draggedItemIndex === index && "opacity-50",
                 'localUrl' in image && "opacity-80",
@@ -1586,21 +1641,26 @@ export default function Gallery({
               }}
               draggable={false}
             />
-          </AspectRatio>
           {'localUrl' in image && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
               {image.status === "uploading" && (
-                <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                <>
+                  <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                  <Progress value={image.progress} className="w-3/4 h-1" />
+                </>
+              )}
+              {image.status === "finalizing" && (
+                <div className="absolute top-2 right-2 flex items-center gap-2 bg-background/80 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span className="text-xs font-medium">Finalizing...</span>
                 </div>
               )}
               {image.status === "error" && (
                 <div className="absolute top-2 right-2 bg-destructive/80 backdrop-blur-sm p-2 rounded-full">
                   <AlertCircle className="h-4 w-4 text-destructive-foreground" />
                 </div>
-              )}
-              {image.status === "uploading" && (
-                <Progress value={image.progress} className="w-3/4 h-1" />
               )}
             </div>
           )}

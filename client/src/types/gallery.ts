@@ -15,7 +15,7 @@ export interface Image {
 export interface PendingImage {
   id: string;
   localUrl: string;
-  status: 'uploading' | 'done' | 'error';
+  status: 'uploading' | 'finalizing' | 'complete' | 'error';
   progress: number;
   width?: number;
   height?: number;

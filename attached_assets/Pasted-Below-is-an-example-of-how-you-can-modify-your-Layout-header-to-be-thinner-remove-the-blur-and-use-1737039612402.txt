@@ -1,0 +1,125 @@
+Below is an example of how you can modify your Layout header to be thinner, remove the blur, and use a more “Figma-like” solid background (or even no background if you prefer). The key adjustments here are:
+
+Remove or replace backdrop-blur-sm and any opacity classes.
+Use smaller padding (e.g., py-2 or even py-1) to shorten the header’s height.
+Optionally use a solid color or a lightly transparent background.
+tsx
+Copy
+// layout.tsx
+import { ReactNode } from "react";
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { Button } from "@/components/ui/button";
+import { LoginButton } from "@/components/LoginButton";
+import { InlineEdit } from "@/components/InlineEdit";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserNav } from "@/components/UserNav";
+import { useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/utils";
+
+interface LayoutProps {
+  children: ReactNode;
+  title?: string;
+  onTitleChange?: (newTitle: string) => void;
+  actions?: ReactNode;
+  selectMode?: boolean;
+  toggleSelectMode?: () => void;
+}
+
+export function Layout({ 
+  children, 
+  title, 
+  onTitleChange, 
+  actions,
+  selectMode,
+  toggleSelectMode 
+}: LayoutProps) {
+  const { isDark } = useTheme();
+
+  return (
+    <div
+      className={cn(
+        "min-h-screen w-full",
+        // Use a solid (or lightly tinted) background
+        isDark ? "bg-black" : "bg-white"
+      )}
+    >
+      {/* Header container */}
+      <div
+        className={cn(
+          "sticky top-0 z-10 border-b",
+          // Remove blur/opacity
+          // If you want a subtle tinted effect, try "bg-white/90"
+          isDark ? "bg-black" : "bg-white"
+        )}
+      >
+        <div
+          className={cn(
+            // Decrease padding for a thinner header
+            "px-4 sm:px-6 lg:px-8 py-2",
+            "flex items-center gap-2"
+          )}
+        >
+          {title && onTitleChange ? (
+            <InlineEdit
+              value={title}
+              onSave={onTitleChange}
+              className="text-sm font-semibold"
+            />
+          ) : null}
+
+          <div className="ml-auto flex items-center gap-2">
+            {toggleSelectMode && (
+              <Button
+                variant="ghost"
+                onClick={toggleSelectMode}
+                // Adjust text size or color to keep it minimal
+                className={cn(
+                  "text-sm",
+                  isDark
+                    ? "text-white hover:bg-white/10"
+                    : "text-gray-800 hover:bg-gray-100"
+                )}
+              >
+                {selectMode ? "Deselect" : "Tools"}
+              </Button>
+            )}
+            {actions}
+            <ThemeToggle />
+
+            {/* Auth controls */}
+            <SignedIn>
+              <UserNav />
+            </SignedIn>
+            <SignedOut>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => (window.location.href = "/sign-up")}
+                  className="text-sm"
+                >
+                  Sign Up
+                </Button>
+                <LoginButton />
+              </div>
+            </SignedOut>
+          </div>
+        </div>
+      </div>
+
+      <main className="relative">
+        {children}
+      </main>
+    </div>
+  );
+}
+Explanation of Key Changes
+Removed backdrop-blur-sm and any opacity classes:
+
+Previously className="sticky top-0 z-10 backdrop-blur-sm border-b ..."
+Now className="sticky top-0 z-10 border-b bg-black" (or bg-white).
+Reduced the padding:
+
+Changed from py-4 to py-2 (and gap-4 to gap-2) to make it thinner.
+Tweaked font sizes:
+
+If you want the header text smaller, specify text-sm.
