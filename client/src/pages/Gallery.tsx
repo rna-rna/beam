@@ -376,8 +376,9 @@ export default function Gallery({
   useEffect(() => {
     if (gallery?.images) {
       setImages(prev => {
-        const pendingIds = new Set(prev.filter(img => 'localUrl' in img).map(img => img.id));
-        return [...prev.filter(img => pendingIds.has(img.id)), ...gallery.images];
+        // Only keep actively uploading items
+        const uploading = prev.filter(img => 'localUrl' in img && img.status === 'uploading');
+        return [...uploading, ...gallery.images];
       });
     }
   }, [gallery?.images]);
@@ -1011,28 +1012,11 @@ export default function Gallery({
       // Load the uploaded image to get final dimensions
       const img = new Image();
       img.onload = () => {
-        setImages(prev =>
-          prev.map(existing =>
-            existing.id === tmpId
-              ? {
-                  ...existing,
-                  _status: 'final',
-                  status: 'done',
-                  progress: 100,
-                  id: imageId,
-                  url: publicUrl,
-                  originalFilename: file.name,
-                  width: img.naturalWidth,
-                  height: img.naturalHeight,
-                  commentCount: 0,
-                  userStarred: false,
-                  stars: [],
-                  // Maintain any other existing properties
-                  localUrl: undefined
-                }
-              : existing
-          )
-        );
+        // Remove the pending item immediately
+        setImages(prev => prev.filter(existing => existing.id !== tmpId));
+        
+        // Let the gallery query handle adding the new image
+        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
       };
       img.src = publicUrl;
 
