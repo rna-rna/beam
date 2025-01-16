@@ -286,7 +286,9 @@ function MainContentInner() {
 
   return (
     <>
-      {renderContent()}
+      <DndProvider backend={HTML5Backend}>
+        <MainContentInner />
+      </DndProvider>
 
       {selectedGallery && (
         <>
@@ -325,5 +327,6 @@ function MainContentInner() {
         </>
       )}
     </>
+  );
   );
 }
