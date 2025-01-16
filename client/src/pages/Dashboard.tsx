@@ -2,8 +2,8 @@
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { MainContent } from "@/components/MainContent";
+import { DashboardSidebar } from "@/components/DashboardSidebar";
 
 export default function Dashboard() {
   const { getToken } = useAuth();
