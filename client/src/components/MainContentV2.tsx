@@ -19,6 +19,15 @@ export function MainContentV2() {
   const [currentFolder, setCurrentFolder] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
+  const { data: folders = [] } = useQuery({
+    queryKey: ["/api/folders"],
+    queryFn: async () => {
+      const res = await fetch("/api/folders");
+      if (!res.ok) throw new Error("Failed to fetch folders");
+      return res.json();
+    }
+  });
+
   const handleMoveGallery = async (galleryId: number, folderId: number) => {
     try {
       const res = await fetch(`/api/galleries/${galleryId}/move`, {
@@ -62,15 +71,6 @@ export function MainContentV2() {
       if (!res.ok) throw new Error("Failed to fetch galleries");
       return res.json();
     },
-  });
-
-  const { data: folders = [] } = useQuery({
-    queryKey: ["/api/folders"],
-    queryFn: async () => {
-      const res = await fetch("/api/folders");
-      if (!res.ok) throw new Error("Failed to fetch folders");
-      return res.json();
-    }
   });
 
   const sortedGalleries = [...(galleries || [])].sort((a, b) => {
