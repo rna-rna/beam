@@ -2103,23 +2103,36 @@ export function registerRoutes(app: Express): Server {
     try {
       const userId = req.auth.userId;
       const galleryId = parseInt(req.params.id);
-      const { folderId } = req.body;
+      const { folderId, folderSlug } = req.body;
 
-      // Verify folder ownership
-      const folder = await db.query.folders.findFirst({
-        where: and(
-          eq(folders.id, folderId),
-          eq(folders.userId, userId)
-        )
-      });
+      let targetFolder;
+      
+      // Find folder by ID or slug
+      if (folderId) {
+        targetFolder = await db.query.folders.findFirst({
+          where: and(
+            eq(folders.id, folderId),
+            eq(folders.userId, userId)
+          )
+        });
+      } else if (folderSlug) {
+        targetFolder = await db.query.folders.findFirst({
+          where: and(
+            eq(folders.slug, folderSlug),
+            eq(folders.userId, userId)
+          )
+        });
+      } else {
+        return res.status(400).json({ message: 'Either folderId or folderSlug is required' });
+      }
 
-      if (!folder) {
+      if (!targetFolder) {
         return res.status(404).json({ message: 'Folder not found' });
       }
 
       // Update gallery
       const [updated] = await db.update(galleries)
-        .set({ folderId })
+        .set({ folderId: targetFolder.id })
         .where(and(
           eq(galleries.id, galleryId),
           eq(galleries.userId, userId)
