@@ -66,6 +66,12 @@ export function RenameGalleryModal({ isOpen, onClose, galleryId, currentTitle, s
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter gallery title"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && title.trim()) {
+                  e.preventDefault();
+                  handleRename();
+                }
+              }}
             />
           </div>
           <div className="flex justify-end gap-2">
