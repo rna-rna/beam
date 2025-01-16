@@ -1012,26 +1012,29 @@ export default function Gallery({
       // Load the uploaded image to get final dimensions
       const img = new Image();
       img.onload = () => {
-        // Mark upload as complete but keep local URL until query refresh
+        // First mark as finalizing
         setImages(prev => 
           prev.map(img => 
             img.id === tmpId 
               ? { 
                   ...img as PendingImage,
-                  status: "complete",
-                  progress: 100,
-                  finalUrl: publicUrl // Store final URL but don't use it yet
+                  status: "finalizing",
+                  progress: 100
                 } 
               : img
           )
         );
-        
-        // Wait for query invalidation to complete before removing pending item
-        queryClient.invalidateQueries([`/api/galleries/${slug}`], {
-          onSuccess: () => {
-            setImages(prev => prev.filter(existing => existing.id !== tmpId));
-          }
-        });
+
+        // Wait a short delay to ensure server processing completes
+        setTimeout(() => {
+          queryClient.invalidateQueries([`/api/galleries/${slug}`], {
+            onSuccess: () => {
+              // Only remove once query confirms success
+              setImages(prev => prev.filter(existing => existing.id !== tmpId));
+              completeBatch(addBatchId, true);
+            }
+          });
+        }, 1000);
       };
       img.src = publicUrl;
 
