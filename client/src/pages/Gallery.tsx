@@ -1040,56 +1040,59 @@ export default function Gallery({
         );
 
         // Add retry logic with delay
-        const checkImageAvailable = async (retryCount = 0, maxRetries = 3) => {
-          if (retryCount >= maxRetries) {
-            console.warn('Max retries reached waiting for image');
+        const pollForFinalImage = async (attempt = 0, maxAttempts = 5) => {
+          if (attempt >= maxAttempts) {
+            console.warn('Max polling attempts reached waiting for image', {
+              imageId,
+              attempts: attempt
+            });
+            // Keep the current state but mark as error
             setImages(prev => 
               prev.map(item => 
-                item.id === tmpId
-                  ? {
-                      ...item,
-                      id: imageId,
-                      url: publicUrl,
-                      status: 'complete',
-                      _status: 'complete'
-                    }
+                item.id === imageId
+                  ? { ...item, status: 'error', _status: 'error' }
                   : item
               )
             );
             return;
           }
 
-          // Wait for a delay before checking
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Wait between attempts
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
           try {
             await queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-            const gallery = await queryClient.getQueryData([`/api/galleries/${slug}`]);
+            const galleryData = await queryClient.getQueryData([`/api/galleries/${slug}`]);
             
             // Check if image exists in gallery data
-            if (gallery?.images?.some(img => img.id === imageId)) {
+            const serverImage = galleryData?.images?.find(img => img.id === imageId);
+            if (serverImage) {
               setImages(prev => 
                 prev.map(item => 
-                  item.id === tmpId
+                  item.id === imageId
                     ? {
-                        ...item,
-                        id: imageId,
-                        url: publicUrl,
+                        ...serverImage,
                         status: 'complete',
                         _status: 'complete'
                       }
                     : item
                 )
               );
-            } else {
-              // Retry if image not found
-              await checkImageAvailable(retryCount + 1, maxRetries);
+              return;
             }
+            
+            // If not found, continue polling
+            await pollForFinalImage(attempt + 1, maxAttempts);
           } catch (error) {
-            console.error('Error checking image availability:', error);
-            await checkImageAvailable(retryCount + 1, maxRetries);
+            console.error('Error polling for image:', error);
+            await pollForFinalImage(attempt + 1, maxAttempts);
           }
         };
+
+        // Start polling after image is uploaded
+        pollForFinalImage().finally(() => {
+          completeBatch(addBatchId, true);
+        });
 
         // Start the retry check process
         checkImageAvailable().finally(() => {
