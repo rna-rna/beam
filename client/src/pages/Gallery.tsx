@@ -1020,31 +1020,68 @@ export default function Gallery({
                   ...img as PendingImage,
                   status: "finalizing",
                   progress: 100,
-                  imageId // Store the real imageId with the placeholder
+                  imageId
                 } 
               : img
           )
         );
 
-        // Invalidate the query and check for server item
-        // Replace the placeholder with the real image data
-        setImages(prev => 
-          prev.map(item => 
-            item.id === tmpId
-              ? {
-                  ...item,
-                  id: imageId,
-                  url: publicUrl,
-                  status: 'complete',
-                  _status: 'complete'
-                }
-              : item
-          )
-        );
-        
-        // Still invalidate queries to get any server-side updates
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-        completeBatch(addBatchId, true);
+        // Add retry logic with delay
+        const checkImageAvailable = async (retryCount = 0, maxRetries = 3) => {
+          if (retryCount >= maxRetries) {
+            console.warn('Max retries reached waiting for image');
+            setImages(prev => 
+              prev.map(item => 
+                item.id === tmpId
+                  ? {
+                      ...item,
+                      id: imageId,
+                      url: publicUrl,
+                      status: 'complete',
+                      _status: 'complete'
+                    }
+                  : item
+              )
+            );
+            return;
+          }
+
+          // Wait for a delay before checking
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          try {
+            await queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+            const gallery = await queryClient.getQueryData([`/api/galleries/${slug}`]);
+            
+            // Check if image exists in gallery data
+            if (gallery?.images?.some(img => img.id === imageId)) {
+              setImages(prev => 
+                prev.map(item => 
+                  item.id === tmpId
+                    ? {
+                        ...item,
+                        id: imageId,
+                        url: publicUrl,
+                        status: 'complete',
+                        _status: 'complete'
+                      }
+                    : item
+                )
+              );
+            } else {
+              // Retry if image not found
+              await checkImageAvailable(retryCount + 1, maxRetries);
+            }
+          } catch (error) {
+            console.error('Error checking image availability:', error);
+            await checkImageAvailable(retryCount + 1, maxRetries);
+          }
+        };
+
+        // Start the retry check process
+        checkImageAvailable().finally(() => {
+          completeBatch(addBatchId, true);
+        });
       };
       img.src = publicUrl;
 
