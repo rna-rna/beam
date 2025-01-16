@@ -1,9 +1,9 @@
-import { useState } from "react";
+
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { MainContent } from "@/components/MainContent";
+import { MainContent } from "@/components/MainContentV2";
 
 export default function Dashboard() {
   const { getToken } = useAuth();
@@ -35,7 +35,7 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
-      <MainContent galleries={galleries} />
+      <MainContent />
     </div>
   );
 }
