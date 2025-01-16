@@ -74,7 +74,6 @@ export function MainContent() {
     return 0;
   });
 
-  const params = new URLSearchParams(location.split("?")[1] || "");
   const view = params.get("view");
 
   const displayedGalleries = view === "trash" 
