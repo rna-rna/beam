@@ -67,9 +67,9 @@ export function MainContent() {
 
   const [{ isOver }, dropRef] = useDrop({
     accept: "GALLERY",
-    drop: (item: { selectedIds: number[] }) => { // Updated drop type
+    drop: (item: { selectedIds: number[] }) => {
       if (currentFolder) {
-        handleMoveGallery(item.selectedIds, currentFolder); // Updated
+        handleMoveGallery(item.selectedIds, currentFolder);
       }
     },
     collect: (monitor) => ({
@@ -77,9 +77,9 @@ export function MainContent() {
     })
   });
 
-  const handleMoveGallery = async (galleryIds: number[], folderId: number) => { // Updated
+  const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
     try {
-      await Promise.all(galleryIds.map(async (galleryId) => { // Updated for multiple galleries
+      await Promise.all(galleryIds.map(async (galleryId) => {
         const res = await fetch(`/api/galleries/${galleryId}/move`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
