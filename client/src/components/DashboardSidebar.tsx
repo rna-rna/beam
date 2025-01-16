@@ -77,8 +77,8 @@ export function DashboardSidebar() {
   });
 
   return (
-    <div className="w-64 bg-card border-r border-border h-screen flex flex-col overflow-hidden" ref={dropRef}>
-      <div className="p-4 border-b border-border space-y-2">
+    <div className="w-64 bg-card border-r border-border h-screen flex flex-col" ref={dropRef}>
+      <div className="shrink-0 p-4 border-b border-border space-y-2">
         <Button 
           variant="ghost" 
           className="w-full justify-start"
@@ -96,7 +96,7 @@ export function DashboardSidebar() {
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 p-4 overflow-hidden">
+      <ScrollArea className="flex-1 px-4">
         <div className="space-y-2">
           {folders?.map((folder) => (
             <div key={folder.id} className="group relative">
@@ -132,7 +132,7 @@ export function DashboardSidebar() {
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t border-border">
+      <div className="shrink-0 p-4 border-t border-border">
         <Button 
           variant="outline" 
           className="w-full justify-start"
