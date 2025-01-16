@@ -1012,29 +1012,30 @@ export default function Gallery({
       // Load the uploaded image to get final dimensions
       const img = new Image();
       img.onload = () => {
-        // First mark as finalizing
+        // Mark as finalizing first
         setImages(prev => 
           prev.map(img => 
             img.id === tmpId 
               ? { 
                   ...img as PendingImage,
                   status: "finalizing",
-                  progress: 100
+                  progress: 100,
+                  imageId // Store the real imageId with the placeholder
                 } 
               : img
           )
         );
 
-        // Wait a short delay to ensure server processing completes
-        setTimeout(() => {
-          queryClient.invalidateQueries([`/api/galleries/${slug}`], {
-            onSuccess: () => {
-              // Only remove once query confirms success
-              setImages(prev => prev.filter(existing => existing.id !== tmpId));
+        // Invalidate the query and check for server item
+        queryClient.invalidateQueries([`/api/galleries/${slug}`], {
+          onSuccess: (data: GalleryType) => {
+            if (data?.images?.some(img => img.id === imageId)) {
+              // Server has the new image, safe to remove placeholder
+              setImages(prev => prev.filter(item => item.id !== tmpId));
               completeBatch(addBatchId, true);
             }
-          });
-        }, 1000);
+          }
+        });
       };
       img.src = publicUrl;
 
