@@ -16,6 +16,9 @@ import {
 } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import { CustomDragLayer } from "./CustomDragLayer";
+import { ShareModal } from "./ShareModal";
+import { RenameGalleryModal } from "./RenameGalleryModal";
+import { DeleteGalleryModal } from "./DeleteGalleryModal";
 
 export function MainContent() {
   const [location, setLocation] = useLocation();
@@ -25,7 +28,7 @@ export function MainContent() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [selectedGalleryId, setSelectedGalleryId] = useState<number | null>(null);
+  const [selectedGallery, setSelectedGallery] = useState<{ id: number; title: string; slug: string } | null>(null);
   const params = new URLSearchParams(location.split("?")[1] || "");
   const folderParam = params.get("folder");
   const currentFolder = folderParam ? parseInt(folderParam, 10) : null;
@@ -222,17 +225,15 @@ export function MainContent() {
                           Open
                         </ContextMenuItem>
                         <ContextMenuItem onSelect={() => {
-                          // Trigger share modal via state
                           setShareModalOpen(true);
-                          setSelectedGalleryId(gallery.id);
+                          setSelectedGallery({ id: gallery.id, title: gallery.title, slug: gallery.slug });
                         }}>
                           <Share className="mr-2 h-4 w-4" />
                           Share
                         </ContextMenuItem>
                         <ContextMenuItem onSelect={() => {
-                          // Trigger rename modal via state
                           setRenameModalOpen(true);
-                          setSelectedGalleryId(gallery.id);
+                          setSelectedGallery({ id: gallery.id, title: gallery.title, slug: gallery.slug });
                         }}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Rename
@@ -240,9 +241,8 @@ export function MainContent() {
                         <ContextMenuSeparator />
                         <ContextMenuItem
                           onSelect={() => {
-                            // Trigger delete modal via state
                             setDeleteModalOpen(true);
-                            setSelectedGalleryId(gallery.id);
+                            setSelectedGallery({ id: gallery.id, title: gallery.title, slug: gallery.slug });
                           }}
                           className="text-red-600"
                         >
@@ -261,5 +261,45 @@ export function MainContent() {
     );
   };
 
-  return renderContent();
+  return (
+    <>
+      {renderContent()}
+      
+      {selectedGallery && (
+        <>
+          <ShareModal 
+            isOpen={shareModalOpen}
+            onClose={() => {
+              setShareModalOpen(false);
+              setSelectedGallery(null);
+            }}
+            galleryUrl={`${window.location.origin}/g/${selectedGallery.slug}`}
+            slug={selectedGallery.slug}
+            isPublic={false}
+            onVisibilityChange={() => {}}
+          />
+          
+          <RenameGalleryModal
+            isOpen={renameModalOpen}
+            onClose={() => {
+              setRenameModalOpen(false);
+              setSelectedGallery(null);
+            }}
+            galleryId={selectedGallery.id}
+            currentTitle={selectedGallery.title}
+          />
+          
+          <DeleteGalleryModal
+            isOpen={deleteModalOpen}
+            onClose={() => {
+              setDeleteModalOpen(false);
+              setSelectedGallery(null);
+            }}
+            galleryId={selectedGallery.id}
+            galleryTitle={selectedGallery.title}
+          />
+        </>
+      )}
+    </>
+  );
 }
