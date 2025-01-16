@@ -168,9 +168,15 @@ function AppContent() {
 
   if (gallerySlug && isGalleryLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <Layout
+        title="Loading Gallery..."
+        onTitleChange={handleTitleUpdate}
+        actions={headerActions}
+      >
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
     );
   }
 
