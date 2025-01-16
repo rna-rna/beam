@@ -6,6 +6,7 @@ import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
 import SignUpPage from "@/pages/SignUp";
 import Dashboard from "@/pages/Dashboard";
+import DashboardV2 from "@/pages/DashboardV2";
 import Settings from "@/pages/Settings";
 import { Layout } from "@/components/Layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -262,8 +263,14 @@ function AppContent() {
           />
         )}
       </Route>
-      <Route path="/about"> {/* Added About route */}
+      <Route path="/about">
         <About />
+      </Route>
+
+      <Route path="/dashboardv2">
+        <ProtectedRoute>
+          <DashboardV2 />
+        </ProtectedRoute>
       </Route>
         </Switch>
           </AnimatePresence>
