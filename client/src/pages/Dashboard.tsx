@@ -33,9 +33,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden">
       <DashboardSidebar />
-      <MainContent />
+      <div className="flex-1 flex flex-col overflow-auto">
+        <MainContent />
+      </div>
     </div>
   );
 }

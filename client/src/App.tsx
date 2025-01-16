@@ -22,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card"; // Added import for Ca
 import { AlertCircle } from "lucide-react";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { FolderPage } from "./pages/FolderPage"; // Added import for FolderPage
 
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
@@ -265,11 +266,12 @@ function AppContent() {
           />
         )}
       </Route>
+      <Route path="/f/:folderSlug" component={FolderPage} />
       <Route path="/about">
         <About />
       </Route>
 
-      
+
         </Switch>
           </AnimatePresence>
       </div>
