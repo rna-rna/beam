@@ -264,7 +264,7 @@ export function MainContent() {
   return (
     <>
       {renderContent()}
-      
+
       {selectedGallery && (
         <>
           <ShareModal 
@@ -278,7 +278,7 @@ export function MainContent() {
             isPublic={false}
             onVisibilityChange={() => {}}
           />
-          
+
           <RenameGalleryModal
             isOpen={renameModalOpen}
             onClose={() => {
@@ -287,8 +287,9 @@ export function MainContent() {
             }}
             galleryId={selectedGallery.id}
             currentTitle={selectedGallery.title}
+            slug={selectedGallery.slug}
           />
-          
+
           <DeleteGalleryModal
             isOpen={deleteModalOpen}
             onClose={() => {

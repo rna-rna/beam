@@ -13,9 +13,10 @@ interface RenameGalleryModalProps {
   onClose: () => void;
   galleryId: number;
   currentTitle: string;
+  slug: string;
 }
 
-export function RenameGalleryModal({ isOpen, onClose, galleryId, currentTitle }: RenameGalleryModalProps) {
+export function RenameGalleryModal({ isOpen, onClose, galleryId, currentTitle, slug }: RenameGalleryModalProps) {
   const [title, setTitle] = useState(currentTitle);
   const [isRenaming, setIsRenaming] = useState(false);
   const queryClient = useQueryClient();
@@ -26,7 +27,7 @@ export function RenameGalleryModal({ isOpen, onClose, galleryId, currentTitle }:
     setIsRenaming(true);
     
     try {
-      const res = await fetch(`/api/galleries/${gallery.slug}/title`, {
+      const res = await fetch(`/api/galleries/${slug}/title`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim() }),
