@@ -1821,6 +1821,24 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get folder by slug
+  app.get('/api/folders/:slug', async (req, res) => {
+    try {
+      const folder = await db.query.folders.findFirst({
+        where: eq(folders.slug, req.params.slug)
+      });
+
+      if (!folder) {
+        return res.status(404).json({ message: 'Folder not found' });
+      }
+
+      res.json(folder);
+    } catch (error) {
+      console.error('Failed to fetch folder:', error);
+      res.status(500).json({ message: 'Failed to fetch folder' });
+    }
+  });
+
   // User search endpoint
   app.get('/api/users/search', async (req, res) => {
     try {
