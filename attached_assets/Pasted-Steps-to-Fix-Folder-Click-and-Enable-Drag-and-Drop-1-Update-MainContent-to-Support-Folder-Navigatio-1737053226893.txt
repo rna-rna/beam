@@ -1,0 +1,113 @@
+Steps to Fix Folder Click and Enable Drag-and-Drop
+1. Update MainContent to Support Folder Navigation
+Track the Current Folder:
+
+Add currentFolder to MainContent to keep track of the folder being viewed.
+Handle Folder Clicks:
+
+Update the currentFolder state when a folder is clicked.
+Render Empty Folder View:
+
+Display an empty state if the selected folder has no galleries.
+Code Update for MainContent:
+tsx
+Copy
+Edit
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+
+export function MainContent() {
+  const queryClient = useQueryClient();
+  const [currentFolder, setCurrentFolder] = useState<number | null>(null);
+
+  // Fetch galleries
+  const { data: galleries = [] } = useQuery({
+    queryKey: ["/api/galleries"],
+    queryFn: async () => {
+      const res = await fetch("/api/galleries");
+      if (!res.ok) throw new Error("Failed to fetch galleries");
+      return res.json();
+    },
+  });
+
+  // Fetch folders
+  const { data: folders = [] } = useQuery({
+    queryKey: ["/api/folders"],
+    queryFn: async () => {
+      const res = await fetch("/api/folders");
+      if (!res.ok) throw new Error("Failed to fetch folders");
+      return res.json();
+    },
+  });
+
+  // Filter galleries by the current folder
+  const displayedGalleries = currentFolder
+    ? galleries.filter((gallery) => gallery.folderId === currentFolder)
+    : galleries;
+
+  // Handle folder clicks
+  const handleFolderClick = (folderId: number) => {
+    setCurrentFolder(folderId);
+  };
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div className="flex h-full">
+        {/* Sidebar */}
+        <div className="w-64 border-r p-4">
+          <div className="space-y-2">
+            <button onClick={() => setCurrentFolder(null)} className="w-full">
+              All Galleries
+            </button>
+            {folders.map((folder) => (
+              <button
+                key={folder.id}
+                onClick={() => handleFolderClick(folder.id)}
+                className={`w-full text-left px-4 py-2 rounded-lg ${
+                  currentFolder === folder.id ? "bg-primary text-white" : "hover:bg-gray-100"
+                }`}
+              >
+                {folder.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 p-6">
+          {displayedGalleries.length === 0 && (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">This folder is empty.</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {displayedGalleries.map((gallery) => {
+              const [{ isDragging }, dragRef] = useDrag(() => ({
+                type: "GALLERY",
+                item: { id: gallery.id },
+                collect: (monitor) => ({
+                  isDragging: monitor.isDragging(),
+                }),
+              }));
+
+              return (
+                <div
+                  key={gallery.id}
+                  ref={dragRef}
+                  className={`border rounded-lg p-4 ${
+                    isDragging ? "opacity-50" : ""
+                  }`}
+                >
+                  {gallery.title}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </DndProvider>
+  );
+}

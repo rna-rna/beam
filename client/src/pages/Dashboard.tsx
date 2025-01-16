@@ -35,7 +35,7 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
-      <MainContent galleries={galleries} />
+      <MainContent />
     </div>
   );
 }
