@@ -200,7 +200,9 @@ export default function Dashboard() {
 
   return (
     <AnimatedLayout title="My Galleries">
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex h-screen">
+        <DashboardSidebar />
+        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {/* Create New Gallery Card */}
           <Card className="group hover:shadow-lg transition-all duration-200">

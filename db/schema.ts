@@ -119,6 +119,20 @@ export type NewStar = typeof stars.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
 
+export const folders = pgTable('folders', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  userId: text('user_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
+export const galleryFolders = pgTable('gallery_folders', {
+  id: serial('id').primaryKey(), 
+  galleryId: integer('gallery_id').references(() => galleries.id).notNull(),
+  folderId: integer('folder_id').references(() => folders.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
 export const invites = pgTable('invites', {
   id: serial('id').primaryKey(),
   galleryId: integer('gallery_id').references(() => galleries.id).notNull(),
