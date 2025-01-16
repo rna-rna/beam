@@ -21,7 +21,7 @@ export function DeleteGalleryModal({ isOpen, onClose, galleryId, galleryTitle }:
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/galleries/${galleryTitle}`, {
+      const res = await fetch(`/api/galleries/${gallerySlug}`, {
         method: "DELETE",
       });
 
