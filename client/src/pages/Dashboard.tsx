@@ -192,10 +192,10 @@ export default function Dashboard() {
 
   return (
     <AnimatedLayout title="My Galleries">
-      <div className="flex h-screen">
+      <div className="flex h-screen overflow-hidden">
         <DashboardSidebar />
-        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 min-w-0">
             <Card className="group hover:shadow-lg transition-all duration-200">
               <div className="aspect-[4/3] relative">
                 <Button
@@ -226,7 +226,7 @@ export default function Dashboard() {
             {galleries.map((gallery) => (
               <Card
                 key={gallery.id}
-                className="group hover:shadow-lg transition-all duration-200 overflow-hidden bg-card"
+                className="group hover:shadow-lg transition-all duration-200 overflow-hidden bg-card w-full"
               >
                 <div
                   className="cursor-pointer h-full flex flex-col"
