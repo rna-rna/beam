@@ -269,9 +269,7 @@ export default function App() {
   return (
     <UploadProvider>
       <GlobalUploadProgress />
-      <Layout>
-        <AppContent />
-      </Layout>
+      <AppContent />
     </UploadProvider>
   );
 }
