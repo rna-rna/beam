@@ -16,6 +16,9 @@ import About from "@/pages/About"; // Added import for About page
 import NewGallery from "@/pages/NewGallery";
 import { UploadProvider } from "./context/UploadContext"; // Import UploadProvider
 import GlobalUploadProgress from "./components/GlobalUploadProgress";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card"; // Added import for Card and CardContent
+import { AlertCircle } from "lucide-react";
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
