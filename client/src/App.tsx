@@ -212,7 +212,6 @@ function AppContent() {
       actions={headerActions}
     >
       <div className="min-h-screen w-full">
-        <AnimatePresence mode="wait">
           <Switch>
         <Route path="/new">
           <SignedIn>
@@ -266,7 +265,6 @@ function AppContent() {
         <About />
       </Route>
         </Switch>
-      </AnimatePresence>
       </div>
     </Layout>
   );

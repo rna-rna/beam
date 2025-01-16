@@ -1,6 +1,7 @@
 
 import { ReactNode } from "react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { AnimatePresence } from "framer-motion";
 import { SquarePlus, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoginButton } from "@/components/LoginButton";
@@ -94,7 +95,9 @@ export function Layout({
         </div>
       </div>
       <main className="relative">
-        {children}
+        <AnimatePresence mode="wait">
+          {children}
+        </AnimatePresence>
       </main>
     </div>
   );
