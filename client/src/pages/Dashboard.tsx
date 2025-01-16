@@ -195,110 +195,101 @@ export default function Dashboard() {
       <div className="flex h-screen overflow-hidden">
         <DashboardSidebar />
         <div className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 min-w-0">
-            <Card className="group hover:shadow-lg transition-all duration-200">
-              <div className="aspect-[4/3] relative">
-                <Button
-                  variant="ghost"
-                  className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4 hover:bg-muted/50"
-                  onClick={() => createGalleryMutation.mutate()}
-                  disabled={isCreatingGallery || createGalleryMutation.isPending}
-                >
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <Card className="group hover:shadow-lg transition-all duration-200 bg-muted/50">
+              <Button
+                variant="ghost"
+                className="h-full w-full p-6"
+                onClick={() => createGalleryMutation.mutate()}
+                disabled={isCreatingGallery || createGalleryMutation.isPending}
+              >
+                <div className="flex flex-col items-center justify-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                     {isCreatingGallery ? (
-                      <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                      <Loader2 className="h-6 w-6 text-primary animate-spin" />
                     ) : (
-                      <Plus className="h-8 w-8 text-primary" />
+                      <Plus className="h-6 w-6 text-primary" />
                     )}
                   </div>
                   <div className="text-center">
-                    <h3 className="font-semibold text-lg">
-                      {isCreatingGallery ? "Creating Gallery..." : "Create New Gallery"}
+                    <h3 className="font-medium">
+                      {isCreatingGallery ? "Creating..." : "New Gallery"}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {isCreatingGallery ? "Please wait..." : "Start a new collection of images"}
-                    </p>
                   </div>
-                </Button>
-              </div>
+                </div>
+              </Button>
             </Card>
 
             {galleries.map((gallery) => (
               <Card
                 key={gallery.id}
-                className="group hover:shadow-lg transition-all duration-200 overflow-hidden bg-card w-full"
+                className="overflow-hidden hover:shadow-lg transition-all duration-200"
               >
-                <div
-                  className="cursor-pointer h-full flex flex-col"
+                <div 
+                  className="cursor-pointer"
                   onClick={() => setLocation(`/g/${gallery.slug}`)}
                 >
-                  <div className="aspect-[4/3] relative overflow-hidden bg-muted">
+                  <div className="aspect-square relative bg-muted">
                     {gallery.thumbnailUrl ? (
                       <img
                         src={gallery.thumbnailUrl}
                         alt={gallery.title}
-                        className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                        className="object-cover w-full h-full"
                         loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+                        <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
                       </div>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setGalleryToDelete(gallery);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <CardContent className="pt-4 flex-1 flex flex-col justify-between">
-                    <h3 className="text-lg font-medium text-foreground/90 line-clamp-1 mb-2">
-                      {gallery.title}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground/75">
-                      <Grid className="w-4 h-4" />
-                      <span>{gallery.imageCount} images</span>
-                      <span className="mx-1 text-muted-foreground/50">•</span>
-                      <Clock className="w-4 h-4" />
-                      <span>{formatRelativeDate(gallery.createdAt)}</span>
+                  <CardContent className="p-4">
+                    <h3 className="font-medium line-clamp-1 mb-2">{gallery.title}</h3>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Grid className="w-4 h-4" />
+                        <span>{gallery.imageCount}</span>
+                      </div>
+                      <span className="text-muted-foreground/50">•</span>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{formatRelativeDate(gallery.createdAt)}</span>
+                      </div>
                     </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setGalleryToDelete(gallery);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Gallery</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{gallery.title}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel onClick={(e) => {
-                            e.stopPropagation();
-                            setGalleryToDelete(null);
-                          }}>
-                            Cancel
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteGalleryMutation.mutate(gallery);
-                            }}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
                   </CardContent>
                 </div>
+                <AlertDialog>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Gallery</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{gallery.title}"?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setGalleryToDelete(null)}>
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteGalleryMutation.mutate(gallery)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </Card>
             ))}
           </div>
