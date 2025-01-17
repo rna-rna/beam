@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FolderPlus, Clock, ChevronRight, MoreVertical, FolderOpen, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useDrop } from 'react-dnd';
@@ -27,30 +26,16 @@ export function DashboardSidebar() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  const [{ isOver: isRootOver }, dropRef] = useDrop(() => ({
+  const [{ isOver }, dropRef] = useDrop(() => ({
     accept: "GALLERY",
+    drop: (item: { id: number }) => {
+      console.log(`Gallery ${item.id} dropped into folder`);
+      // TODO: Implement gallery move logic
+    },
     collect: (monitor) => ({
-      isOver: monitor.isOver({ shallow: true })
-    })
+      isOver: monitor.isOver(),
+    }),
   }));
-
-  const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
-    try {
-      await Promise.all(galleryIds.map(async (galleryId) => {
-        const res = await fetch(`/api/galleries/${galleryId}/move`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folderId })
-        });
-
-        if (!res.ok) throw new Error('Failed to move gallery');
-      }));
-      queryClient.invalidateQueries({ queryKey: ['folders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
-    } catch (error) {
-      console.error('Failed to move gallery:', error);
-    }
-  };
 
   const { data: folders } = useQuery({
     queryKey: ['folders'],
@@ -92,13 +77,7 @@ export function DashboardSidebar() {
   });
 
   return (
-    <div 
-        className={cn(
-          "w-64 bg-card border-r border-border h-screen flex flex-col",
-          isRootOver && "bg-accent/50"
-        )} 
-        ref={dropRef}
-      >
+    <div className="w-64 bg-card border-r border-border h-screen flex flex-col" ref={dropRef}>
       <div className="shrink-0 p-4 border-b border-border">
         <Button 
           variant="ghost" 
@@ -111,41 +90,20 @@ export function DashboardSidebar() {
 
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-2">
-          {folders?.map((folder) => {
-            const dropProps = useDrop(() => ({
-              accept: "GALLERY",
-              drop: (item: { selectedIds: number[] }) => {
-                handleMoveGallery(item.selectedIds, folder.id);
-              },
-              collect: (monitor) => ({
-                isOver: monitor.isOver(),
-              }),
-            }), [folder.id, handleMoveGallery]);
-
-            const [{ isOver }, dropRef] = dropProps;
-
-            return (
-              <div key={folder.id} className="group relative">
-                <div
-                  ref={dropRef}
-                  className={cn(
-                    "relative rounded-md",
-                    isOver && "bg-accent/50"
-                  )}
-                >
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start group-hover:pr-8"
-                      onClick={() => setLocation(`/f/${folder.slug}`)}
-                    >
+          {folders?.map((folder) => (
+            <div key={folder.id} className="group relative">
+              <Button
+                variant="ghost"
+                className="w-full justify-start group-hover:pr-8"
+                onClick={() => setLocation(`/f/${folder.slug}`)}
+              >
                 <FolderOpen className="mr-2 h-4 w-4" />
                 {folder.name}
                 <span className="ml-auto text-xs text-muted-foreground">
                   {folder.galleryCount}
                 </span>
               </Button>
-                  </div>
-                <DropdownMenu>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
@@ -162,8 +120,7 @@ export function DashboardSidebar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            );
-          })}
+          ))}
           <Button 
             variant="ghost" 
             className="w-full justify-start text-muted-foreground hover:text-foreground"
