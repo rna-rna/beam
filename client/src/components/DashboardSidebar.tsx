@@ -26,16 +26,23 @@ export function DashboardSidebar() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  const [{ isOver }, dropRef] = useDrop(() => ({
-    accept: "GALLERY",
-    drop: (item: { id: number }) => {
-      console.log(`Gallery ${item.id} dropped into folder`);
-      // TODO: Implement gallery move logic
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
-  }));
+  const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
+    try {
+      await Promise.all(galleryIds.map(async (galleryId) => {
+        const res = await fetch(`/api/galleries/${galleryId}/move`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderId })
+        });
+
+        if (!res.ok) throw new Error('Failed to move gallery');
+      }));
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+    } catch (error) {
+      console.error('Failed to move gallery:', error);
+    }
+  };
 
   const { data: folders } = useQuery({
     queryKey: ['folders'],
@@ -92,17 +99,40 @@ export function DashboardSidebar() {
         <div className="space-y-2">
           {folders?.map((folder) => (
             <div key={folder.id} className="group relative">
-              <Button
-                variant="ghost"
-                className="w-full justify-start group-hover:pr-8"
-                onClick={() => setLocation(`/f/${folder.slug}`)}
-              >
+              {/* Individual drop target for each folder */}
+              {(() => {
+                const [{ isOver }, dropRef] = useDrop(() => ({
+                  accept: "GALLERY",
+                  drop: (item: { selectedIds: number[] }) => {
+                    handleMoveGallery(item.selectedIds, folder.id);
+                  },
+                  collect: (monitor) => ({
+                    isOver: monitor.isOver(),
+                  }),
+                }), [folder.id]);
+
+                return (
+                  <div
+                    ref={dropRef}
+                    className={cn(
+                      "relative rounded-md",
+                      isOver && "bg-accent/50"
+                    )}
+                  >
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start group-hover:pr-8"
+                      onClick={() => setLocation(`/f/${folder.slug}`)}
+                    >
                 <FolderOpen className="mr-2 h-4 w-4" />
                 {folder.name}
                 <span className="ml-auto text-xs text-muted-foreground">
                   {folder.galleryCount}
                 </span>
               </Button>
+                  </div>
+                );
+              })()}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button

@@ -85,34 +85,7 @@ export function MainContent() {
       : sortedGalleries.filter(gallery => !gallery.deleted_at);
 
 
-  const [{ isOver }, dropRef] = useDrop({
-    accept: "GALLERY",
-    drop: (item: { selectedIds: number[] }) => {
-      if (currentFolder) {
-        handleMoveGallery(item.selectedIds, currentFolder.id);
-      }
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver()
-    })
-  });
-
-  const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
-    try {
-      await Promise.all(galleryIds.map(async (galleryId) => {
-        const res = await fetch(`/api/galleries/${galleryId}/move`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folderId })
-        });
-
-        if (!res.ok) throw new Error('Failed to move gallery');
-      }));
-      await queryClient.invalidateQueries(['/api/galleries']);
-    } catch (error) {
-      console.error('Failed to move gallery:', error);
-    }
-  };
+  // Removed drop handling since it's now in the sidebar
 
   const renderContent = () => {
     if (isLoading) {
