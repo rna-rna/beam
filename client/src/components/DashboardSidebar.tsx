@@ -160,7 +160,8 @@ export function DashboardSidebar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          ))}
+            );
+          })}
           <Button 
             variant="ghost" 
             className="w-full justify-start text-muted-foreground hover:text-foreground"
