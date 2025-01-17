@@ -85,17 +85,7 @@ export function MainContent() {
       : sortedGalleries.filter(gallery => !gallery.deleted_at);
 
 
-  const [{ isOver }, dropRef] = useDrop({
-    accept: "GALLERY",
-    drop: (item: { selectedIds: number[] }) => {
-      if (currentFolder) {
-        handleMoveGallery(item.selectedIds, currentFolder.id);
-      }
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver()
-    })
-  });
+  
 
   const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
     try {
