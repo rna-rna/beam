@@ -96,7 +96,7 @@ export function DashboardSidebar() {
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-2">
           {folders?.map((folder) => {
-            const dropSpec = {
+            const [{ isOver }, dropRef] = useDrop(() => ({
               accept: "GALLERY",
               drop: (item: { selectedIds: number[] }) => {
                 handleMoveGallery(item.selectedIds, folder.id);
@@ -104,9 +104,7 @@ export function DashboardSidebar() {
               collect: (monitor) => ({
                 isOver: monitor.isOver(),
               }),
-            };
-            
-            const [{ isOver }, dropRef] = useDrop(() => dropSpec, [folder.id, handleMoveGallery]);
+            }), [folder.id, handleMoveGallery]);
 
             return (
               <div 
