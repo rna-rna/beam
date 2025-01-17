@@ -111,28 +111,26 @@ export function DashboardSidebar() {
 
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-2">
-          {folders?.map((folder) => (
-            <div key={folder.id} className="group relative">
-              {/* Individual drop target for each folder */}
-              {(() => {
-                const [{ isOver }, dropRef] = useDrop(() => ({
-                  accept: "GALLERY",
-                  drop: (item: { selectedIds: number[] }) => {
-                    handleMoveGallery(item.selectedIds, folder.id);
-                  },
-                  collect: (monitor) => ({
-                    isOver: monitor.isOver(),
-                  }),
-                }), [folder.id]);
+          {folders?.map((folder) => {
+            const [{ isOver }, dropRef] = useDrop({
+              accept: "GALLERY",
+              drop: (item: { selectedIds: number[] }) => {
+                handleMoveGallery(item.selectedIds, folder.id);
+              },
+              collect: (monitor) => ({
+                isOver: monitor.isOver(),
+              }),
+            });
 
-                return (
-                  <div
-                    ref={dropRef}
-                    className={cn(
-                      "relative rounded-md",
-                      isOver && "bg-accent/50"
-                    )}
-                  >
+            return (
+              <div key={folder.id} className="group relative">
+                <div
+                  ref={dropRef}
+                  className={cn(
+                    "relative rounded-md",
+                    isOver && "bg-accent/50"
+                  )}
+                >
                     <Button
                       variant="ghost"
                       className="w-full justify-start group-hover:pr-8"
@@ -145,9 +143,7 @@ export function DashboardSidebar() {
                 </span>
               </Button>
                   </div>
-                );
-              })()}
-              <DropdownMenu>
+                <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
