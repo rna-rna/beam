@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FolderPlus, Clock, ChevronRight, MoreVertical, FolderOpen, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -18,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 
 export function DashboardSidebar() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -76,11 +76,6 @@ export function DashboardSidebar() {
     }
   });
 
-  const handleMoveGallery = (selectedIds: number[], folderId: number) => {
-    //Implementation for moving galleries to a folder.  This is a placeholder.
-    console.log("Moving galleries", selectedIds, "to folder", folderId);
-  };
-
   return (
     <div className="w-64 bg-card border-r border-border h-screen flex flex-col" ref={dropRef}>
       <div className="shrink-0 p-4 border-b border-border">
@@ -95,58 +90,37 @@ export function DashboardSidebar() {
 
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-2">
-          {folders?.map((folder) => {
-            const dropSpec = {
-              accept: "GALLERY",
-              drop: (item: { selectedIds: number[] }) => {
-                handleMoveGallery(item.selectedIds, folder.id);
-              },
-              collect: (monitor) => ({
-                isOver: monitor.isOver(),
-              }),
-            };
-            
-            const [{ isOver }, dropRef] = useDrop(() => dropSpec, [folder.id, handleMoveGallery]);
-
-            return (
-              <div 
-                ref={dropRef} 
-                key={folder.id}
-                className={cn(
-                  "rounded-md transition-colors",
-                  isOver && "bg-accent/50"
-                )}
+          {folders?.map((folder) => (
+            <div key={folder.id} className="group relative">
+              <Button
+                variant="ghost"
+                className="w-full justify-start group-hover:pr-8"
+                onClick={() => setLocation(`/f/${folder.slug}`)}
               >
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start group-hover:pr-8"
-                  onClick={() => setLocation(`/f/${folder.slug}`)}
-                >
-                  <FolderOpen className="mr-2 h-4 w-4" />
-                  {folder.name}
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {folder.galleryCount}
-                  </span>
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 h-6 w-6"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => deleteFolderMutation.mutate(folder.id)}>
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            );
-          })}
+                <FolderOpen className="mr-2 h-4 w-4" />
+                {folder.name}
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {folder.galleryCount}
+                </span>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 h-6 w-6"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => deleteFolderMutation.mutate(folder.id)}>
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ))}
           <Button 
             variant="ghost" 
             className="w-full justify-start text-muted-foreground hover:text-foreground"
