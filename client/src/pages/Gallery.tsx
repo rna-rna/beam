@@ -2,6 +2,7 @@ import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getCloudinaryUrl } from "@/lib/cloudinary";
+import { getR2ImageUrl } from "@/lib/r2";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Upload,
@@ -135,13 +136,6 @@ export default function Gallery({
   // URL Parameters and Global Hooks first
   const params = useParams();
   const slug = propSlug || params?.slug;
-
-  const getR2ImageUrl = useCallback((image: Image | null | undefined) => {
-    if (!image?.url) {
-      return "/fallback-image.jpg";
-    }
-    return image.url;
-  }, []);
 
   // Query must be declared before being used in useMemo
   const {
@@ -975,7 +969,7 @@ export default function Gallery({
 
       const { urls } = await response.json();
       const { signedUrl, publicUrl, imageId } = urls[0];
-      
+
       // Immediately update the placeholder with the real ID
       setImages(prev => 
         prev.map(img => 
@@ -1009,7 +1003,7 @@ export default function Gallery({
 
         xhr.open("PUT", signedUrl);
         xhr.setRequestHeader("Content-Type", file.type);
-        xhr.onload = () => xhr.status === 200 ? resolve() : reject();
+xhr.onload = () => xhr.status === 200 ? resolve() : reject();
         xhr.onerror = () => reject();
         xhr.send(file);
       });
@@ -1050,11 +1044,11 @@ export default function Gallery({
 
           // Wait between attempts
           await new Promise(resolve => setTimeout(resolve, 2000));
-          
+
           try {
             await queryClient.invalidateQueries([`/api/galleries/${slug}`]);
             const galleryData = await queryClient.getQueryData([`/api/galleries/${slug}`]);
-            
+
             // Check if image exists in gallery data
             const serverImage = galleryData?.images?.find(img => img.id === imageId);
             if (serverImage) {
@@ -1071,7 +1065,7 @@ export default function Gallery({
               );
               return;
             }
-            
+
             // If not found, continue polling
             await pollForFinalImage(attempt + 1, maxAttempts);
           } catch (error) {
@@ -1205,7 +1199,7 @@ export default function Gallery({
 
       const zip = new JSZip();
       const imagePromises = gallery!.images.map(async (image, index) => {
-        const response = await fetch(image.url);
+        const response = await fetch(getR2ImageUrl(image, false)); // Use original unoptimized URL for downloads
         const blob = await response.blob();
         const extension = image.url.split(".").pop() || "jpg";
         zip.file(`image-${index + 1}.${extension}`, blob);
@@ -1275,7 +1269,7 @@ export default function Gallery({
         const image = gallery!.images.find((img) => img.id === imageId);
         if (!image) return;
 
-        const response = await fetch(image.url);
+        const response = await fetch(getR2ImageUrl(image, false)); // Use original unoptimized URL for downloads
         const blob = await response.blob();
         const extension = image.url.split(".").pop() || "jpg";
         zip.file(`image-${imageId}.${extension}`, blob);
