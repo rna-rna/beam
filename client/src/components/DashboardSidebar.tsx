@@ -19,61 +19,23 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
-interface DashboardSidebarProps {
-  folder?: {
-    id: number;
-    name: string;
-    slug: string;
-  };
-}
-
-export function DashboardSidebar({ folder }: DashboardSidebarProps) {
+export function DashboardSidebar() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
 
-  const handleMoveGallery = async (galleryId: number, folderId: number) => {
-    try {
-      const res = await fetch(`/api/galleries/${galleryId}/move`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderId })
-      });
-
-      if (!res.ok) throw new Error('Failed to move gallery');
-      
-      await queryClient.invalidateQueries(['/api/galleries']);
-      toast({
-        title: "Success",
-        description: "Gallery moved successfully"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to move gallery",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const [{ isOver }, dropRef] = useDrop({
+  const [{ isOver }, dropRef] = useDrop(() => ({
     accept: "GALLERY",
-    drop: (item: { id: number; selectedIds: number[] }, monitor) => {
-      if (folder?.id) {
-        const galleryId = item.selectedIds?.length > 0 ? item.selectedIds[0] : item.id;
-        handleMoveGallery(galleryId, folder.id);
-      }
+    drop: (item: { id: number }) => {
+      console.log(`Gallery ${item.id} dropped into folder`);
+      // TODO: Implement gallery move logic
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
-      canDrop: monitor.canDrop()
-    })
-  });
+    }),
+  }));
 
   const { data: folders } = useQuery({
     queryKey: ['folders'],
@@ -115,10 +77,7 @@ export function DashboardSidebar({ folder }: DashboardSidebarProps) {
   });
 
   return (
-    <div ref={dropRef} className={cn(
-      "w-64 bg-card border-r border-border h-screen flex flex-col",
-      isOver && "bg-accent/20"
-    )}>
+    <div className="w-64 bg-card border-r border-border h-screen flex flex-col" ref={dropRef}>
       <div className="shrink-0 p-4 border-b border-border">
         <Button 
           variant="ghost" 

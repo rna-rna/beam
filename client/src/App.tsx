@@ -10,7 +10,7 @@ import Settings from "@/pages/Settings";
 import { Layout } from "@/components/Layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useState, ReactNode, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import About from "@/pages/About"; // Added import for About page
@@ -88,8 +88,7 @@ function AppContent() {
   const { data: gallery, isLoading: isGalleryLoading, error: galleryError } = useQuery({
     queryKey: gallerySlug ? [`/api/galleries/${gallerySlug}`] : null,
     queryFn: async () => {
-      if (!gallerySlug) return { id: 0, slug: '', title: '', images: [] };
-      
+      if (!gallerySlug) return null;
       const token = await getToken();
       const headers: HeadersInit = {
         'Cache-Control': 'no-cache',
@@ -98,36 +97,25 @@ function AppContent() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      
-      try {
-        const res = await fetch(`/api/galleries/${slug}`, {
-          headers,
-          cache: 'no-store',
-          credentials: 'include'
-        });
-        
-        if (!res.ok) {
-          if (res.status === 404) {
-            throw new Error('Gallery not found');
-          }
-          if (res.status === 403) {
-            throw new Error('This gallery is private');
-          }
-          throw new Error('Failed to fetch gallery');
+      const res = await fetch(`/api/galleries/${gallerySlug}`, {
+        headers,
+        cache: 'no-store',
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        if (res.status === 404) {
+          throw new Error('Gallery not found');
         }
-        
-        const data = await res.json();
-        if (!data || typeof data !== 'object') {
-          throw new Error('Invalid gallery data received');
+        if (res.status === 403) {
+          throw new Error('This gallery is private');
         }
-        return data;
-      } catch (error) {
-        throw error;
+        throw new Error('Failed to fetch gallery');
       }
+      return res.json();
     },
     enabled: !!gallerySlug,
-    staleTime: 0, 
-    retry: 1,
+    staleTime: 0,
+    retry: false,
     refetchOnMount: true,
     refetchOnWindowFocus: true
   });
@@ -196,7 +184,7 @@ function AppContent() {
     );
   }
 
-  if (gallerySlug && (galleryError || !gallery)) {
+  if (gallerySlug && galleryError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md mx-4">
@@ -291,16 +279,6 @@ function AppContent() {
   );
 }
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: true,
-      staleTime: 0
-    }
-  }
-});
-
 export default function App() {
   const { isLoaded } = useUser();
 
@@ -313,13 +291,11 @@ export default function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <UploadProvider>
+      <GlobalUploadProgress />
       <DndProvider backend={HTML5Backend}>
-        <UploadProvider>
-          <GlobalUploadProgress />
-          <AppContent />
-        </UploadProvider>
+        <AppContent />
       </DndProvider>
-    </QueryClientProvider>
+    </UploadProvider>
   );
 }
