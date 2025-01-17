@@ -2,6 +2,7 @@ import { Switch, Route, useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getCloudinaryUrl } from "@/lib/cloudinary";
+import { getR2ImageUrl } from "@/lib/r2";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Upload,
@@ -135,14 +136,7 @@ export default function Gallery({
   // URL Parameters and Global Hooks first
   const params = useParams();
   const slug = propSlug || params?.slug;
-
-  const getR2ImageUrl = useCallback((image: Image | null | undefined) => {
-    if (!image?.url) {
-      return "/fallback-image.jpg";
-    }
-    return image.url;
-  }, []);
-
+  
   // Query must be declared before being used in useMemo
   const {
     data: gallery,
