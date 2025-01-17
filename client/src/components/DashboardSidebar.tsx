@@ -26,6 +26,13 @@ export function DashboardSidebar() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
+  const [{ isOver: isRootOver }, dropRef] = useDrop(() => ({
+    accept: "GALLERY",
+    collect: (monitor) => ({
+      isOver: monitor.isOver({ shallow: true })
+    })
+  }));
+
   const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
     try {
       await Promise.all(galleryIds.map(async (galleryId) => {
@@ -84,7 +91,13 @@ export function DashboardSidebar() {
   });
 
   return (
-    <div className="w-64 bg-card border-r border-border h-screen flex flex-col" ref={dropRef}>
+    <div 
+        className={cn(
+          "w-64 bg-card border-r border-border h-screen flex flex-col",
+          isRootOver && "bg-accent/50"
+        )} 
+        ref={dropRef}
+      >
       <div className="shrink-0 p-4 border-b border-border">
         <Button 
           variant="ghost" 
