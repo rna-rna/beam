@@ -61,11 +61,18 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       }))
     });
 
-    const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Create single batch ID for all files
+    const batchId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
-    console.log('[Upload] Starting upload session:', { uploadId, totalSize, fileCount: acceptedFiles.length, gallerySlug });
+    console.log('[Upload] Starting upload session:', { batchId, totalSize, fileCount: acceptedFiles.length, gallerySlug });
 
-    addBatch(uploadId, totalSize, acceptedFiles.length);
+    // Add single batch for all files
+    addBatch(batchId, totalSize, acceptedFiles.length);
+
+    // Create a single progress tracker for the entire batch
+    const batchProgress = {
+      uploadedBytes: 0
+    };
 
     try {
       if (!acceptedFiles?.length) {
@@ -109,7 +116,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       }
 
       const { urls } = await response.json();
-      const fileProgress = new Map<number, number>();
 
       // Upload directly to R2
       for (const [index, urlData] of urls.entries()) {
@@ -119,14 +125,11 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
 
-          fileProgress.set(index, 0);
           xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
-              const currentProgress = event.loaded;
-              const previousProgress = fileProgress.get(index) || 0;
-              const incrementBytes = currentProgress - previousProgress;
-              fileProgress.set(index, currentProgress);
-              updateBatchProgress(uploadId, incrementBytes);
+              const incrementBytes = event.loaded - (batchProgress.uploadedBytes || 0);
+              batchProgress.uploadedBytes = event.loaded;
+              updateBatchProgress(batchId, incrementBytes);
             }
           };
 
