@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 
 export function DashboardSidebar() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -27,28 +26,14 @@ export function DashboardSidebar() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
-    try {
-      await Promise.all(galleryIds.map(async (galleryId) => {
-        const res = await fetch(`/api/galleries/${galleryId}/move`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folderId })
-        });
-
-        if (!res.ok) throw new Error('Failed to move gallery');
-      }));
-      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/folders'] });
-    } catch (error) {
-      console.error('Failed to move gallery:', error);
-    }
-  };
-
-  const [{ isRootOver }, dropRootRef] = useDrop(() => ({
+  const [{ isOver }, dropRef] = useDrop(() => ({
     accept: "GALLERY",
+    drop: (item: { id: number }) => {
+      console.log(`Gallery ${item.id} dropped into folder`);
+      // TODO: Implement gallery move logic
+    },
     collect: (monitor) => ({
-      isRootOver: monitor.isOver(),
+      isOver: monitor.isOver(),
     }),
   }));
 
@@ -92,98 +77,70 @@ export function DashboardSidebar() {
   });
 
   return (
-    <>
-      <div 
-        className={cn(
-          "w-64 bg-card border-r border-border h-screen flex flex-col",
-          isRootOver && "bg-accent/50"
-        )} 
-        ref={dropRootRef}
-      >
-        <div className="shrink-0 p-4 border-b border-border">
+    <div className="w-64 bg-card border-r border-border h-screen flex flex-col" ref={dropRef}>
+      <div className="shrink-0 p-4 border-b border-border">
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start"
+        >
+          <Clock className="mr-2 h-4 w-4" />
+          Recents
+        </Button>
+      </div>
+
+      <ScrollArea className="flex-1 px-4">
+        <div className="space-y-2">
+          {folders?.map((folder) => (
+            <div key={folder.id} className="group relative">
+              <Button
+                variant="ghost"
+                className="w-full justify-start group-hover:pr-8"
+                onClick={() => setLocation(`/f/${folder.slug}`)}
+              >
+                <FolderOpen className="mr-2 h-4 w-4" />
+                {folder.name}
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {folder.galleryCount}
+                </span>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 h-6 w-6"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => deleteFolderMutation.mutate(folder.id)}>
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ))}
           <Button 
             variant="ghost" 
-            className="w-full justify-start"
-          >
-            <Clock className="mr-2 h-4 w-4" />
-            Recents
-          </Button>
-        </div>
-
-        <ScrollArea className="flex-1 px-4">
-          <div className="space-y-2">
-            {folders?.map((folder) => {
-              const [{ isOver }, dropRef] = useDrop(() => ({
-                accept: "GALLERY",
-                drop: (item: { selectedIds: number[] }) => {
-                  handleMoveGallery(item.selectedIds, folder.id);
-                },
-                collect: (monitor) => ({
-                  isOver: monitor.isOver(),
-                }),
-              }));
-
-              return (
-                <div key={folder.id} className="group relative">
-                  <div
-                    ref={dropRef}
-                    className={cn(
-                      "relative rounded-md",
-                      isOver && "bg-accent/50"
-                    )}
-                  >
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start group-hover:pr-8"
-                      onClick={() => setLocation(`/f/${folder.slug}`)}
-                    >
-                      <FolderOpen className="mr-2 h-4 w-4" />
-                      {folder.name}
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {folder.galleryCount}
-                      </span>
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 h-6 w-6"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => deleteFolderMutation.mutate(folder.id)}>
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              );
-            })}
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start text-muted-foreground hover:text-foreground"
-              onClick={() => setIsCreateOpen(true)}
-            >
-              <FolderPlus className="mr-2 h-4 w-4" />
-              Add Folder
-            </Button>
-          </div>
-        </ScrollArea>
-
-        <div className="shrink-0 p-4 border-t border-border">
-          <Button
-            variant="ghost"
             className="w-full justify-start text-muted-foreground hover:text-foreground"
-            onClick={() => setLocation("/dashboard?view=trash")}
+            onClick={() => setIsCreateOpen(true)}
           >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Trash
+            <FolderPlus className="mr-2 h-4 w-4" />
+            Add Folder
           </Button>
         </div>
+      </ScrollArea>
+
+      <div className="shrink-0 p-4 border-t border-border">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-muted-foreground hover:text-foreground"
+          onClick={() => setLocation("/dashboard?view=trash")}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Trash
+        </Button>
       </div>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -204,6 +161,6 @@ export function DashboardSidebar() {
           </form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
