@@ -1005,8 +1005,7 @@ export default function Gallery({
           ),
         );
 
-        // Add retry logic with delay
-        const pollForFinalImage = async (attempt = 0, maxAttempts = 5) => {
+        // Add retry logic with delay        const pollForFinalImage = async (attempt = 0, maxAttempts = 5) => {
           if (attempt >= maxAttempts) {
             console.warn("Max polling attempts reached waiting for image", {
               imageId,
@@ -1569,7 +1568,7 @@ export default function Gallery({
         >
           <img
             key={`${image.id}-${image._status || "final"}`}
-            src={"localUrl" in image ? image.localUrl : image.url}
+            src={"localUrl" in image ? image.localUrl : getR2ImageUrl(image)}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
               "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
