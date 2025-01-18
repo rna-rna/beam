@@ -156,7 +156,7 @@ export default function Gallery({
       .filter((image) => image && image.url)
       .map((image) => ({
         ...image,
-        displayUrl: getR2ImageUrl(image),
+        displayUrl: getR2ImageUrl(image, true),
         aspectRatio:
           image.width && image.height ? image.width / image.height : 1.33,
       }));
