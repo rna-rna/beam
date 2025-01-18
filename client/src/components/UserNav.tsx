@@ -1,7 +1,7 @@
 import { useClerk, useUser } from "@clerk/clerk-react";
 import { useLocation } from "wouter";
 import { UserAvatar } from "@/components/UserAvatar";
-import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationSystem } from "@/components/NotificationSystem";
 import {
   DropdownMenu,
   DropdownMenuContent,
