@@ -186,9 +186,19 @@ export function MainContent() {
                           ref={dragRef}
                           key={gallery.id}
                           onClick={(e) => {
+                            if (e) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              e.nativeEvent.preventDefault();
+                              e.nativeEvent.stopPropagation();
+                            }
                             if (!e.shiftKey) {
                               setSelectedGalleries([gallery.id]);
                               setLastSelectedId(gallery.id);
+                            }
+                          }}
+                          onDoubleClick={() => {
+                            setLocation(`/g/${gallery.slug}`);
                             } else if (lastSelectedId) {
                               const galleries = sortedGalleries;
                               const currentIndex = galleries.findIndex(g => g.id === gallery.id);

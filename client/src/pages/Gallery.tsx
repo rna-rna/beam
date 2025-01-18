@@ -1,34 +1,20 @@
-import { Switch, Route, useParams } from "wouter";
+import {useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { getCloudinaryUrl } from "@/lib/cloudinary";
 import { getR2ImageUrl } from "@/lib/r2";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Upload,
   Grid,
   LayoutGrid,
-  Filter,
-  ArrowBigUp,
   MessageSquare,
-  SquareDashedMousePointer,
-  Link,
-  Download,
-  MoreVertical,
   Star,
-  Trash2,
   CheckCircle,
-  Loader2,
-  Moon,
-  Sun,
-  Share2,
+  Loader2, 
   Share,
   AlertCircle,
-  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  Paintbrush,
-  MessageCircle,
   PencilRuler,
   Eye,
   EyeOff,
@@ -38,14 +24,12 @@ import {
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 // UI Components
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import LightboxDialogContent from "@/components/dialog/LightboxDialogContent";
 import { StarredUsersFilter } from "@/components/StarredUsersFilter";
 import { Progress } from "@/components/ui/progress";
-import { Switch as SwitchComponent } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
   Tooltip,
@@ -58,16 +42,12 @@ import {
 import { CommentBubble } from "@/components/CommentBubble";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
 import { useDropzone } from "react-dropzone";
-import { Textarea } from "@/components/ui/textarea";
-
-import { Label } from "@/components/ui/label";
 import { MobileGalleryView } from "@/components/MobileGalleryView";
 import type {
   Image,
   Gallery as GalleryType,
   Comment,
   Annotation,
-  UploadProgress,
   ImageOrPending,
   PendingImage,
 } from "@/types/gallery";
@@ -87,7 +67,6 @@ import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/LoginModal";
 import { useUpload, UploadProvider } from "@/context/UploadContext";
 import { StarredAvatars } from "@/components/StarredAvatars";
-import { LoginButton } from "@/components/LoginButton";
 import { Logo } from "@/components/Logo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { SignUpModal } from "@/components/SignUpModal";

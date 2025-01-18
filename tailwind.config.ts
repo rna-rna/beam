@@ -67,6 +67,9 @@ export default {
         },
       },
       keyframes: {
+  shimmer: {
+    "100%": { transform: "translateX(100%)" },
+  },
         "accordion-down": {
           from: {
             height: "0",
