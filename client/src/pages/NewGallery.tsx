@@ -19,7 +19,10 @@ export default function NewGallery() {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
-        }
+        },
+        body: JSON.stringify({
+          isDraft: true
+        })
       });
       if (!res.ok) throw new Error('Failed to create gallery');
       return res.json();

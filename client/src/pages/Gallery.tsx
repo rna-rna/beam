@@ -156,7 +156,7 @@ export default function Gallery({
       .filter((image) => image && image.url)
       .map((image) => ({
         ...image,
-        displayUrl: getR2ImageUrl(image),
+        displayUrl: getR2ImageUrl(image, true),
         aspectRatio:
           image.width && image.height ? image.width / image.height : 1.33,
       }));
@@ -1002,7 +1002,7 @@ export default function Gallery({
         };
 
         xhr.open("PUT", signedUrl);
-        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.setRequestHeader("Content-Type",file.type);
 xhr.onload = () => xhr.status === 200 ? resolve() : reject();
         xhr.onerror = () => reject();
         xhr.send(file);
@@ -1158,7 +1158,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
   // Preload image function
   const preloadImage = useCallback((image: Image, imageId: number) => {
     const img = new Image();
-    img.src = getR2ImageUrl(image);
+    img.src = getR2ImageUrl(image, true);
     img.onload = () => {
       setPreloadedImages((prev) => new Set([...Array.from(prev), imageId]));
     };
@@ -1983,7 +1983,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getR2ImageUrl(images[idx], slug);
+          img.src = getR2ImageUrl(images[idx], true);
         }
       });
     }
@@ -2066,7 +2066,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
             property="og:image"
             content={
               gallery.ogImageUrl
-                ? getR2ImageUrl(gallery.ogImage, slug)
+                ? getR2ImageUrl(gallery.ogImage, true)
                 : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`
             }
           />
@@ -2490,7 +2490,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
 
                     {/* Single image with fade transition */}
                     <img
-                      src={getR2ImageUrl(selectedImage)}
+                      src={getR2ImageUrl(selectedImage, true)}
                       alt={selectedImage.originalFilename || ""}
                       className="image-fade"
                       style={{
@@ -2510,8 +2510,8 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
 
                     {/* Final high-res image */}
                     <motion.img
-                      src={getR2ImageUrl(selectedImage)}
-                      data-src={getR2ImageUrl(selectedImage)}
+                      src={getR2ImageUrl(selectedImage, true)}
+                      data-src={getR2ImageUrl(selectedImage, true)}
                       alt={selectedImage.originalFilename || ""}
                       className="lightbox-img"
                       style={{

@@ -61,11 +61,18 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       }))
     });
 
-    const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Create single batch ID for all files
+    const batchId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
-    console.log('[Upload] Starting upload session:', { uploadId, totalSize, fileCount: acceptedFiles.length, gallerySlug });
+    console.log('[Upload] Starting upload session:', { batchId, totalSize, fileCount: acceptedFiles.length, gallerySlug });
 
-    addBatch(uploadId, totalSize, acceptedFiles.length);
+    // Add single batch for all files
+    addBatch(batchId, totalSize, acceptedFiles.length);
+
+    // Create a single progress tracker for the entire batch
+    const batchProgress = {
+      uploadedBytes: 0
+    };
 
     try {
       if (!acceptedFiles?.length) {
@@ -109,27 +116,24 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       }
 
       const { urls } = await response.json();
-      let totalUploadedBytes = 0;
-      const fileProgress = new Map<number, number>();
+      let uploadedBatchBytes = 0;
 
       // Upload directly to R2
       for (const [index, urlData] of urls.entries()) {
         const file = acceptedFiles[index];
         const { signedUrl, publicUrl } = urlData;
+        const previousFilesSize = acceptedFiles.slice(0, index).reduce((acc, f) => acc + f.size, 0);
 
         await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
 
-          fileProgress.set(index, 0);
           xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
-              const currentProgress = event.loaded;
-              const previousProgress = fileProgress.get(index) || 0;
-              const incrementBytes = currentProgress - previousProgress;
-
-              fileProgress.set(index, currentProgress);
-              totalUploadedBytes += incrementBytes;
-              updateBatchProgress(uploadId, incrementBytes);
+              const currentFileProgress = event.loaded;
+              const batchProgress = previousFilesSize + currentFileProgress;
+              const incrementBytes = batchProgress - uploadedBatchBytes;
+              uploadedBatchBytes = batchProgress;
+              updateBatchProgress(batchId, incrementBytes);
             }
           };
 
@@ -150,7 +154,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       }
 
       // Only invalidate queries if this was the last batch
-      const remainingUploads = batches.filter(batch => batch.id !== uploadId);
+      const remainingUploads = batches.filter(batch => batch.id !== batchId);
       if (remainingUploads.length === 0) {
         if (gallerySlug) {
           await queryClient.invalidateQueries({ 
@@ -188,7 +192,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         variant: 'destructive',
       });
     } finally {
-      completeBatch(uploadId, true);
+      completeBatch(batchId, true);
     }
   }, [onUpload, addBatch, updateBatchProgress, completeBatch, gallerySlug]);
 
