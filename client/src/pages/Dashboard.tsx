@@ -32,6 +32,22 @@ export default function Dashboard() {
   const [sortOrder, setSortOrder] = useState('created');
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
 
+  const { data: galleries = [], isLoading } = useQuery({
+    queryKey: ['/api/galleries'],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await fetch('/api/galleries', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch galleries');
+      return res.json();
+    }
+  });
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Backspace' && selectedGalleries.length > 0) {
