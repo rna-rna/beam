@@ -84,7 +84,7 @@ export function DashboardSidebar() {
           {folders.map((folder) => (
             <Button
               key={folder.id}
-              variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
+              variant={selectedFolder === folder.id && selectedSection === 'folders' ? "secondary" : "ghost"}
               className="w-full justify-start"
               onDragOver={(e) => {
                 e.preventDefault();
@@ -113,11 +113,10 @@ export function DashboardSidebar() {
                   }
                 }
               }}
-              onClick={(e) => {
-                e.preventDefault();
+              onClick={() => {
                 setSelectedFolder(folder.id);
                 setSelectedSection('folders');
-                setLocation(`/f/${folder.slug}`, { replace: true });
+                setLocation(`/f/${folder.slug}`);
               }}
             >
               <Folder className="mr-2 h-4 w-4" />
