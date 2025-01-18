@@ -2061,13 +2061,7 @@ export default function Gallery({
           <meta name="twitter:card" content="summary_large_image" />
         </Helmet>
       )}
-      <div
-        className={cn(
-          "min-h-screen relative",
-          isDark ? "bg-black/90" : "bg-background",
-        )}
-        <div
-          className={cn(
+        <div className={cn(
             "min-h-screen relative",
             isDark ? "bg-black/90" : "bg-background",
           )}
