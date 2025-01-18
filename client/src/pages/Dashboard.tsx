@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import { useAuth } from "@clerk/clerk-react";
@@ -27,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { motion } from 'framer-motion';
 
 export default function Dashboard() {
   const { getToken } = useAuth();
@@ -106,48 +106,124 @@ export default function Dashboard() {
       >
         {galleries.map((gallery) => (
           <ContextMenu key={gallery.id}>
-            {/* Existing gallery card code */}
-</old_str>
-<new_str>
-  const MainContent = () => {
-    if (isLoading) {
-      return <GallerySkeleton count={12} />;
-    }
-
-    if (galleries.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-          <Image className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="font-semibold mb-1">No galleries found</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Create your first gallery to get started
-          </p>
-          <Button onClick={() => window.location.href = '/new'}>
-            <Plus className="mr-2 h-4 w-4" /> New Gallery
-          </Button>
-        </div>
-      );
-    }
-
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
-      >
-        {galleries.map((gallery) => (
-          <ContextMenu key={gallery.id}>
-            {/* Existing gallery card code */}
+            <ContextMenuTrigger>
+              <div 
+                className={`border rounded-lg overflow-hidden cursor-pointer ${selectedGalleries.includes(gallery.id) ? 'ring-2 ring-primary' : ''}`}
+                draggable
+                onClick={(e) => {
+                  if (e.shiftKey) {
+                    const lastSelected = selectedGalleries[selectedGalleries.length - 1];
+                    const currentIndex = galleries.findIndex(g => g.id === gallery.id);
+                    const lastIndex = galleries.findIndex(g => g.id === lastSelected);
+                    if (lastIndex !== -1) {
+                      const start = Math.min(currentIndex, lastIndex);
+                      const end = Math.max(currentIndex, lastIndex);
+                      const range = galleries.slice(start, end + 1).map(g => g.id);
+                      setSelectedGalleries(range);
+                    } else {
+                      setSelectedGalleries([gallery.id]);
+                    }
+                  } else if (!e.metaKey && !e.ctrlKey) {
+                    setSelectedGalleries([gallery.id]);
+                  }
+                }}
+                onDoubleClick={() => window.location.href = `/g/${gallery.slug}`}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('application/json', JSON.stringify({
+                    type: 'gallery',
+                    id: gallery.id,
+                    title: gallery.title
+                  }));
+                }}
+              >
+                {gallery.thumbnailUrl ? (
+                  <img 
+                    src={gallery.thumbnailUrl} 
+                    alt={gallery.title} 
+                    className="w-full h-40 object-cover" 
+                  />
+                ) : (
+                  <div className="w-full h-40 bg-muted flex items-center justify-center">
+                    <Image className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="p-4">
+                  <h3 className="font-semibold">{gallery.title}</h3>
+                  <p className="text-sm text-muted-foreground">{gallery.imageCount || 0} images</p>
+                </div>
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onSelect={() => window.location.href = `/g/${gallery.slug}`}>
+                <FolderOpen className="mr-2 h-4 w-4" />
+                Open
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={() => {
+                const url = `${window.location.origin}/g/${gallery.slug}`;
+                const modal = document.createElement('div');
+                modal.id = `share-modal-${gallery.id}`;
+                document.body.appendChild(modal);
+                const root = ReactDOM.createRoot(modal);
+                root.render(
+                  <Dialog open onOpenChange={() => {
+                    root.unmount();
+                    modal.remove();
+                  }}>
+                    <DialogContent>
+                      <ShareModal 
+                        galleryUrl={url}
+                        slug={gallery.slug}
+                        isPublic={gallery.isPublic}
+                        onClose={() => {
+                          root.unmount();
+                          modal.remove();
+                        }}
+                        onVisibilityChange={() => {}}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                );
+              }}>
+                <Share className="mr-2 h-4 w-4" />
+                Share
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={() => {/* Add rename handler */}}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Rename
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem className="text-red-600" onSelect={() => {
+                const dialog = document.createElement('dialog');
+                dialog.innerHTML = `
+                  <div class="fixed inset-0 bg-background/80 backdrop-blur-sm">
+                    <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%]">
+                      <DeleteGalleryModal
+                        isOpen={true}
+                        onClose={() => dialog.close()}
+                        gallerySlug={gallery.slug}
+                        galleryTitle={gallery.title}
+                      />
+                    </div>
+                  </div>
+                `;
+                document.body.appendChild(dialog);
+                dialog.showModal();
+              }}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+        ))}
+      </motion.div>
+    );
+  };
 
   return (
     <div className="flex h-[calc(100vh-65px)] bg-background">
-      {/* Sidebar for larger screens */}
       <aside className="hidden md:block w-64 border-r">
         <DashboardSidebar />
       </aside>
-
-      {/* Main content */}
       <main className="flex-1 flex flex-col min-h-0">
         <header className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center">
@@ -192,119 +268,7 @@ export default function Dashboard() {
           </div>
         </header>
         <ScrollArea className="flex-1 p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {galleries.map((gallery) => (
-              <ContextMenu key={gallery.id}>
-                <ContextMenuTrigger>
-                  <div 
-                    className={`border rounded-lg overflow-hidden cursor-pointer ${selectedGalleries.includes(gallery.id) ? 'ring-2 ring-primary' : ''}`}
-                    draggable
-                    onClick={(e) => {
-                      if (e.shiftKey) {
-                        const lastSelected = selectedGalleries[selectedGalleries.length - 1];
-                        const currentIndex = galleries.findIndex(g => g.id === gallery.id);
-                        const lastIndex = galleries.findIndex(g => g.id === lastSelected);
-                        if (lastIndex !== -1) {
-                          const start = Math.min(currentIndex, lastIndex);
-                          const end = Math.max(currentIndex, lastIndex);
-                          const range = galleries.slice(start, end + 1).map(g => g.id);
-                          setSelectedGalleries(range);
-                        } else {
-                          setSelectedGalleries([gallery.id]);
-                        }
-                      } else if (!e.metaKey && !e.ctrlKey) {
-                        setSelectedGalleries([gallery.id]);
-                      }
-                    }}
-                    onDoubleClick={() => window.location.href = `/g/${gallery.slug}`}
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('application/json', JSON.stringify({
-                        type: 'gallery',
-                        id: gallery.id,
-                        title: gallery.title
-                      }));
-                    }}
-                  >
-                    {gallery.thumbnailUrl ? (
-                      <img 
-                        src={gallery.thumbnailUrl} 
-                        alt={gallery.title} 
-                        className="w-full h-40 object-cover" 
-                      />
-                    ) : (
-                      <div className="w-full h-40 bg-muted flex items-center justify-center">
-                        <Image className="h-12 w-12 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="p-4">
-                      <h3 className="font-semibold">{gallery.title}</h3>
-                      <p className="text-sm text-muted-foreground">{gallery.imageCount || 0} images</p>
-                    </div>
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <ContextMenuItem onSelect={() => window.location.href = `/g/${gallery.slug}`}>
-                    <FolderOpen className="mr-2 h-4 w-4" />
-                    Open
-                  </ContextMenuItem>
-                  <ContextMenuItem onSelect={() => {
-                    const url = `${window.location.origin}/g/${gallery.slug}`;
-                    const modal = document.createElement('div');
-                    modal.id = `share-modal-${gallery.id}`;
-                    document.body.appendChild(modal);
-                    const root = ReactDOM.createRoot(modal);
-                    root.render(
-                      <Dialog open onOpenChange={() => {
-                        root.unmount();
-                        modal.remove();
-                      }}>
-                        <DialogContent>
-                          <ShareModal 
-                            galleryUrl={url}
-                            slug={gallery.slug}
-                            isPublic={gallery.isPublic}
-                            onClose={() => {
-                              root.unmount();
-                              modal.remove();
-                            }}
-                            onVisibilityChange={() => {}}
-                          />
-                        </DialogContent>
-                      </Dialog>
-                    );
-                  }}>
-                    <Share className="mr-2 h-4 w-4" />
-                    Share
-                  </ContextMenuItem>
-                  <ContextMenuItem onSelect={() => {/* Add rename handler */}}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Rename
-                  </ContextMenuItem>
-                  <ContextMenuSeparator />
-                  <ContextMenuItem className="text-red-600" onSelect={() => {
-                    const dialog = document.createElement('dialog');
-                    dialog.innerHTML = `
-                      <div class="fixed inset-0 bg-background/80 backdrop-blur-sm">
-                        <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%]">
-                          <DeleteGalleryModal
-                            isOpen={true}
-                            onClose={() => dialog.close()}
-                            gallerySlug={gallery.slug}
-                            galleryTitle={gallery.title}
-                          />
-                        </div>
-                      </div>
-                    `;
-                    document.body.appendChild(dialog);
-                    dialog.showModal();
-                  }}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            ))}
-          </div>
+          <MainContent />
         </ScrollArea>
       </main>
     </div>
