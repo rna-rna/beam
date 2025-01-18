@@ -1,0 +1,155 @@
+The flashing issue in the MainContent.tsx when clicking a gallery likely occurs because of a re-render triggered by state updates or unnecessary renders in the parent or sibling components. Here’s a systematic approach to resolve it:
+
+Steps to Fix the Flashing Issue
+1. Optimize State Updates
+The onClick handler for gallery cards updates the selectedGalleries and lastSelectedId states, which can trigger unnecessary re-renders.
+
+Solution:
+Avoid unnecessary state updates when clicking on a gallery card that’s already selected.
+Update onClick Handler:
+
+tsx
+Copy
+Edit
+onClick={(e) => {
+  if (!e.shiftKey) {
+    if (selectedGalleries.length === 1 && selectedGalleries[0] === gallery.id) {
+      // Prevent unnecessary state update if the same gallery is already selected
+      return;
+    }
+    setSelectedGalleries([gallery.id]);
+    setLastSelectedId(gallery.id);
+  }
+}}
+2. Memoize Components
+Wrap components that don’t need to re-render with React.memo to prevent re-renders caused by parent state updates.
+
+Solution:
+Wrap the gallery card component in React.memo.
+Wrap Gallery Card in React.memo:
+
+tsx
+Copy
+Edit
+const GalleryCard = React.memo(({ gallery, isDragging, dragRef, onClick, onDoubleClick }) => (
+  <Card
+    ref={dragRef}
+    key={gallery.id}
+    onClick={onClick}
+    onDoubleClick={onDoubleClick}
+    className={cn(
+      "overflow-hidden transition-all duration-200 cursor-pointer",
+      isDragging && "opacity-50",
+      "hover:shadow-lg"
+    )}
+  >
+    <div className="aspect-video relative bg-muted">
+      {gallery.thumbnailUrl ? (
+        <img
+          src={gallery.thumbnailUrl}
+          alt={gallery.title}
+          className="object-cover w-full h-full"
+          draggable={false}
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+          <ImageIcon className="w-12 h-12" />
+        </div>
+      )}
+    </div>
+    <div className="p-4">
+      <h3 className="font-semibold">{gallery.title}</h3>
+      <p className="text-sm text-muted-foreground">{gallery.imageCount} images</p>
+    </div>
+  </Card>
+));
+Usage: Replace the existing gallery card rendering logic with:
+
+tsx
+Copy
+Edit
+<GalleryCard
+  gallery={gallery}
+  isDragging={isDragging}
+  dragRef={dragRef}
+  onClick={(e) => {
+    if (!e.shiftKey) {
+      setSelectedGalleries([gallery.id]);
+      setLastSelectedId(gallery.id);
+    }
+  }}
+  onDoubleClick={() => setLocation(`/g/${gallery.slug}`)}
+/>
+3. Stabilize Query Keys and Avoid Unnecessary Fetches
+The useQuery hook for galleries might be triggering a re-fetch due to unstable queryKey or configuration.
+
+Solution:
+Ensure the queryKey is stable and set staleTime to prevent frequent re-fetching.
+Optimized useQuery for Galleries:
+
+tsx
+Copy
+Edit
+const { data: galleries = [], isLoading } = useQuery({
+  queryKey: ['/api/galleries'],
+  queryFn: async () => {
+    const res = await fetch('/api/galleries');
+    if (!res.ok) throw new Error('Failed to fetch galleries');
+    return res.json();
+  },
+  staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
+  cacheTime: 1000 * 60 * 10, // Keep cached data for 10 minutes
+  refetchOnWindowFocus: false,
+  refetchOnMount: false,
+});
+4. Reduce Context Menu Re-Renders
+The ContextMenu might be re-rendering unnecessarily along with gallery cards.
+
+Solution:
+Move the ContextMenu logic outside of the gallery card rendering loop.
+Refactor ContextMenu Logic:
+
+tsx
+Copy
+Edit
+<ContextMenu>
+  <ContextMenuTrigger>
+    <GalleryCard
+      gallery={gallery}
+      isDragging={isDragging}
+      dragRef={dragRef}
+      onClick={(e) => {
+        if (!e.shiftKey) {
+          setSelectedGalleries([gallery.id]);
+          setLastSelectedId(gallery.id);
+        }
+      }}
+      onDoubleClick={() => setLocation(`/g/${gallery.slug}`)}
+    />
+  </ContextMenuTrigger>
+  <ContextMenuContent>
+    <ContextMenuItem onSelect={() => setLocation(`/g/${gallery.slug}`)}>
+      <FolderOpen className="mr-2 h-4 w-4" />
+      Open
+    </ContextMenuItem>
+    <ContextMenuItem onSelect={() => setShareModalOpen(true)}>
+      <Share className="mr-2 h-4 w-4" />
+      Share
+    </ContextMenuItem>
+    <ContextMenuItem onSelect={() => setRenameModalOpen(true)}>
+      <Pencil className="mr-2 h-4 w-4" />
+      Rename
+    </ContextMenuItem>
+    <ContextMenuSeparator />
+    <ContextMenuItem
+      onSelect={() => setDeleteModalOpen(true)}
+      className="text-red-600"
+    >
+      <Trash2 className="mr-2 h-4 w-4" />
+      Delete
+    </ContextMenuItem>
+  </ContextMenuContent>
+</ContextMenu>
+5. Test with React DevTools
+Use React DevTools to identify components re-rendering unnecessarily.
+Check if clicking a gallery card causes MainContent or DashboardSidebar to re-render.

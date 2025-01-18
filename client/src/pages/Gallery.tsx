@@ -1,4 +1,4 @@
-import {useParams } from "wouter";
+import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getR2ImageUrl } from "@/lib/r2";
@@ -10,7 +10,7 @@ import {
   MessageSquare,
   Star,
   CheckCircle,
-  Loader2, 
+  Loader2,
   Share,
   AlertCircle,
   ChevronLeft,
@@ -339,9 +339,11 @@ export default function Gallery({
   // Load server images
   useEffect(() => {
     if (gallery?.images) {
-      setImages(prev => {
+      setImages((prev) => {
         // Only keep actively uploading items
-        const uploading = prev.filter(img => 'localUrl' in img && img.status === 'uploading');
+        const uploading = prev.filter(
+          (img) => "localUrl" in img && img.status === "uploading",
+        );
         return [...uploading, ...gallery.images];
       });
     }
@@ -936,11 +938,13 @@ export default function Gallery({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          files: [{
-            name: file.name,
-            type: file.type,
-            size: file.size,
-          }],
+          files: [
+            {
+              name: file.name,
+              type: file.type,
+              size: file.size,
+            },
+          ],
         }),
       });
 
@@ -950,17 +954,17 @@ export default function Gallery({
       const { signedUrl, publicUrl, imageId } = urls[0];
 
       // Immediately update the placeholder with the real ID
-      setImages(prev => 
-        prev.map(img => 
-          img.id === tmpId 
-            ? { 
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === tmpId
+            ? {
                 ...img,
                 id: imageId,
-                status: 'uploading',
-                progress: 0
+                status: "uploading",
+                progress: 0,
               }
-            : img
-        )
+            : img,
+        ),
       );
 
       // Upload to R2
@@ -969,20 +973,18 @@ export default function Gallery({
         xhr.upload.onprogress = (ev) => {
           if (ev.lengthComputable) {
             const progress = (ev.loaded / ev.total) * 100;
-            setImages(prev => 
-              prev.map(img => 
-                img.id === imageId
-                  ? { ...img, progress } 
-                  : img
-              )
+            setImages((prev) =>
+              prev.map((img) =>
+                img.id === imageId ? { ...img, progress } : img,
+              ),
             );
             updateBatchProgress(addBatchId, ev.loaded - ev.total);
           }
         };
 
         xhr.open("PUT", signedUrl);
-        xhr.setRequestHeader("Content-Type",file.type);
-xhr.onload = () => xhr.status === 200 ? resolve() : reject();
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.onload = () => (xhr.status === 200 ? resolve() : reject());
         xhr.onerror = () => reject();
         xhr.send(file);
       });
@@ -991,56 +993,60 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
       const img = new Image();
       img.onload = () => {
         // Update status to finalizing
-        setImages(prev => 
-          prev.map(img => 
+        setImages((prev) =>
+          prev.map((img) =>
             img.id === imageId
-              ? { 
-                  ...img as PendingImage,
+              ? {
+                  ...(img as PendingImage),
                   status: "finalizing",
-                  progress: 100
-                } 
-              : img
-          )
+                  progress: 100,
+                }
+              : img,
+          ),
         );
 
         // Add retry logic with delay
         const pollForFinalImage = async (attempt = 0, maxAttempts = 5) => {
           if (attempt >= maxAttempts) {
-            console.warn('Max polling attempts reached waiting for image', {
+            console.warn("Max polling attempts reached waiting for image", {
               imageId,
-              attempts: attempt
+              attempts: attempt,
             });
             // Keep the current state but mark as error
-            setImages(prev => 
-              prev.map(item => 
+            setImages((prev) =>
+              prev.map((item) =>
                 item.id === imageId
-                  ? { ...item, status: 'error', _status: 'error' }
-                  : item
-              )
+                  ? { ...item, status: "error", _status: "error" }
+                  : item,
+              ),
             );
             return;
           }
 
           // Wait between attempts
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
 
           try {
             await queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-            const galleryData = await queryClient.getQueryData([`/api/galleries/${slug}`]);
+            const galleryData = await queryClient.getQueryData([
+              `/api/galleries/${slug}`,
+            ]);
 
             // Check if image exists in gallery data
-            const serverImage = galleryData?.images?.find(img => img.id === imageId);
+            const serverImage = galleryData?.images?.find(
+              (img) => img.id === imageId,
+            );
             if (serverImage) {
-              setImages(prev => 
-                prev.map(item => 
+              setImages((prev) =>
+                prev.map((item) =>
                   item.id === imageId
                     ? {
                         ...serverImage,
-                        status: 'complete',
-                        _status: 'complete'
+                        status: "complete",
+                        _status: "complete",
                       }
-                    : item
-                )
+                    : item,
+                ),
               );
               return;
             }
@@ -1048,7 +1054,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
             // If not found, continue polling
             await pollForFinalImage(attempt + 1, maxAttempts);
           } catch (error) {
-            console.error('Error polling for image:', error);
+            console.error("Error polling for image:", error);
             await pollForFinalImage(attempt + 1, maxAttempts);
           }
         };
@@ -1063,12 +1069,12 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
       completeBatch(addBatchId, true);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
     } catch (error) {
-      setImages(prev =>
-        prev.map(img =>
+      setImages((prev) =>
+        prev.map((img) =>
           img.id === tmpId
-            ? { ...img as PendingImage, status: "error", progress: 0 }
-            : img
-        )
+            ? { ...(img as PendingImage), status: "error", progress: 0 }
+            : img,
+        ),
       );
       completeBatch(addBatchId, false);
       console.error("Upload failed:", error);
@@ -1117,7 +1123,6 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
     noClick: true,
     noKeyboard: true,
   });
-
 
   // Memoized Values
   const breakpointCols = useMemo(
@@ -1450,7 +1455,6 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
             <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
           </Tooltip>
 
-
           {selectMode && <></>}
 
           {/* Share Button */}
@@ -1513,7 +1517,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
   ]);
 
   const renderImage = (image: ImageOrPending, index: number) => (
-    <div 
+    <div
       key={image.id === -1 ? `pending-${index}` : image.id}
       className="mb-4 w-full"
       style={{ breakInside: "avoid", position: "relative" }}
@@ -1524,15 +1528,15 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
           "image-container transform transition-opacity duration-200 w-full",
           isReorderMode && "cursor-grab active:cursor-grabbing",
           draggedItemIndex === index ? "fixed" : "relative",
-          'localUrl' in image && "opacity-80",
+          "localUrl" in image && "opacity-80",
           "block",
         )}
         initial={{ opacity: 0 }}
         animate={{
           opacity: 1,
           transition: {
-            duration: 0.2
-          }
+            duration: 0.2,
+          },
         }}
         drag={isReorderMode}
         dragMomentum={false}
@@ -1564,48 +1568,48 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
           }}
         >
           <img
-              key={`${image.id}-${image._status || "final"}`}
-              src={'localUrl' in image ? image.localUrl : image.url}
-              alt={image.originalFilename || "Uploaded image"}
-              className={cn(
-                "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
-                selectMode && selectedImages.includes(image.id) && "opacity-75",
-                draggedItemIndex === index && "opacity-50",
-                'localUrl' in image && "opacity-80",
-                image.status === "error" && "opacity-50"
-              )}
-              loading="lazy"
-              onLoad={(e) => {
-                const img = e.currentTarget;
-                img.classList.add('loaded');
-                if (!('localUrl' in image) && image.pendingRevoke) {
-                  setTimeout(() => {
-                    URL.revokeObjectURL(image.pendingRevoke);
-                  }, 800);
-                }
-              }}
-              onError={(e) => {
-                console.error("Image load failed:", {
-                  id: image.id,
-                  url: image.url,
-                  isPending: 'localUrl' in image,
-                  status: image.status,
-                  originalFilename: image.originalFilename,
-                });
-                if (!('localUrl' in image)) {
-                  e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
-                  setImages((prev) =>
-                    prev.map((upload) =>
-                      upload.id === image.id
-                        ? { ...upload, status: "error", _status: "error" }
-                        : upload,
-                    ),
-                  );
-                }
-              }}
-              draggable={false}
-            />
-          {'localUrl' in image && (
+            key={`${image.id}-${image._status || "final"}`}
+            src={"localUrl" in image ? image.localUrl : image.url}
+            alt={image.originalFilename || "Uploaded image"}
+            className={cn(
+              "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
+              selectMode && selectedImages.includes(image.id) && "opacity-75",
+              draggedItemIndex === index && "opacity-50",
+              "localUrl" in image && "opacity-80",
+              image.status === "error" && "opacity-50",
+            )}
+            loading="lazy"
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              img.classList.add("loaded");
+              if (!("localUrl" in image) && image.pendingRevoke) {
+                setTimeout(() => {
+                  URL.revokeObjectURL(image.pendingRevoke);
+                }, 800);
+              }
+            }}
+            onError={(e) => {
+              console.error("Image load failed:", {
+                id: image.id,
+                url: image.url,
+                isPending: "localUrl" in image,
+                status: image.status,
+                originalFilename: image.originalFilename,
+              });
+              if (!("localUrl" in image)) {
+                e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
+                setImages((prev) =>
+                  prev.map((upload) =>
+                    upload.id === image.id
+                      ? { ...upload, status: "error", _status: "error" }
+                      : upload,
+                  ),
+                );
+              }
+            }}
+            draggable={false}
+          />
+          {"localUrl" in image && (
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
               {image.status === "uploading" && (
                 <>
@@ -1962,7 +1966,8 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getR2ImageUrl(images[idx], true);        }
+          img.src = getR2ImageUrl(images[idx], true);
+        }
       });
     }
   };
@@ -2034,231 +2039,233 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
   return (
     <UploadProvider>
       <>
-      {gallery && (
-        <Helmet>
-          <meta property="og:title" content={gallery.title || "Beam Gallery"} />
-          <meta
-            property="og:description"
-            content="Explore stunning galleries!"
-          />
-          <meta
-            property="og:image"
-            content={
-              gallery.ogImageUrl
-                ? getR2ImageUrl(gallery.ogImage, true)
-                : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`
-            }
-          />
-          <meta property="og:image:width" content="1200" />
-          <meta property="og:image:height" content="630" />
-          <meta property="og:type" content="website" />
-          <meta property="og:url" content={window.location.href} />
-          <meta name="twitter:card" content="summary_large_image" />
-        </Helmet>
-      )}
-      <div
-        className={cn(
-          "min-h-screen relative",
-          isDark ? "bg-black/90" : "bg-background",
+        {gallery && (
+          <Helmet>
+            <meta
+              property="og:title"
+              content={gallery.title || "Beam Gallery"}
+            />
+            <meta
+              property="og:description"
+              content="Explore stunning galleries!"
+            />
+            <meta
+              property="og:image"
+              content={
+                gallery.ogImageUrl
+                  ? getR2ImageUrl(gallery.ogImage, true)
+                  : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`
+              }
+            />
+            <meta property="og:image:width" content="1200" />
+            <meta property="og:image:height" content="630" />
+            <meta property="og:type" content="website" />
+            <meta property="og:url" content={window.location.href} />
+            <meta name="twitter:card" content="summary_large_image" />
+          </Helmet>
         )}
-        {...getRootProps()}
-      >
-        <input {...getInputProps()} />
-        {isDragActive && !selectMode && (
-          <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="text-center">
-              <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white">
-                Drop images here
-              </h3>
-            </div>
-          </div>
-        )}
-
-        <div className="px-4 sm:px-6 lg:px-8 py-4">
-          {gallery &&
-            gallery.images.length === 0 &&
-            images.filter(i => 'localUrl' in i).length === 0 && (
-              <div className="my-8 text-center">
-                <Upload className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  No images yet
+        <div
+          className={cn(
+            "min-h-screen relative",
+            isDark ? "bg-black/90" : "bg-background",
+          )}
+          {...getRootProps()}
+        >
+          <input {...getInputProps()} />
+          {isDragActive && !selectMode && (
+            <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
+              <div className="text-center">
+                <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white">
+                  Drop images here
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                  Drag and drop images here to start your gallery
-                </p>
               </div>
-            )}
+            </div>
+          )}
 
-          <AnimatePresence mode="wait">
-            {isMasonry ? (
-              <motion.div
-                key="masonry"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Masonry
-                  ref={masonryRef}
-                  breakpointCols={breakpointCols}
-                  className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
-                  columnClassName={cn(
-                    "pl-4",
-                    isDark ? "bg-black/90" : "bg-background",
-                  )}
+          <div className="px-4 sm:px-6 lg:px-8 py-4">
+            {gallery &&
+              gallery.images.length === 0 &&
+              images.filter((i) => "localUrl" in i).length === 0 && (
+                <div className="my-8 text-center">
+                  <Upload className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">
+                    No images yet
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Drag and drop images here to start your gallery
+                  </p>
+                </div>
+              )}
+
+            <AnimatePresence mode="wait">
+              {isMasonry ? (
+                <motion.div
+                  key="masonry"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Masonry
+                    ref={masonryRef}
+                    breakpointCols={breakpointCols}
+                    className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
+                    columnClassName={cn(
+                      "pl-4",
+                      isDark ? "bg-black/90" : "bg-background",
+                    )}
+                  >
+                    {(() => {
+                      const allImages = [...images];
+
+                      // Filter images based on current criteria
+                      const filteredImages = allImages.filter((image: any) => {
+                        if (
+                          !image ||
+                          !("localUrl" in image ? image.localUrl : image.url)
+                        )
+                          return false;
+                        if ("localUrl" in image) return true; // Always show pending uploads
+                        if (showStarredOnly && !image.userStarred) return false;
+                        if (
+                          showWithComments &&
+                          (!image.commentCount || image.commentCount === 0)
+                        )
+                          return false;
+                        if (selectedStarredUsers.length > 0) {
+                          return (
+                            image.stars?.some((star) =>
+                              selectedStarredUsers.includes(star.userId),
+                            ) || false
+                          );
+                        }
+                        return true;
+                      });
+
+                      return filteredImages.map((image: any, index: number) =>
+                        renderImage(image, index),
+                      );
+                    })()}
+                  </Masonry>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="grid"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="grid gap-4"
+                  style={{
+                    gridTemplateColumns: `repeat(${breakpointCols.default}, minmax(0, 1fr))`,
+                  }}
                 >
                   {(() => {
-                    const allImages = [...images];
-
                     // Filter images based on current criteria
-                    const filteredImages = allImages.filter((image: any) => {
-                      if (!image || !('localUrl' in image ? image.localUrl : image.url)) return false;
-                      if ('localUrl' in image) return true; // Always show pending uploads
-                      if (showStarredOnly && !image.userStarred) return false;
-                      if (
-                        showWithComments &&
-                        (!image.commentCount || image.commentCount === 0)
-                      )
-                        return false;
-                      if (selectedStarredUsers.length > 0) {
-                        return (
-                          image.stars?.some((star) =>
-                            selectedStarredUsers.includes(star.userId),
-                          ) || false
-                        );
-                      }
-                      return true;
-                    });
+                    const filteredImages = combinedImages.filter(
+                      (image: any) => {
+                        if (
+                          !image ||
+                          !("localUrl" in image ? image.localUrl : image.url)
+                        )
+                          return false;
+                        if ("localUrl" in image) return true; // Always show pending uploads
+                        if (showStarredOnly && !image.userStarred) return false;
+                        if (
+                          showWithComments &&
+                          (!image.commentCount || image.commentCount === 0)
+                        )
+                          return false;
+                        if (selectedStarredUsers.length > 0) {
+                          return (
+                            image.stars?.some((star) =>
+                              selectedStarredUsers.includes(star.userId),
+                            ) || false
+                          );
+                        }
+                        return true;
+                      },
+                    );
 
                     return filteredImages.map((image: any, index: number) =>
                       renderImage(image, index),
                     );
                   })()}
-                </Masonry>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="grid"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="grid gap-4"
-                style={{
-                  gridTemplateColumns: `repeat(${breakpointCols.default}, minmax(0, 1fr))`,
-                }}
-              >
-                {(() => {
-                  // Filter images based on current criteria
-                  const filteredImages = combinedImages.filter((image: any) => {
-                    if (!image || !('localUrl' in image ? image.localUrl : image.url)) return false;
-                    if ('localUrl' in image) return true; // Always show pending uploads
-                    if (showStarredOnly && !image.userStarred) return false;
-                    if (
-                      showWithComments &&
-                      (!image.commentCount || image.commentCount === 0)
-                    )
-                      return false;
-                    if (selectedStarredUsers.length > 0) {
-                      return (
-                        image.stars?.some((star) =>
-                          selectedStarredUsers.includes(star.userId),
-                        ) || false
-                      );
-                    }
-                    return true;
-                  });
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-                  return filteredImages.map((image: any, index: number) =>
-                    renderImage(image, index),
-                  );
-                })()}
-              </motion.div>
+          {dragPosition && draggedItemIndex !== null && gallery?.images && (
+            <motion.div
+              className="fixed pointer-events-none z-50 ghost-image"
+              style={{
+                top: dragPosition.y,
+                left: dragPosition.x,
+                transform: "translate(-50%, -50%)",
+                width: "80px",
+                height: "80px",
+              }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 0.8,
+                scale: 1,
+                transition: {
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 25,
+                },
+              }}
+              exit={{ opacity: 0, scale: 0.8 }}
+            >
+              <img
+                src={gallery.images[draggedItemIndex].url}
+                alt="Dragged Preview"
+                className="w-full h-full object-cover rounded-lg shadow-lg"
+              />
+            </motion.div>
+          )}
+
+          {/* Logo */}
+          <div
+            className="fixed bottom-6 left-6 z-50 opacity-30 hover:opacity-60 transition-opacity cursor-pointer"
+            onClick={() => (window.location.href = "/")}
+          >
+            <Logo size="sm" />
+          </div>
+
+          {/* Scale Slider */}
+          <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
+            <Slider
+              value={[scale]}
+              onValueChange={([value]) => setScale(value)}
+              min={25}
+              max={150}
+              step={5}
+              className="w-[150px] touch-none select-none"
+              aria-label="Adjust gallery scale"
+            />
+          </div>
+
+          {/* Render mobile view when on mobile devices */}
+          <AnimatePresence>
+            {isMobile && showMobileView && gallery?.images && (
+              <MobileGalleryView
+                images={gallery.images}
+                initialIndex={mobileViewIndex}
+                onClose={() => {
+                  setShowMobileView(false);
+                  setMobileViewIndex(-1);
+                }}
+              />
             )}
           </AnimatePresence>
-        </div>
 
-        {dragPosition && draggedItemIndex !== null && gallery?.images && (
-          <motion.div
-            className="fixed pointer-events-none z-50 ghost-image"
-            style={{
-              top: dragPosition.y,
-              left: dragPosition.x,
-              transform: "translate(-50%, -50%)",
-              width: "80px",
-              height: "80px",
-            }}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{
-              opacity: 0.8,
-              scale: 1,
-              transition: {
-                type: "spring",
-                stiffness: 300,
-                damping: 25,
-              },
-            }}
-            exit={{ opacity: 0, scale: 0.8 }}
-          >
-            <img
-              src={gallery.images[draggedItemIndex].url}
-              alt="Dragged Preview"
-              className="w-full h-full object-cover rounded-lg shadow-lg"
-            />
-          </motion.div>
-        )}
-
-        {/* Logo */}
-        <div
-          className="fixed bottom-6 left-6 z-50 opacity-30 hover:opacity-60 transition-opacity cursor-pointer"
-          onClick={() => (window.location.href = "/")}
-        >
-          <Logo size="sm" />
-        </div>
-
-        {/* Scale Slider */}
-        <div className="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
-          <Slider
-            value={[scale]}
-            onValueChange={([value]) => setScale(value)}
-            min={25}
-            max={150}
-            step={5}
-            className="w-[150px] touch-none select-none"
-            aria-label="Adjust gallery scale"
-          />
-        </div>
-
-        {/* Render mobile view when on mobile devices */}
-        <AnimatePresence>
-          {isMobile && showMobileView && gallery?.images && (
-            <MobileGalleryView
-              images={gallery.images}
-              initialIndex={mobileViewIndex}
-              onClose={() => {
-                setShowMobileView(false);
-                setMobileViewIndex(-1);
-              }}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Only render the desktop lightbox when not on mobile */}
-        {!isMobile && selectedImageIndex >= 0 && (
-          <Dialog
-            open={selectedImageIndex >= 0}
-            onOpenChange={(open) => {
-              if (!open) {
-                setSelectedImageIndex(-1);
-                setNewCommentPos(null);
-              }
-            }}
-          >
-            <LightboxDialogContent
-              aria-describedby="gallery-lightbox-description"
-              selectedImage={selectedImage}
-              setSelectedImage={setSelectedImage}
+          {/* Only render the desktop lightbox when not on mobile */}
+          {!isMobile && selectedImageIndex >= 0 && (
+            <Dialog
+              open={selectedImageIndex >= 0}
               onOpenChange={(open) => {
                 if (!open) {
                   setSelectedImageIndex(-1);
@@ -2266,395 +2273,409 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
                 }
               }}
             >
-              <div id="gallery-lightbox-description" className="sr-only">
-                Image viewer with annotation and commenting capabilities
-              </div>
-
-              {/* Filename display */}
-              {selectedImage?.originalFilename && (
-                <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
-                  {selectedImage.originalFilename}
-                </div>
-              )}
-
-              {/* Navigation buttons */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "absolute left-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9",
-                  isDark
-                    ? "text-white hover:bg-white/10"
-                    : "text-gray-800 hover:bg-gray-200",
-                )}
-                onClick={() => {
-                  if (!gallery?.images?.length) return;
-                  setSelectedImageIndex((prev) => {
-                    const newIndex =
-                      prev <= 0 ? gallery.images.length - 1 : prev - 1;
-                    preloadAdjacentImages(newIndex);
-                    return newIndex;
-                  });
+              <LightboxDialogContent
+                aria-describedby="gallery-lightbox-description"
+                selectedImage={selectedImage}
+                setSelectedImage={setSelectedImage}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setSelectedImageIndex(-1);
+                    setNewCommentPos(null);
+                  }
                 }}
               >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "absolute right-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9",
-                  isDark
-                    ? "text-white hover:bg-white/10"
-                    : "text-gray-800 hover:bg-gray-200",
-                )}
-                onClick={() => {
-                  if (!gallery?.images?.length) return;
-                  setSelectedImageIndex((prev) => {
-                    const newIndex =
-                      prev >= gallery.images.length - 1 ? 0 : prev + 1;
-                    preloadAdjacentImages(newIndex);
-                    return newIndex;
-                  });
-                }}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-
-              {/* Controls */}
-              <div className="absolute right-16 top-4 flex items-center gap-2 z-50">
-                {selectedImage && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    onClick={(e) => {
-                      e.stopPropagation();
-
-                      // Optimistic UI update for selected image
-                      setSelectedImage((prev) =>
-                        prev
-                          ? { ...prev, userStarred: !prev.userStarred }
-                          : prev,
-                      );
-
-                      // Perform mutation to sync with backend
-                      toggleStarMutation.mutate({
-                        imageId: selectedImage.id,
-                        isStarred: selectedImage.userStarred,
-                      });
-                    }}
-                  >
-                    {selectedImage.userStarred ? (
-                      <Star className="h-5 w-5 fill-black dark:fill-white transition-all duration-300 scale-110" />
-                    ) : (
-                      <Star className="h-5 w-5 stroke-black dark:stroke-white fill-transparent transition-all duration-300 hover:scale-110" />
-                    )}
-                  </Button>
-                )}
-
-                <div className="flex gap-2">
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      "h-9 w-9",
-                      isDark
-                        ? "text-white hover:bg-white/10"
-                        : "text-gray-800 hover:bg-gray-200",
-                    )}
-                    onClick={() => setShowAnnotations(!showAnnotations)}
-                    title={showAnnotations ? "Hide Comments" : "Show Comments"}
-                  >
-                    {showAnnotations ? (
-                      <Eye className="h-4 w-4" />
-                    ) : (
-                      <EyeOff className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <SignedIn>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "h-9 w-9",
-                        isDark
-                          ? "text-white hover:bg-white/10"
-                          : "text-zinc-800 hover:bg-zinc-200",
-                        isCommentPlacementMode && "bg-primary/20",
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsCommentPlacementMode(!isCommentPlacementMode);
-                        setIsAnnotationMode(false);
-                        setNewCommentPos(null);
-                      }}
-                      title="Add Comment"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
-                  </SignedIn>
-                  <SignedOut>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "h-9 w-9",
-                        isDark
-                          ? "text-white hover:bg-white/10"
-                          : "text-zinc-800 hover:bg-zinc-200",
-                      )}
-                      onClick={() => setShowLoginModal(true)}
-                      title="Sign in to comment"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
-                    <LoginModal
-                      isOpen={showLoginModal}
-                      onClose={() => setShowLoginModal(false)}
-                    />
-                  </SignedOut>
+                <div id="gallery-lightbox-description" className="sr-only">
+                  Image viewer with annotation and commenting capabilities
                 </div>
-              </div>
 
-              {selectedImage && (
-                <motion.div
-                  className={`relative w-full h-full flex items-center justify-center ${
-                    isCommentPlacementMode ? "cursor-crosshair" : ""
-                  }`}
-                  {...(isMobile && {
-                    drag: "x" as const,
-                    dragConstraints: { left: 0, right: 0 },
-                    dragElastic: 1,
-                    onDragEnd: (e: any, info: PanInfo) => {
-                      const swipe = Math.abs(info.offset.x) * info.velocity.x;
-                      if (
-                        swipe < -100 &&
-                        selectedImageIndex < gallery!.images.length - 1
-                      ) {
-                        setSelectedImageIndex(selectedImageIndex + 1);
-                      } else if (swipe > 100 && selectedImageIndex > 0) {
-                        setSelectedImageIndex(selectedImageIndex - 1);
-                      }
-                    },
-                  })}
-                  onClick={(e) => {
-                    if (!isCommentPlacementMode) return;
-                    const target = e.currentTarget;
-                    const rect = target.getBoundingClientRect();
-                    const x = ((e.clientX - rect.left) / rect.width) * 100;
-                    const y = ((e.clientY - rect.top) / rect.height) * 100;
-                    setNewCommentPos({ x, y });
-                    setIsCommentPlacementMode(false);
+                {/* Filename display */}
+                {selectedImage?.originalFilename && (
+                  <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
+                    {selectedImage.originalFilename}
+                  </div>
+                )}
+
+                {/* Navigation buttons */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "absolute left-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9",
+                    isDark
+                      ? "text-white hover:bg-white/10"
+                      : "text-gray-800 hover:bg-gray-200",
+                  )}
+                  onClick={() => {
+                    if (!gallery?.images?.length) return;
+                    setSelectedImageIndex((prev) => {
+                      const newIndex =
+                        prev <= 0 ? gallery.images.length - 1 : prev - 1;
+                      preloadAdjacentImages(newIndex);
+                      return newIndex;
+                    });
                   }}
                 >
-                  <div
-                    className="w-full h-full flex items-center justify-center"
-                    style={{
-                      position: "relative",
-                      width: "100%",
-                      aspectRatio:
-                        selectedImage?.width && selectedImage?.height
-                          ? `${selectedImage.width}/${selectedImage.height}`
-                          : "16/9",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {isLowResLoading && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Loader2 className="h-12 w-12 animate-spin text-zinc-400" />
-                      </div>
-                    )}
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "absolute right-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9",
+                    isDark
+                      ? "text-white hover:bg-white/10"
+                      : "text-gray-800 hover:bg-gray-200",
+                  )}
+                  onClick={() => {
+                    if (!gallery?.images?.length) return;
+                    setSelectedImageIndex((prev) => {
+                      const newIndex =
+                        prev >= gallery.images.length - 1 ? 0 : prev + 1;
+                      preloadAdjacentImages(newIndex);
+                      return newIndex;
+                    });
+                  }}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
 
-                    {/* Single image with fade transition */}
-                    <img
-                      src={getR2ImageUrl(selectedImage, true)}
-                      alt={selectedImage.originalFilename || ""}
-                      className="image-fade"
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                        pointerEvents: "none",
-                      }}
-                      onLoad={(e) => {
-                        setIsLowResLoading(false);
-                        e.currentTarget.classList.add('loaded');
-                      }}
-                    />
+                {/* Controls */}
+                <div className="absolute right-16 top-4 flex items-center gap-2 z-50">
+                  {selectedImage && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
 
-                    {/* Final high-res image */}
-                    <motion.img
-                      src={getR2ImageUrl(selectedImage, true)}
-                      data-src={getR2ImageUrl(selectedImage, true)}
-                      alt={selectedImage.originalFilename || ""}
-                      className="lightbox-img"
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                        opacity: isLowResLoading ? 0 : 1,
-                        transition: "opacity 0.3s ease",
-                      }}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                      onLoad={(e) => {
-                        setIsLowResLoading(false);
-                        setIsLoading(false);
+                        // Optimistic UI update for selected image
+                        setSelectedImage((prev) =>
+                          prev
+                            ? { ...prev, userStarred: !prev.userStarred }
+                            : prev,
+                        );
 
-                        const img = e.currentTarget;
-                        img.src = img.dataset.src || img.src;
-                        img.classList.add("loaded");
-
-                        setImageDimensions({
-                          width: img.clientWidth,
-                          height: img.clientHeight,
+                        // Perform mutation to sync with backend
+                        toggleStarMutation.mutate({
+                          imageId: selectedImage.id,
+                          isStarred: selectedImage.userStarred,
                         });
                       }}
-                      onError={() => {
-                        setIsLoading(false);
-                        setIsLowResLoading(false);
+                    >
+                      {selectedImage.userStarred ? (
+                        <Star className="h-5 w-5 fill-black dark:fill-white transition-all duration-300 scale-110" />
+                      ) : (
+                        <Star className="h-5 w-5 stroke-black dark:stroke-white fill-transparent transition-all duration-300 hover:scale-110" />
+                      )}
+                    </Button>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-9 w-9",
+                        isDark
+                          ? "text-white hover:bg-white/10"
+                          : "text-gray-800 hover:bg-gray-200",
+                      )}
+                      onClick={() => setShowAnnotations(!showAnnotations)}
+                      title={
+                        showAnnotations ? "Hide Comments" : "Show Comments"
+                      }
+                    >
+                      {showAnnotations ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <SignedIn>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-9 w-9",
+                          isDark
+                            ? "text-white hover:bg-white/10"
+                            : "text-zinc-800 hover:bg-zinc-200",
+                          isCommentPlacementMode && "bg-primary/20",
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCommentPlacementMode(!isCommentPlacementMode);
+                          setIsAnnotationMode(false);
+                          setNewCommentPos(null);
+                        }}
+                        title="Add Comment"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </SignedIn>
+                    <SignedOut>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-9 w-9",
+                          isDark
+                            ? "text-white hover:bg-white/10"
+                            : "text-zinc-800 hover:bg-zinc-200",
+                        )}
+                        onClick={() => setShowLoginModal(true)}
+                        title="Sign in to comment"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                      <LoginModal
+                        isOpen={showLoginModal}
+                        onClose={() => setShowLoginModal(false)}
+                      />
+                    </SignedOut>
+                  </div>
+                </div>
+
+                {selectedImage && (
+                  <motion.div
+                    className={`relative w-full h-full flex items-center justify-center ${
+                      isCommentPlacementMode ? "cursor-crosshair" : ""
+                    }`}
+                    {...(isMobile && {
+                      drag: "x" as const,
+                      dragConstraints: { left: 0, right: 0 },
+                      dragElastic: 1,
+                      onDragEnd: (e: any, info: PanInfo) => {
+                        const swipe = Math.abs(info.offset.x) * info.velocity.x;
+                        if (
+                          swipe < -100 &&
+                          selectedImageIndex < gallery!.images.length - 1
+                        ) {
+                          setSelectedImageIndex(selectedImageIndex + 1);
+                        } else if (swipe > 100 && selectedImageIndex > 0) {
+                          setSelectedImageIndex(selectedImageIndex - 1);
+                        }
+                      },
+                    })}
+                    onClick={(e) => {
+                      if (!isCommentPlacementMode) return;
+                      const target = e.currentTarget;
+                      const rect = target.getBoundingClientRect();
+                      const x = ((e.clientX - rect.left) / rect.width) * 100;
+                      const y = ((e.clientY - rect.top) / rect.height) * 100;
+                      setNewCommentPos({ x, y });
+                      setIsCommentPlacementMode(false);
+                    }}
+                  >
+                    <div
+                      className="w-full h-full flex items-center justify-center"
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        aspectRatio:
+                          selectedImage?.width && selectedImage?.height
+                            ? `${selectedImage.width}/${selectedImage.height}`
+                            : "16/9",
+                        overflow: "hidden",
                       }}
-                    />
+                    >
+                      {isLowResLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Loader2 className="h-12 w-12 animate-spin text-zinc-400" />
+                        </div>
+                      )}
 
-                    {/* Drawing Canvas */}
-                    <div className="absolute inset-0">
-                      <DrawingCanvas
-                        width={imageDimensions?.width || 800}
-                        height={imageDimensions?.height || 600}
-                        imageWidth={imageDimensions?.width}
-                        imageHeight={imageDimensions?.height}
-                        isDrawing={isAnnotationMode}
-                        savedPaths={showAnnotations ? annotations : []}
-                        onSavePath={async (pathData) => {
-                          if (!selectedImage) return;
-                          try {
-                            await fetch(
-                              `/api/images/${selectedImage.id}/annotations`,
-                              {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ pathData }),
-                              },
-                            );
-
-                            queryClient.invalidateQueries({
-                              queryKey: [
-                                `/api/images/${selectedImage.id}/annotations`,
-                              ],
-                            });
-
-                            toast({
-                              title: "Annotation saved",
-                              description:
-                                "Your drawing has been saved successfully.",
-                            });
-                          } catch (error) {
-                            toast({
-                              title: "Error",
-                              description:
-                                "Failed to save annotation. Please try again.",
-                              variant: "destructive",
-                            });
-                          }
+                      {/* Single image with fade transition */}
+                      <img
+                        src={getR2ImageUrl(selectedImage, true)}
+                        alt={selectedImage.originalFilename || ""}
+                        className="image-fade"
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                          pointerEvents: "none",
+                        }}
+                        onLoad={(e) => {
+                          setIsLowResLoading(false);
+                          e.currentTarget.classList.add("loaded");
                         }}
                       />
-                    </div>
 
-                    {/* Comments */}
-                    {showAnnotations &&
-                      comments.map((comment) => (
-                        <CommentBubble
-                          key={comment.id}
-                          x={comment.xPosition}
-                          y={comment.yPosition}
-                          content={comment.content}
-                          author={comment.author}
-                        />
-                      ))}
+                      {/* Final high-res image */}
+                      <motion.img
+                        src={getR2ImageUrl(selectedImage, true)}
+                        data-src={getR2ImageUrl(selectedImage, true)}
+                        alt={selectedImage.originalFilename || ""}
+                        className="lightbox-img"
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                          opacity: isLowResLoading ? 0 : 1,
+                          transition: "opacity 0.3s ease",
+                        }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        onLoad={(e) => {
+                          setIsLowResLoading(false);
+                          setIsLoading(false);
 
-                    {/* New comment placement */}
-                    {newCommentPos && selectedImage && (
-                      <CommentBubble
-                        x={newCommentPos.x}
-                        y={newCommentPos.y}
-                        isNew={true}
-                        imageId={selectedImage.id}
-                        onSubmit={() => {
-                          setNewCommentPos(null);
-                          queryClient.invalidateQueries({
-                            queryKey: ["/api/galleries"],
+                          const img = e.currentTarget;
+                          img.src = img.dataset.src || img.src;
+                          img.classList.add("loaded");
+
+                          setImageDimensions({
+                            width: img.clientWidth,
+                            height: img.clientHeight,
                           });
                         }}
+                        onError={() => {
+                          setIsLoading(false);
+                          setIsLowResLoading(false);
+                        }}
                       />
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </LightboxDialogContent>
-          </Dialog>
-        )}
 
-        {/* New comment placement outside lightbox */}
-        {newCommentPos && selectedImage && (
-          <CommentBubble
-            x={newCommentPos.x}
-            y={newCommentPos.y}
-            isNew={true}
-            imageId={selectedImage.id}
-            onSubmit={() => {
-              setNewCommentPos(null);
-              queryClient.invalidateQueries({ queryKey: ["/api/galleries"] });
-            }}
-          />
-        )}
-        {/* Share Modal */}
-        {isOpenShareModal && gallery && (
-          <ShareModal
-            isOpen={isOpenShareModal}
-            onClose={() => setIsOpenShareModal(false)}
-            isPublic={gallery?.isPublic || false}
-            onVisibilityChange={(checked) =>
-              toggleVisibilityMutation.mutate(checked)
-            }
-            galleryUrl={window.location.href}
-            slug={slug}
-          />
-        )}
-        {renderCommentDialog()}
+                      {/* Drawing Canvas */}
+                      <div className="absolute inset-0">
+                        <DrawingCanvas
+                          width={imageDimensions?.width || 800}
+                          height={imageDimensions?.height || 600}
+                          imageWidth={imageDimensions?.width}
+                          imageHeight={imageDimensions?.height}
+                          isDrawing={isAnnotationMode}
+                          savedPaths={showAnnotations ? annotations : []}
+                          onSavePath={async (pathData) => {
+                            if (!selectedImage) return;
+                            try {
+                              await fetch(
+                                `/api/images/${selectedImage.id}/annotations`,
+                                {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({ pathData }),
+                                },
+                              );
 
-        <AnimatePresence>
-          {selectMode && selectedImages.length > 0 && (
-            <FloatingToolbar
-              selectedCount={selectedImages.length}
-              onDeselect={() => {
-                setSelectedImages([]);
-                setSelectMode(false);
+                              queryClient.invalidateQueries({
+                                queryKey: [
+                                  `/api/images/${selectedImage.id}/annotations`,
+                                ],
+                              });
+
+                              toast({
+                                title: "Annotation saved",
+                                description:
+                                  "Your drawing has been saved successfully.",
+                              });
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description:
+                                  "Failed to save annotation. Please try again.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+
+                      {/* Comments */}
+                      {showAnnotations &&
+                        comments.map((comment) => (
+                          <CommentBubble
+                            key={comment.id}
+                            x={comment.xPosition}
+                            y={comment.yPosition}
+                            content={comment.content}
+                            author={comment.author}
+                          />
+                        ))}
+
+                      {/* New comment placement */}
+                      {newCommentPos && selectedImage && (
+                        <CommentBubble
+                          x={newCommentPos.x}
+                          y={newCommentPos.y}
+                          isNew={true}
+                          imageId={selectedImage.id}
+                          onSubmit={() => {
+                            setNewCommentPos(null);
+                            queryClient.invalidateQueries({
+                              queryKey: ["/api/galleries"],
+                            });
+                          }}
+                        />
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </LightboxDialogContent>
+            </Dialog>
+          )}
+
+          {/* New comment placement outside lightbox */}
+          {newCommentPos && selectedImage && (
+            <CommentBubble
+              x={newCommentPos.x}
+              y={newCommentPos.y}
+              isNew={true}
+              imageId={selectedImage.id}
+              onSubmit={() => {
+                setNewCommentPos(null);
+                queryClient.invalidateQueries({ queryKey: ["/api/galleries"] });
               }}
-              onDelete={handleDeleteSelected}
-              onDownload={handleDownloadSelected}
-              onEdit={handleEditSelected}
-              onReorder={() => setIsReorderMode(!isReorderMode)}
             />
           )}
-        </AnimatePresence>
-        <LoginModal
-          isOpen={showLoginModal}
-          onClose={() => setShowLoginModal(false)}
-        />
-        <SignUpModal
-          isOpen={showSignUpModal}
-          onClose={() => setShowSignUpModal(false)}
-        />
-      </div>
+          {/* Share Modal */}
+          {isOpenShareModal && gallery && (
+            <ShareModal
+              isOpen={isOpenShareModal}
+              onClose={() => setIsOpenShareModal(false)}
+              isPublic={gallery?.isPublic || false}
+              onVisibilityChange={(checked) =>
+                toggleVisibilityMutation.mutate(checked)
+              }
+              galleryUrl={window.location.href}
+              slug={slug}
+            />
+          )}
+          {renderCommentDialog()}
+
+          <AnimatePresence>
+            {selectMode && selectedImages.length > 0 && (
+              <FloatingToolbar
+                selectedCount={selectedImages.length}
+                onDeselect={() => {
+                  setSelectedImages([]);
+                  setSelectMode(false);
+                }}
+                onDelete={handleDeleteSelected}
+                onDownload={handleDownloadSelected}
+                onEdit={handleEditSelected}
+                onReorder={() => setIsReorderMode(!isReorderMode)}
+              />
+            )}
+          </AnimatePresence>
+          <LoginModal
+            isOpen={showLoginModal}
+            onClose={() => setShowLoginModal(false)}
+          />
+          <SignUpModal
+            isOpen={showSignUpModal}
+            onClose={() => setShowSignUpModal(false)}
+          />
+        </div>
       </>
     </UploadProvider>
   );
