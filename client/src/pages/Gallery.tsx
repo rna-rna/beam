@@ -2519,8 +2519,7 @@ export default function Gallery({
                           width: "100%",
                           height: "100%",
                           objectFit: "contain",
-                          opacity: isLowResLoading ? 0 : 1,
-                          transition: "opacity 0.3s ease",
+                          visibility: isLowResLoading ? "hidden" : "visible",
                         }}
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
