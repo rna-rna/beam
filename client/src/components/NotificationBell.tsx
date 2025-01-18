@@ -15,11 +15,55 @@ interface Notification {
 }
 
 export function NotificationBell() {
-  const { data: notifications = [] } = useQuery<Notification[]>({
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { slug } = useParams();
+  
+  const { data: initialNotifications = [] } = useQuery<Notification[]>({
     queryKey: ["notifications"],
     queryUrl: "/api/notifications",
-    refetchInterval: 10000
+    onSuccess: (data) => setNotifications(data)
   });
+
+  const consolidateNotifications = (prevNotifications: Notification[], newNotification: Notification) => {
+    const existingGroup = prevNotifications.find((n) => n.groupId === newNotification.groupId);
+
+    if (existingGroup) {
+      return prevNotifications.map(n => 
+        n.groupId === newNotification.groupId 
+          ? { ...n, count: n.count + 1, latestTime: newNotification.timestamp }
+          : n
+      );
+    }
+    
+    return [...prevNotifications, newNotification];
+  };
+
+  useEffect(() => {
+    if (!slug) return;
+    
+    const channel = pusher.subscribe(`gallery-${slug}`);
+
+    channel.bind("image-starred", (data: Notification) => {
+      setNotifications(prev => consolidateNotifications(prev, {
+        ...data,
+        type: "image-starred",
+        timestamp: new Date().toISOString()
+      }));
+    });
+
+    channel.bind("comment-added", (data: Notification) => {
+      setNotifications(prev => consolidateNotifications(prev, {
+        ...data,
+        type: "comment-added",
+        timestamp: new Date().toISOString()
+      }));
+    });
+
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe(`gallery-${slug}`);
+    };
+  }, [slug]);
 
   const unseenCount = notifications.length;
 
