@@ -1,6 +1,7 @@
 import { useClerk, useUser } from "@clerk/clerk-react";
 import { useLocation } from "wouter";
 import { UserAvatar } from "@/components/UserAvatar";
+import { NotificationBell } from "@/components/NotificationBell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +33,9 @@ export function UserNav() {
   };
 
   return (
-    <DropdownMenu>
+    <div className="flex items-center gap-2">
+      <NotificationBell />
+      <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button 
           variant="ghost" 
@@ -99,5 +102,6 @@ export function UserNav() {
         </motion.div>
       </DropdownMenuContent>
     </DropdownMenu>
+    </div>
   );
 }
