@@ -291,11 +291,8 @@ export default function App() {
   }
 
   return (
-    <UploadProvider>
-      <GlobalUploadProgress />
-      <DndProvider backend={HTML5Backend}>
-        <AppContent />
-      </DndProvider>
-    </UploadProvider>
+    <DndProvider backend={HTML5Backend}>
+      <AppContent />
+    </DndProvider>
   );
 }
