@@ -2170,7 +2170,44 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Mount protected routes
+  // Get recent galleries for current user
+  protectedRouter.get('/galleries/recent', async (req: any, res) => {
+    try {
+      const userId = req.auth.userId;
+
+      // Get galleries where user is either owner or has viewed
+      const galleries = await db.query.galleries.findMany({
+        where: sql`(${galleries.userId} = ${userId} OR ${galleries.lastViewedAt} IS NOT NULL)`,
+        orderBy: (galleries, { desc }) => [desc(galleries.lastViewedAt)],
+        limit: 10
+      });
+
+      const galleriesWithDetails = await Promise.all(
+        galleries.map(async (gallery) => {
+          const imageCount = await db.execute(
+            sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
+          );
+          
+          const thumbnailImage = await db.query.images.findFirst({
+            where: eq(images.galleryId, gallery.id),
+            orderBy: (images, { asc }) => [asc(images.position)]
+          });
+
+          return {
+            ...gallery,
+            thumbnailUrl: thumbnailImage?.url || null,
+            imageCount: parseInt(imageCount.rows[0].count.toString(), 10)
+          };
+        })
+      );
+
+      res.json(galleriesWithDetails);
+    } catch (error) {
+      console.error('Failed to fetch recent galleries:', error);
+      res.status(500).json({ message: 'Failed to fetch recent galleries' });
+    }
+  });
+
   app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);

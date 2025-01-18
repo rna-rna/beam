@@ -140,6 +140,7 @@ export function DashboardSidebar() {
         <Button 
           variant="ghost" 
           className="w-full justify-start"
+          onClick={() => setLocation("/dashboard/recents")}
         >
           <Clock className="mr-2 h-4 w-4" />
           Recents
