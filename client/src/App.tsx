@@ -256,6 +256,12 @@ function AppContent() {
         </ProtectedRoute>
       </Route>
 
+      <Route path="/dashboard/recents">
+        <ProtectedRoute>
+          <RecentsPage />
+        </ProtectedRoute>
+      </Route>
+
       <Route path="/g/:slug">
         {(params) => (
           <Gallery
