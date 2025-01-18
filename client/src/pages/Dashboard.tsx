@@ -25,6 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent } from "@/components/ui/dialog"; // Added import
 
 export default function Dashboard() {
   const { getToken } = useAuth();
