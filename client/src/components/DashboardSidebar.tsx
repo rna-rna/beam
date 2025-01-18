@@ -116,7 +116,7 @@ export function DashboardSidebar() {
               onClick={() => {
                 setSelectedFolder(folder.id);
                 setSelectedSection('folders');
-                queryClient.invalidateQueries(['/api/galleries']);
+                setLocation(`/f/${folder.slug}`);
               }}
             >
               <Folder className="mr-2 h-4 w-4" />
