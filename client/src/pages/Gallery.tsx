@@ -85,7 +85,7 @@ import { useUser, useClerk, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/LoginModal";
-import { useUpload } from "@/context/UploadContext";
+import { useUpload, UploadProvider } from "@/context/UploadContext";
 import { StarredAvatars } from "@/components/StarredAvatars";
 import { LoginButton } from "@/components/LoginButton";
 import { Logo } from "@/components/Logo";
@@ -1983,8 +1983,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getR2ImageUrl(images[idx], true);
-        }
+          img.src = getR2ImageUrl(images[idx], true);        }
       });
     }
   };
@@ -2054,7 +2053,8 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
   };
 
   return (
-    <>
+    <UploadProvider>
+      <>
       {gallery && (
         <Helmet>
           <meta property="og:title" content={gallery.title || "Beam Gallery"} />
@@ -2676,6 +2676,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
           onClose={() => setShowSignUpModal(false)}
         />
       </div>
-    </>
+      </>
+    </UploadProvider>
   );
 }
