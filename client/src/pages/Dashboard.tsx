@@ -102,11 +102,17 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {galleries.map((gallery) => (
               <div key={gallery.id} className="border rounded-lg overflow-hidden">
-                <img 
-                  src={gallery.thumbnailUrl || "/placeholder.svg"} 
-                  alt={gallery.title} 
-                  className="w-full h-40 object-cover" 
-                />
+                {gallery.thumbnailUrl ? (
+                  <img 
+                    src={gallery.thumbnailUrl} 
+                    alt={gallery.title} 
+                    className="w-full h-40 object-cover" 
+                  />
+                ) : (
+                  <div className="w-full h-40 bg-muted flex items-center justify-center">
+                    <Image className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
                 <div className="p-4">
                   <h3 className="font-semibold">{gallery.title}</h3>
                   <p className="text-sm text-muted-foreground">{gallery.imageCount || 0} images</p>
