@@ -163,10 +163,12 @@ export const notifications = pgTable('notifications', {
   type: text('type').notNull(),
   data: jsonb('data').notNull(),
   isSeen: boolean('is_seen').default(false).notNull(),
+  groupId: text('group_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 }, (table) => ({
   userIdIdx: index('notifications_user_id_idx').on(table.userId),
-  userSeenIdx: index('notifications_user_seen_idx').on(table.userId, table.isSeen)
+  userSeenIdx: index('notifications_user_seen_idx').on(table.userId, table.isSeen),
+  groupIdIdx: index('notifications_group_id_idx').on(table.groupId)
 }));
 
 // Export types
