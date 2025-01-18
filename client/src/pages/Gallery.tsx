@@ -2510,8 +2510,8 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
 
                     {/* Final high-res image */}
                     <motion.img
-                      src={getR2ImageUrl(selectedImage)}
-                      data-src={getR2ImageUrl(selectedImage)}
+                      src={getR2ImageUrl(selectedImage, true)}
+                      data-src={getR2ImageUrl(selectedImage, true)}
                       alt={selectedImage.originalFilename || ""}
                       className="lightbox-img"
                       style={{
