@@ -712,6 +712,37 @@ export function registerRoutes(app: Express): Server {
             })
             .returning();
 
+            // Get all editor users for notifications
+            const editorUserIds = await getEditorUserIds(gallery.id);
+
+            // Create notifications for all editors except the actor
+            await Promise.all(
+              editorUserIds
+                .filter(editorId => editorId !== req.auth?.userId)
+                .map((editorId) =>
+                  db.insert(notifications).values({
+                    userId: editorId,
+                    type: 'image-uploaded',
+                    data: {
+                      imageId: image.id,
+                      url: publicUrl,
+                      actorId: req.auth?.userId,
+                      galleryId: gallery.id
+                    },
+                    isSeen: false,
+                    createdAt: new Date()
+                  })
+                )
+            );
+
+            // Emit real-time event via Pusher
+            pusher.trigger(`gallery-${gallery.slug}`, 'image-uploaded', {
+              imageId: image.id,
+              url: publicUrl,
+              userId: req.auth?.userId,
+              timestamp: new Date().toISOString()
+            });
+
           console.log('[Generated presigned URL]', {
             batchId,
             fileName: file.name,
@@ -953,8 +984,7 @@ export function registerRoutes(app: Express): Server {
 
       if (!gallery) {
         console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
+        return res.status(404).json({message: 'Gallery not found',
           error: 'NOT_FOUND',
           details: 'The gallery you are looking for does not exist or has been removed'
         });
@@ -1986,7 +2016,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (signedUrl.includes(`${R2_BUCKET_NAME}/${R2_BUCKET_NAME}`)) {
-        console.warn('Double bucket name detected in signed URL:', signedUrl);
+        console.warn('Double bucket name detected insigned URL:', signedUrl);
       }
 
       console.log('URL Validation:', {
