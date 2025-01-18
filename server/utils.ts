@@ -7,24 +7,24 @@ import { eq } from 'drizzle-orm';
 const alphabet = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ';
 const generateSlug = customAlphabet(alphabet, 10);
 
-async function getEditorUserIds(galleryId: string): Promise<string[]> {
-    const gallery = await db.query.galleries.findFirst({
-        where: eq(galleries.id, galleryId),
-    });
+async function getEditorUserIds(galleryId: number): Promise<string[]> {
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.id, galleryId),
+  });
 
-    if (!gallery) {
-        throw new Error("Gallery not found");
-    }
+  if (!gallery) {
+    throw new Error("Gallery not found");
+  }
 
-    const editors = await db.query.invites.findMany({
-        where: eq(invites.galleryId, galleryId),
-        select: { userId: true },
-    });
+  const editors = await db.query.invites.findMany({
+    where: eq(invites.galleryId, galleryId),
+    select: { userId: true }
+  });
 
-    const ownerUserId = gallery.userId;
-    return [
-        ...new Set(editors.map((invite) => invite.userId).concat(ownerUserId)),
-    ];
+  const editorIds = editors.map(invite => invite.userId).filter(Boolean);
+  const uniqueEditorIds = [...new Set([...editorIds, gallery.userId])];
+
+  return uniqueEditorIds;
 }
 
 export { generateSlug, getEditorUserIds };
