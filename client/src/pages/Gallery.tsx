@@ -2456,7 +2456,7 @@ export default function Gallery({
                       />
                     </SignedOut>
                   </div>
-                </div>
+                </LightboxDialogContent>
 
                 {selectedImage && (
                   <motion.div
