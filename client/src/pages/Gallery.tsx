@@ -2388,8 +2388,7 @@ export default function Gallery({
                       ) : (
                         <Star className="h-5 w-5 stroke-black dark:stroke-white fill-transparent transition-all duration-300 hover:scale-110" />
                       )}
-                    />
-                  </motion.img>
+                    </motion.img>
                   )}
 
                   <div className="flex gap-2">
@@ -2641,10 +2640,9 @@ export default function Gallery({
                     </div>
                   </motion.div>
                 )}
-              </motion.div>
-            </LightboxDialogContent>
-          </Dialog>
-        )}
+              </LightboxDialogContent>
+            </Dialog>
+          )}
 
           {/* New comment placement outside lightbox */}
           {newCommentPos && selectedImage && (
