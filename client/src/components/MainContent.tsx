@@ -144,11 +144,13 @@ export function MainContent() {
                       return;
                     }
                     const filtered = (galleries || []).filter(gallery => 
-                      gallery.title.toLowerCase().includes(searchTerm)
+                      gallery.title.toLowerCase().includes(searchTerm) ||
+                      gallery.description?.toLowerCase().includes(searchTerm) ||
+                      String(gallery.imageCount).includes(searchTerm)
                     );
                     queryClient.setQueryData(['/api/galleries'], filtered);
                   }}
-                  className="w-full pl-10 pr-4 py-2 border rounded-md bg-background"
+                  className="w-full pl-10 pr-4 py-2 border rounded-md bg-background hover:bg-accent/30 focus:bg-background transition-colors"
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"/>
               </div>
