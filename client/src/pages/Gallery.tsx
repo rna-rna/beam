@@ -2382,16 +2382,13 @@ export default function Gallery({
                           isStarred: selectedImage.userStarred,
                         });
                       }}
-                    >
-                      {selectedImage.userStarred ? (
-                        <Star className="h-5 w-5 fill-black dark:fill-white transition-all duration-300 scale-110" />
-                      ) : (
-                        <Star className="h-5 w-5 stroke-black dark:stroke-white fill-transparent transition-all duration-300 hover:scale-110" />
-                      )}
-                    </motion.img>
-                  )}
-
-                  <div className="flex gap-2">
+                    />
+                    {selectedImage.userStarred ? (
+                      <Star className="h-5 w-5 fill-black dark:fill-white transition-all duration-300 scale-110" />
+                    ) : (
+                      <Star className="h-5 w-5 stroke-black dark:stroke-white fill-transparent transition-all duration-300 hover:scale-110" />
+                    )}
+                  </div>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -2639,9 +2636,9 @@ export default function Gallery({
                       )}
                     </div>
                   </motion.div>
-                )}
-              </LightboxDialogContent>
-            </Dialog>
+                </LightboxDialogContent>
+              </Dialog>
+            )}
           )}
 
           {/* New comment placement outside lightbox */}
