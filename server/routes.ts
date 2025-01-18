@@ -82,6 +82,18 @@ export function registerRoutes(app: Express): Server {
             orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)],
             limit: 1  // Fetch only the first image as thumbnail
           }
+        },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          createdAt: true,
+          updatedAt: true,
+          userId: true,
+          guestUpload: true,
+          folderId: true,
+          deletedAt: true,
+          isDraft: true // Added isDraft field
         }
       });
 
@@ -206,7 +218,8 @@ export function registerRoutes(app: Express): Server {
         guestUpload: isGuestUpload,
         isPublic: isGuestUpload ? true : false,
         createdAt: new Date(),
-        ogImageUrl
+        ogImageUrl,
+        isDraft: false // Added isDraft field, default to false
       }).returning();
 
 
@@ -266,7 +279,8 @@ export function registerRoutes(app: Express): Server {
 
       const [gallery] = await db.insert(galleries).values({
         slug: generateSlug(),
-        userId
+        userId,
+        isDraft: false // Added isDraft field, default to false
       }).returning();
 
       try {
@@ -401,11 +415,11 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/galleries/:slug/images', async (req: any, res) => {
     console.log("==== /api/galleries/:slug/images ENDPOINT HIT ====");
     console.log("Request params:", { slug: req.params.slug });
-    
+
     let { files, uploadId } = req.body;
     const slug = req.params.slug;
     const MAX_FILE_SIZE = 60 * 1024 * 1024; // 60MB
-    
+
     console.log("Received request body:", {
       filesCount: files?.length,
       uploadId,
@@ -422,7 +436,7 @@ export function registerRoutes(app: Express): Server {
     // Generate unique hash for files array to detect duplicates
     const fileHashes = files?.map((f: any) => `${f.name}-${f.size}`);
     const existingRequest = processedRequests.get(requestId);
-    
+
     console.log("File hashes computed:", {
       count: fileHashes?.length,
       sample: fileHashes?.[0]
@@ -606,7 +620,7 @@ export function registerRoutes(app: Express): Server {
     try {
         console.log("=== Starting upload request processing ===");
         console.log("Looking up gallery in database...");
-        
+
         const gallery = await db.query.galleries.findFirst({
             where: eq(galleries.slug, slug)
         });
@@ -641,7 +655,7 @@ export function registerRoutes(app: Express): Server {
       // Generate pre-signed URL for direct upload
       // Generate unique batch ID for this upload request
       const batchId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
+
       console.log('[Generating presigned URLs]', {
         batchId,
         filesCount: files.length,
@@ -663,14 +677,14 @@ export function registerRoutes(app: Express): Server {
         files.map(async (file: any) => {
           const timestamp = Date.now();
           const key = `uploads/originals/${timestamp}-${batchId}-${file.name}`;
-          
+
           console.log("Generating URL for file:", {
             name: file.name,
             size: file.size,
             type: file.type,
             key
           });
-          
+
           const command = new PutObjectCommand({
             Bucket: R2_BUCKET_NAME,
             Key: key,
@@ -1046,7 +1060,17 @@ export function registerRoutes(app: Express): Server {
             eq(galleries.slug, req.params.slug),
             eq(galleries.userId, req.auth?.userId || '')
           )
-        )
+        ),
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          isPublic: true,
+          userId: true,
+          guestUpload: true,
+          createdAt: true,
+          isDraft: true // Added isDraft field
+        }
       });
 
       console.log('Gallery fetch result:', {
@@ -1233,7 +1257,8 @@ export function registerRoutes(app: Express): Server {
         isOwner,
         role,
         createdAt: gallery.createdAt,
-        ogImageUrl
+        ogImageUrl,
+        isDraft: gallery.isDraft // Added isDraft field
       });
     } catch (error) {
       console.error('Gallery fetch error:', error);
@@ -1955,7 +1980,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const { name } = req.body;
       const userId = req.auth.userId;
-      
+
       // Generate a unique 8-character slug for the folder
       const slug = nanoid(8);
 
@@ -1994,7 +2019,7 @@ export function registerRoutes(app: Express): Server {
           const count = await db.select({ count: sql<number>`count(*)` })
             .from(galleryFolders)
             .where(eq(galleryFolders.folderId, folder.id));
-          
+
           return {
             id: folder.id,
             name: folder.name,
@@ -2106,7 +2131,7 @@ export function registerRoutes(app: Express): Server {
       const { folderId, folderSlug } = req.body;
 
       let targetFolder;
-      
+
       // Find folder by ID or slug
       if (folderId) {
         targetFolder = await db.query.folders.findFirst({
@@ -2179,7 +2204,17 @@ export function registerRoutes(app: Express): Server {
       const galleries = await db.query.galleries.findMany({
         where: sql`(${galleries.userId} = ${userId} OR ${galleries.lastViewedAt} IS NOT NULL)`,
         orderBy: (galleries, { desc }) => [desc(galleries.lastViewedAt)],
-        limit: 10
+        limit: 10,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          isPublic: true,
+          userId: true,
+          guestUpload: true,
+          createdAt: true,
+          isDraft: true // Added isDraft field
+        }
       });
 
       const galleriesWithDetails = await Promise.all(
@@ -2187,7 +2222,7 @@ export function registerRoutes(app: Express): Server {
           const imageCount = await db.execute(
             sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
           );
-          
+
           const thumbnailImage = await db.query.images.findFirst({
             where: eq(images.galleryId, gallery.id),
             orderBy: (images, { asc }) => [asc(images.position)]
