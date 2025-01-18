@@ -25,12 +25,6 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       return;
     }
 
-    const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const totalSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
-    console.log('[Upload] Starting upload session:', { uploadId, totalSize, fileCount: acceptedFiles.length, gallerySlug });
-
-    addBatch(uploadId, totalSize, acceptedFiles.length);
-
     // Filter out duplicate files with enhanced logging
     const uniqueFiles = acceptedFiles.filter(file => {
       const uniqueKey = `${file.name}-${file.size}-${file.lastModified}`;
