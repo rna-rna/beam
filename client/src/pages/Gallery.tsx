@@ -1569,7 +1569,7 @@ export default function Gallery({
         >
           <img
             key={`${image.id}-${image._status || "final"}`}
-            src={"localUrl" in image ? image.localUrl : image.url}
+            src={"localUrl" in image ? image.localUrl : getR2ImageUrl(image, 'thumb')}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
               "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
