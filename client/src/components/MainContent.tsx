@@ -195,6 +195,10 @@ export function MainContent() {
                             if (!e.shiftKey) {
                               setSelectedGalleries([gallery.id]);
                               setLastSelectedId(gallery.id);
+                            }
+                          }}
+                          onDoubleClick={() => {
+                            setLocation(`/g/${gallery.slug}`);
                             } else if (lastSelectedId) {
                               const galleries = sortedGalleries;
                               const currentIndex = galleries.findIndex(g => g.id === gallery.id);
