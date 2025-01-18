@@ -84,7 +84,7 @@ export function DashboardSidebar() {
           {folders.map((folder) => (
             <Button
               key={folder.id}
-              variant={selectedFolder === folder.id && selectedSection === 'folders' ? "secondary" : "ghost"}
+              variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
               className="w-full justify-start"
               onDragOver={(e) => {
                 e.preventDefault();
