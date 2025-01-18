@@ -48,14 +48,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-[calc(100vh-65px)] bg-background">
       {/* Sidebar for larger screens */}
-      <aside className="hidden md:flex w-64 flex-col border-r">
+      <aside className="hidden md:block w-64 border-r">
         <DashboardSidebar />
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col min-h-0">
         <header className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center">
             <Sheet>
