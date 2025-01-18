@@ -154,7 +154,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       }
 
       // Only invalidate queries if this was the last batch
-      const remainingUploads = batches.filter(batch => batch.id !== uploadId);
+      const remainingUploads = batches.filter(batch => batch.id !== batchId);
       if (remainingUploads.length === 0) {
         if (gallerySlug) {
           await queryClient.invalidateQueries({ 
@@ -192,7 +192,7 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         variant: 'destructive',
       });
     } finally {
-      completeBatch(uploadId, true);
+      completeBatch(batchId, true);
     }
   }, [onUpload, addBatch, updateBatchProgress, completeBatch, gallerySlug]);
 

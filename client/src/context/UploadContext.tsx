@@ -23,14 +23,18 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [batches, setBatches] = useState<Batch[]>([]);
 
   const addBatch = (batchId: string, totalSize: number, filesCount: number) => {
-    setBatches(prev => [...prev, {
-      id: batchId,
-      filesCount,
-      totalSize,
-      uploadedBytes: 0,
-      progress: 0,
-      status: 'uploading'
-    }]);
+    setBatches(prev => {
+      // Remove any existing batch with the same ID to prevent duplicates
+      const filtered = prev.filter(batch => batch.id !== batchId);
+      return [...filtered, {
+        id: batchId,
+        filesCount,
+        totalSize,
+        uploadedBytes: 0,
+        progress: 0,
+        status: 'uploading'
+      }];
+    });
   };
 
   const updateBatchProgress = (batchId: string, incrementBytes: number) => {
