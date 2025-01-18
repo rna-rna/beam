@@ -292,7 +292,9 @@ export default function App() {
 
   return (
     <DndProvider backend={HTML5Backend}>
+      <UploadProvider>
       <AppContent />
+      </UploadProvider>
     </DndProvider>
   );
 }
