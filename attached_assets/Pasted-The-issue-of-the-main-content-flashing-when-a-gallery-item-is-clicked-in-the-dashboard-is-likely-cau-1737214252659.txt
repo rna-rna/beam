@@ -1,0 +1,64 @@
+The issue of the main content flashing when a gallery item is clicked in the dashboard is likely caused by an unnecessary re-render or state update. Here’s how you can address this problem systematically:
+
+Steps to Resolve the Flashing Issue
+1. Avoid Full Re-Renders of the Main Content Area
+The MainContent component may be re-rendering completely due to changes in its parent component or internal state updates.
+
+Solution:
+Ensure state updates in MainContent do not trigger unnecessary renders of the entire content.
+Use React.memo to optimize rendering of components that don’t need to update.
+2. Optimize the onClick Handler for Gallery Cards
+The onClick logic in MainContent may be unnecessarily causing state changes or re-fetching data.
+
+Steps:
+Remove redundant e.preventDefault and e.stopPropagation calls unless absolutely necessary.
+Simplify the onClick handler to update only the necessary state (selectedGalleries).
+Updated onClick Handler:
+
+tsx
+Copy
+Edit
+<Card
+  ref={dragRef}
+  key={gallery.id}
+  onClick={(e) => {
+    if (!e.shiftKey) {
+      setSelectedGalleries([gallery.id]);
+      setLastSelectedId(gallery.id);
+    } else if (lastSelectedId) {
+      const galleries = sortedGalleries;
+      const currentIndex = galleries.findIndex((g) => g.id === gallery.id);
+      const lastIndex = galleries.findIndex((g) => g.id === lastSelectedId);
+      const [start, end] = [Math.min(currentIndex, lastIndex), Math.max(currentIndex, lastIndex)];
+      const rangeIds = galleries.slice(start, end + 1).map((g) => g.id);
+      setSelectedGalleries(rangeIds);
+    }
+  }}
+  className={cn(
+    "overflow-hidden transition-all duration-200 cursor-pointer",
+    selectedGalleries.includes(gallery.id) && "outline outline-2 outline-blue-500 outline-offset-[-2px]",
+    "hover:shadow-lg"
+  )}
+>
+3. Ensure useQuery Does Not Re-Fetch Unnecessarily
+The useQuery call for galleries in MainContent should not re-trigger fetching data when a card is clicked.
+
+Steps:
+Set a reasonable staleTime and cacheTime to minimize unnecessary fetches.
+Ensure queryKey remains stable unless data needs to be refetched.
+Optimized useQuery for Galleries:
+
+tsx
+Copy
+Edit
+const { data: galleries = [], isLoading } = useQuery({
+  queryKey: ['/api/galleries'],
+  queryFn: async () => {
+    const res = await fetch('/api/galleries');
+    if (!res.ok) throw new Error('Failed to fetch galleries');
+    return res.json();
+  },
+  staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
+  cacheTime: 1000 * 60 * 10, // Keep unused data in cache for 10 minutes
+  refetchOnWindowFocus: false, // Avoid refetching on focus
+});
