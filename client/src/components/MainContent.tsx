@@ -187,6 +187,7 @@ export function MainContent() {
                           key={gallery.id}
                           onClick={(e) => {
                             e.preventDefault();
+                            e.stopPropagation();
                             if (!e.shiftKey) {
                               setSelectedGalleries([gallery.id]);
                               setLastSelectedId(gallery.id);
