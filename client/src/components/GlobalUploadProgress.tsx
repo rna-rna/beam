@@ -32,7 +32,7 @@ const GlobalUploadProgress = () => {
               <div className="flex items-center gap-2 mb-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span className="text-sm font-medium">
-                  Uploading {batch.filesCount} {batch.filesCount === 1 ? 'file' : 'files'}...
+                  Uploading batch of {batch.filesCount} {batch.filesCount === 1 ? 'file' : 'files'}...
                 </span>
               </div>
               <div className="space-y-1">
