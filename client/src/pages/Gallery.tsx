@@ -2641,9 +2641,10 @@ export default function Gallery({
                     </div>
                   </motion.div>
                 )}
-              </LightboxDialogContent>
-            </Dialog>
-          )}
+              </motion.div>
+            </LightboxDialogContent>
+          </Dialog>
+        )}
 
           {/* New comment placement outside lightbox */}
           {newCommentPos && selectedImage && (
