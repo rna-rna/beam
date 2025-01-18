@@ -60,9 +60,10 @@ export function MainContent() {
       if (!res.ok) throw new Error('Failed to fetch galleries');
       return res.json();
     },
-    staleTime: 1000 * 60 * 5,
-    cacheTime: 1000 * 60 * 10,
-    refetchOnWindowFocus: false
+    staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
+    cacheTime: 1000 * 60 * 10, // Keep cached data for 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
 
   const sortedGalleries = [...(galleries || [])].sort((a, b) => {
@@ -190,12 +191,11 @@ export function MainContent() {
                           key={gallery.id}
                           onClick={(e) => {
                             if (!e.shiftKey) {
+                              if (selectedGalleries.length === 1 && selectedGalleries[0] === gallery.id) {
+                                return;
+                              }
                               setSelectedGalleries([gallery.id]);
                               setLastSelectedId(gallery.id);
-                            }
-                          }}
-                          onDoubleClick={() => {
-                            setLocation(`/g/${gallery.slug}`);
                             } else if (lastSelectedId) {
                               const galleries = sortedGalleries;
                               const currentIndex = galleries.findIndex(g => g.id === gallery.id);
