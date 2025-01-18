@@ -139,7 +139,7 @@ export default function Dashboard() {
               >
                 {gallery.thumbnailUrl ? (
                   <img 
-                    src={gallery.thumbnailUrl} 
+                    src={gallery.images?.[0] ? getR2ImageUrl(gallery.images[0], 'thumb') : '/fallback-image.jpg'} 
                     alt={gallery.title} 
                     className="w-full h-40 object-cover" 
                   />
