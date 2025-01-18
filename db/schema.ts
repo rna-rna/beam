@@ -156,6 +156,21 @@ export const invites = pgTable('invites', {
 export const insertInviteSchema = createInsertSchema(invites);
 export const selectInviteSchema = createSelectSchema(invites);
 
+// Notifications table
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  type: text('type').notNull(),
+  data: jsonb('data').notNull(),
+  isSeen: boolean('is_seen').default(false).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+}, (table) => ({
+  userIdIdx: index('notifications_user_id_idx').on(table.userId),
+  userSeenIdx: index('notifications_user_seen_idx').on(table.userId, table.isSeen)
+}));
+
 // Export types
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;
 export type Invite = typeof invites.$inferSelect;
 export type NewInvite = typeof invites.$inferInsert;
