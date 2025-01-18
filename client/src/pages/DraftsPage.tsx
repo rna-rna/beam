@@ -8,13 +8,16 @@ import { Loader2 } from "lucide-react";
 export default function DraftsPage() {
   const [, setLocation] = useLocation();
 
-  const { data: galleries = [], isLoading } = useQuery({
+  const { data: galleries = [], isLoading, error } = useQuery({
     queryKey: ['/api/galleries'],
     queryFn: async () => {
       const res = await fetch('/api/galleries');
       if (!res.ok) throw new Error('Failed to fetch galleries');
-      return res.json();
-    }
+      const data = await res.json();
+      return data;
+    },
+    staleTime: 0,
+    refetchOnMount: true
   });
 
   const draftGalleries = galleries.filter(g => g.is_draft && !g.deleted_at);
