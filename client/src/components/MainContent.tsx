@@ -186,6 +186,7 @@ export function MainContent() {
                           ref={dragRef}
                           key={gallery.id}
                           onClick={(e) => {
+                            e.preventDefault();
                             if (!e.shiftKey) {
                               setSelectedGalleries([gallery.id]);
                               setLastSelectedId(gallery.id);
