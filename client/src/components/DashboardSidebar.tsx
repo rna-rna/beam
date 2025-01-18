@@ -68,17 +68,6 @@ export function DashboardSidebar() {
             <Clock className="mr-2 h-4 w-4" />
             Recents
           </Button>
-          <Button
-            variant={selectedSection === 'drafts' ? "secondary" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => {
-              setSelectedSection('drafts');
-              setLocation("/dashboard/drafts");
-            }}
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            Drafts
-          </Button>
           <Separator />
           <div className="font-semibold px-2">Folders</div>
           {folders.map((folder) => (
