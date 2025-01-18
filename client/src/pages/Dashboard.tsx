@@ -30,6 +30,35 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"; // Added import
 export default function Dashboard() {
   const { getToken } = useAuth();
   const [sortOrder, setSortOrder] = useState('created');
+  const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Backspace' && selectedGalleries.length > 0) {
+        const gallery = galleries.find(g => g.id === selectedGalleries[0]);
+        if (gallery) {
+          const modal = document.createElement('dialog');
+          modal.innerHTML = `
+            <div class="fixed inset-0 bg-background/80 backdrop-blur-sm">
+              <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%]">
+                <DeleteGalleryModal
+                  isOpen={true}
+                  onClose={() => modal.close()}
+                  gallerySlug={gallery.slug}
+                  galleryTitle={gallery.title}
+                />
+              </div>
+            </div>
+          `;
+          document.body.appendChild(modal);
+          modal.showModal();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedGalleries, galleries]);
 
   const { data: galleries = [], isLoading } = useQuery({
     queryKey: ['/api/galleries'],
@@ -112,8 +141,28 @@ export default function Dashboard() {
               <ContextMenu key={gallery.id}>
                 <ContextMenuTrigger>
                   <div 
-                    className="border rounded-lg overflow-hidden cursor-pointer"
+                    className={`border rounded-lg overflow-hidden cursor-pointer ${selectedGalleries.includes(gallery.id) ? 'ring-2 ring-primary' : ''}`}
                     draggable
+                    onClick={(e) => {
+                      if (e.shiftKey) {
+                        // For shift+click, select range
+                        const lastSelected = selectedGalleries[selectedGalleries.length - 1];
+                        const currentIndex = galleries.findIndex(g => g.id === gallery.id);
+                        const lastIndex = galleries.findIndex(g => g.id === lastSelected);
+                        if (lastIndex !== -1) {
+                          const start = Math.min(currentIndex, lastIndex);
+                          const end = Math.max(currentIndex, lastIndex);
+                          const range = galleries.slice(start, end + 1).map(g => g.id);
+                          setSelectedGalleries(range);
+                        } else {
+                          setSelectedGalleries([gallery.id]);
+                        }
+                      } else if (!e.metaKey && !e.ctrlKey) {
+                        // Single click without modifier
+                        setSelectedGalleries([gallery.id]);
+                      }
+                    }}
+                    onDoubleClick={() => window.location.href = `/g/${gallery.slug}`}
                     onDragStart={(e) => {
                       e.dataTransfer.setData('application/json', JSON.stringify({
                         type: 'gallery',
