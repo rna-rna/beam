@@ -2388,7 +2388,8 @@ export default function Gallery({
                       ) : (
                         <Star className="h-5 w-5 stroke-black dark:stroke-white fill-transparent transition-all duration-300 hover:scale-110" />
                       )}
-                    </Button>
+                    />
+                  </motion.img>
                   )}
 
                   <div className="flex gap-2">
