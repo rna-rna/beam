@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { NotificationBell } from "./NotificationBell";
 import { NotificationDropdown } from "./NotificationDropdown";
-import { useParams } from "react-router-dom";
+import { useParams } from "wouter";
 
 export interface Notification {
   groupId: string;
