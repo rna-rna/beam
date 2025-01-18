@@ -116,19 +116,23 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
       }
 
       const { urls } = await response.json();
+      let uploadedBatchBytes = 0;
 
       // Upload directly to R2
       for (const [index, urlData] of urls.entries()) {
         const file = acceptedFiles[index];
         const { signedUrl, publicUrl } = urlData;
+        const previousFilesSize = acceptedFiles.slice(0, index).reduce((acc, f) => acc + f.size, 0);
 
         await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
 
           xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
-              const incrementBytes = event.loaded - (batchProgress.uploadedBytes || 0);
-              batchProgress.uploadedBytes = event.loaded;
+              const currentFileProgress = event.loaded;
+              const batchProgress = previousFilesSize + currentFileProgress;
+              const incrementBytes = batchProgress - uploadedBatchBytes;
+              uploadedBatchBytes = batchProgress;
               updateBatchProgress(batchId, incrementBytes);
             }
           };
