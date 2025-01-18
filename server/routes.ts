@@ -7,6 +7,7 @@ import { db } from '@db';
 import { galleries, images, comments, stars, folders, galleryFolders } from '@db/schema';
 import { eq, and, sql, inArray, or, desc } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
+import { getEditorUserIds } from './utils';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { invites } from '@db/schema';
 import { nanoid } from 'nanoid';
