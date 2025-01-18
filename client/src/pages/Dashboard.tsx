@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Plus, Search, ChevronDown, Menu } from "lucide-react";
+import { Loader2, Plus, Search, ChevronDown, Menu, Image } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
