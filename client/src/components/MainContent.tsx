@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FolderOpen, FolderPlus, Clock, Image as ImageIcon, Share, Pencil, Trash2 } from "lucide-react";
+import { FolderOpen, FolderPlus, Clock, Image as ImageIcon, Share, Pencil, Trash2, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CustomDragLayer } from "./CustomDragLayer";
 import { ShareModal } from "./ShareModal";
@@ -60,9 +60,10 @@ export function MainContent() {
       if (!res.ok) throw new Error('Failed to fetch galleries');
       return res.json();
     },
-    staleTime: 1000 * 60 * 5,
-    cacheTime: 1000 * 60 * 10,
-    refetchOnWindowFocus: false
+    staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
+    cacheTime: 1000 * 60 * 10, // Keep cached data for 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
 
   const sortedGalleries = [...(galleries || [])].sort((a, b) => {
@@ -131,7 +132,28 @@ export function MainContent() {
         <div className="flex h-full relative">
           <CustomDragLayer />
           <div className="flex-1 p-6">
-            <div className="flex justify-end mb-6">
+            <div className="flex justify-between items-center mb-6">
+              <div className="relative w-72">
+                <input
+                  type="text"
+                  placeholder="Search galleries..."
+                  onChange={(e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    if (!searchTerm) {
+                      queryClient.setQueryData(['/api/galleries'], galleries);
+                      return;
+                    }
+                    const filtered = (galleries || []).filter(gallery => 
+                      gallery.title.toLowerCase().includes(searchTerm) ||
+                      gallery.description?.toLowerCase().includes(searchTerm) ||
+                      String(gallery.imageCount).includes(searchTerm)
+                    );
+                    queryClient.setQueryData(['/api/galleries'], filtered);
+                  }}
+                  className="w-full pl-10 pr-4 py-2 border rounded-md bg-background hover:bg-accent/30 focus:bg-background transition-colors"
+                />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"/>
+              </div>
               <Select value={sortOrder} onValueChange={setSortOrder}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Sort by..." />
@@ -190,12 +212,11 @@ export function MainContent() {
                           key={gallery.id}
                           onClick={(e) => {
                             if (!e.shiftKey) {
+                              if (selectedGalleries.length === 1 && selectedGalleries[0] === gallery.id) {
+                                return;
+                              }
                               setSelectedGalleries([gallery.id]);
                               setLastSelectedId(gallery.id);
-                            }
-                          }}
-                          onDoubleClick={() => {
-                            setLocation(`/g/${gallery.slug}`);
                             } else if (lastSelectedId) {
                               const galleries = sortedGalleries;
                               const currentIndex = galleries.findIndex(g => g.id === gallery.id);

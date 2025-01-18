@@ -24,15 +24,19 @@ export const getR2Url = (publicId: string, optimize: boolean = false) => {
   return `${baseUrl}/${publicId}`;
 };
 
-export const getR2ImageUrl = (
+export const getR2Image = (
   image: Image | null | undefined,
-  optimize: boolean = false,
-) => {
+  mode?: 'optimize' | 'lightbox'
+): string => {
   if (!image || !image.url) return "/fallback-image.jpg";
-  if (optimize) {
-    const urlParts = image.url.split("/");
-    const filename = urlParts[urlParts.length - 1];
-    return `${import.meta.env.VITE_IMAGE_WORKER}/thumb/${filename}`;
+  const urlParts = image.url.split("/");
+  const filename = urlParts[urlParts.length - 1];
+  switch (mode) {
+    case 'thumb':
+      return `${import.meta.env.VITE_IMAGE_WORKER}/thumb/${filename}`;
+    case 'lightbox':
+      return `${import.meta.env.VITE_IMAGE_WORKER}/optimized/${filename}`;
+    default:
+      return image.url;
   }
-  return image.url;
 };

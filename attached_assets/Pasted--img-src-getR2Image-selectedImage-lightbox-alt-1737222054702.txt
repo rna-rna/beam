@@ -1,0 +1,56 @@
+<img
+                        src={getR2Image(selectedImage, "lightbox")}
+                        alt={selectedImage.originalFilename || ""}
+                        className="image-fade"
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                          pointerEvents: "none",
+                        }}
+                        onLoad={(e) => {
+                          setIsLowResLoading(false);
+                          e.currentTarget.classList.add("loaded");
+                        }}
+                      />
+
+                      {/* Final high-res image */}
+                      <motion.img
+                        src={getR2Image(selectedImage, "lightbox")}
+                        data-src={getR2Image(selectedImage, "lightbox")}
+                        alt={selectedImage.originalFilename || ""}
+                        className="lightbox-img"
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                          opacity: isLowResLoading ? 0 : 1,
+                          transition: "opacity 0.3s ease",
+                        }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        onLoad={(e) => {
+                          setIsLowResLoading(false);
+                          setIsLoading(false);
+
+                          const img = e.currentTarget;
+                          img.src = img.dataset.src || img.src;
+                          img.classList.add("loaded");
+
+                          setImageDimensions({
+                            width: img.clientWidth,
+                            height: img.clientHeight,
+                          });
+                        }}
+                        onError={() => {
+                          setIsLoading(false);
+                          setIsLowResLoading(false);
+                        }}
+                      />

@@ -1,7 +1,7 @@
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { getR2ImageUrl } from "@/lib/r2";
+import { getR2Image } from "@/lib/r2";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Upload,
@@ -135,11 +135,11 @@ export default function Gallery({
       .filter((image) => image && image.url)
       .map((image) => ({
         ...image,
-        displayUrl: getR2ImageUrl(image, true),
+        displayUrl: getR2Image(image, "thumb"),
         aspectRatio:
           image.width && image.height ? image.width / image.height : 1.33,
       }));
-  }, [gallery?.images, getR2ImageUrl]);
+  }, [gallery?.images, getR2Image]);
 
   const beamOverlayTransform = "l_beam-bar_q6desn,g_center,x_0,y_0";
   const [presenceMembers, setPresenceMembers] = useState<{
@@ -1142,7 +1142,7 @@ export default function Gallery({
   // Preload image function
   const preloadImage = useCallback((image: Image, imageId: number) => {
     const img = new Image();
-    img.src = getR2ImageUrl(image, true);
+    img.src = getR2Image(image, "thumb");
     img.onload = () => {
       setPreloadedImages((prev) => new Set([...Array.from(prev), imageId]));
     };
@@ -1183,7 +1183,7 @@ export default function Gallery({
 
       const zip = new JSZip();
       const imagePromises = gallery!.images.map(async (image, index) => {
-        const response = await fetch(getR2ImageUrl(image, false)); // Use original unoptimized URL for downloads
+        const response = await fetch(getR2Image(image)); // Use original unoptimized URL for downloads
         const blob = await response.blob();
         const extension = image.url.split(".").pop() || "jpg";
         zip.file(`image-${index + 1}.${extension}`, blob);
@@ -1253,7 +1253,7 @@ export default function Gallery({
         const image = gallery!.images.find((img) => img.id === imageId);
         if (!image) return;
 
-        const response = await fetch(getR2ImageUrl(image, false)); // Use original unoptimized URL for downloads
+        const response = await fetch(getR2Image(image)); // Use original unoptimized URL for downloads
         const blob = await response.blob();
         const extension = image.url.split(".").pop() || "jpg";
         zip.file(`image-${imageId}.${extension}`, blob);
@@ -1569,7 +1569,7 @@ export default function Gallery({
         >
           <img
             key={`${image.id}-${image._status || "final"}`}
-            src={"localUrl" in image ? image.localUrl : image.url}
+            src={"localUrl" in image ? image.localUrl : getR2Image(image, 'thumb')}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
               "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
@@ -1966,7 +1966,7 @@ export default function Gallery({
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getR2ImageUrl(images[idx], true);
+          img.src = getR2Image(images[idx], "thumb");
         }
       });
     }
@@ -2053,7 +2053,7 @@ export default function Gallery({
               property="og:image"
               content={
                 gallery.ogImageUrl
-                  ? getR2ImageUrl(gallery.ogImage, true)
+                  ? getR2Image(gallery.ogImage, "thumb")
                   : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`
               }
             />
@@ -2488,7 +2488,7 @@ export default function Gallery({
 
                       {/* Single image with fade transition */}
                       <img
-                        src={getR2ImageUrl(selectedImage, true)}
+                        src={getR2Image(selectedImage, "lightbox")}
                         alt={selectedImage.originalFilename || ""}
                         className="image-fade"
                         style={{
@@ -2508,8 +2508,8 @@ export default function Gallery({
 
                       {/* Final high-res image */}
                       <motion.img
-                        src={getR2ImageUrl(selectedImage, true)}
-                        data-src={getR2ImageUrl(selectedImage, true)}
+                        src={getR2Image(selectedImage, "lightbox")}
+                        data-src={getR2Image(selectedImage, "lightbox")}
                         alt={selectedImage.originalFilename || ""}
                         className="lightbox-img"
                         style={{
