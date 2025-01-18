@@ -48,6 +48,22 @@ export default function Dashboard() {
     }
   });
 
+  const { data: galleries = [], isLoading } = useQuery({
+    queryKey: ['/api/galleries'],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await fetch('/api/galleries', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch galleries');
+      return res.json();
+    }
+  });
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Backspace' && selectedGalleries.length > 0) {
@@ -75,9 +91,6 @@ export default function Dashboard() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedGalleries, galleries]);
-
-  const { data: galleries = [], isLoading } = useQuery({
-    queryKey: ['/api/galleries'],
     queryFn: async () => {
       const token = await getToken();
       const res = await fetch('/api/galleries', {
