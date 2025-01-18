@@ -135,7 +135,7 @@ export default function Gallery({
       .filter((image) => image && image.url)
       .map((image) => ({
         ...image,
-        displayUrl: getR2ImageUrl(image, true),
+        displayUrl: getR2ImageUrl(image, 'thumb'),
         aspectRatio:
           image.width && image.height ? image.width / image.height : 1.33,
       }));
@@ -1142,7 +1142,7 @@ export default function Gallery({
   // Preload image function
   const preloadImage = useCallback((image: Image, imageId: number) => {
     const img = new Image();
-    img.src = getR2ImageUrl(image, true);
+    img.src = getR2ImageUrl(image, 'thumb');
     img.onload = () => {
       setPreloadedImages((prev) => new Set([...Array.from(prev), imageId]));
     };
@@ -1183,7 +1183,7 @@ export default function Gallery({
 
       const zip = new JSZip();
       const imagePromises = gallery!.images.map(async (image, index) => {
-        const response = await fetch(getR2ImageUrl(image, false)); // Use original unoptimized URL for downloads
+        const response = await fetch(getR2ImageUrl(image)); // Use original unoptimized URL for downloads
         const blob = await response.blob();
         const extension = image.url.split(".").pop() || "jpg";
         zip.file(`image-${index + 1}.${extension}`, blob);
@@ -1253,7 +1253,7 @@ export default function Gallery({
         const image = gallery!.images.find((img) => img.id === imageId);
         if (!image) return;
 
-        const response = await fetch(getR2ImageUrl(image, false)); // Use original unoptimized URL for downloads
+        const response = await fetch(getR2ImageUrl(image)); // Use original unoptimized URL for downloads
         const blob = await response.blob();
         const extension = image.url.split(".").pop() || "jpg";
         zip.file(`image-${imageId}.${extension}`, blob);
@@ -1966,8 +1966,8 @@ export default function Gallery({
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getR2ImageUrl(images[idx], true);
-        }
+
+          img.src = getR2ImageUrl(images[idx], 'thumb');        }
       });
     }
   };
@@ -2039,30 +2039,32 @@ export default function Gallery({
   return (
     <UploadProvider>
       <>
-        {gallery && (
-          <Helmet>
-            <meta
-              property="og:title"
-              content={gallery.title || "Beam Gallery"}
-            />
-            <meta
-              property="og:description"
-              content="Explore stunning galleries!"
-            />
-            <meta
-              property="og:image"
-              content={
-                gallery.ogImageUrl
-                  ? getR2ImageUrl(gallery.ogImage, true)
-                  : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`
-              }
-            />
-            <meta property="og:image:width" content="1200" />
-            <meta property="og:image:height" content="630" />
-            <meta property="og:type" content="website" />
-            <meta property="og:url" content={window.location.href} />
-            <meta name="twitter:card" content="summary_large_image" />
-          </Helmet>
+      {gallery && (
+        <Helmet>
+          <meta property="og:title" content={gallery.title || "Beam Gallery"} />
+          <meta
+            property="og:description"
+            content="Explore stunning galleries!"
+          />
+          <meta
+            property="og:image"
+            content={
+              gallery.ogImageUrl
+                ? getR2ImageUrl(gallery.ogImage, 'thumb')
+                : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`
+            }
+          />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={window.location.href} />
+          <meta name="twitter:card" content="summary_large_image" />
+        </Helmet>
+      )}
+      <div
+        className={cn(
+          "min-h-screen relative",
+          isDark ? "bg-black/90" : "bg-background",
         )}
         <div
           className={cn(
@@ -2338,24 +2340,48 @@ export default function Gallery({
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
+                    {/* Single image with fade transition */}
+                    <img
+                      src={getR2ImageUrl(selectedImage, 'lightbox')}
+                      alt={selectedImage.originalFilename || ""}
+                      className="image-fade"
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        pointerEvents: "none",
+                      }}
+                      onLoad={(e) => {
+                        setIsLowResLoading(false);
+                        e.currentTarget.classList.add('loaded');
+                      }}
+                    />
 
-                {/* Controls */}
-                <div className="absolute right-16 top-4 flex items-center gap-2 z-50">
-                  {selectedImage && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-
-                        // Optimistic UI update for selected image
-                        setSelectedImage((prev) =>
-                          prev
-                            ? { ...prev, userStarred: !prev.userStarred }
-                            : prev,
-                        );
-
+                    {/* Final high-res image */}
+                    <motion.img
+                      src={getR2ImageUrl(selectedImage, 'lightbox')}
+                      data-src={getR2ImageUrl(selectedImage, 'lightbox')}
+                      alt={selectedImage.originalFilename || ""}
+                      className="lightbox-img"
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        opacity: isLowResLoading ? 0 : 1,
+                        transition: "opacity 0.3s ease",
+                      }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      onLoad={(e) => {
+                        setIsLowResLoading(false);
+                        setIsLoading(false);
                         // Perform mutation to sync with backend
                         toggleStarMutation.mutate({
                           imageId: selectedImage.id,
