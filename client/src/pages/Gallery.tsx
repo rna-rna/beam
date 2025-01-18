@@ -135,7 +135,7 @@ export default function Gallery({
       .filter((image) => image && image.url)
       .map((image) => ({
         ...image,
-        displayUrl: getR2ImageUrl(image, true),
+        displayUrl: getR2ImageUrl(image, 'thumb'),
         aspectRatio:
           image.width && image.height ? image.width / image.height : 1.33,
       }));
@@ -1137,7 +1137,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
   // Preload image function
   const preloadImage = useCallback((image: Image, imageId: number) => {
     const img = new Image();
-    img.src = getR2ImageUrl(image, true);
+    img.src = getR2ImageUrl(image, 'thumb');
     img.onload = () => {
       setPreloadedImages((prev) => new Set([...Array.from(prev), imageId]));
     };
@@ -1178,7 +1178,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
 
       const zip = new JSZip();
       const imagePromises = gallery!.images.map(async (image, index) => {
-        const response = await fetch(getR2ImageUrl(image, false)); // Use original unoptimized URL for downloads
+        const response = await fetch(getR2ImageUrl(image)); // Use original unoptimized URL for downloads
         const blob = await response.blob();
         const extension = image.url.split(".").pop() || "jpg";
         zip.file(`image-${index + 1}.${extension}`, blob);
@@ -1248,7 +1248,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
         const image = gallery!.images.find((img) => img.id === imageId);
         if (!image) return;
 
-        const response = await fetch(getR2ImageUrl(image, false)); // Use original unoptimized URL for downloads
+        const response = await fetch(getR2ImageUrl(image)); // Use original unoptimized URL for downloads
         const blob = await response.blob();
         const extension = image.url.split(".").pop() || "jpg";
         zip.file(`image-${imageId}.${extension}`, blob);
@@ -1962,7 +1962,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getR2ImageUrl(images[idx], true);        }
+          img.src = getR2ImageUrl(images[idx], 'thumb');        }
       });
     }
   };
@@ -2045,7 +2045,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
             property="og:image"
             content={
               gallery.ogImageUrl
-                ? getR2ImageUrl(gallery.ogImage, true)
+                ? getR2ImageUrl(gallery.ogImage, 'thumb')
                 : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`
             }
           />
@@ -2469,7 +2469,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
 
                     {/* Single image with fade transition */}
                     <img
-                      src={getR2ImageUrl(selectedImage, true)}
+                      src={getR2ImageUrl(selectedImage, 'lightbox')}
                       alt={selectedImage.originalFilename || ""}
                       className="image-fade"
                       style={{
@@ -2489,8 +2489,8 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
 
                     {/* Final high-res image */}
                     <motion.img
-                      src={getR2ImageUrl(selectedImage, true)}
-                      data-src={getR2ImageUrl(selectedImage, true)}
+                      src={getR2ImageUrl(selectedImage, 'lightbox')}
+                      data-src={getR2ImageUrl(selectedImage, 'lightbox')}
                       alt={selectedImage.originalFilename || ""}
                       className="lightbox-img"
                       style={{
