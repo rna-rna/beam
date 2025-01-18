@@ -1535,7 +1535,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
 
   const renderImage = (image: ImageOrPending, index: number) => (
     <div 
-      key={image.id === -1 ? `pending-${index}` : image.id}
+      key={`image-${image.id}-${index}`}
       className="mb-4 w-full"
       style={{ breakInside: "avoid", position: "relative" }}
     >
