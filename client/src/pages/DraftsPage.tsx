@@ -9,7 +9,7 @@ export default function DraftsPage() {
   const [, setLocation] = useLocation();
 
   const { data: galleries = [], isLoading } = useQuery({
-    queryKey: ['galleries'],
+    queryKey: ['/api/galleries'],
     queryFn: async () => {
       const res = await fetch('/api/galleries');
       if (!res.ok) {
@@ -22,7 +22,7 @@ export default function DraftsPage() {
     staleTime: 0
   });
 
-  const draftGalleries = galleries.filter(gallery => gallery.is_draft === true && !gallery.deleted_at);
+  const draftGalleries = galleries.filter(gallery => gallery.isDraft === true && !gallery.deletedAt);
 
   return (
     <div className="flex min-h-screen">
