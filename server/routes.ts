@@ -1550,24 +1550,51 @@ export function registerRoutes(app: Express): Server {
       // Get all editor users for notifications
       const editorUserIds = await getEditorUserIds(image.gallery.id);
 
-      // Create notifications for all editors except the actor
+      // Create or update notifications for all editors except the actor
       await Promise.all(
         editorUserIds
           .filter(editorId => editorId !== userId)
-          .map((editorId) =>
-            db.insert(notifications).values({
-              userId: editorId,
-              type: 'image-starred',
-              data: {
-                imageId,
-                isStarred: !isStarred,
-                actorId: userId,
-                galleryId: image.gallery.id
-              },
-              isSeen: false,
-              createdAt: new Date()
-            })
-          )
+          .map(async (editorId) => {
+            const existingNotification = await db.query.notifications.findFirst({
+              where: and(
+                eq(notifications.type, 'image-starred'),
+                eq(notifications.userId, editorId),
+                sql`${notifications.data}->>'imageId' = ${imageId}::text`,
+                sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
+              )
+            });
+
+            if (existingNotification) {
+              // Update timestamp for existing notification
+              await db.update(notifications)
+                .set({ 
+                  createdAt: new Date(),
+                  data: {
+                    imageId,
+                    isStarred: !isStarred,
+                    actorId: userId,
+                    galleryId: image.gallery.id
+                  }
+                })
+                .where(eq(notifications.id, existingNotification.id));
+            } else {
+              // Create a new notification with a new group_id
+              const groupId = nanoid();
+              await db.insert(notifications).values({
+                userId: editorId,
+                type: 'image-starred',
+                data: {
+                  imageId,
+                  isStarred: !isStarred,
+                  actorId: userId,
+                  galleryId: image.gallery.id
+                },
+                groupId,
+                isSeen: false,
+                createdAt: new Date()
+              });
+            }
+          })
       );
 
       // Emit real-time event via Pusher
