@@ -11,9 +11,13 @@ export interface Notification {
     actorId: string;
     actorName?: string;
     count?: number;
+    imageId?: string;
+    isStarred?: boolean;
+    galleryId?: string;
   };
   count: number;
   latestTime: string;
+  isSeen: boolean;
 }
 
 export function NotificationSystem() {
@@ -22,9 +26,14 @@ export function NotificationSystem() {
   const { slug } = useParams();
 
   const fetchNotifications = async () => {
-    const res = await fetch("/api/notifications");
-    const data = await res.json();
-    setNotifications(data);
+    try {
+      const res = await fetch("/api/notifications");
+      const { data } = await res.json();
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      setNotifications([]);
+    }
   };
 
   useEffect(() => {
