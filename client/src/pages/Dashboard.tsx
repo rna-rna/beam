@@ -77,13 +77,68 @@ export default function Dashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedGalleries, galleries]);
 
-  if (isLoading) {
+  const MainContent = () => {
+    if (isLoading) {
+      return <GallerySkeleton count={12} />;
+    }
+
+    if (galleries.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+          <Image className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="font-semibold mb-1">No galleries found</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Create your first gallery to get started
+          </p>
+          <Button onClick={() => window.location.href = '/new'}>
+            <Plus className="mr-2 h-4 w-4" /> New Gallery
+          </Button>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+      >
+        {galleries.map((gallery) => (
+          <ContextMenu key={gallery.id}>
+            {/* Existing gallery card code */}
+</old_str>
+<new_str>
+  const MainContent = () => {
+    if (isLoading) {
+      return <GallerySkeleton count={12} />;
+    }
+
+    if (galleries.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+          <Image className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="font-semibold mb-1">No galleries found</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Create your first gallery to get started
+          </p>
+          <Button onClick={() => window.location.href = '/new'}>
+            <Plus className="mr-2 h-4 w-4" /> New Gallery
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+      >
+        {galleries.map((gallery) => (
+          <ContextMenu key={gallery.id}>
+            {/* Existing gallery card code */}
 
   return (
     <div className="flex h-[calc(100vh-65px)] bg-background">
