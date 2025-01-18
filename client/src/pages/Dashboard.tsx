@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as ReactDOM from 'react-dom/client';
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Plus, Search, ChevronDown, Menu, Image, FolderOpen, Share, Pencil, Trash2 } from "lucide-react";
@@ -143,23 +144,30 @@ export default function Dashboard() {
                     Open
                   </ContextMenuItem>
                   <ContextMenuItem onSelect={() => {
-                    const dialog = document.createElement('dialog');
-                    dialog.innerHTML = `
-                      <div class="fixed inset-0 bg-background/80 backdrop-blur-sm">
-                        <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%]">
+                    const url = `${window.location.origin}/g/${gallery.slug}`;
+                    const modal = document.createElement('div');
+                    modal.id = `share-modal-${gallery.id}`;
+                    document.body.appendChild(modal);
+                    const root = ReactDOM.createRoot(modal);
+                    root.render(
+                      <Dialog open onOpenChange={() => {
+                        root.unmount();
+                        modal.remove();
+                      }}>
+                        <DialogContent>
                           <ShareModal 
-                            isOpen={true}
-                            onClose={() => dialog.close()}
-                            galleryUrl={`${window.location.origin}/g/${gallery.slug}`}
+                            galleryUrl={url}
                             slug={gallery.slug}
                             isPublic={gallery.isPublic}
+                            onClose={() => {
+                              root.unmount();
+                              modal.remove();
+                            }}
                             onVisibilityChange={() => {}}
                           />
-                        </div>
-                      </div>
-                    `;
-                    document.body.appendChild(dialog);
-                    dialog.showModal();
+                        </DialogContent>
+                      </Dialog>
+                    );
                   }}>
                     <Share className="mr-2 h-4 w-4" />
                     Share
