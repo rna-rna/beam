@@ -128,7 +128,15 @@ export function DashboardSidebar() {
 
   return (
     <div className="w-64 bg-card border-r border-border h-screen flex flex-col">
-      <div className="shrink-0 p-4 border-b border-border">
+      <div className="shrink-0 p-4 space-y-1 border-b border-border">
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start"
+          onClick={() => setLocation("/dashboard/drafts")}
+        >
+          <Clock className="mr-2 h-4 w-4" />
+          Drafts
+        </Button>
         <Button 
           variant="ghost" 
           className="w-full justify-start"
