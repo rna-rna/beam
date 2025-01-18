@@ -1000,8 +1000,7 @@ export default function Gallery({
                   ...(img as PendingImage),
                   status: "finalizing",
                   progress: 100,
-                }
-              : img,
+                }              : img,
           ),
         );
 
@@ -2334,6 +2333,7 @@ export default function Gallery({
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
+                <motion.div>
                     {/* Single image with fade transition */}
                     <img
                       src={getR2ImageUrl(selectedImage, 'lightbox')}
@@ -2388,7 +2388,7 @@ export default function Gallery({
                     ) : (
                       <Star className="h-5 w-5 stroke-black dark:stroke-white fill-transparent transition-all duration-300 hover:scale-110" />
                     )}
-                  </div>
+                  </motion.div>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -2452,190 +2452,6 @@ export default function Gallery({
                       />
                     </SignedOut>
                   </div>
-                </LightboxDialogContent>
-
-                {selectedImage && (
-                  <motion.div
-                    className={`relative w-full h-full flex items-center justify-center ${
-                      isCommentPlacementMode ? "cursor-crosshair" : ""
-                    }`}
-                    {...(isMobile && {
-                      drag: "x" as const,
-                      dragConstraints: { left: 0, right: 0 },
-                      dragElastic: 1,
-                      onDragEnd: (e: any, info: PanInfo) => {
-                        const swipe = Math.abs(info.offset.x) * info.velocity.x;
-                        if (
-                          swipe < -100 &&
-                          selectedImageIndex < gallery!.images.length - 1
-                        ) {
-                          setSelectedImageIndex(selectedImageIndex + 1);
-                        } else if (swipe > 100 && selectedImageIndex > 0) {
-                          setSelectedImageIndex(selectedImageIndex - 1);
-                        }
-                      },
-                    })}
-                    onClick={(e) => {
-                      if (!isCommentPlacementMode) return;
-                      const target = e.currentTarget;
-                      const rect = target.getBoundingClientRect();
-                      const x = ((e.clientX - rect.left) / rect.width) * 100;
-                      const y = ((e.clientY - rect.top) / rect.height) * 100;
-                      setNewCommentPos({ x, y });
-                      setIsCommentPlacementMode(false);
-                    }}
-                  >
-                    <div
-                      className="w-full h-full flex items-center justify-center"
-                      style={{
-                        position: "relative",
-                        width: "100%",
-                        aspectRatio:
-                          selectedImage?.width && selectedImage?.height
-                            ? `${selectedImage.width}/${selectedImage.height}`
-                            : "16/9",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {isLowResLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Loader2 className="h-12 w-12 animate-spin text-zinc-400" />
-                        </div>
-                      )}
-
-                      {/* Single image with fade transition */}
-                      <img
-                        src={getR2ImageUrl(selectedImage, true)}
-                        alt={selectedImage.originalFilename || ""}
-                        className="image-fade"
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                          pointerEvents: "none",
-                        }}
-                        onLoad={(e) => {
-                          setIsLowResLoading(false);
-                          e.currentTarget.classList.add("loaded");
-                        }}
-                      />
-
-                      {/* Final high-res image */}
-                      <motion.img
-                        src={getR2ImageUrl(selectedImage, true)}
-                        data-src={getR2ImageUrl(selectedImage, true)}
-                        alt={selectedImage.originalFilename || ""}
-                        className="lightbox-img"
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                          opacity: isLowResLoading ? 0 : 1,
-                          transition: "opacity 0.3s ease",
-                        }}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                        onLoad={(e) => {
-                          setIsLowResLoading(false);
-                          setIsLoading(false);
-
-                          const img = e.currentTarget;
-                          img.src = img.dataset.src || img.src;
-                          img.classList.add("loaded");
-
-                          setImageDimensions({
-                            width: img.clientWidth,
-                            height: img.clientHeight,
-                          });
-                        }}
-                        onError={() => {
-                          setIsLoading(false);
-                          setIsLowResLoading(false);
-                        }}
-                      />
-
-                      {/* Drawing Canvas */}
-                      <div className="absolute inset-0">
-                        <DrawingCanvas
-                          width={imageDimensions?.width || 800}
-                          height={imageDimensions?.height || 600}
-                          imageWidth={imageDimensions?.width}
-                          imageHeight={imageDimensions?.height}
-                          isDrawing={isAnnotationMode}
-                          savedPaths={showAnnotations ? annotations : []}
-                          onSavePath={async (pathData) => {
-                            if (!selectedImage) return;
-                            try {
-                              await fetch(
-                                `/api/images/${selectedImage.id}/annotations`,
-                                {
-                                  method: "POST",
-                                  headers: {
-                                    "Content-Type": "application/json",
-                                  },
-                                  body: JSON.stringify({ pathData }),
-                                },
-                              );
-
-                              queryClient.invalidateQueries({
-                                queryKey: [
-                                  `/api/images/${selectedImage.id}/annotations`,
-                                ],
-                              });
-
-                              toast({
-                                title: "Annotation saved",
-                                description:
-                                  "Your drawing has been saved successfully.",
-                              });
-                            } catch (error) {
-                              toast({
-                                title: "Error",
-                                description:
-                                  "Failed to save annotation. Please try again.",
-                                variant: "destructive",
-                              });
-                            }
-                          }}
-                        />
-                      </div>
-
-                      {/* Comments */}
-                      {showAnnotations &&
-                        comments.map((comment) => (
-                          <CommentBubble
-                            key={comment.id}
-                            x={comment.xPosition}
-                            y={comment.yPosition}
-                            content={comment.content}
-                            author={comment.author}
-                          />
-                        ))}
-
-                      {/* New comment placement */}
-                      {newCommentPos && selectedImage && (
-                        <CommentBubble
-                          x={newCommentPos.x}
-                          y={newCommentPos.y}
-                          isNew={true}
-                          imageId={selectedImage.id}
-                          onSubmit={() => {
-                            setNewCommentPos(null);
-                            queryClient.invalidateQueries({
-                              queryKey: ["/api/galleries"],
-                            });
-                          }}
-                        />
-                      )}
-                    </div>
-                  </motion.div>
                 </LightboxDialogContent>
               </Dialog>
             )}
