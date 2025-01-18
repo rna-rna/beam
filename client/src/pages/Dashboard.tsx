@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
-import { getR2ImageUrl } from "@/lib/r2";
+import { getR2Image } from "@/lib/r2";
 
 export default function Dashboard() {
   const { getToken } = useAuth();
@@ -159,7 +159,7 @@ export default function Dashboard() {
                   <img
                     src={
                       gallery.images?.[0]
-                        ? getR2ImageUrl(gallery.images[0], "thumb")
+                        ? getR2Image(gallery.images[0], "thumb")
                         : "/fallback-image.jpg"
                     }
                     alt={gallery.title}

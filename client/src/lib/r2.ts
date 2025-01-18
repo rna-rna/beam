@@ -24,7 +24,7 @@ export const getR2Url = (publicId: string, optimize: boolean = false) => {
   return `${baseUrl}/${publicId}`;
 };
 
-export const getR2ImageUrl = (
+export const getR2Image = (
   image: Image | null | undefined,
   mode?: 'optimize' | 'lightbox'
 ): string => {
