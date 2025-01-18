@@ -113,10 +113,11 @@ export function DashboardSidebar() {
                   }
                 }
               }}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 setSelectedFolder(folder.id);
                 setSelectedSection('folders');
-                setLocation(`/f/${folder.slug}`);
+                setLocation(`/f/${folder.slug}`, { replace: true });
               }}
             >
               <Folder className="mr-2 h-4 w-4" />
