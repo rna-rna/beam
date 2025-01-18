@@ -1478,6 +1478,21 @@ export function registerRoutes(app: Express): Server {
       const imageId = parseInt(req.params.imageId);
       const userId = req.auth.userId;
 
+      // Get image and gallery info
+      const image = await db.query.images.findFirst({
+        where: eq(images.id, imageId),
+        with: {
+          gallery: true
+        }
+      });
+
+      if (!image || !image.gallery) {
+        return res.status(404).json({
+          success: false,
+          message: 'Image not found'
+        });
+      }
+
       // Check if the user already starred this image
       const existingStar = await db.query.stars.findFirst({
         where: and(
@@ -1486,6 +1501,7 @@ export function registerRoutes(app: Express): Server {
         )
       });
 
+      const isStarred = !!existingStar;
       if (existingStar) {
         // Remove the star if it exists
         await db.delete(stars)
@@ -1493,23 +1509,47 @@ export function registerRoutes(app: Express): Server {
             eq(stars.userId, userId),
             eq(stars.imageId, imageId)
           ));
-        return res.json({
-          success: true,
-          message: "Star removed",
-          isStarred: false
-        });
+      } else {
+        // Add a new star if not starred
+        await db.insert(stars)
+          .values({ userId, imageId });
       }
 
-      // Add a new star if not starred
-      const [star] = await db.insert(stars)
-        .values({ userId, imageId })
-        .returning();
+      // Get all editor users for notifications
+      const editorUserIds = await getEditorUserIds(image.gallery.id);
+
+      // Create notifications for all editors except the actor
+      await Promise.all(
+        editorUserIds
+          .filter(editorId => editorId !== userId)
+          .map((editorId) =>
+            db.insert(notifications).values({
+              userId: editorId,
+              type: 'image-starred',
+              data: {
+                imageId,
+                isStarred: !isStarred,
+                actorId: userId,
+                galleryId: image.gallery.id
+              },
+              isSeen: false,
+              createdAt: new Date()
+            })
+          )
+      );
+
+      // Emit real-time event via Pusher
+      pusher.trigger(`gallery-${image.gallery.slug}`, 'image-starred', {
+        imageId,
+        isStarred: !isStarred,
+        userId,
+        timestamp: new Date().toISOString()
+      });
 
       res.json({
         success: true,
-        data: star,
-        message: "Star added",
-        isStarred: true
+        message: isStarred ? "Star removed" : "Star added",
+        isStarred: !isStarred
       });
     } catch (error) {
       console.error('Error starring image:', error);
