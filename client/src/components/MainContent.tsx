@@ -80,9 +80,9 @@ export function MainContent() {
 
   const displayedGalleries = view === "trash" 
     ? sortedGalleries.filter(gallery => gallery.deleted_at)
-    : currentFolder
-      ? sortedGalleries.filter(gallery => gallery.folderId === currentFolder.id && !gallery.deleted_at)
-      : sortedGalleries.filter(gallery => !gallery.deleted_at);
+    : selectedFolder
+      ? sortedGalleries.filter(gallery => gallery.folderId === selectedFolder && !gallery.deleted_at)
+      : sortedGalleries.filter(gallery => !gallery.deleted_at && !gallery.folderId);
 
 
   const [{ isOver }, dropRef] = useDrop({
