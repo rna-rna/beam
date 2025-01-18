@@ -2,7 +2,14 @@
 import { useState } from 'react';
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Plus, Search, ChevronDown, Menu, Image } from "lucide-react";
+import { Loader2, Plus, Search, ChevronDown, Menu, Image, FolderOpen, Share, Pencil, Trash2 } from "lucide-react";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -101,23 +108,56 @@ export default function Dashboard() {
         <ScrollArea className="flex-1 p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {galleries.map((gallery) => (
-              <div key={gallery.id} className="border rounded-lg overflow-hidden">
-                {gallery.thumbnailUrl ? (
-                  <img 
-                    src={gallery.thumbnailUrl} 
-                    alt={gallery.title} 
-                    className="w-full h-40 object-cover" 
-                  />
-                ) : (
-                  <div className="w-full h-40 bg-muted flex items-center justify-center">
-                    <Image className="h-12 w-12 text-muted-foreground" />
+              <ContextMenu key={gallery.id}>
+                <ContextMenuTrigger>
+                  <div 
+                    className="border rounded-lg overflow-hidden cursor-pointer"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('application/json', JSON.stringify({
+                        type: 'gallery',
+                        id: gallery.id,
+                        title: gallery.title
+                      }));
+                    }}
+                  >
+                    {gallery.thumbnailUrl ? (
+                      <img 
+                        src={gallery.thumbnailUrl} 
+                        alt={gallery.title} 
+                        className="w-full h-40 object-cover" 
+                      />
+                    ) : (
+                      <div className="w-full h-40 bg-muted flex items-center justify-center">
+                        <Image className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="p-4">
+                      <h3 className="font-semibold">{gallery.title}</h3>
+                      <p className="text-sm text-muted-foreground">{gallery.imageCount || 0} images</p>
+                    </div>
                   </div>
-                )}
-                <div className="p-4">
-                  <h3 className="font-semibold">{gallery.title}</h3>
-                  <p className="text-sm text-muted-foreground">{gallery.imageCount || 0} images</p>
-                </div>
-              </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onSelect={() => window.location.href = `/g/${gallery.slug}`}>
+                    <FolderOpen className="mr-2 h-4 w-4" />
+                    Open
+                  </ContextMenuItem>
+                  <ContextMenuItem onSelect={() => {/* Add share handler */}}>
+                    <Share className="mr-2 h-4 w-4" />
+                    Share
+                  </ContextMenuItem>
+                  <ContextMenuItem onSelect={() => {/* Add rename handler */}}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Rename
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem className="text-red-600" onSelect={() => {/* Add delete handler */}}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             ))}
           </div>
         </ScrollArea>
