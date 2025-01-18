@@ -28,8 +28,8 @@ export function NotificationSystem() {
   const fetchNotifications = async () => {
     try {
       const res = await fetch("/api/notifications");
-      const { data } = await res.json();
-      setNotifications(data || []);
+      const data = await res.json();
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       setNotifications([]);
