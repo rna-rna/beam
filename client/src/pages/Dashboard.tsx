@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
