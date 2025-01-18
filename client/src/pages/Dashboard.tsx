@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import { useAuth } from "@clerk/clerk-react";
@@ -25,7 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent } from "@/components/ui/dialog"; // Added import
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function Dashboard() {
   const { getToken } = useAuth();
@@ -75,19 +76,6 @@ export default function Dashboard() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedGalleries, galleries]);
-    queryFn: async () => {
-      const token = await getToken();
-      const res = await fetch('/api/galleries', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      if (!res.ok) throw new Error('Failed to fetch galleries');
-      return res.json();
-    }
-  });
 
   if (isLoading) {
     return (
@@ -158,7 +146,6 @@ export default function Dashboard() {
                     draggable
                     onClick={(e) => {
                       if (e.shiftKey) {
-                        // For shift+click, select range
                         const lastSelected = selectedGalleries[selectedGalleries.length - 1];
                         const currentIndex = galleries.findIndex(g => g.id === gallery.id);
                         const lastIndex = galleries.findIndex(g => g.id === lastSelected);
@@ -171,7 +158,6 @@ export default function Dashboard() {
                           setSelectedGalleries([gallery.id]);
                         }
                       } else if (!e.metaKey && !e.ctrlKey) {
-                        // Single click without modifier
                         setSelectedGalleries([gallery.id]);
                       }
                     }}
