@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Plus, Search, ChevronDown, Menu, Image, FolderOpen, Share, Pencil, Trash2 } from "lucide-react";
+import { Plus, ChevronDown, Menu, Image, FolderOpen, Share, Pencil, Trash2 } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
