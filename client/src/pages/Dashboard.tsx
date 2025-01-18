@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
@@ -143,7 +142,25 @@ export default function Dashboard() {
                     <FolderOpen className="mr-2 h-4 w-4" />
                     Open
                   </ContextMenuItem>
-                  <ContextMenuItem onSelect={() => {/* Add share handler */}}>
+                  <ContextMenuItem onSelect={() => {
+                    const dialog = document.createElement('dialog');
+                    dialog.innerHTML = `
+                      <div class="fixed inset-0 bg-background/80 backdrop-blur-sm">
+                        <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%]">
+                          <ShareModal 
+                            isOpen={true}
+                            onClose={() => dialog.close()}
+                            galleryUrl={`${window.location.origin}/g/${gallery.slug}`}
+                            slug={gallery.slug}
+                            isPublic={gallery.isPublic}
+                            onVisibilityChange={() => {}}
+                          />
+                        </div>
+                      </div>
+                    `;
+                    document.body.appendChild(dialog);
+                    dialog.showModal();
+                  }}>
                     <Share className="mr-2 h-4 w-4" />
                     Share
                   </ContextMenuItem>
@@ -152,7 +169,23 @@ export default function Dashboard() {
                     Rename
                   </ContextMenuItem>
                   <ContextMenuSeparator />
-                  <ContextMenuItem className="text-red-600" onSelect={() => {/* Add delete handler */}}>
+                  <ContextMenuItem className="text-red-600" onSelect={() => {
+                    const dialog = document.createElement('dialog');
+                    dialog.innerHTML = `
+                      <div class="fixed inset-0 bg-background/80 backdrop-blur-sm">
+                        <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%]">
+                          <DeleteGalleryModal
+                            isOpen={true}
+                            onClose={() => dialog.close()}
+                            gallerySlug={gallery.slug}
+                            galleryTitle={gallery.title}
+                          />
+                        </div>
+                      </div>
+                    `;
+                    document.body.appendChild(dialog);
+                    dialog.showModal();
+                  }}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
                   </ContextMenuItem>
