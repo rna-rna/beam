@@ -1569,7 +1569,9 @@ export default function Gallery({
         >
           <img
             key={`${image.id}-${image._status || "final"}`}
-            src={"localUrl" in image ? image.localUrl : getR2Image(image, 'thumb')}
+            src={
+              "localUrl" in image ? image.localUrl : getR2Image(image, "thumb")
+            }
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
               "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
@@ -2486,26 +2488,6 @@ export default function Gallery({
                         </div>
                       )}
 
-                      {/* Single image with fade transition */}
-                      <img
-                        src={getR2Image(selectedImage, "lightbox")}
-                        alt={selectedImage.originalFilename || ""}
-                        className="image-fade"
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                          pointerEvents: "none",
-                        }}
-                        onLoad={(e) => {
-                          setIsLowResLoading(false);
-                          e.currentTarget.classList.add("loaded");
-                        }}
-                      />
-
                       {/* Final high-res image */}
                       <motion.img
                         src={getR2Image(selectedImage, "lightbox")}
@@ -2523,7 +2505,7 @@ export default function Gallery({
                         }}
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
                         onLoad={(e) => {
                           setIsLowResLoading(false);
                           setIsLoading(false);
