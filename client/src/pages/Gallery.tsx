@@ -1158,7 +1158,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
   // Preload image function
   const preloadImage = useCallback((image: Image, imageId: number) => {
     const img = new Image();
-    img.src = getR2ImageUrl(image);
+    img.src = getR2ImageUrl(image, true);
     img.onload = () => {
       setPreloadedImages((prev) => new Set([...Array.from(prev), imageId]));
     };
@@ -1983,7 +1983,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getR2ImageUrl(images[idx], slug);
+          img.src = getR2ImageUrl(images[idx], true);
         }
       });
     }
@@ -2490,7 +2490,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
 
                     {/* Single image with fade transition */}
                     <img
-                      src={getR2ImageUrl(selectedImage)}
+                      src={getR2ImageUrl(selectedImage, true)}
                       alt={selectedImage.originalFilename || ""}
                       className="image-fade"
                       style={{
