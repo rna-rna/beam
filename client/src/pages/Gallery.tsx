@@ -181,6 +181,24 @@ export default function Gallery({
     console.log("Attempting to subscribe to channel:", channelName);
 
     const channel = pusherClient.subscribe(channelName);
+
+    // Handle real-time events
+    channel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
+      console.log("New image uploaded:", data);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+    });
+
+    channel.bind("image-starred", (data: { imageId: number; isStarred: boolean; userId: string }) => {
+      console.log("Image starred/unstarred:", data);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      queryClient.invalidateQueries([`/api/images/${data.imageId}/stars`]);
+    });
+
+    channel.bind("comment-added", (data: { imageId: number; content: string }) => {
+      console.log("New comment added:", data);
+      queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+    });
     console.log("Channel details:", {
       name: channel.name,
       state: channel.state,
