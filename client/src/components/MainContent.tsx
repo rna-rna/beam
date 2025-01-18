@@ -59,7 +59,10 @@ export function MainContent() {
       const res = await fetch('/api/galleries');
       if (!res.ok) throw new Error('Failed to fetch galleries');
       return res.json();
-    }
+    },
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false
   });
 
   const sortedGalleries = [...(galleries || [])].sort((a, b) => {
@@ -186,12 +189,6 @@ export function MainContent() {
                           ref={dragRef}
                           key={gallery.id}
                           onClick={(e) => {
-                            if (e) {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              e.nativeEvent.preventDefault();
-                              e.nativeEvent.stopPropagation();
-                            }
                             if (!e.shiftKey) {
                               setSelectedGalleries([gallery.id]);
                               setLastSelectedId(gallery.id);
