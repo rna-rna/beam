@@ -1002,7 +1002,7 @@ export default function Gallery({
         };
 
         xhr.open("PUT", signedUrl);
-        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.setRequestHeader("Content-Type",file.type);
 xhr.onload = () => xhr.status === 200 ? resolve() : reject();
         xhr.onerror = () => reject();
         xhr.send(file);
@@ -1983,7 +1983,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getR2ImageUrl(images[idx], true);
+          img.src = getR2ImageUrl(images[idx, true);
         }
       });
     }
@@ -2066,7 +2066,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
             property="og:image"
             content={
               gallery.ogImageUrl
-                ? getR2ImageUrl(gallery.ogImage, slug)
+                ? getR2ImageUrl(gallery.ogImage, true)
                 : `${import.meta.env.VITE_R2_PUBLIC_URL}/default-og.jpg`
             }
           />
