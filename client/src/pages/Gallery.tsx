@@ -1983,7 +1983,7 @@ xhr.onload = () => xhr.status === 200 ? resolve() : reject();
       [nextIndex, prevIndex].forEach((idx) => {
         if (images[idx]?.publicId) {
           const img = new Image();
-          img.src = getR2ImageUrl(images[idx, true);
+          img.src = getR2ImageUrl(images[idx], true);
         }
       });
     }
