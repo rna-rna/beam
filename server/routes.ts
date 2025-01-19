@@ -1807,7 +1807,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       // Create user map for lookups
-      const userMap = new Map(cachedUsers.map(u => [u.userId, u]));
+      const userMap = new Map(cachedUsersData.map(u => [u.userId, u]));
 
       const usersWithDetails = permissions.map(invite => {
         if (invite.userId) {
