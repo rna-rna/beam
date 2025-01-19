@@ -357,7 +357,6 @@ export default function Gallery({
 
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
-  const { user } = useUser();
   const { isDark } = useTheme();
 
   const toggleGridView = () => {
