@@ -161,6 +161,7 @@ const [cursors, setCursors] = useState<{
   y: number;
 }[]>([]);
   const { session } = useClerk();
+  const { user } = useUser();
 
   // Refresh Clerk session if expired
   useEffect(() => {
@@ -190,6 +191,8 @@ const [cursors, setCursors] = useState<{
   // Pusher presence channel subscription
   // Socket.IO connection handlers
   useEffect(() => {
+    if (!user) return;
+
     socket.on('connect', () => {
       console.log('Connected to Socket.IO server:', socket.id);
     });
@@ -199,8 +202,6 @@ const [cursors, setCursors] = useState<{
     });
 
     const handleMouseMove = (event: MouseEvent) => {
-      if (!user) return;
-      
       const cursorData = {
         id: user.id,
         name: user.firstName || user.username || 'Anonymous',
@@ -213,7 +214,7 @@ const [cursors, setCursors] = useState<{
     };
 
     socket.on('cursor-update', (data) => {
-      if (data.id === user?.id) return;
+      if (data.id === user.id) return;
       
       setCursors((prev) => {
         const otherCursors = prev.filter((cursor) => cursor.id !== data.id);
@@ -229,7 +230,7 @@ const [cursors, setCursors] = useState<{
       socket.off('cursor-update');
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [user]);
+  }, [user, socket]);
 
   useEffect(() => {
     if (!slug) return;
