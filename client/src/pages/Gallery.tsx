@@ -201,10 +201,12 @@ const [cursors, setCursors] = useState<{
     if (!user) return;
 
     socket.on('connect', () => {
-      console.log('Connected to Socket.IO:', socket.id, {
+      console.log('Connected to Socket.IO:', {
+        id: socket.id,
         transport: socket.io.engine.transport.name,
-        hostname: window.location.hostname,
-        protocol: window.location.protocol
+        hostname: WS_URL,
+        protocol: window.location.protocol,
+        readyState: socket.connected ? 'CONNECTED' : 'DISCONNECTED'
       });
     });
 
@@ -212,10 +214,12 @@ const [cursors, setCursors] = useState<{
       console.error('Socket.IO connection error:', {
         message: error.message,
         description: error.description,
+        stack: error.stack,
         context: {
           transport: socket.io?.engine?.transport?.name,
           hostname: window.location.hostname,
-          protocol: window.location.protocol
+          protocol: window.location.protocol,
+          readyState: socket.connected ? 'CONNECTED' : 'DISCONNECTED'
         }
       });
     });
