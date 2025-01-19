@@ -66,8 +66,6 @@ export const comments = pgTable('comments', {
   xPosition: doublePrecision('x_position').notNull(),
   yPosition: doublePrecision('y_position').notNull(),
   userId: text('user_id').notNull(),
-  userName: text('user_name').notNull(),
-  userImageUrl: text('user_image_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
 }, (table) => ({

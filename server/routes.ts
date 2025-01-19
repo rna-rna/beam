@@ -1366,8 +1366,6 @@ export function registerRoutes(app: Express): Server {
             xPosition,
             yPosition,
             userId,
-            userName,
-            userImageUrl: userImageUrl || null,
             createdAt: new Date(),
             updatedAt: new Date()
           })
@@ -1581,7 +1579,11 @@ export function registerRoutes(app: Express): Server {
       } else {
         // Add a new star if not starred
         await db.insert(stars)
-          .values({ userId, imageId });
+          .values({
+            userId,
+            imageId,
+            createdAt: new Date()
+          });
       }
 
       // Get all editor users for notifications
