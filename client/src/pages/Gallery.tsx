@@ -226,41 +226,42 @@ export default function Gallery({
     const newChannel = pusherClient.subscribe(channelName);
     setChannel(newChannel);
 
-    // Handle real-time events
+    // Handle real-time events after successful subscription
     newChannel.bind("pusher:subscription_succeeded", () => {
       console.log("Channel details:", {
         name: newChannel.name,
         state: newChannel.state,
         subscribed: newChannel.subscribed,
       });
-    });
 
-    newChannel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
-      console.log("New image uploaded:", data);
-      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-    });
+      // Bind other events only after successful subscription
+      newChannel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
+        console.log("New image uploaded:", data);
+        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      });
 
-    newChannel.bind("image-starred", (data: { imageId: number; isStarred: boolean; userId: string }) => {
-      console.log("Image starred/unstarred:", data);
-      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-      queryClient.invalidateQueries([`/api/images/${data.imageId}/stars`]);
-    });
+      newChannel.bind("image-starred", (data: { imageId: number; isStarred: boolean; userId: string }) => {
+        console.log("Image starred/unstarred:", data);
+        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+        queryClient.invalidateQueries([`/api/images/${data.imageId}/stars`]);
+      });
 
-    newChannel.bind("comment-added", (data: { imageId: number; content: string }) => {
-      console.log("New comment added:", data);
-      queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
-      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-    });
+      newChannel.bind("comment-added", (data: { imageId: number; content: string }) => {
+        console.log("New comment added:", data);
+        queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
+        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      });
 
-    newChannel.bind('client-cursor-update', (data: any) => {
-      if (data.id === user?.id) return;
-      setCursors(prev => ({
-        ...prev,
-        [data.id]: {
-          ...data,
-          timestamp: Date.now()
-        }
-      }));
+      newChannel.bind('client-cursor-update', (data: any) => {
+        if (data.id === user?.id) return;
+        setCursors(prev => ({
+          ...prev,
+          [data.id]: {
+            ...data,
+            timestamp: Date.now()
+          }
+        }));
+      });
     });
 
     newChannel.bind("pusher:subscription_succeeded", (members: any) => {
