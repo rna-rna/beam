@@ -151,6 +151,16 @@ export default function Gallery({
   const [cursors, setCursors] = useState<{ [key: string]: any }>({});
   const [channel, setChannel] = useState<any>(null);
   
+  const { session } = useClerk();
+  
+  // Ensure user is available before using
+  const userInfo = useMemo(() => ({
+    id: user?.id,
+    firstName: user?.firstName,
+    color: user?.publicMetadata?.color,
+    imageUrl: user?.imageUrl
+  }), [user]);
+
   // Throttled cursor update function
   const updateCursorPosition = useCallback(
     throttle((e: MouseEvent) => {
@@ -179,7 +189,6 @@ export default function Gallery({
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [updateCursorPosition, user, channel]);
-  const { session } = useClerk();
 
   // Refresh Clerk session if expired
   useEffect(() => {
