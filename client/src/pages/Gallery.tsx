@@ -5,9 +5,10 @@ import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
 
 // Initialize Socket.IO client
-const socket = io(import.meta.env.PROD ? window.location.origin : window.location.origin, {
+const socket = io(window.location.origin, {
   withCredentials: true,
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  path: '/socket.io'
 });
 import { Card, CardContent } from "@/components/ui/card";
 import {
