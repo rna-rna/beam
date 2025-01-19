@@ -32,7 +32,9 @@ const io = new Server(httpServer, {
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
   },
-  transports: ['websocket']
+  transports: ['websocket'],
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 io.on('connection', (socket) => {
