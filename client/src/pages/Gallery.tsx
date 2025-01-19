@@ -4,14 +4,11 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
 
-// Initialize Socket.IO client
+// Initialize Socket.IO client with simplified config
 const socket = io("/", {
   path: "/socket.io",
   transports: ["websocket"],
-  withCredentials: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-  timeout: 10000
+  withCredentials: true
 });
 import { Card, CardContent } from "@/components/ui/card";
 import {

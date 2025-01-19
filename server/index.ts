@@ -27,14 +27,11 @@ const app = express();
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : true,
+    origin: "*",
     methods: ['GET', 'POST'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
+    credentials: true
   },
   transports: ['websocket'],
-  pingTimeout: 60000,
-  pingInterval: 25000,
   path: '/socket.io'
 });
 
