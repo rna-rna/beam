@@ -149,6 +149,7 @@ export default function Gallery({
   }>({});
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [cursors, setCursors] = useState<{ [key: string]: any }>({});
+  const [channel, setChannel] = useState<any>(null);
   
   // Throttled cursor update function
   const updateCursorPosition = useCallback(
@@ -212,7 +213,8 @@ export default function Gallery({
     const channelName = `presence-gallery-${slug}`;
     console.log("Attempting to subscribe to channel:", channelName);
 
-    const channel = pusherClient.subscribe(channelName);
+    const newChannel = pusherClient.subscribe(channelName);
+    setChannel(newChannel);
 
     // Handle real-time events
     channel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
