@@ -1791,23 +1791,21 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      const permissions = await db.query.invites.findMany({
-        where: eq(invites.galleryId, gallery.id)
-      });
+      // Get all permissions and cached user data in parallel
+      const [permissions, cachedUsers] = await Promise.all([
+        db.query.invites.findMany({
+          where: eq(invites.galleryId, gallery.id)
+        }),
+        db.query.cachedUsers.findMany({
+          where: inArray(cachedUsers.userId, [
+            ...permissions.filter(invite => invite.userId).map(invite => invite.userId as string),
+            gallery.userId
+          ])
+        })
+      ]);
 
-      // Get user details from Clerk for each invite and the owner
-      // Get all user IDs from permissions
-      const userIds = permissions
-        .filter(invite => invite.userId)
-        .map(invite => invite.userId as string);
-
-      // Fetch cached user data in single query
-      const cachedUsers = await db.query.cachedUsers.findMany({
-        where: inArray(cachedUsers.userId, userIds)
-      });
-
-      // Create user map for lookups
-      const userMap = new Map(cachedUsersData.map(u => [u.userId, u]));
+      // Create user map for efficient lookups 
+      const userMap = new Map(cachedUsers.map(u => [u.userId, u]));
 
       const usersWithDetails = permissions.map(invite => {
         if (invite.userId) {
@@ -1911,12 +1909,29 @@ export function registerRoutes(app: Express): Server {
       console.log('Clerk user lookup:', {
         email,
         found: !!matchingUser,
-        userId: matchingUser?.id,
-        primaryEmail: matchingUser?.emailAddresses.find(
-          (e) => e.id === matchingUser.primaryEmailAddressId
-        )?.emailAddress,
-        allEmails: matchingUser?.emailAddresses.map((e) => e.emailAddress)
+        userId: matchingUser?.id
       });
+
+      // Cache user data if found
+      if (matchingUser) {
+        await db.insert(cachedUsers)
+          .values({
+            userId: matchingUser.id,
+            firstName: matchingUser.firstName ?? "",
+            lastName: matchingUser.lastName ?? "",
+            imageUrl: matchingUser.imageUrl ?? "",
+            updatedAt: new Date()
+          })
+          .onConflictDoUpdate({
+            target: [cachedUsers.userId],
+            set: {
+              firstName: matchingUser.firstName ?? "",
+              lastName: matchingUser.lastName ?? "",
+              imageUrl: matchingUser.imageUrl ?? "",
+              updatedAt: new Date()
+            }
+          });
+      }
 
       const user = matchingUser;
 
