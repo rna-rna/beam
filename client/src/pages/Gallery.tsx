@@ -1,6 +1,8 @@
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from "react";
+import { CursorOverlay } from "@/components/CursorOverlay";
+import { throttle } from "@/lib/utils";
 import { getR2Image } from "@/lib/r2";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -146,6 +148,35 @@ export default function Gallery({
     [key: string]: any;
   }>({});
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
+  const [cursors, setCursors] = useState<{ [key: string]: any }>({});
+  
+  // Throttled cursor update function
+  const updateCursorPosition = useCallback(
+    throttle((e: MouseEvent) => {
+      if (!channel) return;
+      
+      channel.trigger('client-cursor-update', {
+        id: user?.id,
+        name: user?.firstName || 'Anonymous',
+        color: user?.publicMetadata?.color || '#000000',
+        x: e.clientX,
+        y: e.clientY
+      });
+    }, 50),
+    [channel, user]
+  );
+
+  // Track cursor movements
+  useLayoutEffect(() => {
+    if (!user) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      updateCursorPosition(e);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [updateCursorPosition, user]);
   const { session } = useClerk();
 
   // Refresh Clerk session if expired
@@ -198,6 +229,17 @@ export default function Gallery({
       console.log("New comment added:", data);
       queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+    });
+
+    channel.bind('client-cursor-update', (data: any) => {
+      if (data.id === user?.id) return;
+      setCursors(prev => ({
+        ...prev,
+        [data.id]: {
+          ...data,
+          timestamp: Date.now()
+        }
+      }));
     });
     console.log("Channel details:", {
       name: channel.name,
@@ -2091,6 +2133,7 @@ export default function Gallery({
           )}
           {...getRootProps()}
         >
+          <CursorOverlay cursors={Object.values(cursors)} />
           <input {...getInputProps()} />
           {isDragActive && !selectMode && (
             <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
