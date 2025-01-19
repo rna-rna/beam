@@ -149,7 +149,6 @@ export default function Gallery({
   }>({});
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [cursors, setCursors] = useState<{ [key: string]: any }>({});
-  const { user } = useUser();
   const [channel, setChannel] = useState<any>(null);
   
   // Throttled cursor update function
@@ -217,38 +216,34 @@ export default function Gallery({
     const newChannel = pusherClient.subscribe(channelName);
     setChannel(newChannel);
 
-    newChannel.bind("pusher:subscription_succeeded", (members: any) => {
-      // Handle real-time events
-      newChannel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
-        console.log("New image uploaded:", data);
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-      });
+    // Handle real-time events
+    channel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
+      console.log("New image uploaded:", data);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+    });
 
-      newChannel.bind("image-starred", (data: { imageId: number; isStarred: boolean; userId: string }) => {
-        console.log("Image starred/unstarred:", data);
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-        queryClient.invalidateQueries([`/api/images/${data.imageId}/stars`]);
-      });
+    channel.bind("image-starred", (data: { imageId: number; isStarred: boolean; userId: string }) => {
+      console.log("Image starred/unstarred:", data);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      queryClient.invalidateQueries([`/api/images/${data.imageId}/stars`]);
+    });
 
-      newChannel.bind("comment-added", (data: { imageId: number; content: string }) => {
-        console.log("New comment added:", data);
-        queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-      });
+    channel.bind("comment-added", (data: { imageId: number; content: string }) => {
+      console.log("New comment added:", data);
+      queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+    });
 
-      newChannel.bind('client-cursor-update', (data: any) => {
-        if (data.id === user?.id) return;
-        setCursors(prev => ({
-          ...prev,
-          [data.id]: {
-            ...data,
-            timestamp: Date.now()
-          }
-        }));
-      });
-
-      const activeMembers: any[] = [];
-      const currentUserId = user?.id;
+    channel.bind('client-cursor-update', (data: any) => {
+      if (data.id === user?.id) return;
+      setCursors(prev => ({
+        ...prev,
+        [data.id]: {
+          ...data,
+          timestamp: Date.now()
+        }
+      }));
+    });
     console.log("Channel details:", {
       name: channel.name,
       state: channel.state,
@@ -361,6 +356,7 @@ export default function Gallery({
 
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
+  const { user } = useUser();
   const { isDark } = useTheme();
 
   const toggleGridView = () => {
@@ -2728,6 +2724,4 @@ export default function Gallery({
       </>
     </UploadProvider>
   );
-}; // Close Gallery function component
-
-export default Gallery;
+}
