@@ -2,6 +2,13 @@ import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getR2Image } from "@/lib/r2";
+import { io } from 'socket.io-client';
+
+// Initialize Socket.IO client
+const socket = io(import.meta.env.PROD ? window.location.origin : 'https://' + import.meta.env.REPLIT_DEV_DOMAIN, {
+  withCredentials: true,
+  transports: ['websocket', 'polling']
+});
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Upload,
@@ -174,6 +181,22 @@ export default function Gallery({
   }, [activeUsers]);
 
   // Pusher presence channel subscription
+  // Socket.IO connection handlers
+  useEffect(() => {
+    socket.on('connect', () => {
+      console.log('Connected to Socket.IO server:', socket.id);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from Socket.IO server');
+    });
+
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+    };
+  }, []);
+
   useEffect(() => {
     if (!slug) return;
 
