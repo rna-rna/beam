@@ -200,11 +200,31 @@ const [cursors, setCursors] = useState<{
     if (!user) return;
 
     socket.on('connect', () => {
-      console.log('Connected to Socket.IO server:', socket.id);
+      console.log('Connected to Socket.IO:', socket.id, {
+        transport: socket.io.engine.transport.name,
+        hostname: window.location.hostname,
+        protocol: window.location.protocol
+      });
     });
 
-    socket.on('disconnect', () => {
-      console.log('Disconnected from Socket.IO server');
+    socket.on('connect_error', (error) => {
+      console.error('Socket.IO connection error:', {
+        message: error.message,
+        description: error.description,
+        context: {
+          transport: socket.io?.engine?.transport?.name,
+          hostname: window.location.hostname,
+          protocol: window.location.protocol
+        }
+      });
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('Disconnected from Socket.IO:', {
+        reason,
+        wasConnected: socket.connected,
+        id: socket.id
+      });
     });
 
     const handleMouseMove = (event: MouseEvent) => {
