@@ -1202,12 +1202,12 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Fetch cached user data in a single query
-      const cachedUsers = await db.query.cachedUsers.findMany({
+      const cachedUsersData = await db.query.cachedUsers.findMany({
         where: inArray(cachedUsers.userId, [...allUserIds])
       });
 
       // Create a map for quick lookups
-      const userMap = new Map(cachedUsers.map(u => [u.userId, u]));
+      const userMap = new Map(cachedUsersData.map(u => [u.userId, u]));
 
       // Map cached data to stars
       const imagesWithUserData = imagesWithStars.map(img => ({
@@ -2001,7 +2001,7 @@ export function registerRoutes(app: Express): Server {
       const existingInvite = await db.query.invites.findFirst({
         where: and(
           eq(invites.galleryId, gallery.id),
-          eq(invites.userId, userId)
+          eq(invtes.userId, userId)
         )
       });
 
