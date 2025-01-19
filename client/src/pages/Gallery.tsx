@@ -5,17 +5,12 @@ import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
 
 // Initialize Socket.IO client
-const WS_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:5000'
-  : `${window.location.protocol}//${window.location.host}`;
-const socket = io(WS_URL, {
-  transports: ['websocket'],
+const socket = io("/", {
+  path: "/socket.io",
+  transports: ["websocket"],
   withCredentials: true,
-  path: '/socket.io',
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
-  secure: window.location.protocol === 'https:',
-  autoConnect: true,
   timeout: 10000
 });
 import { Card, CardContent } from "@/components/ui/card";
