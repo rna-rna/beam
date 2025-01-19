@@ -29,19 +29,38 @@ const io = new Server(httpServer, {
   cors: {
     origin: process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : true,
     methods: ['GET', 'POST'],
-    credentials: true
-  }
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+  },
+  transports: ['websocket'],
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  console.log('User connected:', {
+    socketId: socket.id,
+    headers: socket.handshake.headers,
+    origin: socket.handshake.headers.origin,
+    address: socket.handshake.address,
+    time: new Date().toISOString()
+  });
 
   socket.on('cursor-update', (data) => {
+    console.log('Cursor update:', {
+      socketId: socket.id,
+      userId: data.id,
+      position: { x: data.x, y: data.y }
+    });
     socket.broadcast.emit('cursor-update', data);
   });
 
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+  socket.on('disconnect', (reason) => {
+    console.log('User disconnected:', {
+      socketId: socket.id,
+      reason,
+      time: new Date().toISOString()
+    });
   });
 });
 

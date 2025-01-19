@@ -5,9 +5,18 @@ import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
 
 // Initialize Socket.IO client
-const socket = io(import.meta.env.PROD ? window.location.origin : 'https://' + import.meta.env.REPLIT_DEV_DOMAIN, {
+const WS_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:5000'
+  : `${window.location.protocol}//${window.location.host}`;
+const socket = io(WS_URL, {
+  transports: ['websocket'],
   withCredentials: true,
-  transports: ['websocket', 'polling']
+  path: '/socket.io',
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+  secure: window.location.protocol === 'https:',
+  autoConnect: true,
+  timeout: 10000
 });
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -79,6 +88,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { SignUpModal } from "@/components/SignUpModal";
 import PusherClient from "pusher-js";
 import { nanoid } from "nanoid";
+import { CursorOverlay } from "@/components/CursorOverlay";
 
 // Initialize Pusher client
 const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
@@ -153,7 +163,15 @@ export default function Gallery({
     [key: string]: any;
   }>({});
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
+const [cursors, setCursors] = useState<{
+  id: string;
+  name: string;
+  color: string;
+  x: number;
+  y: number;
+}[]>([]);
   const { session } = useClerk();
+  const { user } = useUser();
 
   // Refresh Clerk session if expired
   useEffect(() => {
@@ -183,19 +201,70 @@ export default function Gallery({
   // Pusher presence channel subscription
   // Socket.IO connection handlers
   useEffect(() => {
+    if (!user) return;
+
     socket.on('connect', () => {
-      console.log('Connected to Socket.IO server:', socket.id);
+      console.log('Connected to Socket.IO:', {
+        id: socket.id,
+        transport: socket.io.engine.transport.name,
+        hostname: WS_URL,
+        protocol: window.location.protocol,
+        readyState: socket.connected ? 'CONNECTED' : 'DISCONNECTED'
+      });
     });
 
-    socket.on('disconnect', () => {
-      console.log('Disconnected from Socket.IO server');
+    socket.on('connect_error', (error) => {
+      console.error('Socket.IO connection error:', {
+        message: error.message,
+        description: error.description,
+        stack: error.stack,
+        context: {
+          transport: socket.io?.engine?.transport?.name,
+          hostname: window.location.hostname,
+          protocol: window.location.protocol,
+          readyState: socket.connected ? 'CONNECTED' : 'DISCONNECTED'
+        }
+      });
     });
+
+    socket.on('disconnect', (reason) => {
+      console.log('Disconnected from Socket.IO:', {
+        reason,
+        wasConnected: socket.connected,
+        id: socket.id
+      });
+    });
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const cursorData = {
+        id: user.id,
+        name: user.firstName || user.username || 'Anonymous',
+        color: '#F24822',
+        x: event.clientX,
+        y: event.clientY,
+      };
+
+      socket.emit('cursor-update', cursorData);
+    };
+
+    socket.on('cursor-update', (data) => {
+      if (data.id === user.id) return;
+
+      setCursors((prev) => {
+        const otherCursors = prev.filter((cursor) => cursor.id !== data.id);
+        return [...otherCursors, data];
+      });
+    });
+
+    window.addEventListener('mousemove', handleMouseMove);
 
     return () => {
       socket.off('connect');
       socket.off('disconnect');
+      socket.off('cursor-update');
+      window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, []);
+  }, [user, socket]);
 
   useEffect(() => {
     if (!slug) return;
@@ -334,7 +403,6 @@ export default function Gallery({
 
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
-  const { user } = useUser();
   const { isDark } = useTheme();
 
   const toggleGridView = () => {
@@ -958,7 +1026,7 @@ export default function Gallery({
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to update visibility. Please try again.",
+description: "Failed to update visibility. Please try again.",
         variant: "destructive",
       });
     },
@@ -2082,6 +2150,7 @@ export default function Gallery({
   return (
     <UploadProvider>
       <>
+        <CursorOverlay cursors={cursors} />
         {gallery && (
           <Helmet>
             <meta
