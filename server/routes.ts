@@ -1304,7 +1304,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const { content, xPosition, yPosition } = req.body;
       const imageId = parseInt(req.params.imageId);
-
+      
       // Early auth check
       if (!req.auth?.userId) {
         return res.status(401).json({
@@ -1544,6 +1544,26 @@ export function registerRoutes(app: Express): Server {
 
       const imageId = parseInt(req.params.imageId);
       const userId = req.auth.userId;
+
+      // Get user from Clerk and cache data
+      const clerkUser = await clerkClient.users.getUser(userId);
+      await db.insert(cachedUsers)
+        .values({
+          userId: clerkUser.id,
+          firstName: clerkUser.firstName ?? "",
+          lastName: clerkUser.lastName ?? "",
+          imageUrl: clerkUser.imageUrl ?? "",
+          updatedAt: new Date()
+        })
+        .onConflictDoUpdate({
+          target: [cachedUsers.userId],
+          set: {
+            firstName: clerkUser.firstName ?? "",
+            lastName: clerkUser.lastName ?? "",
+            imageUrl: clerkUser.imageUrl ?? "",
+            updatedAt: new Date()
+          }
+        });
 
       // Get image and gallery info
       const image = await db.query.images.findFirst({
