@@ -150,10 +150,10 @@ export default function Gallery({
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [cursors, setCursors] = useState<{ [key: string]: any }>({});
   const [channel, setChannel] = useState<any>(null);
-  
+
   const { session } = useClerk();
   const { user } = useUser();
-  
+
   // Ensure user is available before using
   const userInfo = useMemo(() => ({
     id: user?.id,
@@ -166,7 +166,7 @@ export default function Gallery({
   const updateCursorPosition = useCallback(
     throttle((e: MouseEvent) => {
       if (!channel || !userInfo?.id) return;
-      
+
       channel.trigger('client-cursor-update', {
         id: userInfo.id,
         name: userInfo.firstName || 'Anonymous',
@@ -182,7 +182,7 @@ export default function Gallery({
   // Track cursor movements
   useLayoutEffect(() => {
     if (!user || !channel) return;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       updateCursorPosition(e);
     };
@@ -227,6 +227,14 @@ export default function Gallery({
     setChannel(newChannel);
 
     // Handle real-time events
+    newChannel.bind("pusher:subscription_succeeded", () => {
+      console.log("Channel details:", {
+        name: newChannel.name,
+        state: newChannel.state,
+        subscribed: newChannel.subscribed,
+      });
+    });
+
     newChannel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
       console.log("New image uploaded:", data);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
@@ -253,11 +261,6 @@ export default function Gallery({
           timestamp: Date.now()
         }
       }));
-    });
-    console.log("Channel details:", {
-      name: channel.name,
-      state: channel.state,
-      subscribed: channel.subscribed,
     });
 
     channel.bind("pusher:subscription_succeeded", (members: any) => {
