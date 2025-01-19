@@ -157,6 +157,16 @@ export const insertInviteSchema = createInsertSchema(invites);
 export const selectInviteSchema = createSelectSchema(invites);
 
 // Notifications table
+export const cachedUsers = pgTable('cached_users', {
+  userId: text('user_id').primaryKey(),
+  firstName: text('first_name'),
+  lastName: text('last_name'),
+  imageUrl: text('image_url'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+}, (table) => ({
+  updatedAtIdx: index('cached_users_updated_at_idx').on(table.updatedAt)
+}));
+
 export const notifications = pgTable('notifications', {
   id: serial('id').primaryKey(),
   userId: text('user_id').notNull(),
@@ -176,3 +186,5 @@ export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
 export type Invite = typeof invites.$inferSelect;
 export type NewInvite = typeof invites.$inferInsert;
+export type CachedUser = typeof cachedUsers.$inferSelect;
+export type NewCachedUser = typeof cachedUsers.$inferInsert;
