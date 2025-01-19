@@ -154,18 +154,18 @@ export default function Gallery({
   // Throttled cursor update function
   const updateCursorPosition = useCallback(
     throttle((e: MouseEvent) => {
-      if (!channel || !user?.id) return;
+      if (!channel || !userInfo?.id) return;
       
       channel.trigger('client-cursor-update', {
-        id: user.id,
-        name: user.firstName || 'Anonymous',
-        color: user.publicMetadata?.color || '#6366f1',
+        id: userInfo.id,
+        name: userInfo.firstName || 'Anonymous',
+        color: userInfo.color || '#6366f1',
         x: e.clientX,
         y: e.clientY,
         timestamp: Date.now()
       });
     }, 30), // Reduced throttle time for smoother updates
-    [channel, user]
+    [channel, userInfo]
   );
 
   // Track cursor movements
