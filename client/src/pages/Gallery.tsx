@@ -243,8 +243,8 @@ const [cursors, setCursors] = useState<{
     };
 
     socket.on('cursor-update', (data) => {
-      if (data.id === user.id) return;
-
+      console.log("[cursor-update]", "Received from:", data.id, "I'm:", user.id);
+      
       setCursors((prev) => {
         const otherCursors = prev.filter((cursor) => cursor.id !== data.id);
         return [...otherCursors, data];
