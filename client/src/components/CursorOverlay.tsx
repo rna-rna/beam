@@ -7,6 +7,7 @@ interface UserCursor {
   color: string;
   x: number;
   y: number;
+  lastActive: number;
 }
 
 interface CursorOverlayProps {

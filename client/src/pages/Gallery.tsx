@@ -158,13 +158,14 @@ export default function Gallery({
     [key: string]: any;
   }>({});
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
-const [cursors, setCursors] = useState<{
-  id: string;
-  name: string;
-  color: string;
-  x: number;
-  y: number;
-}[]>([]);
+  const [cursors, setCursors] = useState<{
+    id: string;
+    name: string;
+    color: string;
+    x: number;
+    y: number;
+    lastActive: number; // Added lastActive property
+  }[]>([]);
   const { session } = useClerk();
   const { user } = useUser();
 
@@ -244,10 +245,10 @@ const [cursors, setCursors] = useState<{
 
     socket.on('cursor-update', (data) => {
       console.log("[cursor-update]", "Received from:", data.id, "I'm:", user.id);
-      
+
       setCursors((prev) => {
         const otherCursors = prev.filter((cursor) => cursor.id !== data.id);
-        return [...otherCursors, data];
+        return [...otherCursors, { ...data, lastActive: Date.now() }];
       });
     });
 
@@ -260,6 +261,18 @@ const [cursors, setCursors] = useState<{
       window.removeEventListener('mousemove', handleMouseMove);
     };
   }, [user, socket]);
+
+  // Cleanup inactive cursors
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCursors((prev) => {
+        const now = Date.now();
+        return prev.filter((cursor) => (now - cursor.lastActive) < 15000);
+      });
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -1021,7 +1034,7 @@ const [cursors, setCursors] = useState<{
     onError: () => {
       toast({
         title: "Error",
-description: "Failed to update visibility. Please try again.",
+        description: "Failed to update visibility. Please try again.",
         variant: "destructive",
       });
     },
@@ -1971,8 +1984,7 @@ description: "Failed to update visibility. Please try again.",
       };
 
       window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
+      return () => window.removeEventListener("keydown", handleKeyDown);    }
   }, [
     selectedImageIndex,
     gallery?.images?.length,
