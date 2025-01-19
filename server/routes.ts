@@ -986,7 +986,7 @@ export function registerRoutes(app: Express): Server {
 
       if (!gallery) {
         console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({message: 'Gallery not found',
+        return res.status(404).json({message: ''Gallery not found',
           error: 'NOT_FOUND',
           details: 'The gallery you are looking for does not exist or has been removed'
         });
@@ -1304,7 +1304,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const { content, xPosition, yPosition } = req.body;
       const imageId = parseInt(req.params.imageId);
-      
+
       // Early auth check
       if (!req.auth?.userId) {
         return res.status(401).json({
@@ -1464,13 +1464,13 @@ export function registerRoutes(app: Express): Server {
       const userIds = [...new Set(imageComments.map(comment => comment.userId))];
 
       // Fetch cached user data in a single query
-      const cachedUsers = await db.query.cachedUsers.findMany({
+      const cachedUsersData = await db.query.cachedUsers.findMany({
         where: inArray(cachedUsers.userId, userIds)
       });
 
       // Map cached user data to comments
       const commentsWithUsers = imageComments.map(comment => {
-        const cachedUser = cachedUsers.find(u => u.userId === comment.userId);
+        const cachedUser = cachedUsersData.find(u => u.userId === comment.userId);
         return {
           ...comment,
           firstName: cachedUser?.firstName || null,
@@ -1745,13 +1745,13 @@ export function registerRoutes(app: Express): Server {
       const userIds = [...new Set(starData.map(star => star.userId))];
 
       // Fetch cached user data in a single query
-      const cachedUsers = await db.query.cachedUsers.findMany({
+      const cachedUsersData = await db.query.cachedUsers.findMany({
         where: inArray(cachedUsers.userId, userIds)
       });
 
       // Map cached user data to stars
       const starsWithUserData = starData.map(star => {
-        const cachedUser = cachedUsers.find(u => u.userId === star.userId);
+        const cachedUser = cachedUsersData.find(u => u.userId === star.userId);
         return {
           ...star,
           user: {
@@ -2350,7 +2350,7 @@ export function registerRoutes(app: Express): Server {
   protectedRouter.get('/api/notifications', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
-      
+
       const notifications = await db.query.notifications.findMany({
         where: and(
           eq(notifications.userId, userId),
