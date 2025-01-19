@@ -202,7 +202,7 @@ const [cursors, setCursors] = useState<{
       console.log('Connected to Socket.IO:', {
         id: socket.id,
         transport: socket.io.engine.transport.name,
-        hostname: WS_URL,
+        hostname: window.location.host,
         protocol: window.location.protocol,
         readyState: socket.connected ? 'CONNECTED' : 'DISCONNECTED'
       });
