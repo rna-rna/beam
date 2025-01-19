@@ -4,7 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images, comments, stars, folders, galleryFolders, notifications, cachedUsers } from '@db/schema';
+import { galleries, images, comments, stars, folders, galleryFolders, notifications } from '@db/schema';
 import { eq, and, sql, inArray, or, desc } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
@@ -986,8 +986,7 @@ export function registerRoutes(app: Express): Server {
 
       if (!gallery) {
         console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
+        return res.status(404).json({message: 'Gallery not found',
           error: 'NOT_FOUND',
           details: 'The gallery you are looking for does not exist or has been removed'
         });
@@ -1193,35 +1192,36 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Gather all unique user IDs from stars
-      const allUserIds = new Set<string>();
-      for (const img of imagesWithStars) {
-        for (const star of img.stars) {
-          allUserIds.add(star.userId);
-        }
-      }
-
-      // Fetch cached user data in a single query
-      const cachedUsersData = await db.query.cachedUsers.findMany({
-        where: inArray(cachedUsers.userId, [...allUserIds])
-      });
-
-      // Create a map for quick lookups
-      const userMap = new Map(cachedUsersData.map(u => [u.userId, u]));
-
-      // Map cached data to stars
-      const imagesWithUserData = imagesWithStars.map(img => ({
-        ...img,
-        stars: img.stars.map(star => {
-          const cachedUser = userMap.get(star.userId);
+      // Fetch user data for all stars
+      const imagesWithUserData = await Promise.all(
+        imagesWithStars.map(async (img) => {
+          const starsWithUserData = await Promise.all(
+            img.stars.map(async (star) => {
+              try {
+                const user = await clerkClient.users.getUser(star.userId);
+                return {
+                  ...star,
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  imageUrl: user.imageUrl
+                };
+              } catch (error) {
+                console.error(`Failed to fetch user data for userId: ${star.userId}`, error);
+                return {
+                  ...star,
+                  firstName: null,
+                  lastName: null,
+                  imageUrl: null
+                };
+              }
+            })
+          );
           return {
-            ...star,
-            firstName: cachedUser?.firstName ?? null,
-            lastName: cachedUser?.lastName ?? null,
-            imageUrl: cachedUser?.imageUrl ?? null
+            ...img,
+            stars: starsWithUserData
           };
         })
-      }));
+      );
 
       const commentCounts = await Promise.all(
         imagesWithStars.map(async (img) => {
@@ -1366,6 +1366,8 @@ export function registerRoutes(app: Express): Server {
             xPosition,
             yPosition,
             userId,
+            userName,
+            userImageUrl: userImageUrl || null,
             createdAt: new Date(),
             updatedAt: new Date()
           })
@@ -1378,30 +1380,6 @@ export function registerRoutes(app: Express): Server {
             commentCount: sql`COALESCE(${images.commentCount}, 0) + 1`
           })
           .where(eq(images.id, imageId));
-
-        // Get all editor users for notifications
-        const editorUserIds = await getEditorUserIds(image.gallery.id);
-
-        // Create notifications for all editors except the actor
-        await Promise.all(
-          editorUserIds
-            .filter(editorId => editorId !== userId)
-            .map((editorId) => 
-              db.insert(notifications).values({
-                userId: editorId,
-                type: 'comment-added',
-                data: {
-                  imageId: comment.imageId,
-                  content: comment.content,
-                  actorId: userId,
-                  galleryId: image.gallery.id
-                },
-                groupId: nanoid(),
-                isSeen: false,
-                createdAt: new Date()
-              })
-            )
-        );
 
         // Emit real-time event via Pusher
         pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'comment-added', {
@@ -1460,26 +1438,7 @@ export function registerRoutes(app: Express): Server {
         orderBy: (comments, { asc }) => [asc(comments.createdAt)]
       });
 
-      // Get unique user IDs from comments
-      const userIds = [...new Set(imageComments.map(comment => comment.userId))];
-
-      // Fetch cached user data in a single query
-      const cachedUsersData = await db.query.cachedUsers.findMany({
-        where: inArray(cachedUsers.userId, userIds)
-      });
-
-      // Map cached user data to comments
-      const commentsWithUsers = imageComments.map(comment => {
-        const cachedUser = cachedUsersData.find(u => u.userId === comment.userId);
-        return {
-          ...comment,
-          firstName: cachedUser?.firstName || null,
-          lastName: cachedUser?.lastName || null,
-          imageUrl: cachedUser?.imageUrl || null
-        };
-      });
-
-      res.json(commentsWithUsers);
+      res.json(imageComments);
     } catch (error) {
       console.error('Error fetching comments:', error);
       res.status(500).json({
@@ -1564,26 +1523,6 @@ export function registerRoutes(app: Express): Server {
       const imageId = parseInt(req.params.imageId);
       const userId = req.auth.userId;
 
-      // Get user from Clerk and cache data
-      const clerkUser = await clerkClient.users.getUser(userId);
-      await db.insert(cachedUsers)
-        .values({
-          userId: clerkUser.id,
-          firstName: clerkUser.firstName ?? "",
-          lastName: clerkUser.lastName ?? "",
-          imageUrl: clerkUser.imageUrl ?? "",
-          updatedAt: new Date()
-        })
-        .onConflictDoUpdate({
-          target: [cachedUsers.userId],
-          set: {
-            firstName: clerkUser.firstName ?? "",
-            lastName: clerkUser.lastName ?? "",
-            imageUrl: clerkUser.imageUrl ?? "",
-            updatedAt: new Date()
-          }
-        });
-
       // Get image and gallery info
       const image = await db.query.images.findFirst({
         where: eq(images.id, imageId),
@@ -1618,11 +1557,7 @@ export function registerRoutes(app: Express): Server {
       } else {
         // Add a new star if not starred
         await db.insert(stars)
-          .values({
-            userId,
-            imageId,
-            createdAt: new Date()
-          });
+          .values({ userId, imageId });
       }
 
       // Get all editor users for notifications
@@ -1741,26 +1676,32 @@ export function registerRoutes(app: Express): Server {
 
       const userStarred = userId ? starData.some(star => star.userId === userId) : false;
 
-      // Get unique user IDs
-      const userIds = [...new Set(starData.map(star => star.userId))];
-
-      // Fetch cached user data in a single query
-      const cachedUsersData = await db.query.cachedUsers.findMany({
-        where: inArray(cachedUsers.userId, userIds)
-      });
-
-      // Map cached user data to stars
-      const starsWithUserData = starData.map(star => {
-        const cachedUser = cachedUsersData.find(u => u.userId === star.userId);
-        return {
-          ...star,
-          user: {
-            firstName: cachedUser?.firstName || null,
-            lastName: cachedUser?.lastName || null,
-            imageUrl: cachedUser?.imageUrl || null
+      // Fetch user data from Clerk for each star
+      const starsWithUserData = await Promise.all(
+        starData.map(async (star) => {
+          try {
+            const user = await clerkClient.users.getUser(star.userId);
+            return {
+              ...star,
+              user: {
+                firstName: user.firstName,
+                lastName: user.lastName,
+                imageUrl: user.imageUrl
+              }
+            };
+          } catch (error) {
+            console.error(`Failed to fetch user data for userId: ${star.userId}`, error);
+            return {
+              ...star,
+              user: {
+                firstName: null,
+                lastName: null,
+                imageUrl: null
+              }
+            };
           }
-        };
-      });
+        })
+      );
 
       res.json({
         success: true,
@@ -1791,41 +1732,36 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Get all permissions and cached user data in parallel
-      const [permissions, cachedUsers] = await Promise.all([
-        db.query.invites.findMany({
-          where: eq(invites.galleryId, gallery.id)
-        }),
-        db.query.cachedUsers.findMany({
-          where: inArray(cachedUsers.userId, [
-            ...permissions.filter(invite => invite.userId).map(invite => invite.userId as string),
-            gallery.userId
-          ])
-        })
-      ]);
+      const permissions = await db.query.invites.findMany({
+        where: eq(invites.galleryId, gallery.id)
+      });
 
-      // Create user map for efficient lookups 
-      const userMap = new Map(cachedUsers.map(u => [u.userId, u]));
-
-      const usersWithDetails = permissions.map(invite => {
-        if (invite.userId) {
-          const cachedUser = userMap.get(invite.userId);
+      // Get user details from Clerk for each invite and the owner
+      const usersWithDetails = await Promise.all(
+        permissions.map(async (invite) => {
+          if (invite.userId) {
+            try {
+              const user = await clerkClient.users.getUser(invite.userId);
+              return {
+                id: invite.id,
+                email: invite.email,
+                fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+                role: invite.role,
+                avatarUrl: user.imageUrl
+              };
+            } catch (error) {
+              console.error('Failed to fetch user details:', error);
+            }
+          }
           return {
             id: invite.id,
             email: invite.email,
-            fullName: cachedUser ? `${cachedUser.firstName || ''} ${cachedUser.lastName || ''}`.trim() : null,
+            fullName: null,
             role: invite.role,
-            avatarUrl: cachedUser?.imageUrl || null
+            avatarUrl: null
           };
-        }
-        return {
-          id: invite.id,
-          email: invite.email,
-          fullName: null,
-          role: invite.role,
-          avatarUrl: null
-        };
-      });
+        })
+      );
 
       // Add owner with Editor role if not already in permissions
       if (gallery.userId !== 'guest') {
@@ -1909,29 +1845,12 @@ export function registerRoutes(app: Express): Server {
       console.log('Clerk user lookup:', {
         email,
         found: !!matchingUser,
-        userId: matchingUser?.id
+        userId: matchingUser?.id,
+        primaryEmail: matchingUser?.emailAddresses.find(
+          (e) => e.id === matchingUser.primaryEmailAddressId
+        )?.emailAddress,
+        allEmails: matchingUser?.emailAddresses.map((e) => e.emailAddress)
       });
-
-      // Cache user data if found
-      if (matchingUser) {
-        await db.insert(cachedUsers)
-          .values({
-            userId: matchingUser.id,
-            firstName: matchingUser.firstName ?? "",
-            lastName: matchingUser.lastName ?? "",
-            imageUrl: matchingUser.imageUrl ?? "",
-            updatedAt: new Date()
-          })
-          .onConflictDoUpdate({
-            target: [cachedUsers.userId],
-            set: {
-              firstName: matchingUser.firstName ?? "",
-              lastName: matchingUser.lastName ?? "",
-              imageUrl: matchingUser.imageUrl ?? "",
-              updatedAt: new Date()
-            }
-          });
-      }
 
       const user = matchingUser;
 
@@ -2016,7 +1935,7 @@ export function registerRoutes(app: Express): Server {
       const existingInvite = await db.query.invites.findFirst({
         where: and(
           eq(invites.galleryId, gallery.id),
-          eq(invtes.userId, userId)
+          eq(invites.userId, userId)
         )
       });
 
@@ -2372,7 +2291,7 @@ export function registerRoutes(app: Express): Server {
   protectedRouter.get('/api/notifications', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
-
+      
       const notifications = await db.query.notifications.findMany({
         where: and(
           eq(notifications.userId, userId),
