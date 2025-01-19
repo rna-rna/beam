@@ -181,6 +181,24 @@ export default function Gallery({
     console.log("Attempting to subscribe to channel:", channelName);
 
     const channel = pusherClient.subscribe(channelName);
+
+    // Handle real-time events
+    channel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
+      console.log("New image uploaded:", data);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+    });
+
+    channel.bind("image-starred", (data: { imageId: number; isStarred: boolean; userId: string }) => {
+      console.log("Image starred/unstarred:", data);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      queryClient.invalidateQueries([`/api/images/${data.imageId}/stars`]);
+    });
+
+    channel.bind("comment-added", (data: { imageId: number; content: string }) => {
+      console.log("New comment added:", data);
+      queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+    });
     console.log("Channel details:", {
       name: channel.name,
       state: channel.state,
@@ -1569,7 +1587,9 @@ export default function Gallery({
         >
           <img
             key={`${image.id}-${image._status || "final"}`}
-            src={"localUrl" in image ? image.localUrl : getR2Image(image, 'thumb')}
+            src={
+              "localUrl" in image ? image.localUrl : getR2Image(image, "thumb")
+            }
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
               "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
@@ -2486,26 +2506,6 @@ export default function Gallery({
                         </div>
                       )}
 
-                      {/* Single image with fade transition */}
-                      <img
-                        src={getR2Image(selectedImage, "lightbox")}
-                        alt={selectedImage.originalFilename || ""}
-                        className="image-fade"
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                          pointerEvents: "none",
-                        }}
-                        onLoad={(e) => {
-                          setIsLowResLoading(false);
-                          e.currentTarget.classList.add("loaded");
-                        }}
-                      />
-
                       {/* Final high-res image */}
                       <motion.img
                         src={getR2Image(selectedImage, "lightbox")}
@@ -2519,12 +2519,11 @@ export default function Gallery({
                           width: "100%",
                           height: "100%",
                           objectFit: "contain",
-                          opacity: isLowResLoading ? 0 : 1,
-                          transition: "opacity 0.3s ease",
+                          visibility: isLowResLoading ? "hidden" : "visible",
                         }}
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
                         onLoad={(e) => {
                           setIsLowResLoading(false);
                           setIsLoading(false);

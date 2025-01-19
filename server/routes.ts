@@ -4,15 +4,17 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images, comments, stars, folders, galleryFolders } from '@db/schema';
+import { galleries, images, comments, stars, folders, galleryFolders, notifications } from '@db/schema';
 import { eq, and, sql, inArray, or, desc } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
+import { getEditorUserIds } from './utils';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { invites } from '@db/schema';
 import { nanoid } from 'nanoid';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from 'sharp';
+import { pusher } from './pusherConfig';
 
 // Replace with your actual bucket name and endpoint
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
@@ -712,6 +714,37 @@ export function registerRoutes(app: Express): Server {
             })
             .returning();
 
+            // Get all editor users for notifications
+            const editorUserIds = await getEditorUserIds(gallery.id);
+
+            // Create notifications for all editors except the actor
+            await Promise.all(
+              editorUserIds
+                .filter(editorId => editorId !== req.auth?.userId)
+                .map((editorId) =>
+                  db.insert(notifications).values({
+                    userId: editorId,
+                    type: 'image-uploaded',
+                    data: {
+                      imageId: image.id,
+                      url: publicUrl,
+                      actorId: req.auth?.userId,
+                      galleryId: gallery.id
+                    },
+                    isSeen: false,
+                    createdAt: new Date()
+                  })
+                )
+            );
+
+            // Emit real-time event via Pusher
+            pusher.trigger(`presence-gallery-${gallery.slug}`, 'image-uploaded', {
+              imageId: image.id,
+              url: publicUrl,
+              userId: req.auth?.userId,
+              timestamp: new Date().toISOString()
+            });
+
           console.log('[Generated presigned URL]', {
             batchId,
             fileName: file.name,
@@ -953,8 +986,7 @@ export function registerRoutes(app: Express): Server {
 
       if (!gallery) {
         console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
+        return res.status(404).json({message: 'Gallery not found',
           error: 'NOT_FOUND',
           details: 'The gallery you are looking for does not exist or has been removed'
         });
@@ -1349,6 +1381,19 @@ export function registerRoutes(app: Express): Server {
           })
           .where(eq(images.id, imageId));
 
+        // Emit real-time event via Pusher
+        pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'comment-added', {
+          imageId: comment.imageId,
+          content: comment.content,
+          userId: comment.userId,
+          userName: comment.userName,
+          userImageUrl: comment.userImageUrl,
+          xPosition: comment.xPosition,
+          yPosition: comment.yPosition,
+          createdAt: comment.createdAt,
+          timestamp: new Date().toISOString()
+        });
+
         console.log('Debug - Comment created successfully:', {
           commentId: comment.id,
           userId,
@@ -1478,6 +1523,21 @@ export function registerRoutes(app: Express): Server {
       const imageId = parseInt(req.params.imageId);
       const userId = req.auth.userId;
 
+      // Get image and gallery info
+      const image = await db.query.images.findFirst({
+        where: eq(images.id, imageId),
+        with: {
+          gallery: true
+        }
+      });
+
+      if (!image || !image.gallery) {
+        return res.status(404).json({
+          success: false,
+          message: 'Image not found'
+        });
+      }
+
       // Check if the user already starred this image
       const existingStar = await db.query.stars.findFirst({
         where: and(
@@ -1486,6 +1546,7 @@ export function registerRoutes(app: Express): Server {
         )
       });
 
+      const isStarred = !!existingStar;
       if (existingStar) {
         // Remove the star if it exists
         await db.delete(stars)
@@ -1493,23 +1554,74 @@ export function registerRoutes(app: Express): Server {
             eq(stars.userId, userId),
             eq(stars.imageId, imageId)
           ));
-        return res.json({
-          success: true,
-          message: "Star removed",
-          isStarred: false
-        });
+      } else {
+        // Add a new star if not starred
+        await db.insert(stars)
+          .values({ userId, imageId });
       }
 
-      // Add a new star if not starred
-      const [star] = await db.insert(stars)
-        .values({ userId, imageId })
-        .returning();
+      // Get all editor users for notifications
+      const editorUserIds = await getEditorUserIds(image.gallery.id);
+
+      // Create or update notifications for all editors except the actor
+      await Promise.all(
+        editorUserIds
+          .filter(editorId => editorId !== userId)
+          .map(async (editorId) => {
+            const existingNotification = await db.query.notifications.findFirst({
+              where: and(
+                eq(notifications.type, 'image-starred'),
+                eq(notifications.userId, editorId),
+                sql`${notifications.data}->>'imageId' = ${imageId}::text`,
+                sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
+              )
+            });
+
+            if (existingNotification) {
+              // Update timestamp for existing notification
+              await db.update(notifications)
+                .set({ 
+                  createdAt: new Date(),
+                  data: {
+                    imageId,
+                    isStarred: !isStarred,
+                    actorId: userId,
+                    galleryId: image.gallery.id
+                  }
+                })
+                .where(eq(notifications.id, existingNotification.id));
+            } else {
+              // Create a new notification with a new group_id
+              const groupId = nanoid();
+              await db.insert(notifications).values({
+                userId: editorId,
+                type: 'image-starred',
+                data: {
+                  imageId,
+                  isStarred: !isStarred,
+                  actorId: userId,
+                  galleryId: image.gallery.id
+                },
+                groupId,
+                isSeen: false,
+                createdAt: new Date()
+              });
+            }
+          })
+      );
+
+      // Emit real-time event via Pusher
+      pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'image-starred', {
+        imageId,
+        isStarred: !isStarred,
+        userId,
+        timestamp: new Date().toISOString()
+      });
 
       res.json({
         success: true,
-        data: star,
-        message: "Star added",
-        isStarred: true
+        message: isStarred ? "Star removed" : "Star added",
+        isStarred: !isStarred
       });
     } catch (error) {
       console.error('Error starring image:', error);
@@ -1946,7 +2058,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (signedUrl.includes(`${R2_BUCKET_NAME}/${R2_BUCKET_NAME}`)) {
-        console.warn('Double bucket name detected in signed URL:', signedUrl);
+        console.warn('Double bucket name detected insigned URL:', signedUrl);
       }
 
       console.log('URL Validation:', {
@@ -2172,6 +2284,58 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to move gallery:', error);
       res.status(500).json({ message: 'Failed to move gallery' });
+    }
+  });
+
+  // Get grouped notifications
+  protectedRouter.get('/api/notifications', async (req: any, res) => {
+    try {
+      const userId = req.auth.userId;
+      
+      const notifications = await db.query.notifications.findMany({
+        where: and(
+          eq(notifications.userId, userId),
+          eq(notifications.isSeen, false)
+        ),
+        orderBy: [desc(notifications.createdAt)],
+      });
+
+      // Group notifications by groupId, type and similar data
+      const grouped = notifications.reduce((acc: any[], notification) => {
+        const existingGroup = acc.find(group => 
+          group.groupId === notification.groupId && 
+          group.type === notification.type &&
+          JSON.stringify(group.data) === JSON.stringify(notification.data)
+        );
+
+        if (existingGroup) {
+          existingGroup.count++;
+          if (notification.createdAt > existingGroup.latestTime) {
+            existingGroup.latestTime = notification.createdAt;
+          }
+        } else {
+          acc.push({
+            groupId: notification.groupId,
+            type: notification.type,
+            data: notification.data,
+            count: 1,
+            latestTime: notification.createdAt
+          });
+        }
+        return acc;
+      }, []);
+
+      // Sort by latest time
+      grouped.sort((a, b) => b.latestTime.getTime() - a.latestTime.getTime());
+
+      res.json(grouped);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch notifications',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
