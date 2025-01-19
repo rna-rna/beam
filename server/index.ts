@@ -29,8 +29,10 @@ const io = new Server(httpServer, {
   cors: {
     origin: process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : true,
     methods: ['GET', 'POST'],
-    credentials: true
-  }
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+  },
+  transports: ['websocket']
 });
 
 io.on('connection', (socket) => {

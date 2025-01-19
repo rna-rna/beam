@@ -6,9 +6,10 @@ import { io } from 'socket.io-client';
 
 // Initialize Socket.IO client
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const socket = io(`${window.location.protocol}//${window.location.host}`, {
+const WS_URL = window.location.origin;
+const socket = io(WS_URL, {
+  transports: ['websocket'],
   withCredentials: true,
-  transports: ['websocket', 'polling'],
   path: '/socket.io',
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
