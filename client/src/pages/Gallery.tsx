@@ -227,24 +227,24 @@ export default function Gallery({
     setChannel(newChannel);
 
     // Handle real-time events
-    channel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
+    newChannel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
       console.log("New image uploaded:", data);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
     });
 
-    channel.bind("image-starred", (data: { imageId: number; isStarred: boolean; userId: string }) => {
+    newChannel.bind("image-starred", (data: { imageId: number; isStarred: boolean; userId: string }) => {
       console.log("Image starred/unstarred:", data);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
       queryClient.invalidateQueries([`/api/images/${data.imageId}/stars`]);
     });
 
-    channel.bind("comment-added", (data: { imageId: number; content: string }) => {
+    newChannel.bind("comment-added", (data: { imageId: number; content: string }) => {
       console.log("New comment added:", data);
       queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
     });
 
-    channel.bind('client-cursor-update', (data: any) => {
+    newChannel.bind('client-cursor-update', (data: any) => {
       if (data.id === user?.id) return;
       setCursors(prev => ({
         ...prev,
