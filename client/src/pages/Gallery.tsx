@@ -153,22 +153,23 @@ export default function Gallery({
   // Throttled cursor update function
   const updateCursorPosition = useCallback(
     throttle((e: MouseEvent) => {
-      if (!channel) return;
+      if (!channel || !user?.id) return;
       
       channel.trigger('client-cursor-update', {
-        id: user?.id,
-        name: user?.firstName || 'Anonymous',
-        color: user?.publicMetadata?.color || '#000000',
+        id: user.id,
+        name: user.firstName || 'Anonymous',
+        color: user.publicMetadata?.color || '#6366f1',
         x: e.clientX,
-        y: e.clientY
+        y: e.clientY,
+        timestamp: Date.now()
       });
-    }, 50),
+    }, 30), // Reduced throttle time for smoother updates
     [channel, user]
   );
 
   // Track cursor movements
   useLayoutEffect(() => {
-    if (!user) return;
+    if (!user || !channel) return;
     
     const handleMouseMove = (e: MouseEvent) => {
       updateCursorPosition(e);
@@ -176,7 +177,7 @@ export default function Gallery({
 
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [updateCursorPosition, user]);
+  }, [updateCursorPosition, user, channel]);
   const { session } = useClerk();
 
   // Refresh Clerk session if expired
