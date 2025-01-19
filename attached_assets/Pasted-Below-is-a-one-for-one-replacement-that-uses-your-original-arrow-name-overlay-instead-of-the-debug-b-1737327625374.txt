@@ -1,0 +1,96 @@
+Below is a one-for-one replacement that uses your original arrow/name overlay instead of the debug blue box—but keeps the same positioning logic you just tested with the debug rectangle. In other words, it’ll behave exactly like the blue box version (i.e., same x, y, same spring animation), but show your arrow and name overlay again.
+
+CursorOverlay.tsx (Restored Arrow + Name, Same Positioning)
+tsx
+Copy
+import { motion } from "framer-motion";
+
+interface UserCursor {
+  id: string;
+  name: string;
+  color: string;
+  x: number;
+  y: number;
+}
+
+interface CursorOverlayProps {
+  cursors: UserCursor[];
+}
+
+export function CursorOverlay({ cursors }: CursorOverlayProps) {
+  console.log("[CursorOverlay] cursors prop:", cursors);
+
+  return (
+    <div
+      className="fixed inset-0 pointer-events-none"
+      style={{ zIndex: 99999 }} // keep a high z-index so it appears on top
+    >
+      {cursors.map((user) => {
+        console.log(
+          "[CursorOverlay] Drawing user:",
+          user.id,
+          "x:",
+          user.x,
+          "y:",
+          user.y
+        );
+        return (
+          <motion.div
+            key={user.id}
+            className="absolute"
+            // position the arrow/name at (x, y)
+            initial={{ x: user.x, y: user.y }}
+            animate={{ x: user.x, y: user.y }}
+            transition={{ type: "spring", damping: 20, stiffness: 400 }}
+          >
+            <div className="flex flex-col items-start">
+              <div className="relative">
+                {/* The arrow shape */}
+                <svg
+                  width="24"
+                  height="36"
+                  viewBox="0 0 24 36"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="drop-shadow-md"
+                >
+                  <path
+                    d="M5.65376 12.3673H5.46026L5.31717 12.4976L0.500002 16.8829L0.500002 1.19841L11.7841 12.3673H5.65376Z"
+                    fill={user.color}
+                    stroke="white"
+                  />
+                </svg>
+
+                {/* The name label – pinned below/around the arrow */}
+                <div
+                  className="absolute top-[80%] left-0 flex items-center space-x-2
+                             rounded-full pl-1.5 pr-2.5 py-1 text-xs font-medium shadow-sm
+                             whitespace-nowrap"
+                  style={{
+                    backgroundColor: user.color,
+                    color: "#FFFFFF",
+                  }}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center">
+                    <span
+                      className="text-[10px]"
+                      style={{ color: user.color }}
+                    >
+                      {user.name[0].toUpperCase()}
+                    </span>
+                  </div>
+                  <span>{user.name}</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+Notes
+Exact Same Positioning & Animation
+We’re using the same initial={{ x: user.x, y: user.y }} / animate={{ x: user.x, y: user.y }} as you did with the debug box. That means it should appear in the exact place the blue test square did.
+High z-index
+The parent <div> has style={{ zIndex: 99999 }} so it stays on top of other elements.
