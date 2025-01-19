@@ -5,6 +5,8 @@ import './cleanup-deleted';
 import { setupVite, serveStatic, log } from "./vite";
 import pusherAuthRouter from "./routes/pusherAuth";
 import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
+import { Server } from 'socket.io';
+import http from 'http';
 
 // Validate environment variables
 if (!process.env.CLERK_SECRET_KEY) {
@@ -22,6 +24,26 @@ console.log('Environment Variables:', {
 });
 
 const app = express();
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : true,
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  socket.on('cursor-update', (data) => {
+    socket.broadcast.emit('cursor-update', data);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
 
 // Enable CORS with comprehensive options
 app.use(cors({
@@ -104,7 +126,7 @@ app.use((req, res, next) => {
   }
 
   const PORT = 5000;
-  server.listen(PORT, "0.0.0.0", () => {
-    log(`serving on port ${PORT}`);
+  httpServer.listen(PORT, "0.0.0.0", () => {
+    log(`Server running on port ${PORT}`);
   });
 })();
