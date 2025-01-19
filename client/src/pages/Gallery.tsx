@@ -79,6 +79,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { SignUpModal } from "@/components/SignUpModal";
 import PusherClient from "pusher-js";
 import { nanoid } from "nanoid";
+import { CursorOverlay } from "@/components/CursorOverlay";
 
 // Initialize Pusher client
 const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
@@ -215,7 +216,7 @@ const [cursors, setCursors] = useState<{
 
     socket.on('cursor-update', (data) => {
       if (data.id === user.id) return;
-      
+
       setCursors((prev) => {
         const otherCursors = prev.filter((cursor) => cursor.id !== data.id);
         return [...otherCursors, data];
@@ -992,7 +993,7 @@ const [cursors, setCursors] = useState<{
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to update visibility. Please try again.",
+description: "Failed to update visibility. Please try again.",
         variant: "destructive",
       });
     },
