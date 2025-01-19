@@ -2728,4 +2728,6 @@ export default function Gallery({
       </>
     </UploadProvider>
   );
-}
+};
+
+export default Gallery;
