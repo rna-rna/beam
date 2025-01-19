@@ -738,7 +738,7 @@ export function registerRoutes(app: Express): Server {
             );
 
             // Emit real-time event via Pusher
-            pusher.trigger(`gallery-${gallery.slug}`, 'image-uploaded', {
+            pusher.trigger(`presence-gallery-${gallery.slug}`, 'image-uploaded', {
               imageId: image.id,
               url: publicUrl,
               userId: req.auth?.userId,
@@ -1598,7 +1598,7 @@ export function registerRoutes(app: Express): Server {
       );
 
       // Emit real-time event via Pusher
-      pusher.trigger(`gallery-${image.gallery.slug}`, 'image-starred', {
+      pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'image-starred', {
         imageId,
         isStarred: !isStarred,
         userId,
