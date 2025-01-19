@@ -367,14 +367,6 @@ export default function Gallery({
   const { getToken } = useAuth();
   const { user } = useUser();
   const { isDark } = useTheme();
-  
-  // Ensure user is available before using
-  const userInfo = useMemo(() => ({
-    id: user?.id,
-    firstName: user?.firstName,
-    color: user?.publicMetadata?.color,
-    imageUrl: user?.imageUrl
-  }), [user]);
 
   const toggleGridView = () => {
     setIsMasonry(!isMasonry);
