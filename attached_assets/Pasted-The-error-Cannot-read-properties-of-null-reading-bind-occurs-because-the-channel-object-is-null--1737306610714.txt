@@ -1,0 +1,72 @@
+The error Cannot read properties of null (reading 'bind') occurs because the channel object is null or undefined when trying to call the bind method on it. This typically happens when the Pusher subscription fails or is not properly initialized.
+
+Here’s how to troubleshoot and fix this issue:
+
+1. Verify Pusher Subscription
+Ensure that the channel object is properly initialized before using it. Add a check for null or undefined:
+
+tsx
+Copy
+Edit
+if (!channel) {
+  console.error("Pusher channel is not initialized.");
+  return;
+}
+2. Check Pusher Client Initialization
+Verify that the Pusher client is properly instantiated and the subscribe method is called successfully:
+
+tsx
+Copy
+Edit
+const pusherClient = new Pusher(import.meta.env.VITE_PUSHER_KEY, {
+  cluster: import.meta.env.VITE_PUSHER_CLUSTER,
+  authEndpoint: '/pusher/auth',
+  forceTLS: true,
+});
+
+const channel = pusherClient.subscribe(`presence-gallery-${slug}`);
+If channel is null, confirm the following:
+
+Environment Variables: Ensure VITE_PUSHER_KEY and VITE_PUSHER_CLUSTER are correctly set.
+Subscription Name: Ensure the channel name (presence-gallery-${slug}) is correct.
+Auth Endpoint: Confirm the authEndpoint is reachable and correctly implemented on the backend.
+3. Add Defensive Programming
+Prevent further execution if the channel object is invalid:
+
+tsx
+Copy
+Edit
+useEffect(() => {
+  if (!channel) {
+    console.error("Pusher channel initialization failed.");
+    return;
+  }
+
+  channel.bind("pusher:subscription_error", (status) => {
+    console.error("Subscription error:", status);
+  });
+
+  return () => {
+    channel.unbind("pusher:subscription_error");
+    channel.unsubscribe();
+  };
+}, [channel]);
+4. Debug Pusher Initialization
+Add logging to verify that the channel object is properly created:
+
+tsx
+Copy
+Edit
+console.log("Pusher Channel:", channel);
+5. Handle Pusher Subscription Errors
+Handle potential subscription errors gracefully:
+
+tsx
+Copy
+Edit
+channel.bind("pusher:subscription_error", (status) => {
+  console.error("Subscription error:", {
+    status,
+    channel: channel.name,
+  });
+});
