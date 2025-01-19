@@ -986,7 +986,8 @@ export function registerRoutes(app: Express): Server {
 
       if (!gallery) {
         console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({message: ''Gallery not found',
+        return res.status(404).json({
+          message: 'Gallery not found',
           error: 'NOT_FOUND',
           details: 'The gallery you are looking for does not exist or has been removed'
         });
