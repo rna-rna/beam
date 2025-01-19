@@ -1460,7 +1460,26 @@ export function registerRoutes(app: Express): Server {
         orderBy: (comments, { asc }) => [asc(comments.createdAt)]
       });
 
-      res.json(imageComments);
+      // Get unique user IDs from comments
+      const userIds = [...new Set(imageComments.map(comment => comment.userId))];
+
+      // Fetch cached user data in a single query
+      const cachedUsers = await db.query.cachedUsers.findMany({
+        where: inArray(cachedUsers.userId, userIds)
+      });
+
+      // Map cached user data to comments
+      const commentsWithUsers = imageComments.map(comment => {
+        const cachedUser = cachedUsers.find(u => u.userId === comment.userId);
+        return {
+          ...comment,
+          firstName: cachedUser?.firstName || null,
+          lastName: cachedUser?.lastName || null,
+          imageUrl: cachedUser?.imageUrl || null
+        };
+      });
+
+      res.json(commentsWithUsers);
     } catch (error) {
       console.error('Error fetching comments:', error);
       res.status(500).json({
@@ -1722,32 +1741,26 @@ export function registerRoutes(app: Express): Server {
 
       const userStarred = userId ? starData.some(star => star.userId === userId) : false;
 
-      // Fetch user data from Clerk for each star
-      const starsWithUserData = await Promise.all(
-        starData.map(async (star) => {
-          try {
-            const user = await clerkClient.users.getUser(star.userId);
-            return {
-              ...star,
-              user: {
-                firstName: user.firstName,
-                lastName: user.lastName,
-                imageUrl: user.imageUrl
-              }
-            };
-          } catch (error) {
-            console.error(`Failed to fetch user data for userId: ${star.userId}`, error);
-            return {
-              ...star,
-              user: {
-                firstName: null,
-                lastName: null,
-                imageUrl: null
-              }
-            };
+      // Get unique user IDs
+      const userIds = [...new Set(starData.map(star => star.userId))];
+
+      // Fetch cached user data in a single query
+      const cachedUsers = await db.query.cachedUsers.findMany({
+        where: inArray(cachedUsers.userId, userIds)
+      });
+
+      // Map cached user data to stars
+      const starsWithUserData = starData.map(star => {
+        const cachedUser = cachedUsers.find(u => u.userId === star.userId);
+        return {
+          ...star,
+          user: {
+            firstName: cachedUser?.firstName || null,
+            lastName: cachedUser?.lastName || null,
+            imageUrl: cachedUser?.imageUrl || null
           }
-        })
-      );
+        };
+      });
 
       res.json({
         success: true,
