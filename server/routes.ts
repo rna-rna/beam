@@ -2407,31 +2407,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Cursor update endpoint
-  protectedRouter.post('/galleries/:slug/cursors', async (req, res) => {
-    try {
-      const { cursor, userId, name, color } = req.body;
-      const slug = req.params.slug;
-
-      if (!cursor || !userId) {
-        return res.status(400).json({ error: 'Invalid cursor data' });
-      }
-
-      // Trigger Pusher event for cursor updates
-      pusher.trigger(`presence-gallery-${slug}`, 'cursor-update', {
-        cursor,
-        userId,
-        name,
-        color,
-      });
-
-      res.status(200).send({ success: true });
-    } catch (error) {
-      console.error('Failed to update cursor:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
-
   app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);

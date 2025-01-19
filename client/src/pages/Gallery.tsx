@@ -1,8 +1,6 @@
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from "react";
-import { CursorOverlay } from "@/components/CursorOverlay";
-import { throttle } from "@/lib/utils";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getR2Image } from "@/lib/r2";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -148,48 +146,7 @@ export default function Gallery({
     [key: string]: any;
   }>({});
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
-  const [cursors, setCursors] = useState<{ [key: string]: any }>({});
-  const [channel, setChannel] = useState<any>(null);
-
   const { session } = useClerk();
-  const { user } = useUser();
-
-  // Ensure user is available before using
-  const userInfo = useMemo(() => ({
-    id: user?.id,
-    firstName: user?.firstName,
-    color: user?.publicMetadata?.color,
-    imageUrl: user?.imageUrl
-  }), [user]);
-
-  // Throttled cursor update function
-  const updateCursorPosition = useCallback(
-    throttle((e: MouseEvent) => {
-      if (!channel || !userInfo?.id) return;
-
-      channel.trigger('client-cursor-update', {
-        id: userInfo.id,
-        name: userInfo.firstName || 'Anonymous',
-        color: userInfo.color || '#6366f1',
-        x: e.clientX,
-        y: e.clientY,
-        timestamp: Date.now()
-      });
-    }, 30), // Reduced throttle time for smoother updates
-    [channel, userInfo]
-  );
-
-  // Track cursor movements
-  useLayoutEffect(() => {
-    if (!user || !channel) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      updateCursorPosition(e);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [updateCursorPosition, user, channel]);
 
   // Refresh Clerk session if expired
   useEffect(() => {
@@ -223,48 +180,32 @@ export default function Gallery({
     const channelName = `presence-gallery-${slug}`;
     console.log("Attempting to subscribe to channel:", channelName);
 
-    const newChannel = pusherClient.subscribe(channelName);
-    setChannel(newChannel);
+    const channel = pusherClient.subscribe(channelName);
 
-    // Handle real-time events after successful subscription
-    newChannel.bind("pusher:subscription_succeeded", () => {
-      console.log("Channel details:", {
-        name: newChannel.name,
-        state: newChannel.state,
-        subscribed: newChannel.subscribed,
-      });
-
-      // Bind other events only after successful subscription
-      newChannel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
-        console.log("New image uploaded:", data);
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-      });
-
-      newChannel.bind("image-starred", (data: { imageId: number; isStarred: boolean; userId: string }) => {
-        console.log("Image starred/unstarred:", data);
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-        queryClient.invalidateQueries([`/api/images/${data.imageId}/stars`]);
-      });
-
-      newChannel.bind("comment-added", (data: { imageId: number; content: string }) => {
-        console.log("New comment added:", data);
-        queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-      });
-
-      newChannel.bind('client-cursor-update', (data: any) => {
-        if (data.id === user?.id) return;
-        setCursors(prev => ({
-          ...prev,
-          [data.id]: {
-            ...data,
-            timestamp: Date.now()
-          }
-        }));
-      });
+    // Handle real-time events
+    channel.bind("image-uploaded", (data: { imageId: number; url: string }) => {
+      console.log("New image uploaded:", data);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
     });
 
-    newChannel.bind("pusher:subscription_succeeded", (members: any) => {
+    channel.bind("image-starred", (data: { imageId: number; isStarred: boolean; userId: string }) => {
+      console.log("Image starred/unstarred:", data);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      queryClient.invalidateQueries([`/api/images/${data.imageId}/stars`]);
+    });
+
+    channel.bind("comment-added", (data: { imageId: number; content: string }) => {
+      console.log("New comment added:", data);
+      queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+    });
+    console.log("Channel details:", {
+      name: channel.name,
+      state: channel.state,
+      subscribed: channel.subscribed,
+    });
+
+    channel.bind("pusher:subscription_succeeded", (members: any) => {
       const activeMembers: any[] = [];
       const currentUserId = user?.id;
 
@@ -285,7 +226,7 @@ export default function Gallery({
       });
 
       console.log("Subscription succeeded:", {
-        channelName: newChannel.name,
+        channelName: channel.name,
         totalMembers: members.count,
         currentUserId: members.myID,
         activeMembers,
@@ -370,6 +311,7 @@ export default function Gallery({
 
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
+  const { user } = useUser();
   const { isDark } = useTheme();
 
   const toggleGridView = () => {
@@ -2149,7 +2091,6 @@ export default function Gallery({
           )}
           {...getRootProps()}
         >
-          <CursorOverlay cursors={Object.values(cursors)} />
           <input {...getInputProps()} />
           {isDragActive && !selectMode && (
             <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
