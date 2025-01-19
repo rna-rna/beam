@@ -284,7 +284,7 @@ export default function Gallery({
       });
 
       console.log("Subscription succeeded:", {
-        channelName: channel.name,
+        channelName: newChannel.name,
         totalMembers: members.count,
         currentUserId: members.myID,
         activeMembers,
