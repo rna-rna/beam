@@ -149,6 +149,7 @@ export default function Gallery({
   }>({});
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [cursors, setCursors] = useState<{ [key: string]: any }>({});
+  const { user } = useUser();
   const [channel, setChannel] = useState<any>(null);
   
   // Throttled cursor update function
