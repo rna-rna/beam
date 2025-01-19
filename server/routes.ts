@@ -1193,36 +1193,35 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Fetch user data for all stars
-      const imagesWithUserData = await Promise.all(
-        imagesWithStars.map(async (img) => {
-          const starsWithUserData = await Promise.all(
-            img.stars.map(async (star) => {
-              try {
-                const user = await clerkClient.users.getUser(star.userId);
-                return {
-                  ...star,
-                  firstName: user.firstName,
-                  lastName: user.lastName,
-                  imageUrl: user.imageUrl
-                };
-              } catch (error) {
-                console.error(`Failed to fetch user data for userId: ${star.userId}`, error);
-                return {
-                  ...star,
-                  firstName: null,
-                  lastName: null,
-                  imageUrl: null
-                };
-              }
-            })
-          );
+      // Gather all unique user IDs from stars
+      const allUserIds = new Set<string>();
+      for (const img of imagesWithStars) {
+        for (const star of img.stars) {
+          allUserIds.add(star.userId);
+        }
+      }
+
+      // Fetch cached user data in a single query
+      const cachedUsers = await db.query.cachedUsers.findMany({
+        where: inArray(cachedUsers.userId, [...allUserIds])
+      });
+
+      // Create a map for quick lookups
+      const userMap = new Map(cachedUsers.map(u => [u.userId, u]));
+
+      // Map cached data to stars
+      const imagesWithUserData = imagesWithStars.map(img => ({
+        ...img,
+        stars: img.stars.map(star => {
+          const cachedUser = userMap.get(star.userId);
           return {
-            ...img,
-            stars: starsWithUserData
+            ...star,
+            firstName: cachedUser?.firstName ?? null,
+            lastName: cachedUser?.lastName ?? null,
+            imageUrl: cachedUser?.imageUrl ?? null
           };
         })
-      );
+      }));
 
       const commentCounts = await Promise.all(
         imagesWithStars.map(async (img) => {
@@ -1797,31 +1796,38 @@ export function registerRoutes(app: Express): Server {
       });
 
       // Get user details from Clerk for each invite and the owner
-      const usersWithDetails = await Promise.all(
-        permissions.map(async (invite) => {
-          if (invite.userId) {
-            try {
-              const user = await clerkClient.users.getUser(invite.userId);
-              return {
-                id: invite.id,
-                email: invite.email,
-                fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-                role: invite.role,
-                avatarUrl: user.imageUrl
-              };
-            } catch (error) {
-              console.error('Failed to fetch user details:', error);
-            }
-          }
+      // Get all user IDs from permissions
+      const userIds = permissions
+        .filter(invite => invite.userId)
+        .map(invite => invite.userId as string);
+
+      // Fetch cached user data in single query
+      const cachedUsers = await db.query.cachedUsers.findMany({
+        where: inArray(cachedUsers.userId, userIds)
+      });
+
+      // Create user map for lookups
+      const userMap = new Map(cachedUsers.map(u => [u.userId, u]));
+
+      const usersWithDetails = permissions.map(invite => {
+        if (invite.userId) {
+          const cachedUser = userMap.get(invite.userId);
           return {
             id: invite.id,
             email: invite.email,
-            fullName: null,
+            fullName: cachedUser ? `${cachedUser.firstName || ''} ${cachedUser.lastName || ''}`.trim() : null,
             role: invite.role,
-            avatarUrl: null
+            avatarUrl: cachedUser?.imageUrl || null
           };
-        })
-      );
+        }
+        return {
+          id: invite.id,
+          email: invite.email,
+          fullName: null,
+          role: invite.role,
+          avatarUrl: null
+        };
+      });
 
       // Add owner with Editor role if not already in permissions
       if (gallery.userId !== 'guest') {
