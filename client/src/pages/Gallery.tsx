@@ -6,14 +6,15 @@ import { io } from 'socket.io-client';
 
 // Initialize Socket.IO client
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const WS_URL = window.location.origin;
+const WS_URL = `${wsProtocol}//${window.location.host}`;
 const socket = io(WS_URL, {
   transports: ['websocket'],
   withCredentials: true,
   path: '/socket.io',
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
-  secure: window.location.protocol === 'https:'
+  secure: window.location.protocol === 'https:',
+  autoConnect: true
 });
 import { Card, CardContent } from "@/components/ui/card";
 import {
