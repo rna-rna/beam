@@ -5,7 +5,7 @@ import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
 
 // Initialize Socket.IO client
-const socket = io(import.meta.env.PROD ? window.location.origin : 'https://' + import.meta.env.REPLIT_DEV_DOMAIN, {
+const socket = io(import.meta.env.PROD ? window.location.origin : window.location.origin, {
   withCredentials: true,
   transports: ['websocket', 'polling']
 });
