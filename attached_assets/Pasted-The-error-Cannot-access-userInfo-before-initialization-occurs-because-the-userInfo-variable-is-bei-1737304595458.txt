@@ -1,0 +1,85 @@
+The error Cannot access 'userInfo' before initialization occurs because the userInfo variable is being referenced before it is initialized or declared. This typically happens if you try to use userInfo in a dependency array or inside a function before its declaration.
+
+Steps to Fix
+1. Ensure userInfo is Defined and Initialized
+Verify that userInfo is defined and properly initialized before it's used. If userInfo depends on asynchronous data (e.g., from a fetch call or context provider), make sure to guard against accessing it prematurely.
+
+Example:
+
+tsx
+Copy
+Edit
+const { userInfo } = useAuth(); // Ensure this provides the required user info
+2. Guard Against Undefined userInfo
+Add a conditional check to prevent any logic from running if userInfo is undefined.
+
+Example:
+
+tsx
+Copy
+Edit
+useEffect(() => {
+  if (!userInfo) return; // Skip the effect until userInfo is defined
+
+  const handleCursorUpdate = throttle((event) => {
+    const cursorData = {
+      x: event.clientX,
+      y: event.clientY,
+      id: userInfo.id, // Ensure `id` is present in userInfo
+      name: userInfo.name, // Ensure `name` is present in userInfo
+      color: userInfo.color || '#ff6347', // Default color
+    };
+
+    fetch(`/api/galleries/${slug}/cursors`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(cursorData),
+    });
+  }, 30); // Throttle for performance
+
+  window.addEventListener('mousemove', handleCursorUpdate);
+
+  return () => {
+    window.removeEventListener('mousemove', handleCursorUpdate);
+    handleCursorUpdate.cancel(); // Clean up throttle
+  };
+}, [channel, userInfo]); // Ensure `userInfo` is initialized
+3. Debug userInfo
+If userInfo comes from a context or hook, ensure it's properly initialized by logging it.
+
+Example:
+
+tsx
+Copy
+Edit
+console.log('userInfo:', userInfo);
+This helps verify:
+
+If userInfo is undefined or null.
+If userInfo is delayed due to asynchronous initialization.
+4. Use isLoading or a Placeholder
+If userInfo is initialized asynchronously, use a loading state or fallback to prevent early access.
+
+Example:
+
+tsx
+Copy
+Edit
+const { userInfo, isLoading } = useAuth();
+
+useEffect(() => {
+  if (isLoading || !userInfo) return; // Wait until `userInfo` is loaded
+  // Effect logic here
+}, [channel, userInfo, isLoading]);
+5. Check Declaration Order
+Ensure userInfo is declared before it is used. For example:
+
+tsx
+Copy
+Edit
+const userInfo = ...; // Declare first
+useEffect(() => {
+  // Use userInfo here
+}, [userInfo]);
