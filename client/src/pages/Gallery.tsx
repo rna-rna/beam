@@ -152,6 +152,7 @@ export default function Gallery({
   const [channel, setChannel] = useState<any>(null);
   
   const { session } = useClerk();
+  const { user } = useUser();
   
   // Ensure user is available before using
   const userInfo = useMemo(() => ({
@@ -365,7 +366,6 @@ export default function Gallery({
 
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
-  const { user } = useUser();
   const { isDark } = useTheme();
 
   const toggleGridView = () => {
