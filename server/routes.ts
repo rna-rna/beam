@@ -1381,6 +1381,19 @@ export function registerRoutes(app: Express): Server {
           })
           .where(eq(images.id, imageId));
 
+        // Emit real-time event via Pusher
+        pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'comment-added', {
+          imageId: comment.imageId,
+          content: comment.content,
+          userId: comment.userId,
+          userName: comment.userName,
+          userImageUrl: comment.userImageUrl,
+          xPosition: comment.xPosition,
+          yPosition: comment.yPosition,
+          createdAt: comment.createdAt,
+          timestamp: new Date().toISOString()
+        });
+
         console.log('Debug - Comment created successfully:', {
           commentId: comment.id,
           userId,
