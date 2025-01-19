@@ -263,7 +263,7 @@ export default function Gallery({
       }));
     });
 
-    channel.bind("pusher:subscription_succeeded", (members: any) => {
+    newChannel.bind("pusher:subscription_succeeded", (members: any) => {
       const activeMembers: any[] = [];
       const currentUserId = user?.id;
 
