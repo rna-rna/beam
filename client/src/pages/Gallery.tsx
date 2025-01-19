@@ -153,6 +153,13 @@ export default function Gallery({
     [key: string]: any;
   }>({});
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
+const [cursors, setCursors] = useState<{
+  id: string;
+  name: string;
+  color: string;
+  x: number;
+  y: number;
+}[]>([]);
   const { session } = useClerk();
 
   // Refresh Clerk session if expired
@@ -191,11 +198,38 @@ export default function Gallery({
       console.log('Disconnected from Socket.IO server');
     });
 
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!user) return;
+      
+      const cursorData = {
+        id: user.id,
+        name: user.firstName || user.username || 'Anonymous',
+        color: '#F24822',
+        x: event.clientX,
+        y: event.clientY,
+      };
+
+      socket.emit('cursor-update', cursorData);
+    };
+
+    socket.on('cursor-update', (data) => {
+      if (data.id === user?.id) return;
+      
+      setCursors((prev) => {
+        const otherCursors = prev.filter((cursor) => cursor.id !== data.id);
+        return [...otherCursors, data];
+      });
+    });
+
+    window.addEventListener('mousemove', handleMouseMove);
+
     return () => {
       socket.off('connect');
       socket.off('disconnect');
+      socket.off('cursor-update');
+      window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!slug) return;
@@ -2082,6 +2116,7 @@ export default function Gallery({
   return (
     <UploadProvider>
       <>
+        <CursorOverlay cursors={cursors} />
         {gallery && (
           <Helmet>
             <meta
