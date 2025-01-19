@@ -2728,6 +2728,6 @@ export default function Gallery({
       </>
     </UploadProvider>
   );
-}
+}; // Close Gallery function component
 
 export default Gallery;
