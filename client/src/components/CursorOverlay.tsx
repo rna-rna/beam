@@ -37,7 +37,7 @@ export function CursorOverlay({ cursors }: CursorOverlayProps) {
             className="absolute"
             initial={{ x: user.x, y: user.y }}
             animate={{ x: user.x, y: user.y }}
-            transition={{ type: "spring", damping: 20, stiffness: 400 }}
+            transition={{ type: "spring", damping: 35, stiffness: 300 }}
           >
             <div className="flex flex-col items-start">
               <div className="relative">
