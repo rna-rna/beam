@@ -1381,6 +1381,30 @@ export function registerRoutes(app: Express): Server {
           })
           .where(eq(images.id, imageId));
 
+        // Get all editor users for notifications
+        const editorUserIds = await getEditorUserIds(image.gallery.id);
+
+        // Create notifications for all editors except the actor
+        await Promise.all(
+          editorUserIds
+            .filter(editorId => editorId !== userId)
+            .map((editorId) => 
+              db.insert(notifications).values({
+                userId: editorId,
+                type: 'comment-added',
+                data: {
+                  imageId: comment.imageId,
+                  content: comment.content,
+                  actorId: userId,
+                  galleryId: image.gallery.id
+                },
+                groupId: nanoid(),
+                isSeen: false,
+                createdAt: new Date()
+              })
+            )
+        );
+
         // Emit real-time event via Pusher
         pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'comment-added', {
           imageId: comment.imageId,
