@@ -6,7 +6,7 @@ import { io } from 'socket.io-client';
 
 // Initialize Socket.IO client
 const WS_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:5000'
+  ? 'http://0.0.0.0:5000'
   : `${window.location.protocol}//${window.location.host}`;
 const socket = io(WS_URL, {
   transports: ['websocket'],
@@ -16,7 +16,8 @@ const socket = io(WS_URL, {
   reconnectionDelay: 1000,
   secure: window.location.protocol === 'https:',
   autoConnect: true,
-  timeout: 10000
+  timeout: 10000,
+  forceNew: true
 });
 import { Card, CardContent } from "@/components/ui/card";
 import {
