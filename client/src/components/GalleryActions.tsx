@@ -19,9 +19,9 @@ function GalleryActions({gallery, ...props}: any) {
     setSelectMode(!selectMode);
   };
 
-  const canManageGallery = (role: GalleryRole) => role === 'owner' || role === 'Edit';
-  const canStar = (role: GalleryRole) => role === 'owner' || role === 'Edit' || role === 'Comment';
-  const canComment = (role: GalleryRole) => role === 'owner' || role === 'Edit' || role === 'Comment';
+  const canManageGallery = (role: GalleryRole) => role === 'owner' || role === 'editor';
+  const canStar = (role: GalleryRole) => role === 'owner' || role === 'editor' || role === 'comment';
+  const canComment = (role: GalleryRole) => role === 'owner' || role === 'editor' || role === 'comment';
 
   useEffect(() => {
     const fetchPermissions = async () => {

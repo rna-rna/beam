@@ -62,3 +62,5 @@ export interface SwipeDirection {
   direction: 1 | -1;
   immediate: boolean;
 }
+
+export type GalleryRole = 'owner' | 'editor' | 'comment' | 'view' | null;
