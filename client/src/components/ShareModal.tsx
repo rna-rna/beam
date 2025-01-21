@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select";
+import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent, SelectSeparator } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Copy, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -337,43 +337,44 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                         <SelectItem value="View">Viewer</SelectItem>
                         <SelectItem value="Comment">Commenter</SelectItem>
                         <SelectItem value="Edit">Editor</SelectItem>
+                        <SelectSeparator />
+                        <SelectItem 
+                          value="remove" 
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                          onSelect={async (e) => {
+                            e.preventDefault();
+                            const previousUsers = [...invitedUsers];
+                            setInvitedUsers(prev => prev.filter(u => u.id !== user.id));
+                            
+                            try {
+                              const res = await fetch(`/api/galleries/${slug}/invite`, {
+                                method: "DELETE",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ email: user.email }),
+                              });
+
+                              if (!res.ok) {
+                                throw new Error("Failed to remove user");
+                              }
+
+                              toast({
+                                title: "Success",
+                                description: "User removed successfully"
+                              });
+                            } catch (error) {
+                              setInvitedUsers(previousUsers);
+                              toast({
+                                title: "Error",
+                                description: "Failed to remove user. Changes were reverted.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          Remove Access
+                        </SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive/90"
-                      onClick={async () => {
-                        const previousUsers = [...invitedUsers];
-                        setInvitedUsers(prev => prev.filter(u => u.id !== user.id));
-                        
-                        try {
-                          const res = await fetch(`/api/galleries/${slug}/invite`, {
-                            method: "DELETE",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ email: user.email }),
-                          });
-
-                          if (!res.ok) {
-                            throw new Error("Failed to remove user");
-                          }
-
-                          toast({
-                            title: "Success",
-                            description: "User removed successfully"
-                          });
-                        } catch (error) {
-                          setInvitedUsers(previousUsers);
-                          toast({
-                            title: "Error",
-                            description: "Failed to remove user. Changes were reverted.",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
                   </>
                 )}
               </div>
