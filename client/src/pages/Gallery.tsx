@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
+import { default as GalleryActions } from '@/components/GalleryActions';
 
 // Initialize Socket.IO client
 const socket = io("/", {
@@ -1594,7 +1595,7 @@ export default function Gallery({
             <TooltipContent>Share Gallery</TooltipContent>
           </Tooltip>
 
-          {userRole === "Editor" && (
+          {userRole === "Edit" && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Toggle
@@ -1760,7 +1761,7 @@ export default function Gallery({
           )}
 
           {/* Star button in bottom right corner */}
-          {!selectMode && (
+          {!selectMode && userRole && ['owner', 'Edit', 'Comment'].includes(userRole) && (
             <motion.div
               className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
               animate={{ scale: 1 }}
@@ -2158,6 +2159,7 @@ export default function Gallery({
     <UploadProvider>
       <>
         <CursorOverlay cursors={cursors} />
+        {gallery && <GalleryActions gallery={gallery} />}
         {gallery && (
           <Helmet>
             <meta

@@ -1,0 +1,100 @@
+The Problem in a Nutshell
+Inside:
+
+ts
+Copy
+// app.get('/api/galleries/:slug', async (req, res) => {
+const gallery = await db.query.galleries.findFirst({
+  where: or(
+    and(eq(galleries.slug, req.params.slug), eq(galleries.guestUpload, true)),
+    and(eq(galleries.slug, req.params.slug), eq(galleries.isPublic, true)),
+    and(eq(galleries.slug, req.params.slug), eq(galleries.userId, req.auth?.userId || ''))
+  )
+  ...
+});
+
+if (!gallery) {
+  // => returns 404
+}
+Any user who is not the owner, and the gallery is not guestUpload or isPublic, will not match that where. So we never even get the gallery record. But your code later tries to see if they are “invited.” We never get that far, because the gallery is never returned.
+
+1. Let the Route Always Fetch the Gallery by Slug
+Remove the or(...) logic, and just fetch the gallery by slug. For example:
+
+diff
+Copy
+app.get('/api/galleries/:slug', async (req, res) => {
+  try {
+    console.log('Gallery fetch request:', {
+      slug: req.params.slug,
+      authenticatedUserId: req.auth?.userId,
+    });
+
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
+-   // Currently, you have a big "OR" block here.
+-   // Instead, simply do:
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, req.params.slug),
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        isPublic: true,
+        userId: true,
+        guestUpload: true,
+        createdAt: true,
+        isDraft: true
+      }
+    });
+
+    if (!gallery) {
+      return res.status(404).json({ ... });
+    }
+
+    // Then decide if this user can view it:
+    const isOwner = (gallery.userId === req.auth?.userId);
+    if (gallery.guestUpload) {
+      // always allowed for guest
+    } else if (gallery.isPublic) {
+      // always allowed for public
+    } else if (isOwner) {
+      // owner is allowed
+    } else {
+      // If not public, not guest, not owner, check invites
+      const invite = await db.query.invites.findFirst({
+        where: and(
+          eq(invites.galleryId, gallery.id),
+          eq(invites.email, userEmailThatLoggedIn)
+        )
+      });
+      if (!invite) {
+        // => 403 if user is not invited
+        return res.status(403).json({
+          message: 'This gallery is private',
+          isPrivate: true
+        });
+      }
+      // if invite exists, the user can view
+    }
+
+    // Having passed the checks, now load the images:
+    const imagesWithStars = await db.query.images.findMany(...);
+
+    // etc. do your star and commentCount merges
+    // set role = invite.role if not owner, etc.
+
+    return res.json(...);
+  } catch (error) {
+    ...
+  }
+});
+Why This Helps
+We always get the gallery record (if it exists).
+Then we do if it’s isPublic or guestUpload or the user is the owner, great.
+Otherwise, we check if the user is invited (has invite.role). If invited → let them in. Else 403.
+Now an invited “Editor” or “Comment” or “View” user can still see the gallery when isPublic = false.
