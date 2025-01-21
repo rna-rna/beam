@@ -652,7 +652,7 @@ export default function Gallery({
           throw new Error("This gallery is private");
         }
         if (res.status === 404) {
-          throw new Error("Gallery not found");
+          throw new Error("Private Gallery");
         }
         throw new Error("Failed to fetch gallery");
       }
@@ -2006,11 +2006,12 @@ export default function Gallery({
           className="w-full max-w-md border-destructive"
         >
           <Lock className="h-12 w-12 mb-2" />
+          <Lock className="h-12 w-12 mb-2" />
           <AlertTitle className="text-2xl mb-2">
-            Sorry, This Beam Project is private!
+            Private Gallery
           </AlertTitle>
           <AlertDescription className="text-base">
-            This gallery can only be accessed by its owner.
+            Please request access from the editor
           </AlertDescription>
         </Alert>
       </div>

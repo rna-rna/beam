@@ -104,10 +104,10 @@ function AppContent() {
       });
       if (!res.ok) {
         if (res.status === 404) {
-          throw new Error('Gallery not found');
+          throw new Error('Private Gallery');
         }
         if (res.status === 403) {
-          throw new Error('This gallery is private');
+          throw new Error('Request access from the owner');
         }
         throw new Error('Failed to fetch gallery');
       }

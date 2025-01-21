@@ -1074,22 +1074,9 @@ export function registerRoutes(app: Express): Server {
         'Expires': '0'
       });
 
-      // Find the gallery first
+      // Find the gallery by slug only
       const gallery = await db.query.galleries.findFirst({
-        where: or(
-          and(
-            eq(galleries.slug, req.params.slug),
-            eq(galleries.guestUpload, true)
-          ),
-          and(
-            eq(galleries.slug, req.params.slug),
-            eq(galleries.isPublic, true)
-          ),
-          and(
-            eq(galleries.slug, req.params.slug),
-            eq(galleries.userId, req.auth?.userId || '')
-          )
-        ),
+        where: eq(galleries.slug, req.params.slug),
         select: {
           id: true,
           slug: true,
@@ -1098,7 +1085,7 @@ export function registerRoutes(app: Express): Server {
           userId: true,
           guestUpload: true,
           createdAt: true,
-          isDraft: true // Added isDraft field
+          isDraft: true
         }
       });
 
@@ -1125,30 +1112,26 @@ export function registerRoutes(app: Express): Server {
       // 3. User is authenticated and owns the gallery
       const isOwner = gallery.userId === 'guest' || req.auth?.userId === gallery.userId;
 
-      // Guest uploads are always accessible
-      if (gallery.guestUpload) {
-        const galleryImages = await db.query.images.findMany({
-          where: eq(images.galleryId, gallery.id),
-          orderBy: (images, { asc }) => [
-            asc(images.position),
-            asc(images.createdAt)
-          ]
+      // Check access permissions
+      if (!gallery.guestUpload && !gallery.isPublic && !isOwner) {
+        // Check for invite if not public/guest/owner
+        const userEmail = req.auth?.userId ? 
+          (await clerkClient.users.getUser(req.auth.userId)).emailAddresses[0].emailAddress : '';
+        
+        const invite = await db.query.invites.findFirst({
+          where: and(
+            eq(invites.galleryId, gallery.id),
+            eq(invites.email, userEmail)
+          )
         });
 
-        return res.json({
-          ...gallery,
-          images: galleryImages,
-          isOwner: false
-        });
-      }
-
-      // Check access for non-guest galleries
-      if (!gallery.isPublic && !isOwner && !gallery.guestUpload) {
-        return res.status(403).json({
-          message: 'This gallery is private',
-          isPrivate: true,
-          requiresAuth: !req.auth
-        });
+        if (!invite) {
+          return res.status(403).json({
+            message: 'This gallery is private',
+            isPrivate: true,
+            requiresAuth: !req.auth
+          });
+        }
       }
 
       // If access is allowed, get the gallery images with star data
