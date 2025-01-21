@@ -1595,7 +1595,7 @@ export default function Gallery({
             <TooltipContent>Share Gallery</TooltipContent>
           </Tooltip>
 
-          {userRole === "Editor" && (
+          {userRole === "Edit" && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Toggle
