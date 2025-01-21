@@ -978,8 +978,7 @@ export function registerRoutes(app: Express): Server {
       const gallery = await db.query.galleries.findFirst({
         where: and(
           eq(galleries.slug, req.params.slug),
-          eq(galleries.userId, userId)
-        ),
+          eq(galleries.userId, userId)        ),
       });
 
       if (!gallery) {
@@ -1118,7 +1117,7 @@ export function registerRoutes(app: Express): Server {
         // Check for invite if not public/guest/owner
         const userEmail = req.auth?.userId ? 
           (await clerkClient.users.getUser(req.auth.userId)).emailAddresses[0].emailAddress : '';
-        
+
         const invite = await db.query.invites.findFirst({
           where: and(
             eq(invites.galleryId, gallery.id),
@@ -1845,35 +1844,23 @@ export function registerRoutes(app: Express): Server {
         timestamp: new Date().toISOString()
       });
 
+      // Fetch the gallery first
       const gallery = await db.query.galleries.findFirst({
-        where: eq(galleries.slug, slug),
+        where: eq(galleries.slug, req.params.slug)
       });
 
-      console.log('Gallery lookup result:', {
-        found: !!gallery,
-        galleryId: gallery?.id,
-        ownerId: gallery?.userId,
-        isAuthorized: gallery?.userId === userId
-      });
-
-      if (!gallery || gallery.userId !== userId) {
-        console.log('Authorization failed:', {
-          hasGallery: !!gallery,
-          galleryOwnerId: gallery?.userId,
-          requesterId: userId
-        });
-        return res.status(403).json({ message: 'Unauthorized' });
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
       }
 
-      // Fetch the thumbnail image
-      const thumbnail = await db.query.images.findFirst({
-        where: eq(images.galleryId, gallery.id),
-        orderBy: (images, { asc }) => [asc(images.position)]
-      });
-
       // Fetch inviter details from cached users
-      const [inviterData] = await fetchCachedUserData([userId]);
-      const inviterName = inviterData ? `${inviterData.firstName || ''} ${inviterData.lastName || ''}`.trim() : 'A Beam User';
+      const [inviterData] = await fetchCachedUserData([req.auth.userId]);
+      if (!inviterData) {
+        return res.status(404).json({ message: 'Inviter details not found' });
+      }
+
+      const inviterName = `${inviterData.firstName || ''} ${inviterData.lastName || ''}`.trim() || 'A Beam User';
+      const inviterEmail = (await clerkClient.users.getUser(req.auth.userId)).emailAddresses[0]?.emailAddress;
 
       // We still need to use Clerk directly for email lookup since our cache is ID-based
       const usersResponse = await clerkClient.users.getUserList({
@@ -1947,15 +1934,21 @@ export function registerRoutes(app: Express): Server {
         const signUpUrl = `${baseUrl}/sign-up?email=${encodeURIComponent(email)}`;
         const isRegistered = !!user;
 
+        // Fetch the thumbnail image
+        const thumbnail = await db.query.images.findFirst({
+          where: eq(images.galleryId, gallery.id),
+          orderBy: (images, { asc }) => [asc(images.position)]
+        });
+
         await sendInviteEmail({
           toEmail: email,
           galleryTitle,
           inviteUrl,
-          galleryThumbnail: thumbnail?.url || null,
           photographerName: inviterName,
           recipientName: email.split('@')[0],
           isRegistered,
-          role
+          role,
+          galleryThumbnail: thumbnail?.url || null
         });
 
         console.log('Invite email sent successfully:', {
