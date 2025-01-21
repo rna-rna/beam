@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -46,9 +45,10 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
       fetch(`/api/galleries/${slug}/permissions`)
         .then((res) => res.json())
         .then((data) => {
-          if (data.success) {
-            setInvitedUsers(data.users || []);
+          if (data?.success && Array.isArray(data?.users)) {
+            setInvitedUsers(data.users);
           } else {
+            setInvitedUsers([]);
             toast({
               title: "Error",
               description: "Failed to fetch permissions",
@@ -181,7 +181,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ isPublic: value !== "none" })
                   });
-                  
+
                   if (!res.ok) throw new Error('Failed to update visibility');
                   onVisibilityChange(value !== "none");
                 } catch (error) {
@@ -237,7 +237,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                   Invite
                 </Button>
               </div>
-              
+
               {!selectedUser && email.length >= 3 && !userSuggestions.length && (
                 <div className="absolute left-0 right-0 mt-1">
                   <div className="flex items-center justify-center mt-4">
@@ -322,7 +322,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                     } catch (error) {
                       // Rollback to previous state
                       setInvitedUsers(previousUsers);
-                      
+
                       toast({
                         title: "Error",
                         description: "Failed to update role. Changes were reverted.",
