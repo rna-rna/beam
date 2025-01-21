@@ -1,4 +1,5 @@
-import { ClerkExpressRequireAuth, ClerkExpressWithAuth, clerkClient } from '@clerk/clerk-sdk-node';
+import { ClerkExpressRequireAuth, ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
+import { fetchCachedUserData } from './lib/userCache';
 import { type Express, Response, NextFunction } from "express";
 
 // Ensure required environment variables are present
@@ -46,17 +47,29 @@ export async function extractUserInfo(req: any) {
     throw new Error('User ID not found in session');
   }
 
-  // Fetch user details from Clerk if not available in auth
+  // Fetch user details from cache if not available in auth
   let user = req.auth.user;
   if (!user) {
     try {
-      user = await clerkClient.users.getUser(req.auth.userId);
-      console.log('Debug - Retrieved user from Clerk:', {
+      const [cached] = await fetchCachedUserData([req.auth.userId]);
+      if (!cached) {
+        console.error('Debug - No user found in cache:', req.auth.userId);
+        throw new Error('User not found');
+      }
+      user = {
+        id: cached.userId,
+        firstName: cached.firstName || '',
+        lastName: cached.lastName || '',
+        imageUrl: cached.imageUrl,
+        username: null,
+        emailAddresses: []
+      };
+      console.log('Debug - Retrieved user from cache:', {
         userId: user.id,
         hasUser: !!user
       });
     } catch (error) {
-      console.error('Debug - Failed to fetch user from Clerk:', error);
+      console.error('Debug - Failed to fetch user from cache:', error);
       throw new Error('Failed to retrieve user information');
     }
   }

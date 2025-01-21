@@ -1,0 +1,67 @@
+This error:
+
+sql
+Copy
+duplicate key value violates unique constraint "cached_users_pkey"
+occurs because two concurrent inserts into your cached_users table are trying to create the same user_id row at roughly the same time. Since user_id is the primary key (unique), you get a collision. Essentially, you’re inserting a user row that already exists in the database.
+
+Below is why it happens and how to fix it:
+
+1. Why You’re Seeing This
+Concurrent or Duplicate Fetches: Multiple requests might be calling your fetchCachedUserData function in parallel for the same user IDs. Each tries to insert a row that doesn’t exist (according to each request’s local check), and they race each other to run INSERT at nearly the same moment.
+
+Missing “Upsert” Logic: Right now, you likely have something like:
+
+ts
+Copy
+await db.insert(cachedUsers).values({
+  userId: user.id,
+  ...
+});
+with no “on conflict do update” or “upsert” logic. So if the row is inserted by one request, a second request sees the old data (or sees the row missing) and tries to insert it again.
+
+No Locking or Memoization: If multiple fetches for the same user come in concurrently, none of them see that the user is about to be inserted, so they all do it.
+
+2. The Standard Solution: Use an “Upsert”
+If you’re using Drizzle ORM with Postgres, you can do something like:
+
+ts
+Copy
+await db
+  .insert(cachedUsers)
+  .values({
+    userId: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    imageUrl: user.imageUrl,
+    color: someColor,
+    updatedAt: new Date()
+  })
+  .onConflictDoUpdate({
+    // specify your conflict target
+    target: cachedUsers.userId,
+    // specify how you want to update existing rows
+    set: {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl,
+      color: someColor,
+      updatedAt: new Date()
+    },
+  });
+When Postgres sees a conflict on user_id, it will run UPDATE instead of failing with duplicate key value violates unique constraint.
+
+If Drizzle Doesn’t Have a Direct “onConflict”
+Some versions of Drizzle or other ORMs require raw SQL or a different syntax. For instance, you can do:
+
+sql
+Copy
+INSERT INTO cached_users (user_id, first_name, last_name, image_url, updated_at)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (user_id) DO UPDATE
+  SET first_name = EXCLUDED.first_name,
+      last_name = EXCLUDED.last_name,
+      image_url = EXCLUDED.image_url,
+      updated_at = EXCLUDED.updated_at
+Either way, that’s the “upsert” logic you need.
+
