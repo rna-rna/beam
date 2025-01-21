@@ -1699,10 +1699,8 @@ export function registerRoutes(app: Express): Server {
 
       const userStarred = userId ? starData.some(star => star.userId === userId) : false;
 
-      // Get unique user IDs
+      // Get unique user IDs and batch fetch from cache
       const userIds = [...new Set(starData.map(star => star.userId))];
-      
-      // Batch fetch user data using cache
       const cachedUsers = await fetchCachedUserData(userIds);
 
       // Merge star data with cached user details
