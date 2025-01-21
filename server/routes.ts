@@ -652,8 +652,9 @@ export function registerRoutes(app: Express): Server {
 
       // Allow uploads for guest galleries or authenticated owners
       const userId = req.auth?.userId;
-      if (!gallery.guestUpload && (!userId || userId !== gallery.userId)) {
-        return res.status(401).json({ message: 'Unauthorized' });
+      const role = await getGalleryUserRole(gallery.id, req.auth?.userId);
+      if (!gallery.guestUpload && !canManageGallery(role)) {
+        return res.status(403).json({ message: 'Forbidden - cannot upload images' });
       }
 
       // Generate pre-signed URL for direct upload
@@ -1210,7 +1211,7 @@ export function registerRoutes(app: Express): Server {
                     imageUrl: null
                   };
                 }
-                
+
                 return {
                   ...star,
                   firstName: fetchedUser.firstName,
@@ -1770,7 +1771,7 @@ export function registerRoutes(app: Express): Server {
                 found: cachedUsers.length > 0,
                 userData: cachedUsers[0] || null
               });
-              
+
               const user = cachedUsers[0];
               if (!user) {
                 console.warn('No cached user data found for:', invite.userId);
