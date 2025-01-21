@@ -1865,6 +1865,16 @@ export function registerRoutes(app: Express): Server {
         return res.status(403).json({ message: 'Unauthorized' });
       }
 
+      // Fetch the thumbnail image
+      const thumbnail = await db.query.images.findFirst({
+        where: eq(images.galleryId, gallery.id),
+        orderBy: (images, { asc }) => [asc(images.position)]
+      });
+
+      // Fetch inviter details from cached users
+      const [inviterData] = await fetchCachedUserData([userId]);
+      const inviterName = inviterData ? `${inviterData.firstName || ''} ${inviterData.lastName || ''}`.trim() : 'A Beam User';
+
       // We still need to use Clerk directly for email lookup since our cache is ID-based
       const usersResponse = await clerkClient.users.getUserList({
         email_address_query: email
@@ -1941,7 +1951,9 @@ export function registerRoutes(app: Express): Server {
           toEmail: email,
           galleryTitle,
           inviteUrl,
-          signUpUrl,
+          galleryThumbnail: thumbnail?.url || null,
+          photographerName: inviterName,
+          recipientName: email.split('@')[0],
           isRegistered,
           role
         });
