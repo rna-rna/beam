@@ -25,6 +25,7 @@ function GalleryActions({ gallery, userRole = 'View', isDark = false }: GalleryA
   const canManageGallery = (role: string | null) => role ? ['owner', 'Edit'].includes(role) : false;
   const canStar = (role: string | null) => role ? ['owner', 'Edit', 'Comment'].includes(role) : false;
   const canComment = (role: string | null) => role ? ['owner', 'Edit', 'Comment'].includes(role) : false;
+  const showStar = (role: string | null) => role ? ['owner', 'Edit', 'Comment'].includes(role) : false;
 
   return (
     <div>
