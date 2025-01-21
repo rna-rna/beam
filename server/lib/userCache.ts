@@ -67,6 +67,12 @@ export async function fetchCachedUserData(userIds: string[]): Promise<CachedUser
         updatedAt: new Date(),
       };
 
+      console.log('Before upsert:', {
+        userId: user.id,
+        currentTime: new Date().toISOString(),
+        upsertData
+      });
+
       // Delete existing record if any
       await db.delete(cachedUsers)
         .where(inArray(cachedUsers.userId, [user.id]));
@@ -74,6 +80,17 @@ export async function fetchCachedUserData(userIds: string[]): Promise<CachedUser
       // Insert new record
       await db.insert(cachedUsers)
         .values(upsertData);
+
+      // Verify the update
+      const updatedRow = await db.query.cachedUsers.findFirst({
+        where: inArray(cachedUsers.userId, [user.id])
+      });
+
+      console.log('After upsert:', {
+        userId: user.id,
+        updatedRow,
+        success: updatedRow?.updatedAt > upsertData.updatedAt
+      });
 
       // Update local map
       localMap[user.id] = upsertData;
