@@ -923,21 +923,14 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: 'Invalid request: imageIds must be an array' });
       }
 
-      // Find the gallery and verify ownership
+      // Find the gallery first
       const gallery = await db.query.galleries.findFirst({
-        where: and(
-          eq(galleries.slug, req.params.slug),
-          eq(galleries.userId, userId)
-        ),
+        where: eq(galleries.slug, req.params.slug)
       });
 
-      if (!gallery) {
-        console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({
-          message: 'Gallery not found',
-          error: 'NOT_FOUND',
-          details: 'The gallery you are looking for does not exist or has been removed'
-        });
+      const role = await getGalleryUserRole(gallery.id, req.auth.userId);
+      if (!canManageGallery(role)) {
+        return res.status(403).json({ message: 'Forbidden - cannot delete images' });
       }
 
       // Validate image ownership
@@ -2452,6 +2445,55 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to fetch recent galleries:', error);
       res.status(500).json({ message: 'Failed to fetch recent galleries' });
+    }
+  });
+
+  // Reorder images (protected)
+  protectedRouter.post('/galleries/:slug/reorder', async (req: any, res) => {
+    try {
+      const { order } = req.body;
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, req.params.slug)
+      });
+      const role = await getGalleryUserRole(gallery.id, req.auth.userId);
+      if (!canManageGallery(role)) {
+        return res.status(403).json({ message: 'Forbidden - cannot reorder images' });
+      }
+      if (!Array.isArray(order)) {
+        return res.status(400).json({ message: 'Invalid order format' });
+      }
+
+
+      // Validate all images belong to this gallery
+      const galleryImages = await db.query.images.findMany({
+        where: eq(images.galleryId, gallery.id),
+      });
+
+      const validImageIds = new Set(galleryImages.map(img => img.id));
+      if (!order.every(id => validImageIds.has(id))) {
+        return res.status(400).json({ message: 'Invalid image IDs in order' });
+      }
+
+      // Update order for each image in a transaction
+      await db.transaction(async (tx) => {
+        for (let i = 0; i < order.length; i++) {
+          await tx
+            .update(images)
+            .set({ position: i })
+            .where(and(
+              eq(images.id, order[i]),
+              eq(images.galleryId, gallery.id)
+            ));
+        }
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Reorder error:', error);
+      res.status(500).json({
+        message: 'Failed to reorder images',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 

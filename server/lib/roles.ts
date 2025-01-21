@@ -37,3 +37,8 @@ export async function getGalleryUserRole(galleryId: number, userId: string) {
 }
 
 export type GalleryRole = 'owner' | 'Edit' | 'Comment' | 'View' | null;
+
+
+export function canManageGallery(role: GalleryRole): boolean {
+  return role === 'owner' || role === 'Edit';
+}
