@@ -1,4 +1,6 @@
+
 import sgMail from "@sendgrid/mail";
+import { SendGridTemplates } from "./sendgridTemplates";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
@@ -27,10 +29,10 @@ export async function sendInviteEmail(opts: SendInviteEmailOptions) {
     isRegistered,
   } = opts;
 
-  const templateId = process.env.SENDGRID_INVITE_TEMPLATE_ID;
+  const templateId = SendGridTemplates.inviteEmail;
 
   if (!templateId) {
-    throw new Error("SendGrid template ID not configured");
+    throw new Error("Invite email template ID not configured");
   }
 
   const dynamicTemplateData = {
