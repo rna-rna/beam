@@ -1,3 +1,5 @@
+import { fetchCachedUserData } from './lib/userCache';
+
 import express, { type Express, type Request } from "express";
 import { createServer, type Server } from "http";
 import multer from 'multer';
@@ -1404,12 +1406,12 @@ export function registerRoutes(app: Express): Server {
           success: true,
           data: comment
         });
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error processing user data:', error);
         return res.status(401).json({
           success: false,
           message: 'Authentication failed',
-          details: error.message || 'Failed to process user data'
+          details: error instanceof Error ? error.message : 'Failed to process user data'
         });
       }
     } catch (error) {
@@ -1438,7 +1440,27 @@ export function registerRoutes(app: Express): Server {
         orderBy: (comments, { asc }) => [asc(comments.createdAt)]
       });
 
-      res.json(imageComments);
+      // Get unique user IDs from comments
+      const userIds = [...new Set(imageComments.map(comment => comment.userId))];
+
+      // Batch fetch user data using cache
+      const cachedUsers = await fetchCachedUserData(userIds);
+
+      // Merge comments with cached user details
+      const commentsWithUserData = imageComments.map(comment => {
+        const user = cachedUsers.find(u => u.userId === comment.userId);
+        return {
+          ...comment,
+          author: {
+            id: comment.userId,
+            username: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
+            imageUrl: user?.imageUrl,
+            color: user?.color
+          }
+        };
+      });
+
+      res.json(commentsWithUserData);
     } catch (error) {
       console.error('Error fetching comments:', error);
       res.status(500).json({
@@ -1676,32 +1698,25 @@ export function registerRoutes(app: Express): Server {
 
       const userStarred = userId ? starData.some(star => star.userId === userId) : false;
 
-      // Fetch user data from Clerk for each star
-      const starsWithUserData = await Promise.all(
-        starData.map(async (star) => {
-          try {
-            const user = await clerkClient.users.getUser(star.userId);
-            return {
-              ...star,
-              user: {
-                firstName: user.firstName,
-                lastName: user.lastName,
-                imageUrl: user.imageUrl
-              }
-            };
-          } catch (error) {
-            console.error(`Failed to fetch user data for userId: ${star.userId}`, error);
-            return {
-              ...star,
-              user: {
-                firstName: null,
-                lastName: null,
-                imageUrl: null
-              }
-            };
+      // Get unique user IDs
+      const userIds = [...new Set(starData.map(star => star.userId))];
+
+      // Batch fetch user data using cache
+      const cachedUsers = await fetchCachedUserData(userIds);
+
+      // Merge star data with cached user details
+      const starsWithUserData = starData.map(star => {
+        const user = cachedUsers.find(u => u.userId === star.userId);
+        return {
+          ...star,
+          user: {
+            firstName: user?.firstName,
+            lastName: user?.lastName,
+            imageUrl: user?.imageUrl,
+            color: user?.color
           }
-        })
-      );
+        };
+      });
 
       res.json({
         success: true,
@@ -1736,47 +1751,39 @@ export function registerRoutes(app: Express): Server {
         where: eq(invites.galleryId, gallery.id)
       });
 
-      // Get user details from Clerk for each invite and the owner
-      const usersWithDetails = await Promise.all(
-        permissions.map(async (invite) => {
-          if (invite.userId) {
-            try {
-              const user = await clerkClient.users.getUser(invite.userId);
-              return {
-                id: invite.id,
-                email: invite.email,
-                fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-                role: invite.role,
-                avatarUrl: user.imageUrl
-              };
-            } catch (error) {
-              console.error('Failed to fetch user details:', error);
-            }
-          }
-          return {
-            id: invite.id,
-            email: invite.email,
-            fullName: null,
-            role: invite.role,
-            avatarUrl: null
-          };
-        })
-      );
+      // Get unique user IDs from permissions
+      const userIds = permissions
+        .map(invite => invite.userId)
+        .filter((id): id is string => !!id);
+
+      // Batch fetch user data using cache
+      const cachedUsers = await fetchCachedUserData(userIds);
+
+      // Map permissions to user details
+      const usersWithDetails = permissions.map(invite => {
+        const user = invite.userId ? cachedUsers.find(u => u.userId === invite.userId) : null;
+        return {
+          id: invite.id,
+          email: invite.email,
+          fullName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : null,
+          role: invite.role,
+          avatarUrl: user?.imageUrl || null
+        };
+      });
 
       // Add owner with Editor role if not already in permissions
       if (gallery.userId !== 'guest') {
-        try {
-          const owner = await clerkClient.users.getUser(gallery.userId);
-          const ownerEmail = owner.emailAddresses[0]?.emailAddress;
-          const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerEmail);
+        const [ownerData] = await fetchCachedUserData([gallery.userId]);
+        if (ownerData) {
+          const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerData.email);
 
-          if (!isOwnerInPermissions && ownerEmail) {
+          if (!isOwnerInPermissions && ownerData.email) {
             usersWithDetails.push({
               id: 'owner',
-              email: ownerEmail,
-              fullName: `${owner.firstName || ''} ${owner.lastName || ''}`.trim(),
+              email: ownerData.email,
+              fullName: `${ownerData.firstName || ''} ${ownerData.lastName || ''}`.trim(),
               role: 'Editor',
-              avatarUrl: owner.imageUrl
+              avatarUrl: ownerData.imageUrl
             });
           }
         } catch (error) {
@@ -1944,11 +1951,12 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Create pending invite
+      const [userData] = await fetchCachedUserData([userId]);
       await db.insert(invites).values({
         galleryId: gallery.id,
         userId,
         role: 'View',
-        email: (await clerkClient.users.getUser(userId)).emailAddresses[0].emailAddress
+        email: userData?.email || ''
       });
 
       res.json({ message: 'Access request sent' });
@@ -1995,7 +2003,7 @@ export function registerRoutes(app: Express): Server {
       const users = usersResponse?.data.map((user) => ({
         id: user.id,
         email: user.emailAddresses[0]?.emailAddress,
-        fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        fullName: `${user.firstName || ''} ${user.lastName || ''}``.trim(),
         avatarUrl: user.imageUrl,
       })) || [];
 
@@ -2291,7 +2299,7 @@ export function registerRoutes(app: Express): Server {
   protectedRouter.get('/api/notifications', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
-      
+
       const notifications = await db.query.notifications.findMany({
         where: and(
           eq(notifications.userId, userId),
@@ -2417,4 +2425,5 @@ function generateSlug(): string {
   // Generate a URL-friendly unique identifier
   // Using a shorter length (10) for more readable URLs while maintaining uniqueness
   return nanoid(10);
+}
 }
