@@ -1,4 +1,3 @@
-
 import { fetchCachedUserData } from './lib/userCache';
 
 import express, { type Express, type Request } from "express";
@@ -1201,7 +1200,7 @@ export function registerRoutes(app: Express): Server {
           const starsWithUserData = await Promise.all(
             img.stars.map(async (star) => {
               try {
-                const user = await clerkClient.users.getUser(star.userId);
+                const user = await fetchCachedUserData([star.userId])[0];
                 return {
                   ...star,
                   firstName: user.firstName,
@@ -1443,7 +1442,7 @@ export function registerRoutes(app: Express): Server {
 
       // Get unique user IDs from comments
       const userIds = [...new Set(imageComments.map(comment => comment.userId))];
-      
+
       // Batch fetch user data using cache
       const cachedUsers = await fetchCachedUserData(userIds);
 
@@ -1755,7 +1754,7 @@ export function registerRoutes(app: Express): Server {
         permissions.map(async (invite) => {
           if (invite.userId) {
             try {
-              const user = await clerkClient.users.getUser(invite.userId);
+              const user = await fetchCachedUserData([invite.userId])[0];
               return {
                 id: invite.id,
                 email: invite.email,
@@ -1779,10 +1778,10 @@ export function registerRoutes(app: Express): Server {
 
       // Add owner with Editor role if not already in permissions
       if (gallery.userId !== 'guest') {
-        try {
-          const [ownerData] = await fetchCachedUserData([gallery.userId]);
-          if (ownerData) {
-            const ownerEmail = (await clerkClient.users.getUser(gallery.userId)).emailAddresses[0]?.emailAddress;
+          try {
+            const [ownerData] = await fetchCachedUserData([gallery.userId]);
+            const ownerClerkData = await clerkClient.users.getUser(gallery.userId);
+            const ownerEmail = ownerClerkData.emailAddresses[0]?.emailAddress;
             const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerEmail);
 
             if (!isOwnerInPermissions && ownerEmail) {
@@ -1794,11 +1793,10 @@ export function registerRoutes(app: Express): Server {
                 avatarUrl: ownerData.imageUrl
               });
             }
+          } catch (error) {
+            console.error('Failed to fetch owner details:', error);
           }
-        } catch (error) {
-          console.error('Failed to fetch owner details:', error);
         }
-      }
 
       res.json({
         success: true,
@@ -2004,7 +2002,7 @@ export function registerRoutes(app: Express): Server {
       const email = req.query.email?.toString().toLowerCase();
 
       if (!email) {
-        return res.status(400).json({
+        return res.status(40).json({
           success: false,
           message: 'Email query parameter is required'
         });
@@ -2313,7 +2311,7 @@ export function registerRoutes(app: Express): Server {
   protectedRouter.get('/api/notifications', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
-      
+
       const notifications = await db.query.notifications.findMany({
         where: and(
           eq(notifications.userId, userId),
