@@ -1,3 +1,6 @@
+
+import { fetchCachedUserData } from './lib/userCache';
+
 import express, { type Express, type Request } from "express";
 import { createServer, type Server } from "http";
 import multer from 'multer';
@@ -1438,7 +1441,27 @@ export function registerRoutes(app: Express): Server {
         orderBy: (comments, { asc }) => [asc(comments.createdAt)]
       });
 
-      res.json(imageComments);
+      // Get unique user IDs from comments
+      const userIds = [...new Set(imageComments.map(comment => comment.userId))];
+      
+      // Batch fetch user data using cache
+      const cachedUsers = await fetchCachedUserData(userIds);
+
+      // Merge comments with cached user details
+      const commentsWithUserData = imageComments.map(comment => {
+        const user = cachedUsers.find(u => u.userId === comment.userId);
+        return {
+          ...comment,
+          author: {
+            id: comment.userId,
+            username: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
+            imageUrl: user?.imageUrl,
+            color: user?.color
+          }
+        };
+      });
+
+      res.json(commentsWithUserData);
     } catch (error) {
       console.error('Error fetching comments:', error);
       res.status(500).json({
@@ -1676,32 +1699,25 @@ export function registerRoutes(app: Express): Server {
 
       const userStarred = userId ? starData.some(star => star.userId === userId) : false;
 
-      // Fetch user data from Clerk for each star
-      const starsWithUserData = await Promise.all(
-        starData.map(async (star) => {
-          try {
-            const user = await clerkClient.users.getUser(star.userId);
-            return {
-              ...star,
-              user: {
-                firstName: user.firstName,
-                lastName: user.lastName,
-                imageUrl: user.imageUrl
-              }
-            };
-          } catch (error) {
-            console.error(`Failed to fetch user data for userId: ${star.userId}`, error);
-            return {
-              ...star,
-              user: {
-                firstName: null,
-                lastName: null,
-                imageUrl: null
-              }
-            };
+      // Get unique user IDs
+      const userIds = [...new Set(starData.map(star => star.userId))];
+      
+      // Batch fetch user data using cache
+      const cachedUsers = await fetchCachedUserData(userIds);
+
+      // Merge star data with cached user details
+      const starsWithUserData = starData.map(star => {
+        const user = cachedUsers.find(u => u.userId === star.userId);
+        return {
+          ...star,
+          user: {
+            firstName: user?.firstName,
+            lastName: user?.lastName,
+            imageUrl: user?.imageUrl,
+            color: user?.color
           }
-        })
-      );
+        };
+      });
 
       res.json({
         success: true,
