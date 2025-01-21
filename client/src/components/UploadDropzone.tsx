@@ -1,4 +1,5 @@
 import { useCallback, useState, useRef } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { useDropzone } from 'react-dropzone';
 import { queryClient } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
@@ -15,6 +16,7 @@ interface Props {
 
 export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }: Props) {
   const { batches, addBatch, updateBatchProgress, completeBatch } = useUpload();
+  const { getToken } = useAuth();
 
   // Use ref to persist processed files across renders
   const processedFiles = useRef(new Set<string>());
@@ -97,10 +99,16 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         return;
       }
 
-      // Request presigned URL
+      // Get auth token from Clerk
+      const token = await getToken();
+      
+      // Request presigned URL with auth token
       const response = await fetch(`/api/galleries/${gallerySlug}/images`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           files: acceptedFiles.map(file => ({
             name: file.name,
