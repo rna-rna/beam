@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -9,35 +9,23 @@ import { cn } from '@/lib/utils';
 import { GalleryRole } from '@/types/gallery';
 import { PencilRuler } from 'lucide-react';
 
-function GalleryActions({gallery, ...props}: any) {
-  const [userRole, setUserRole] = useState<GalleryRole>("View");
+interface GalleryActionsProps {
+  gallery: any;
+  userRole: GalleryRole | string;
+  isDark?: boolean;
+}
+
+function GalleryActions({ gallery, userRole, isDark = false }: GalleryActionsProps) {
   const [selectMode, setSelectMode] = useState(false);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
-  const [isDark, setIsDark] = useState(false);
 
   const toggleSelectMode = () => {
     setSelectMode(!selectMode);
   };
 
-  const canManageGallery = (role: GalleryRole) => role === 'owner' || role === 'editor';
-  const canStar = (role: GalleryRole) => role === 'owner' || role === 'editor' || role === 'comment';
-  const canComment = (role: GalleryRole) => role === 'owner' || role === 'editor' || role === 'comment';
-
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      try {
-        const response = await fetch(`/api/galleries/${gallery.slug}/permissions`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setUserRole(data.role);
-      } catch (error) {
-        console.error("Error fetching permissions:", error);
-      }
-    };
-    fetchPermissions();
-  }, [gallery.slug]);
+  const canManageGallery = (role: string) => ['owner', 'editor'].includes(role.toLowerCase());
+  const canStar = (role: string) => ['owner', 'editor', 'comment'].includes(role.toLowerCase());
+  const canComment = (role: string) => ['owner', 'editor', 'comment'].includes(role.toLowerCase());
 
   return (
     <div>

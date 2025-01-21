@@ -12,8 +12,11 @@ import GalleryActions from './GalleryActions';
 function Gallery({gallery, ...props}: any) {
   return (
     <div className="relative">
-      <GalleryActions gallery={gallery} />
-      {/* ... rest of your Gallery component ... */}
+      <GalleryActions 
+        gallery={gallery} 
+        userRole={props.userRole} 
+        isDark={props.isDark}
+      />
     </div>
   );
 }
