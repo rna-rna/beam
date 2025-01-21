@@ -652,7 +652,7 @@ export default function Gallery({
           throw new Error("This gallery is private");
         }
         if (res.status === 404) {
-          throw new Error("Gallery not found");
+          throw new Error("Private Gallery");
         }
         throw new Error("Failed to fetch gallery");
       }
