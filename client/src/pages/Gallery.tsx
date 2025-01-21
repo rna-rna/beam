@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
+import Gallery from '@/components/Gallery';
 
 // Initialize Socket.IO client
 const socket = io("/", {
@@ -2158,6 +2159,7 @@ export default function Gallery({
     <UploadProvider>
       <>
         <CursorOverlay cursors={cursors} />
+        {gallery && <Gallery gallery={gallery} />}
         {gallery && (
           <Helmet>
             <meta
