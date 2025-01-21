@@ -1,0 +1,80 @@
+To ensure that emails.ts understands and utilizes the variables correctly, you need to update the sendInviteEmail function to:
+
+Accept the new variables from the caller (e.g., photographerName, galleryThumbnail).
+Pass these variables to the SendGrid dynamic template using the dynamic_template_data object.
+Here's how to adjust emails.ts:
+
+Updated emails.ts
+typescript
+Copy
+Edit
+import sgMail from "@sendgrid/mail";
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
+
+interface SendInviteEmailOptions {
+  toEmail: string;
+  fromEmail?: string;
+  galleryTitle: string;
+  inviteUrl: string;
+  galleryThumbnail: string;
+  photographerName: string;
+  recipientName?: string;
+  role: string;
+  isRegistered: boolean;
+}
+
+export async function sendInviteEmail(opts: SendInviteEmailOptions) {
+  const {
+    toEmail,
+    fromEmail = "hello@beam.ms", // Default "from" email
+    galleryTitle,
+    inviteUrl,
+    galleryThumbnail,
+    photographerName,
+    recipientName = "there", // Default to "there" if not provided
+    role,
+    isRegistered,
+  } = opts;
+
+  // Dynamic template ID (replace with your actual template ID from SendGrid)
+  const templateId = "YOUR_DYNAMIC_TEMPLATE_ID";
+
+  // Prepare dynamic template data
+  const dynamicTemplateData = {
+    recipientName, // Maps to {{recipientName}}
+    photographerName, // Maps to {{photographerName}}
+    galleryName: galleryTitle, // Maps to {{galleryName}}
+    galleryUrl: inviteUrl, // Maps to {{galleryUrl}}
+    galleryThumbnail, // Maps to {{galleryThumbnail}}
+    role, // Maps to {{role}}
+  };
+
+  const msg = {
+    to: toEmail,
+    from: fromEmail,
+    templateId, // Use SendGrid dynamic template
+    dynamic_template_data: dynamicTemplateData, // Pass dynamic fields to template
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`Invite email sent to ${toEmail}`);
+  } catch (error) {
+    console.error("Error sending invite email:", error);
+    throw error; // Re-throw error for further handling
+  }
+}
+Key Changes
+Add New Parameters in SendInviteEmailOptions:
+
+Added galleryThumbnail and photographerName.
+Pass New Fields to dynamic_template_data:
+
+Added photographerName (for {{photographerName}}) and galleryThumbnail (for {{galleryThumbnail}}).
+Update Template ID:
+
+Replace "YOUR_DYNAMIC_TEMPLATE_ID" with the actual SendGrid dynamic template ID.
+Dynamic Template Fields Mapping:
+
+Ensure fields in dynamic_template_data match placeholders in your SendGrid template.
