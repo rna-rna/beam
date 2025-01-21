@@ -260,7 +260,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                         <AvatarFallback>{user.fullName[0]}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium">{user.fullName}</p>
+                        <p className="text-sm font-medium">{user.fullName || user.email?.split('@')[0] || 'Unknown User'}</p>
                         <p className="text-xs text-muted-foreground">{user.email}</p>
                       </div>
                     </div>
@@ -281,7 +281,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                   <AvatarFallback>{user.fullName[0]}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-sm font-medium">{user.fullName}</p>
+                  <p className="text-sm font-medium">{user.fullName || user.email?.split('@')[0] || 'Unknown User'}</p>
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </div>
