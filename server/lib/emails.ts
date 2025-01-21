@@ -39,6 +39,9 @@ export async function sendInviteEmail(opts: SendInviteEmailOptions) {
     role,
     isRegistered,
     signUpUrl: `${process.env.VITE_APP_URL}/sign-up?email=${encodeURIComponent(toEmail)}`,
+    roleDescription: role === 'Edit' ? 'edit and comment on' : role === 'Comment' ? 'comment on' : 'view',
+    galleryPreviewText: galleryThumbnail ? 'Preview your gallery below:' : 'Click the link to view the gallery:',
+    inviteType: isRegistered ? 'existing' : 'new'
   };
 
   const msg = {
