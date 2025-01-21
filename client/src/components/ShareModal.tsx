@@ -101,7 +101,6 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
   };
 
   const handleSendInvite = async () => {
-    // Handle both selected user and direct email cases
     const emailToInvite = selectedUser ? selectedUser.email : email;
     if (!emailToInvite) return;
 
@@ -110,34 +109,38 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: emailToInvite,
-          role: "View",
+          email: emailToInvite.toLowerCase(),
+          role: "View"
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to send invite");
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to send invite");
+      }
 
       toast({
         title: "Success",
-        description: `Invite sent to ${emailToInvite}`,
+        description: `Invite sent to ${emailToInvite}`
       });
 
-      // Create a new user object for direct email invites
-      const newUser = selectedUser || {
-        id: emailToInvite,
+      // Create a simple user object for the list
+      const newUser = {
+        id: selectedUser?.id || emailToInvite,
         email: emailToInvite,
-        fullName: emailToInvite.split('@')[0],
+        fullName: selectedUser?.fullName || emailToInvite.split('@')[0],
+        avatarUrl: selectedUser?.avatarUrl || null,
         role: "View"
       };
 
-      setInvitedUsers((prev) => [...prev, { ...newUser, role: "View" }]);
+      setInvitedUsers((prev) => [...prev, newUser]);
       setSelectedUser(null);
       setEmail("");
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to send invite. Please try again.",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "Failed to send invite",
+        variant: "destructive"
       });
     }
   };
