@@ -81,10 +81,17 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
         return;
       }
       try {
-        const res = await fetch(`/api/users/search?email=${email}`);
+        const res = await fetch(`/api/users/search?email=${email.toLowerCase()}`);
         const data = await res.json();
         if (data.success) {
-          setUserSuggestions(data.users || []);
+          const exactMatch = data.users.find((user: User) => user.email.toLowerCase() === email.toLowerCase());
+          if (exactMatch) {
+            setSelectedUser(exactMatch);
+            setEmail(""); // Clear the input
+            setUserSuggestions([]);
+          } else {
+            setUserSuggestions(data.users || []);
+          }
         }
       } catch (error) {
         console.error("User lookup failed:", error);
