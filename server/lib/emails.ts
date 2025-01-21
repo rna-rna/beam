@@ -16,7 +16,7 @@ interface SendInviteEmailOptions {
 export async function sendInviteEmail(opts: SendInviteEmailOptions) {
   const {
     toEmail,
-    fromEmail = "no-reply@yourdomain.com",
+    fromEmail = "hello@beam.ms",
     galleryTitle,
     inviteUrl,
     signUpUrl,
