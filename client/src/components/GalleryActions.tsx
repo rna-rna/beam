@@ -11,11 +11,11 @@ import { PencilRuler } from 'lucide-react';
 
 interface GalleryActionsProps {
   gallery: any;
-  userRole: GalleryRole | string;
+  userRole?: GalleryRole | string | null;
   isDark?: boolean;
 }
 
-function GalleryActions({ gallery, userRole, isDark = false }: GalleryActionsProps) {
+function GalleryActions({ gallery, userRole = 'view', isDark = false }: GalleryActionsProps) {
   const [selectMode, setSelectMode] = useState(false);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
 
@@ -23,9 +23,9 @@ function GalleryActions({ gallery, userRole, isDark = false }: GalleryActionsPro
     setSelectMode(!selectMode);
   };
 
-  const canManageGallery = (role: string) => ['owner', 'editor'].includes(role.toLowerCase());
-  const canStar = (role: string) => ['owner', 'editor', 'comment'].includes(role.toLowerCase());
-  const canComment = (role: string) => ['owner', 'editor', 'comment'].includes(role.toLowerCase());
+  const canManageGallery = (role: string | null) => role ? ['owner', 'editor'].includes(role.toLowerCase()) : false;
+  const canStar = (role: string | null) => role ? ['owner', 'editor', 'comment'].includes(role.toLowerCase()) : false;
+  const canComment = (role: string | null) => role ? ['owner', 'editor', 'comment'].includes(role.toLowerCase()) : false;
 
   return (
     <div>
