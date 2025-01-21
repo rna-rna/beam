@@ -8,6 +8,10 @@ import type { CachedUser } from "@db/schema";
 // Track pending requests to prevent duplicate Clerk API calls
 const pendingFetches: Map<string, Promise<CachedUser[]>> = new Map();
 
+function generateFetchKey(userIds: string[]): string {
+  return userIds.sort().join(',');
+}
+
 function generateColorForUser(userId: string): string {
   const colors = [
     '#F24822', '#2196F3', '#4CAF50', '#FFC107', '#9C27B0',
@@ -24,16 +28,21 @@ function generateColorForUser(userId: string): string {
 export async function fetchCachedUserData(userIds: string[]): Promise<CachedUser[]> {
   if (!userIds.length) return [];
 
-  // Generate cache key for this batch of userIds
-  const cacheKey = userIds.sort().join(',');
+  const cacheKey = generateFetchKey(userIds);
   
-  // Check for pending request for these exact userIds
+  // Return existing pending fetch if available
   const pendingFetch = pendingFetches.get(cacheKey);
   if (pendingFetch) {
-    return pendingFetch;
+    try {
+      return await pendingFetch;
+    } catch (error) {
+      console.error('Error in pending fetch:', error);
+      pendingFetches.delete(cacheKey);
+      throw error;
+    }
   }
 
-  // Create new fetch promise
+  // Create new fetch promise with cleanup
   const fetchPromise = (async () => {
     try {
       // 1. Fetch local rows
@@ -107,8 +116,11 @@ export async function fetchCachedUserData(userIds: string[]): Promise<CachedUser
       return userIds.map(id => localMap[id]).filter(Boolean);
     } finally {
       // Remove from pending fetches after short delay
+      // Cleanup pending fetch after short delay to allow for near-simultaneous requests
       setTimeout(() => {
-        pendingFetches.delete(cacheKey);
+        if (pendingFetches.get(cacheKey) === fetchPromise) {
+          pendingFetches.delete(cacheKey);
+        }
       }, 1000);
     }
   })();
@@ -116,5 +128,10 @@ export async function fetchCachedUserData(userIds: string[]): Promise<CachedUser
   // Store promise in pending fetches
   pendingFetches.set(cacheKey, fetchPromise);
   
-  return fetchPromise;
+  try {
+    return await fetchPromise;
+  } catch (error) {
+    pendingFetches.delete(cacheKey);
+    throw error;
+  }
 }
