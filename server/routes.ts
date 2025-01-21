@@ -1406,12 +1406,12 @@ export function registerRoutes(app: Express): Server {
           success: true,
           data: comment
         });
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error processing user data:', error);
         return res.status(401).json({
           success: false,
           message: 'Authentication failed',
-          details: error.message || 'Failed to process user data'
+          details: error instanceof Error ? error.message : 'Failed to process user data'
         });
       }
     } catch (error) {
