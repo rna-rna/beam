@@ -1200,12 +1200,22 @@ export function registerRoutes(app: Express): Server {
           const starsWithUserData = await Promise.all(
             img.stars.map(async (star) => {
               try {
-                const user = await fetchCachedUserData([star.userId])[0];
+                const [fetchedUser] = await fetchCachedUserData([star.userId]) || [];
+                if (!fetchedUser) {
+                  console.warn('No user found in cache for userId:', star.userId);
+                  return {
+                    ...star,
+                    firstName: null,
+                    lastName: null,
+                    imageUrl: null
+                  };
+                }
+                
                 return {
                   ...star,
-                  firstName: user.firstName,
-                  lastName: user.lastName,
-                  imageUrl: user.imageUrl
+                  firstName: fetchedUser.firstName,
+                  lastName: fetchedUser.lastName,
+                  imageUrl: fetchedUser.imageUrl
                 };
               } catch (error) {
                 console.error(`Failed to fetch user data for userId: ${star.userId}`, error);
