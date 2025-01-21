@@ -1,0 +1,41 @@
+Uncaught TypeError: Cannot read properties of null (reading '0')
+    at ShareModal.tsx:281:41
+    at Array.map (<anonymous>)
+    at ShareModal (ShareModal.tsx:273:25)
+    at renderWithHooks (chunk-XQLYTHWV.js?v=47833a09:11548:26)
+    at updateFunctionComponent (chunk-XQLYTHWV.js?v=47833a09:14582:28)
+    at beginWork (chunk-XQLYTHWV.js?v=47833a09:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-XQLYTHWV.js?v=47833a09:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-XQLYTHWV.js?v=47833a09:3699:24)
+    at invokeGuardedCallback (chunk-XQLYTHWV.js?v=47833a09:3733:39)
+    at beginWork$1 (chunk-XQLYTHWV.js?v=47833a09:19765:15)Understand this errorAI
+chunk-XQLYTHWV.js?v=47833a09:14032 The above error occurred in the <ShareModal> component:
+
+    at ShareModal (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/components/ShareModal.tsx:30:30)
+    at div
+    at UploadProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/context/UploadContext.tsx:20:34)
+    at Gallery (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/pages/Gallery.tsx:104:9)
+    at Route (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=47833a09:191:16)
+    at Switch (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=47833a09:247:17)
+    at PresenceChild (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=47833a09:121:24)
+    at AnimatePresence (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=47833a09:210:26)
+    at div
+    at PresenceChild (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=47833a09:121:24)
+    at AnimatePresence (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=47833a09:210:26)
+    at main
+    at div
+    at Layout (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/components/Layout.tsx:30:3)
+    at AppContent (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/App.tsx:73:45)
+    at UploadProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/context/UploadContext.tsx:20:34)
+    at DndProvider2 (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-dnd.js?v=47833a09:1505:9)
+    at App (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/App.tsx:436:24)
+    at QueryClientProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=47833a09:2805:3)
+    at ThemeProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/hooks/use-theme.tsx:20:33)
+    at SWRConfig (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@clerk_clerk-react.js?v=47833a09:719:11)
+    at OrganizationProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@clerk_clerk-react.js?v=47833a09:1691:3)
+    at ClerkContextProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@clerk_clerk-react.js?v=47833a09:5221:11)
+    at ClerkProviderBase (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@clerk_clerk-react.js?v=47833a09:5295:11)
+    at Hoc (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@clerk_clerk-react.js?v=47833a09:3357:5)
+    at ErrorBoundary (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/components/ErrorBoundary.tsx:9:5)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
