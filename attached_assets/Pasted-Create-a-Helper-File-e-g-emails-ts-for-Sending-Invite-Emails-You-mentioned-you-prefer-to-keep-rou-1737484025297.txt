@@ -1,0 +1,92 @@
+Create a Helper File (e.g. emails.ts) for Sending Invite Emails
+You mentioned you prefer to keep routes lighter, so we’ll create a separate file with a helper function. For example, in your backend folder (where routes.ts lives), add a file named emails.ts:
+
+ts
+Copy
+// emails.ts
+import sgMail from "@sendgrid/mail";
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
+
+interface SendInviteEmailOptions {
+  toEmail: string;
+  fromEmail?: string;         // default "no-reply@yourdomain.com"
+  galleryTitle: string;       // e.g. "My Awesome Gallery"
+  inviteUrl: string;          // link to view the gallery
+  signUpUrl?: string;         // link to sign up, if needed
+  isRegistered: boolean;      // if user is known to Clerk or not
+  role: string;               // "View", "Comment", "Edit", etc.
+}
+
+/**
+ * Sends an HTML email via SendGrid with different copy depending on
+ * whether user is registered or not, and whether they need to sign up.
+ */
+export async function sendInviteEmail(opts: SendInviteEmailOptions) {
+  const {
+    toEmail,
+    fromEmail = "no-reply@yourdomain.com",  // The verified domain you set up
+    galleryTitle,
+    inviteUrl,
+    signUpUrl,
+    isRegistered,
+    role
+  } = opts;
+
+  // Basic subject
+  const subject = isRegistered
+    ? `You've been invited to view ${galleryTitle}`
+    : `Join us on ${galleryTitle}!`;
+
+  // Decide what the main message is:
+  let htmlContent: string;
+
+  if (isRegistered) {
+    // If the user is already in Clerk, simpler instructions
+    htmlContent = `
+    <h2>You've been invited to ${galleryTitle}!</h2>
+    <p>Someone invited you to ${galleryTitle}. You can click below to view it:</p>
+    <p><a href="${inviteUrl}" style="color: #fff; background: #007bcc; padding: 10px 20px; text-decoration: none;">View Gallery</a></p>
+    <p>This gallery role is: <strong>${role}</strong></p>
+    <p>Enjoy!</p>
+    `;
+  } else {
+    // If the user is NOT in Clerk, we encourage sign up
+    // Maybe let them view the gallery first (if role = Viewer),
+    // or strongly encourage sign-up if role = Edit/Comment
+    const signUpSection = role === "Edit" || role === "Comment"
+      ? `
+      <p>Because you've been invited as a <strong>${role}</strong>, you'll need a free account to 
+      interact fully (e.g., comment or edit images). 
+      <a href="${signUpUrl}">Click here to sign up</a>.</p>
+      `
+      : `
+      <p>You're welcome to view the gallery without an account, but 
+      <a href="${signUpUrl}">signing up</a> is quick & free!</p>
+      `;
+
+    htmlContent = `
+    <h2>Hello!</h2>
+    <p>You've been invited to check out <strong>${galleryTitle}</strong>.</p>
+    <p>Click below to view it:</p>
+    <p><a href="${inviteUrl}" style="color: #fff; background: #007bcc; padding: 10px 20px; text-decoration: none;">View Gallery</a></p>
+    ${signUpSection}
+    <p>We hope you join us!</p>
+    `;
+  }
+
+  const msg = {
+    to: toEmail,
+    from: fromEmail,
+    subject,
+    html: htmlContent
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`Invite email sent to ${toEmail}`);
+  } catch (error) {
+    console.error("Error sending invite email:", error);
+    throw error; // let the caller handle it
+  }
+}
