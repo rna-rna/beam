@@ -1,4 +1,3 @@
-
 import { fetchCachedUserData } from './lib/userCache';
 
 import express, { type Express, type Request } from "express";
@@ -1443,7 +1442,7 @@ export function registerRoutes(app: Express): Server {
 
       // Get unique user IDs from comments
       const userIds = [...new Set(imageComments.map(comment => comment.userId))];
-      
+
       // Batch fetch user data using cache
       const cachedUsers = await fetchCachedUserData(userIds);
 
@@ -1701,7 +1700,7 @@ export function registerRoutes(app: Express): Server {
 
       // Get unique user IDs
       const userIds = [...new Set(starData.map(star => star.userId))];
-      
+
       // Batch fetch user data using cache
       const cachedUsers = await fetchCachedUserData(userIds);
 
@@ -1777,7 +1776,7 @@ export function registerRoutes(app: Express): Server {
         const [ownerData] = await fetchCachedUserData([gallery.userId]);
         if (ownerData) {
           const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerData.email);
-          
+
           if (!isOwnerInPermissions && ownerData.email) {
             usersWithDetails.push({
               id: 'owner',
@@ -2004,7 +2003,7 @@ export function registerRoutes(app: Express): Server {
       const users = usersResponse?.data.map((user) => ({
         id: user.id,
         email: user.emailAddresses[0]?.emailAddress,
-        fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        fullName: `${user.firstName || ''} ${user.lastName || ''}``.trim(),
         avatarUrl: user.imageUrl,
       })) || [];
 
@@ -2300,7 +2299,7 @@ export function registerRoutes(app: Express): Server {
   protectedRouter.get('/api/notifications', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
-      
+
       const notifications = await db.query.notifications.findMany({
         where: and(
           eq(notifications.userId, userId),
@@ -2426,4 +2425,5 @@ function generateSlug(): string {
   // Generate a URL-friendly unique identifier
   // Using a shorter length (10) for more readable URLs while maintaining uniqueness
   return nanoid(10);
+}
 }
