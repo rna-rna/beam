@@ -1780,18 +1780,20 @@ export function registerRoutes(app: Express): Server {
       // Add owner with Editor role if not already in permissions
       if (gallery.userId !== 'guest') {
         try {
-          const owner = await clerkClient.users.getUser(gallery.userId);
-          const ownerEmail = owner.emailAddresses[0]?.emailAddress;
-          const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerEmail);
+          const [ownerData] = await fetchCachedUserData([gallery.userId]);
+          if (ownerData) {
+            const ownerEmail = (await clerkClient.users.getUser(gallery.userId)).emailAddresses[0]?.emailAddress;
+            const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerEmail);
 
-          if (!isOwnerInPermissions && ownerEmail) {
-            usersWithDetails.push({
-              id: 'owner',
-              email: ownerEmail,
-              fullName: `${owner.firstName || ''} ${owner.lastName || ''}`.trim(),
-              role: 'Editor',
-              avatarUrl: owner.imageUrl
-            });
+            if (!isOwnerInPermissions && ownerEmail) {
+              usersWithDetails.push({
+                id: 'owner',
+                email: ownerEmail,
+                fullName: `${ownerData.firstName || ''} ${ownerData.lastName || ''}`.trim(),
+                role: 'Editor',
+                avatarUrl: ownerData.imageUrl
+              });
+            }
           }
         } catch (error) {
           console.error('Failed to fetch owner details:', error);
@@ -1847,7 +1849,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(403).json({ message: 'Unauthorized' });
       }
 
-      // Lookup user by email using Clerk's email_address_query
+      // We still need to use Clerk directly for email lookup since our cache is ID-based
       const usersResponse = await clerkClient.users.getUserList({
         email_address_query: email
       });
@@ -1855,6 +1857,12 @@ export function registerRoutes(app: Express): Server {
       const matchingUser = users.find((u) =>
         u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email.toLowerCase())
       );
+
+      // If we found a user, fetch their cached data
+      let cachedUserData;
+      if (matchingUser) {
+        [cachedUserData] = await fetchCachedUserData([matchingUser.id]);
+      }
 
       console.log('Clerk user lookup:', {
         email,
