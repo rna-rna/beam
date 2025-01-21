@@ -1564,6 +1564,18 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
+      const role = await getGalleryUserRole(image.gallery.id, userId);
+      if (!canStar(role)) {
+        return res.status(403).json({ message: 'Forbidden - cannot star' });
+      }
+
+      if (!image || !image.gallery) {
+        return res.status(404).json({
+          success: false,
+          message: 'Image not found'
+        });
+      }
+
       // Check if the user already starred this image
       const existingStar = await db.query.stars.findFirst({
         where: and(
