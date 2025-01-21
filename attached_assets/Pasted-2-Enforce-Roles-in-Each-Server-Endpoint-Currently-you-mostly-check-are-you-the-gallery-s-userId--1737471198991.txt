@@ -1,0 +1,77 @@
+2. Enforce Roles in Each Server Endpoint
+Currently, you mostly check “are you the gallery’s userId?” or guestUpload. Extend that to also allow 'Editor' roles. For example:
+
+A. Image Upload Route
+ts
+Copy
+// /api/galleries/:slug/images
+app.post('/api/galleries/:slug/images', async (req, res) => {
+  ...
+  // After you find the gallery:
+  const gallery = ...
+  if (!gallery) {
+    return res.status(404)...
+  }
+
+  // NEW: get the user’s role
+  const role = await getGalleryUserRole(gallery.id, req.auth.userId);
+
+  // Instead of "if (!gallery.guestUpload && userId !== gallery.userId)"
+  // do:
+  if (!gallery.guestUpload && !canUpload(role)) {
+    return res.status(403).json({ message: 'Forbidden - cannot upload' });
+  }
+
+  // continue uploading...
+});
+B. Delete Images Route
+ts
+Copy
+// /galleries/:slug/images/delete
+protectedRouter.post('/galleries/:slug/images/delete', async (req, res) => {
+  ...
+  // once you confirm the gallery exists:
+  const role = await getGalleryUserRole(gallery.id, req.auth.userId);
+
+  if (!['Editor', 'owner'].includes(role)) {
+    return res.status(403).json({ message: 'Forbidden - cannot delete images' });
+  }
+
+  // proceed with deletion
+});
+C. Reorder Endpoint
+ts
+Copy
+// /galleries/:slug/reorder
+if (!['Editor', 'owner'].includes(role)) {
+  return res.status(403).json({ message: 'Forbidden - cannot reorder' });
+}
+D. Star an Image
+You said only Editors can star. Then:
+
+ts
+Copy
+// /api/images/:imageId/star
+app.post('/api/images/:imageId/star', async (req, res) => {
+  // 1. find the image => get galleryId => get role
+  const image = ...
+  const role = await getGalleryUserRole(image.gallery.id, req.auth.userId);
+  if (!['Editor', 'owner'].includes(role)) {
+    return res.status(403).json({ message: 'Forbidden - cannot star' });
+  }
+  // proceed
+});
+E. Invites
+If only “owner” can invite, do:
+
+ts
+Copy
+// /galleries/:slug/invite
+const role = await getGalleryUserRole(gallery.id, req.auth.userId);
+if (role !== 'owner') {
+  return res.status(403).json({ message: 'Forbidden - only owner can invite' });
+}
+Or if you want editors also to invite, then if (!['owner', 'Editor'].includes(role)) { ... }.
+
+Keep repeating this for each route requiring different privileges.
+

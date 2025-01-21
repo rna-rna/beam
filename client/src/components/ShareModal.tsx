@@ -256,8 +256,8 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                       onClick={() => handleSelectUser(user)}
                     >
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatarUrl || undefined} />
-                        <AvatarFallback>{user.fullName[0]}</AvatarFallback>
+                        <AvatarImage src={user?.avatarUrl || undefined} alt={user?.fullName || 'User'} />
+                        <AvatarFallback>{user?.fullName?.[0] || '?'}</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="text-sm font-medium">{user.fullName || user.email?.split('@')[0] || 'Unknown User'}</p>
@@ -277,8 +277,8 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
             >
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatarUrl || undefined} />
-                  <AvatarFallback>{user.fullName[0]}</AvatarFallback>
+                  <AvatarImage src={user?.avatarUrl || undefined} alt={user?.fullName || 'User'} />
+                  <AvatarFallback>{user?.fullName?.[0] || '?'}</AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="text-sm font-medium">{user.fullName || user.email?.split('@')[0] || 'Unknown User'}</p>

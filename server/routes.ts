@@ -1764,7 +1764,24 @@ export function registerRoutes(app: Express): Server {
         permissions.map(async (invite) => {
           if (invite.userId) {
             try {
-              const user = await fetchCachedUserData([invite.userId])[0];
+              const cachedUsers = await fetchCachedUserData([invite.userId]);
+              console.log('Debug - Cached user lookup:', {
+                userId: invite.userId,
+                found: cachedUsers.length > 0,
+                userData: cachedUsers[0] || null
+              });
+              
+              const user = cachedUsers[0];
+              if (!user) {
+                console.warn('No cached user data found for:', invite.userId);
+                return {
+                  id: invite.id,
+                  email: invite.email,
+                  fullName: null,
+                  role: invite.role,
+                  avatarUrl: null
+                };
+              }
               return {
                 id: invite.id,
                 email: invite.email,
