@@ -1113,8 +1113,6 @@ export function registerRoutes(app: Express): Server {
       const isOwner = gallery.userId === 'guest' || req.auth?.userId === gallery.userId;
 
       // Check access permissions
-      const isOwner = gallery.userId === 'guest' || req.auth?.userId === gallery.userId;
-      
       if (!gallery.guestUpload && !gallery.isPublic && !isOwner) {
         // Check for invite if not public/guest/owner
         const userEmail = req.auth?.userId ? 
