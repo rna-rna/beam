@@ -8,9 +8,11 @@ interface SendInviteEmailOptions {
   fromEmail?: string;
   galleryTitle: string;
   inviteUrl: string;
-  signUpUrl?: string;
-  isRegistered: boolean;
+  galleryThumbnail?: string;
+  photographerName?: string;
+  recipientName?: string;
   role: string;
+  isRegistered: boolean;
 }
 
 export async function sendInviteEmail(opts: SendInviteEmailOptions) {
@@ -19,59 +21,52 @@ export async function sendInviteEmail(opts: SendInviteEmailOptions) {
     fromEmail = "hello@beam.ms",
     galleryTitle,
     inviteUrl,
-    signUpUrl,
+    galleryThumbnail = "",
+    photographerName = "A Beam User",
+    recipientName = "there",
+    role,
     isRegistered,
-    role
   } = opts;
 
-  const subject = isRegistered
-    ? `You've been invited to view ${galleryTitle}`
-    : `Join us on ${galleryTitle}!`;
+  const templateId = process.env.SENDGRID_TEMPLATE_ID || "d-defaulttemplateid";
 
-  let htmlContent: string;
-
-  if (isRegistered) {
-    htmlContent = `
-    <h2>You've been invited to ${galleryTitle}!</h2>
-    <p>Someone invited you to ${galleryTitle}. You can click below to view it:</p>
-    <p><a href="${inviteUrl}" style="color: #fff; background: #007bcc; padding: 10px 20px; text-decoration: none;">View Gallery</a></p>
-    <p>This gallery role is: <strong>${role}</strong></p>
-    <p>Enjoy!</p>
-    `;
-  } else {
-    const signUpSection = role === "Edit" || role === "Comment"
-      ? `
-      <p>Because you've been invited as a <strong>${role}</strong>, you'll need a free account to 
-      interact fully (e.g., comment or edit images). 
-      <a href="${signUpUrl}">Click here to sign up</a>.</p>
-      `
-      : `
-      <p>You're welcome to view the gallery without an account, but 
-      <a href="${signUpUrl}">signing up</a> is quick & free!</p>
-      `;
-
-    htmlContent = `
-    <h2>Hello!</h2>
-    <p>You've been invited to check out <strong>${galleryTitle}</strong>.</p>
-    <p>Click below to view it:</p>
-    <p><a href="${inviteUrl}" style="color: #fff; background: #007bcc; padding: 10px 20px; text-decoration: none;">View Gallery</a></p>
-    ${signUpSection}
-    <p>We hope you join us!</p>
-    `;
-  }
+  const dynamicTemplateData = {
+    recipientName,
+    photographerName,
+    galleryName: galleryTitle,
+    galleryUrl: inviteUrl,
+    galleryThumbnail,
+    role,
+    isRegistered,
+    signUpUrl: `${process.env.VITE_APP_URL}/sign-up?email=${encodeURIComponent(toEmail)}`,
+  };
 
   const msg = {
     to: toEmail,
-    from: fromEmail,
-    subject,
-    html: htmlContent
+    from: {
+      email: fromEmail,
+      name: "Beam Galleries"
+    },
+    templateId,
+    dynamic_template_data: dynamicTemplateData,
   };
 
   try {
     await sgMail.send(msg);
-    console.log(`Invite email sent to ${toEmail}`);
+    console.log("Invite email sent:", {
+      to: toEmail,
+      galleryName: galleryTitle,
+      role,
+      isRegistered,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    console.error("Error sending invite email:", error);
+    console.error("Failed to send invite email:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      to: toEmail,
+      galleryName: galleryTitle,
+      timestamp: new Date().toISOString()
+    });
     throw error;
   }
 }
