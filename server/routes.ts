@@ -1752,47 +1752,39 @@ export function registerRoutes(app: Express): Server {
         where: eq(invites.galleryId, gallery.id)
       });
 
-      // Get user details from Clerk for each invite and the owner
-      const usersWithDetails = await Promise.all(
-        permissions.map(async (invite) => {
-          if (invite.userId) {
-            try {
-              const user = await clerkClient.users.getUser(invite.userId);
-              return {
-                id: invite.id,
-                email: invite.email,
-                fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-                role: invite.role,
-                avatarUrl: user.imageUrl
-              };
-            } catch (error) {
-              console.error('Failed to fetch user details:', error);
-            }
-          }
-          return {
-            id: invite.id,
-            email: invite.email,
-            fullName: null,
-            role: invite.role,
-            avatarUrl: null
-          };
-        })
-      );
+      // Get unique user IDs from permissions
+      const userIds = permissions
+        .map(invite => invite.userId)
+        .filter((id): id is string => !!id);
+
+      // Batch fetch user data using cache
+      const cachedUsers = await fetchCachedUserData(userIds);
+
+      // Map permissions to user details
+      const usersWithDetails = permissions.map(invite => {
+        const user = invite.userId ? cachedUsers.find(u => u.userId === invite.userId) : null;
+        return {
+          id: invite.id,
+          email: invite.email,
+          fullName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : null,
+          role: invite.role,
+          avatarUrl: user?.imageUrl || null
+        };
+      });
 
       // Add owner with Editor role if not already in permissions
       if (gallery.userId !== 'guest') {
-        try {
-          const owner = await clerkClient.users.getUser(gallery.userId);
-          const ownerEmail = owner.emailAddresses[0]?.emailAddress;
-          const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerEmail);
-
-          if (!isOwnerInPermissions && ownerEmail) {
+        const [ownerData] = await fetchCachedUserData([gallery.userId]);
+        if (ownerData) {
+          const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerData.email);
+          
+          if (!isOwnerInPermissions && ownerData.email) {
             usersWithDetails.push({
               id: 'owner',
-              email: ownerEmail,
-              fullName: `${owner.firstName || ''} ${owner.lastName || ''}`.trim(),
+              email: ownerData.email,
+              fullName: `${ownerData.firstName || ''} ${ownerData.lastName || ''}`.trim(),
               role: 'Editor',
-              avatarUrl: owner.imageUrl
+              avatarUrl: ownerData.imageUrl
             });
           }
         } catch (error) {
@@ -1960,11 +1952,12 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Create pending invite
+      const [userData] = await fetchCachedUserData([userId]);
       await db.insert(invites).values({
         galleryId: gallery.id,
         userId,
         role: 'View',
-        email: (await clerkClient.users.getUser(userId)).emailAddresses[0].emailAddress
+        email: userData?.email || ''
       });
 
       res.json({ message: 'Access request sent' });
