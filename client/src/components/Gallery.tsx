@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { Button, SignedIn, Tooltip, TooltipTrigger, Toggle } from '@/components/ui';
+import { Button } from '@/components/ui/button';
+import { Toggle } from '@/components/ui/toggle';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { SignedIn } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { GalleryRole } from '@/types/gallery';
