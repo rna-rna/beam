@@ -1789,7 +1789,6 @@ export function registerRoutes(app: Express): Server {
         } catch (error) {
           console.error('Failed to fetch owner details:', error);
         }
-      }
 
       res.json({
         success: true,
