@@ -9,7 +9,7 @@ import { GalleryRole } from '@/types/gallery';
 import { PencilRuler } from 'lucide-react'; 
 import GalleryActions from './GalleryActions';
 
-function Gallery({gallery, ...props}: any) {
+function Gallery({gallery, userRole = 'View', ...props}: any) {
   return (
     <div className="relative">
       <GalleryActions 
