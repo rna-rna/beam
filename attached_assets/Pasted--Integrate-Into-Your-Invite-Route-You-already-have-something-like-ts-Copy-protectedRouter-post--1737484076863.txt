@@ -1,0 +1,62 @@
+ Integrate Into Your “Invite” Route
+You already have something like:
+
+ts
+Copy
+protectedRouter.post('/galleries/:slug/invite', async (req, res) => {
+  const { role } = req.body;
+  const email = req.body.email.toLowerCase();
+  const { slug } = req.params;
+  const userId = req.auth.userId;
+  
+  // You look up the gallery, do ownership checks, etc.
+  // Then you look up Clerk to see if there's a matching user, etc.
+  
+  // e.g.:
+  const usersResponse = await clerkClient.users.getUserList({
+    email_address_query: email
+  });
+  const matchingUser = usersResponse.data?.find(...);
+  const isRegistered = Boolean(matchingUser);
+
+  // Then you do the DB logic to add invites, etc.
+  // Now the new part: We send an email:
+
+  try {
+    const galleryTitle = gallery.title;
+    
+    // The link to *view* the gallery. Could be a front-end route?
+    const inviteUrl = `https://your-frontend-url.com/g/${gallery.slug}`;
+
+    // A link for sign-up, or maybe your main sign-up route:
+    const signUpUrl = `https://your-frontend-url.com/sign-up?email=${email}`;
+
+    await sendInviteEmail({
+      toEmail: email,
+      galleryTitle,
+      inviteUrl,
+      signUpUrl,
+      isRegistered,
+      role,
+      // optional fromEmail: "no-reply@yourdomain.com"
+    });
+
+    return res.json({ message: 'Invite sent successfully' });
+  } catch (error) {
+    console.error('Failed to send invite email:', error);
+    return res.status(500).json({
+      message: 'Failed to invite user (email error)',
+      details: error instanceof Error ? error.message : 'Unknown'
+    });
+  }
+});
+Explanation:
+
+We figure out isRegistered by checking if we found a matching user in Clerk.
+We construct a inviteUrl that goes directly to your gallery page.
+We construct a signUpUrl that goes to your sign-up flow.
+We pass everything to sendInviteEmail.
+Note that your logic for roles might differ:
+
+If they’re invited as “Editor” or “Comment,” we mention they’ll probably have to create an account.
+If it’s “View,” you can let them see it with minimal friction, but still encourage sign up.
