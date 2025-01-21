@@ -3,12 +3,11 @@ import { Button, SignedIn, Tooltip, TooltipTrigger, Toggle } from '@/components/
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { GalleryRole } from '@/types/gallery';
+import { PencilRuler } from 'lucide-react'; // Assuming this is needed for the icon
 
 
-// ... other imports ...
-
-function Gallery({gallery, ...props}: any) { // Assuming the original props are passed
-  const [userRole, setUserRole] = useState<GalleryRole>("View"); // Update: Changed initial state and type
+function Gallery({gallery, ...props}: any) {
+  const [userRole, setUserRole] = useState<GalleryRole>("View");
   const [selectMode, setSelectMode] = useState(false);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -18,15 +17,10 @@ function Gallery({gallery, ...props}: any) { // Assuming the original props are 
     setSelectMode(!selectMode);
   };
 
-  // Permission helper functions aligned with server logic
   const canManageGallery = (role: GalleryRole) => role === 'owner' || role === 'Edit';
   const canStar = (role: GalleryRole) => role === 'owner' || role === 'Edit' || role === 'Comment';
   const canComment = (role: GalleryRole) => role === 'owner' || role === 'Edit' || role === 'Comment';
 
-
-  // ... other states and functions ...
-
-  // ... fetch call to get userRole, example (replace with your actual logic):
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -36,10 +30,9 @@ function Gallery({gallery, ...props}: any) { // Assuming the original props are 
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        setUserRole(data.role); // Assuming the API response contains a 'role' field
+        setUserRole(data.role);
       } catch (error) {
         console.error("Error fetching permissions:", error);
-        // Handle error appropriately, maybe set userRole to a default value
       }
     };
     fetchPermissions();
@@ -47,7 +40,6 @@ function Gallery({gallery, ...props}: any) { // Assuming the original props are 
 
   return (
     <div>
-      {/* ... other UI elements ... */}
       {!selectMode && canStar(userRole) && (
         <motion.div
           className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
@@ -95,8 +87,19 @@ function Gallery({gallery, ...props}: any) { // Assuming the original props are 
               size="sm"
               pressed={selectMode}
               onPressedChange={toggleSelectMode}
-            />
+              className={cn(
+                "h-9 w-9",
+                isDark
+                  ? "text-white hover:bg-white/10 data-[state=on]:bg-white/20 data-[state=on]:text-white data-[state=on]:ring-2 data-[state=on]:ring-white/20"
+                  : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent/30 data-[state=on]:text-accent-foreground data-[state=on]:ring-2 data-[state=on]:ring-accent",
+              )}
+            >
+              <PencilRuler className="h-4 w-4" />
+            </Toggle>
           </TooltipTrigger>
+          <TooltipContent>
+            {selectMode ? "Done" : "Select Images"}
+          </TooltipContent>
         </Tooltip>
       )}
 
