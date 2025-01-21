@@ -1,0 +1,97 @@
+ Implement a “Fetch or Cache” Utility Function
+Objective
+Create a helper function that:
+
+Pulls user data from your cached_users table.
+Checks if the data is stale or missing.
+Fetches any missing/stale users from Clerk in one batch call.
+Updates/inserts (upserts) them into your cached_users.
+Context
+This function will let you avoid calling clerkClient.users.getUser(...) repeatedly. Instead, you do a single clerkClient.users.getUserList({ userIds: [...] }) for all missing/stale users. This drastically reduces API calls to Clerk and prevents rate-limit errors.
+
+Instructions
+
+In your server code (e.g., routes.ts or a separate userCache.ts file), define a function like this (pseudocode):
+
+ts
+Copy
+import { clerkClient } from "@clerk/clerk-sdk-node";
+import { db } from "@db"; // your Drizzle instance
+import { cachedUsers } from "@db/schema"; // your new table
+import { and, eq, inArray } from "drizzle-orm";
+
+async function fetchCachedUserData(userIds: string[]): Promise<CachedUser[]> {
+  // 1. Fetch local rows
+  const rows = await db.query.cachedUsers.findMany({
+    where: inArray(cachedUsers.userId, userIds),
+  });
+
+  // 2. Determine stale or missing
+  const now = Date.now();
+  const fifteenMinutes = 15 * 60 * 1000;
+  const missingOrStale: string[] = [];
+  const localMap: Record<string, CachedUser> = {};
+
+  // track which IDs we found locally
+  const foundIds = new Set<string>();
+
+  for (const row of rows) {
+    localMap[row.userId] = row;
+    foundIds.add(row.userId);
+
+    // check if older than 15 minutes
+    const age = now - row.updatedAt.getTime();
+    if (age > fifteenMinutes) {
+      missingOrStale.push(row.userId);
+    }
+  }
+
+  // anything not found is missing
+  userIds.forEach(id => {
+    if (!foundIds.has(id)) missingOrStale.push(id);
+  });
+
+  // 3. If missing or stale, batch fetch from Clerk
+  if (missingOrStale.length > 0) {
+    const fetchedUsers = await clerkClient.users.getUserList({
+      userIds: missingOrStale,
+    });
+
+    // 4. Upsert into your DB
+    for (const user of fetchedUsers) {
+      const color = generateColorForUser(user.id); // optional function
+      await db.insert(cachedUsers).values({
+        userId: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        imageUrl: user.imageUrl,
+        color,
+        updatedAt: new Date(),
+      })
+      // If Drizzle supports upsert or onConflict:
+      // .onConflictDoUpdate({
+      //   target: cachedUsers.userId,
+      //   set: { ... }
+      // });
+
+      // update localMap
+      localMap[user.id] = {
+        userId: user.id,
+        firstName: user.firstName || null,
+        lastName: user.lastName || null,
+        imageUrl: user.imageUrl || null,
+        color,
+        updatedAt: new Date(),
+      };
+    }
+  }
+
+  // return final data in same order as userIds
+  return userIds.map(id => localMap[id]);
+}
+You can rename or reorganize as you wish. The key logic is:
+
+Single DB query to get existing cache.
+Figure out which are missing or older than 15 minutes.
+Single Clerk “batch” call to fetch new data.
+Upsert into DB, return data.
