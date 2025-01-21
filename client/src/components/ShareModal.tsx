@@ -341,34 +341,27 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                         <SelectItem 
                           value="remove" 
                           className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                          onSelect={async (e) => {
+                          onSelect={(e) => {
                             e.preventDefault();
-                            const previousUsers = [...invitedUsers];
+                            // Immediately remove user from list
                             setInvitedUsers(prev => prev.filter(u => u.id !== user.id));
                             
-                            try {
-                              const res = await fetch(`/api/galleries/${slug}/invite`, {
-                                method: "DELETE",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ email: user.email }),
-                              });
-
-                              if (!res.ok) {
-                                throw new Error("Failed to remove user");
-                              }
-
-                              toast({
-                                title: "Success",
-                                description: "User removed successfully"
-                              });
-                            } catch (error) {
-                              setInvitedUsers(previousUsers);
+                            // Make API call in background
+                            fetch(`/api/galleries/${slug}/invite`, {
+                              method: "DELETE",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ email: user.email }),
+                            }).then(res => {
+                              if (!res.ok) throw new Error("Failed to remove user");
+                            }).catch(() => {
+                              // On error, add the user back
+                              setInvitedUsers(prev => [...prev, user]);
                               toast({
                                 title: "Error",
-                                description: "Failed to remove user. Changes were reverted.",
+                                description: "Failed to remove user. Please try again.",
                                 variant: "destructive",
                               });
-                            }
+                            });
                           }}
                         >
                           Remove Access
