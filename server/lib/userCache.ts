@@ -65,9 +65,18 @@ export async function fetchCachedUserData(userIds: string[]): Promise<CachedUser
 
       // 3. If missing or stale, batch fetch from Clerk
       if (missingOrStale.length > 0) {
-        const fetchedUsers = await clerkClient.users.getUserList({
+        console.log("fetchCachedUserData -> missingOrStale:", missingOrStale);
+        const response = await clerkClient.users.getUserList({
           userIds: missingOrStale,
         });
+        console.log("clerkClient.users.getUserList response:", {
+          type: typeof response,
+          hasData: 'data' in response,
+          isArray: Array.isArray(response),
+          rawResponse: response
+        });
+
+        const fetchedUsers = 'data' in response ? response.data : response;
 
         // 4. Upsert into DB
         await Promise.all(fetchedUsers.map(async (user) => {
