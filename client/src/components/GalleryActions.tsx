@@ -15,7 +15,7 @@ interface GalleryActionsProps {
   isDark?: boolean;
 }
 
-function GalleryActions({ gallery, userRole = 'view', isDark = false }: GalleryActionsProps) {
+function GalleryActions({ gallery, userRole = 'View', isDark = false }: GalleryActionsProps) {
   const [selectMode, setSelectMode] = useState(false);
   const [isCommentPlacementMode, setIsCommentPlacementMode] = useState(false);
 
@@ -23,9 +23,9 @@ function GalleryActions({ gallery, userRole = 'view', isDark = false }: GalleryA
     setSelectMode(!selectMode);
   };
 
-  const canManageGallery = (role: string | null) => role ? ['owner', 'editor'].includes(role.toLowerCase()) : false;
-  const canStar = (role: string | null) => role ? ['owner', 'editor', 'comment'].includes(role.toLowerCase()) : false;
-  const canComment = (role: string | null) => role ? ['owner', 'editor', 'comment'].includes(role.toLowerCase()) : false;
+  const canManageGallery = (role: string | null) => role ? ['owner', 'Edit'].includes(role) : false;
+  const canStar = (role: string | null) => role ? ['owner', 'Edit', 'Comment'].includes(role) : false;
+  const canComment = (role: string | null) => role ? ['owner', 'Edit', 'Comment'].includes(role) : false;
 
   return (
     <div>

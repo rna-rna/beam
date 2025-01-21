@@ -63,4 +63,4 @@ export interface SwipeDirection {
   immediate: boolean;
 }
 
-export type GalleryRole = 'owner' | 'editor' | 'comment' | 'view' | null;
+export type GalleryRole = 'owner' | 'Edit' | 'Comment' | 'View' | null;
