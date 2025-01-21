@@ -1929,12 +1929,31 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      if (!user) {
-        console.log('Email invite would be sent:', {
-          email,
-          gallerySlug: gallery.slug,
+      try {
+        const galleryTitle = gallery.title || 'Untitled Gallery';
+        const baseUrl = process.env.VITE_APP_URL || `https://${req.headers.host}`;
+        const inviteUrl = `${baseUrl}/g/${gallery.slug}`;
+        const signUpUrl = `${baseUrl}/sign-up?email=${encodeURIComponent(email)}`;
+        const isRegistered = !!user;
+
+        await sendInviteEmail({
+          toEmail: email,
+          galleryTitle,
+          inviteUrl,
+          signUpUrl,
+          isRegistered,
           role
         });
+
+        console.log('Invite email sent successfully:', {
+          email,
+          gallerySlug: gallery.slug,
+          role,
+          isRegistered
+        });
+      } catch (error) {
+        console.error('Failed to send invite email:', error);
+        // Continue even if email fails - the DB invite is still created
       }
 
       console.log('Invite operation successful');
