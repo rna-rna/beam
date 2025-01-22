@@ -1,0 +1,85 @@
+Pass the role to Your UploadDropzone Component
+In whatever page or parent component renders the dropzone, fetch the gallery data (which includes the role) and pass it as a prop:
+
+tsx
+Copy
+import UploadDropzone from '@/components/UploadDropzone';
+
+function GalleryPage({ slug }: { slug: string }) {
+  // Example: using React Query or any data-fetch mechanism
+  const { data: gallery, isLoading } = useGalleryData(slug);
+
+  if (isLoading || !gallery) {
+    return <p>Loading...</p>;
+  }
+
+  return (
+    <div>
+      <h1>{gallery.title}</h1>
+      <UploadDropzone
+        onUpload={() => {/* whatever refresh/logic you need */}}
+        imageCount={gallery.images.length}
+        gallerySlug={gallery.slug}
+        role={gallery.role}           // <--- Pass the role here
+      />
+    </div>
+  );
+}
+4. Hide or Disable the Dropzone Based on the Role
+Finally, inside your UploadDropzone (or whichever upload component you use), completely disable the upload interface for Commenters/Viewers. You can do this in two ways:
+
+Option A: Hide the Dropzone Entirely
+If you want no visible upload UI at all for people who can’t upload:
+
+tsx
+Copy
+// uploaddropzone.tsx
+import { useDropzone } from 'react-dropzone';
+import { canManageGallery } from '@/lib/roles';
+
+interface Props {
+  onUpload: () => void;
+  imageCount?: number;
+  gallerySlug: string;
+  role: 'owner' | 'Edit' | 'Comment' | 'View' | null;
+}
+
+export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug, role }: Props) {
+  const canUpload = canManageGallery(role);
+
+  // If the user CANNOT upload, return early with a message (or nothing).
+  if (!canUpload) {
+    return (
+      <div className="mt-4 p-4 border border-gray-300 text-gray-500 rounded">
+        You do not have permission to upload images.
+      </div>
+    );
+  }
+
+  // Otherwise, useDropzone is enabled.
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'],
+    },
+    disabled: false  // Because we know canUpload is true here
+  });
+
+  return (
+    <div {...getRootProps()} className="p-8 border border-dashed border-gray-300 text-center">
+      <input {...getInputProps()} />
+      {isDragActive ? (
+        <p className="text-lg">Drop images here...</p>
+      ) : (
+        <>
+          <p className="text-lg mb-2">Drag and drop images here, or click to select</p>
+          <p className="text-sm text-muted-foreground">
+            {imageCount === 0 ? 'No images uploaded yet' : `${imageCount} images uploaded`}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+In this approach, users cannot see any upload UI unless canManageGallery(role) is true.
+
