@@ -1806,7 +1806,7 @@ export function registerRoutes(app: Express): Server {
                 id: 'owner',
                 email: ownerEmail,
                 fullName: `${ownerData.firstName || ''} ${ownerData.lastName || ''}`.trim(),
-                role: 'Editor',
+                role: 'Edit',
                 avatarUrl: ownerData.imageUrl
               });
             }
