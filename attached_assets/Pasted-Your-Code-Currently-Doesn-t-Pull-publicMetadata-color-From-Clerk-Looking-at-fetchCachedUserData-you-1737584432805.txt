@@ -1,0 +1,62 @@
+Your Code Currently Doesn’t Pull publicMetadata.color From Clerk
+Looking at fetchCachedUserData, you can see it sets a completely new random color (#${Math.floor(...)}) on the first insert:
+
+ts
+Copy
+const color = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+
+await db
+  .insert(cachedUsers)
+  .values({
+    userId: user.id,
+    ...
+    color: color, 
+    // ...
+  })
+  .onConflictDoUpdate({ /* updates firstName, lastName, imageUrl, but NOT color */ });
+Problem: If you want the color from Clerk’s publicMetadata.color, this code never uses it. So a user who actually has a color in Clerk’s dashboard might get a brand-new random color in your DB—or remain null if you never inserted the color. Then your front end calls color || "#ccc", which ends up “gray” if color is null.
+
+Fix: Use the user’s publicMetadata.color from Clerk if it’s set
+When you see:
+
+js
+Copy
+for (const user of users) {
+  const color = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+  // ...
+}
+Change it to something like:
+
+js
+Copy
+// 1. Check if Clerk’s user has publicMetadata.color:
+const clerkColor = user.publicMetadata?.color;
+
+// 2. If Clerk has a color, use that; otherwise generate random:
+const color = clerkColor || `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+
+await db
+  .insert(cachedUsers)
+  .values({
+    userId: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    imageUrl: user.imageUrl,
+    color, // now we might store Clerk’s color
+    updatedAt: new Date()
+  })
+  .onConflictDoUpdate({
+    target: cachedUsers.userId,
+    set: {
+      // If you want to keep DB in sync, also update color every time
+      // so it matches Clerk’s color if it changes:
+      color: color,
+
+      // or if you only want to set color once, omit `color` from set
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl,
+      updatedAt: new Date()
+    }
+  });
+That ensures if Clerk’s publicMetadata.color is set, your DB will store exactly that color. Then your “fetchUserAvatarData” returns it, and your <UserAvatar> sees that color instead of #ccc.
