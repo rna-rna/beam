@@ -22,7 +22,11 @@ function getInitials(fullName: string): string {
 
 function isClerkDefaultUrl(url: string): boolean {
   if (!url) return false;
-  return url.includes("default_avatar") || url.includes("clerk_assets");
+  return (
+    url.includes("default_avatar") ||
+    url.includes("clerk_assets") ||
+    url.includes("ZGVmYXVsdC") // base64 chunk for "default"
+  );
 }
 
 export function UserAvatar({ name: propName, imageUrl: propImageUrl, className = "", isActive = false }: UserAvatarProps) {
