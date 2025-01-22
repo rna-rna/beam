@@ -1,26 +1,26 @@
 
-import { useUser } from "@clerk/clerk-react";
-import { useMemo } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
-  name?: string;
-  imageUrl?: string;
-  className?: string;
+  name: string;
+  imageUrl?: string | null;
+  color?: string | null;
   isActive?: boolean;
+  className?: string;
 }
 
 function getInitials(fullName: string): string {
-  return fullName
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || '?';
+  return (
+    fullName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase() || "?"
+  );
 }
 
-function isClerkDefaultUrl(url: string): boolean {
+function isClerkDefaultUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   return (
     url.includes("default_avatar") ||
@@ -29,27 +29,27 @@ function isClerkDefaultUrl(url: string): boolean {
   );
 }
 
-export function UserAvatar({ name: propName, imageUrl: propImageUrl, className = "", isActive = false }: UserAvatarProps) {
-  const { user } = useUser();
-  const name = propName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
-  const imageUrl = propImageUrl || user?.imageUrl;
-  
-  const initial = useMemo(() => getInitials(name), [name]);
-  const backgroundColor = useMemo(() => {
-    return user?.publicMetadata?.color || '#ccc';
-  }, [user?.publicMetadata?.color]);
+export function UserAvatar({
+  name,
+  imageUrl,
+  color,
+  isActive = false,
+  className = ""
+}: UserAvatarProps) {
+  const initials = getInitials(name);
+  const bgColor = color || "#ccc";  // fallback if DB has no color
 
   return (
     <div className="relative group">
       <Avatar className={cn(className)}>
-        {imageUrl && !isClerkDefaultUrl(imageUrl) && (
-          <AvatarImage src={imageUrl} alt={name || 'User'} />
-        )}
-        <AvatarFallback 
-          style={{ backgroundColor, color: 'white' }}
+        {imageUrl && !isClerkDefaultUrl(imageUrl) ? (
+          <AvatarImage src={imageUrl} alt={name} />
+        ) : null}
+        <AvatarFallback
+          style={{ backgroundColor: bgColor, color: "white" }}
           className="font-medium"
         >
-          {initial}
+          {initials}
         </AvatarFallback>
       </Avatar>
       {isActive && (
