@@ -120,6 +120,19 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
       return;
     }
 
+    const newUser = {
+      id: selectedUser?.id || emailToInvite,
+      email: emailToInvite,
+      fullName: selectedUser?.fullName || emailToInvite.split('@')[0],
+      avatarUrl: selectedUser?.avatarUrl || null,
+      role: "View"
+    };
+
+    // Optimistically update UI
+    setInvitedUsers((prev) => [...prev, newUser]);
+    setSelectedUser(null);
+    setEmail("");
+
     try {
       const res = await fetch(`/api/galleries/${slug}/invite`, {
         method: "POST",
@@ -132,6 +145,8 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
 
       if (!res.ok) {
         const error = await res.json();
+        // Revert optimistic update
+        setInvitedUsers((prev) => prev.filter(user => user.email !== emailToInvite));
         throw new Error(error.message || "Failed to send invite");
       }
 
@@ -139,19 +154,6 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
         title: "Success",
         description: `Invite sent to ${emailToInvite}`
       });
-
-      // Create a simple user object for the list
-      const newUser = {
-        id: selectedUser?.id || emailToInvite,
-        email: emailToInvite,
-        fullName: selectedUser?.fullName || emailToInvite.split('@')[0],
-        avatarUrl: selectedUser?.avatarUrl || null,
-        role: "View"
-      };
-
-      setInvitedUsers((prev) => [...prev, newUser]);
-      setSelectedUser(null);
-      setEmail("");
     } catch (error) {
       toast({
         title: "Error",
