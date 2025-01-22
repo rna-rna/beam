@@ -1934,6 +1934,32 @@ export function registerRoutes(app: Express): Server {
         const signUpUrl = `${baseUrl}/sign-up?email=${encodeURIComponent(email)}`;
         const isRegistered = !!user;
 
+        // Upsert contact record
+        const existingContact = await db.query.contacts.findFirst({
+          where: and(
+            eq(contacts.ownerUserId, req.auth.userId),
+            eq(contacts.contactEmail, email)
+          )
+        });
+
+        if (existingContact) {
+          await db.update(contacts)
+            .set({
+              inviteCount: existingContact.inviteCount + 1,
+              lastInvitedAt: new Date(),
+              contactUserId: user?.id || null
+            })
+            .where(eq(contacts.id, existingContact.id));
+        } else {
+          await db.insert(contacts).values({
+            ownerUserId: req.auth.userId,
+            contactUserId: user?.id || null,
+            contactEmail: email,
+            inviteCount: 1,
+            lastInvitedAt: new Date()
+          });
+        }
+
         // Fetch the thumbnail image
         const thumbnail = await db.query.images.findFirst({
           where: eq(images.galleryId, gallery.id),
