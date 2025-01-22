@@ -72,26 +72,30 @@ export function registerRoutes(app: Express): Server {
       const event = req.body;
       
       if (event.type === "user.created") {
-        const newUser = event.data;
-        const userId = newUser.id;
-        const existingColor = newUser.public_metadata?.color;
-
+        const userId = event.data.id;
+        
+        // Fetch current user data directly from Clerk
+        const clerkUser = await clerkClient.users.getUser(userId);
+        
         console.log("New user created via Clerk webhook:", {
           userId,
-          firstName: newUser.first_name,
-          lastName: newUser.last_name,
-          existingColor,
+          firstName: clerkUser.firstName,
+          lastName: clerkUser.lastName,
+          existingColor: clerkUser.publicMetadata?.color,
           timestamp: new Date().toISOString()
         });
 
+        const existingColor = clerkUser.publicMetadata?.color;
+        let userColor = existingColor;
+
         if (!existingColor) {
           const palette = ["#F44336","#E91E63","#9C27B0","#3AB79C","#A7DE43","#F84CCF"];
-          const randomColor = palette[Math.floor(Math.random() * palette.length)];
+          userColor = palette[Math.floor(Math.random() * palette.length)];
 
           // Update user metadata in Clerk with color
           await clerkClient.users.updateUserMetadata(userId, {
             publicMetadata: {
-              color: randomColor
+              color: userColor
             }
           });
         }
@@ -99,10 +103,10 @@ export function registerRoutes(app: Express): Server {
         // Cache the user data in our database
         await db.insert(cachedUsers).values({
           userId,
-          firstName: newUser.first_name || null,
-          lastName: newUser.last_name || null,
-          imageUrl: newUser.image_url || null,
-          color: randomColor,
+          firstName: clerkUser.firstName || null,
+          lastName: clerkUser.lastName || null,
+          imageUrl: clerkUser.imageUrl || null,
+          color: userColor,
           updatedAt: new Date()
         });
       }
