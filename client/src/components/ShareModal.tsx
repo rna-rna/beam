@@ -27,6 +27,7 @@ interface User {
   fullName: string;
   avatarUrl?: string | null;
   role: string;
+  isBeamUser?: boolean; // Added isBeamUser property
 }
 
 export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisibilityChange }: ShareModalProps) {
@@ -87,11 +88,11 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
           },
           credentials: 'include'
         });
-        
+
         if (!res.ok) {
           throw new Error('Failed to fetch users');
         }
-        
+
         const data = await res.json();
         if (data.success) {
           // Show all matching users including exact matches in suggestions
@@ -325,10 +326,15 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                         <AvatarImage src={user?.avatarUrl || undefined} alt={user?.fullName || 'User'} />
                         <AvatarFallback>{user?.fullName?.[0] || '?'}</AvatarFallback>
                       </Avatar>
-                      <div>
+                      <div className="flex-1"> {/* Added flex-1 to allow space for the Beam User indicator */}
                         <p className="text-sm font-medium">{user.fullName || user.email?.split('@')[0] || 'Unknown User'}</p>
                         <p className="text-xs text-muted-foreground">{user.email}</p>
                       </div>
+                      {!user.email.includes('@') && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          Beam User
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
