@@ -81,7 +81,17 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
         return;
       }
       try {
-        const res = await fetch(`/api/users/search?email=${email.toLowerCase()}`);
+        const res = await fetch(`/api/users/search?email=${email.toLowerCase()}`, {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+        
+        if (!res.ok) {
+          throw new Error('Failed to fetch users');
+        }
+        
         const data = await res.json();
         if (data.success) {
           const exactMatch = data.users.find((user: User) => user.email.toLowerCase() === email.toLowerCase());
