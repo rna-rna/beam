@@ -2515,7 +2515,7 @@ isRegistered
       }
       if (!Array.isArray(order)) {
         return res.status(400).json({ message: 'Invalid order format' });
-      }
+      };
 
 
       // Validate all images belong to this gallery
