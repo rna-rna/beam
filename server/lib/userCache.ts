@@ -26,9 +26,16 @@ export async function fetchCachedUserData(userIds: string[]): Promise<CachedUser
   // Fetch missing users from Clerk
   if (missingUserIds.length > 0) {
     try {
-      const users = await clerkClient.users.getUserList({
+      const clerkResponse = await clerkClient.users.getUserList({
         userId: missingUserIds
       });
+      
+      const users = Array.isArray(clerkResponse) ? clerkResponse : clerkResponse.data || [];
+      
+      if (!users.length) {
+        console.warn('No users found from Clerk for IDs:', missingUserIds);
+        return existingUsers;
+      }
 
       // Insert new users with upsert
       for (const user of users) {
