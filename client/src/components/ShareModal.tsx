@@ -7,7 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent, SelectSe
 import {  } from "@/components/ui/avatar"; //Avatar, AvatarFallback, AvatarImage are removed
 import { Copy, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { UserAvatar } from "@/components/ui/user-avatar"; // Assuming UserAvatar component exists
+import { UserAvatar } from "@/components/UserAvatar"; // Assuming UserAvatar component exists
 
 const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
