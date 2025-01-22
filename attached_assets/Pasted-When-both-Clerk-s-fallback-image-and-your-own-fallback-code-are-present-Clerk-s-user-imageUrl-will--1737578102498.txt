@@ -1,0 +1,50 @@
+When both Clerk’s fallback image and your own fallback code are present, Clerk's user.imageUrl will often be set to a default URL (like https://images.clerk.dev/default_avatar/...). That causes your <AvatarImage /> to show the Clerk fallback instead of your custom random-color + initials.
+
+The Root Cause
+Right now you check:
+
+tsx
+Copy
+{imageUrl && <AvatarImage src={imageUrl} alt={name || 'User'} />}
+But imageUrl always has some value. Even if the user never set a custom photo, Clerk sets its fallback (.../default_avatar/...). Because of that, your code never hits your <AvatarFallback> (the random color with initials).
+
+How to Fix It
+You need to detect when user.imageUrl is actually the Clerk fallback. Then skip rendering <AvatarImage> in that case. For example:
+
+Check if user.imageUrl contains 'default_avatar' (or something unique).
+If you detect that it’s the fallback URL, do NOT render <AvatarImage>, so your <AvatarFallback> (with your random color + initials) appears instead.
+Example: Modify UserAvatar
+tsx
+Copy
+function isClerkDefaultUrl(url: string): boolean {
+  if (!url) return false;
+  return url.includes("default_avatar") || url.includes("clerk_assets");
+}
+
+export function UserAvatar({ name: propName, imageUrl: propImageUrl, ... }) {
+  // ...
+  const name = propName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+  const imageUrl = propImageUrl || user?.imageUrl;
+  const initial = useMemo(() => getInitials(name), [name]);
+  const backgroundColor = useMemo(() => user?.publicMetadata?.color || '#ccc', [user]);
+
+  // NEW: If Clerk is using a fallback avatar URL, treat it as if "no image".
+  const isFallbackUrl = isClerkDefaultUrl(imageUrl);
+
+  return (
+    <Avatar className={cn(className)}>
+      {/* If user’s imageUrl is NOT the fallback, show it */}
+      {!isFallbackUrl && imageUrl && (
+        <AvatarImage src={imageUrl} alt={name || 'User'} />
+      )}
+      {/* Otherwise, your random color + initials */}
+      <AvatarFallback style={{ backgroundColor, color: 'white' }}>
+        {initial}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+Now:
+
+If imageUrl is a real photo, isFallbackUrl is false. You display <AvatarImage>.
+If imageUrl is the Clerk fallback (contains "default_avatar", etc.), you skip <AvatarImage> and show your <AvatarFallback> instead.
