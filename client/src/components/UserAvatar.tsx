@@ -20,6 +20,11 @@ function getInitials(fullName: string): string {
     .slice(0, 2) || '?';
 }
 
+function isClerkDefaultUrl(url: string): boolean {
+  if (!url) return false;
+  return url.includes("default_avatar") || url.includes("clerk_assets");
+}
+
 export function UserAvatar({ name: propName, imageUrl: propImageUrl, className = "", isActive = false }: UserAvatarProps) {
   const { user } = useUser();
   const name = propName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
@@ -33,7 +38,9 @@ export function UserAvatar({ name: propName, imageUrl: propImageUrl, className =
   return (
     <div className="relative group">
       <Avatar className={cn(className)}>
-        {imageUrl && <AvatarImage src={imageUrl} alt={name || 'User'} />}
+        {imageUrl && !isClerkDefaultUrl(imageUrl) && (
+          <AvatarImage src={imageUrl} alt={name || 'User'} />
+        )}
         <AvatarFallback 
           style={{ backgroundColor, color: 'white' }}
           className="font-medium"
