@@ -49,6 +49,7 @@ export function UserNav() {
             <UserAvatar 
               imageUrl={user.imageUrl}
               name={user.fullName || user.username || ""}
+              color={user.publicMetadata?.color as string}
               className="h-8 w-8"
             />
           </motion.div>
