@@ -1,0 +1,78 @@
+A very common culprit here is the onSelect prop on your <SelectItem value="remove"> preventing the parent’s onValueChange from ever firing—so no network request is triggered at all. In Shadcn UI's <SelectItem>, you typically do not need to use onSelect; instead you rely on the parent <Select onValueChange={...}>.
+
+Right now, you have both:
+
+jsx
+Copy
+<Select
+  ...
+  onValueChange={async (newRole) => {
+    if (newRole === "remove") {
+      await handleRemoveUser(user);
+      return;
+    }
+    // ...patch request for changing role
+  }}
+>
+  <SelectContent>
+    ...
+    <SelectItem 
+      value="remove" 
+      onSelect={async (e) => {
+        e.preventDefault();
+        await handleRemoveUser(user);
+      }}
+    >
+      Remove Access
+    </SelectItem>
+  </SelectContent>
+</Select>
+Why This Breaks
+When you click on “Remove Access,” the onSelect inside <SelectItem> fires first and calls e.preventDefault(), preventing the actual “value change” event from propagating.
+Because the parent <Select> does not get the “value changed to remove,” it never calls onValueChange, so no fetch happens.
+How To Fix
+Remove the onSelect from <SelectItem> and let the parent’s onValueChange handle it:
+
+diff
+Copy
+<SelectItem
+  value="remove"
+- onSelect={async (e) => {
+-   e.preventDefault();
+-   await handleRemoveUser(user);
+- }}
+  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+>
+  Remove Access
+</SelectItem>
+Use only the parent onValueChange:
+
+jsx
+Copy
+<Select
+  value={user.role}
+  onValueChange={async (newRole) => {
+    if (newRole === "remove") {
+      await handleRemoveUser(user);
+      return;
+    }
+    // else do PATCH for newRole
+  }}
+>
+  <SelectTrigger className="w-28">
+    <SelectValue />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="View">Viewer</SelectItem>
+    <SelectItem value="Comment">Commenter</SelectItem>
+    <SelectItem value="Edit">Editor</SelectItem>
+    <SelectSeparator />
+    <SelectItem
+      value="remove"
+      className="text-destructive focus:text-destructive focus:bg-destructive/10"
+    >
+      Remove Access
+    </SelectItem>
+  </SelectContent>
+</Select>
+With that change, selecting “Remove Access” will set newRole to "remove", and your onValueChange callback will correctly call handleRemoveUser(user), which does the DELETE /permissions fetch. You should then see the network request appear.

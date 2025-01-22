@@ -2518,6 +2518,77 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Update user role
+  protectedRouter.patch('/galleries/:slug/permissions', async (req, res) => {
+    const { email, role } = req.body;
+    const { slug } = req.params;
+
+    try {
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, slug)
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ success: false, message: 'Gallery not found' });
+      }
+
+      const [updatedInvite] = await db.update(invites)
+        .set({ role })
+        .where(and(
+          eq(invites.galleryId, gallery.id),
+          eq(invites.email, email.toLowerCase())
+        ))
+        .returning();
+
+      if (!updatedInvite) {
+        return res.status(404).json({ success: false, message: 'Invite not found for that email' });
+      }
+
+      res.json({ success: true, message: 'Role updated successfully' });
+    } catch (error) {
+      console.error('Failed to update permissions:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update permissions',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Remove user from gallery
+  protectedRouter.delete('/galleries/:slug/permissions', async (req, res) => {
+    const { email } = req.body;
+    const { slug } = req.params;
+
+    try {
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, slug)
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ success: false, message: 'Gallery not found' });
+      }
+
+      const result = await db.delete(invites).where(and(
+        eq(invites.galleryId, gallery.id),
+        eq(invites.email, email.toLowerCase())
+      ));
+
+      if (!result) {
+        return res.status(404).json({ success: false, message: 'No invite found to remove' });
+      }
+
+      res.json({ success: true, message: 'User removed successfully' });
+    } catch (error) {
+      console.error('Failed to remove user:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to remove user',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);
