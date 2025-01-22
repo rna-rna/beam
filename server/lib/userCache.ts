@@ -3,6 +3,13 @@ import { cachedUsers } from '@db/schema';
 import { eq, sql, inArray } from 'drizzle-orm';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 
+export interface UserAvatarData {
+  userId: string;
+  fullName: string;
+  imageUrl?: string | null;
+  color?: string | null;
+}
+
 interface CachedUser {
   userId: string;
   firstName: string | null;
@@ -73,4 +80,15 @@ export async function fetchCachedUserData(userIds: string[]): Promise<CachedUser
   }
 
   return existingUsers;
+}
+
+
+export async function fetchUserAvatarData(userIds: string[]): Promise<UserAvatarData[]> {
+  const cached = await fetchCachedUserData(userIds);
+  return cached.map(u => ({
+    userId: u.userId,
+    fullName: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || "Unknown User",
+    imageUrl: u.imageUrl,
+    color: u.color
+  }));
 }

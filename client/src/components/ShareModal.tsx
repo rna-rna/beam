@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent, SelectSeparator } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {  } from "@/components/ui/avatar"; //Avatar, AvatarFallback, AvatarImage are removed
 import { Copy, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { UserAvatar } from "@/components/UserAvatar"; // Assuming UserAvatar component exists
 
 const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -270,10 +271,11 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
               <div className="flex gap-2 items-center">
                 {selectedUser ? (
                   <div className="flex-1 flex items-center space-x-2 px-3 py-1.5 bg-secondary/50 rounded-full">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={selectedUser.avatarUrl || undefined} />
-                      <AvatarFallback>{selectedUser.fullName[0]}</AvatarFallback>
-                    </Avatar>
+                    <UserAvatar 
+                      name={selectedUser.fullName}
+                      imageUrl={selectedUser.avatarUrl}
+                      className="h-6 w-6"
+                    />
                     <p className="text-sm">{selectedUser.email}</p>
                     <button 
                       onClick={() => setSelectedUser(null)}
@@ -322,10 +324,11 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                       className="flex items-center gap-2 p-2 hover:bg-secondary/50 rounded cursor-pointer"
                       onClick={() => handleSelectUser(user)}
                     >
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.avatarUrl || undefined} alt={user?.fullName || 'User'} />
-                        <AvatarFallback>{user?.fullName?.[0] || '?'}</AvatarFallback>
-                      </Avatar>
+                      <UserAvatar
+                        name={user.fullName}
+                        imageUrl={user.avatarUrl}
+                        className="h-8 w-8"
+                      />
                       <div className="flex-1"> {/* Added flex-1 to allow space for the Beam User indicator */}
                         <p className="text-sm font-medium">{user.fullName || user.email?.split('@')[0] || 'Unknown User'}</p>
                         <p className="text-xs text-muted-foreground">{user.email}</p>
@@ -348,10 +351,11 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
               className="flex items-center justify-between p-2 bg-secondary/20 rounded-lg"
             >
               <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.avatarUrl || undefined} alt={user?.fullName || 'User'} />
-                  <AvatarFallback>{user?.fullName?.[0] || '?'}</AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  name={user.fullName}
+                  imageUrl={user.avatarUrl}
+                  className="h-8 w-8"
+                />
                 <div>
                   <p className="text-sm font-medium">{user.fullName || user.email?.split('@')[0] || 'Unknown User'}</p>
                   <p className="text-xs text-muted-foreground">{user.email}</p>
