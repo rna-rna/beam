@@ -6,7 +6,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts } from '@db/schema';
+import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts, cachedUsers } from '@db/schema';
 import { eq, and, sql, inArray, or, desc } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
@@ -74,23 +74,27 @@ export function registerRoutes(app: Express): Server {
       if (event.type === "user.created") {
         const newUser = event.data;
         const userId = newUser.id;
+        const existingColor = newUser.public_metadata?.color;
 
         console.log("New user created via Clerk webhook:", {
           userId,
           firstName: newUser.first_name,
           lastName: newUser.last_name,
+          existingColor,
           timestamp: new Date().toISOString()
         });
 
-        const palette = ["#F44336","#E91E63","#9C27B0","#673AB7","#3F51B5","#607D8B"];
-        const randomColor = palette[Math.floor(Math.random() * palette.length)];
+        if (!existingColor) {
+          const palette = ["#F44336","#E91E63","#9C27B0","#3AB79C","#A7DE43","#F84CCF"];
+          const randomColor = palette[Math.floor(Math.random() * palette.length)];
 
-        // Update user metadata in Clerk with color
-        await clerkClient.users.updateUserMetadata(userId, {
-          publicMetadata: {
-            color: randomColor
-          }
-        });
+          // Update user metadata in Clerk with color
+          await clerkClient.users.updateUserMetadata(userId, {
+            publicMetadata: {
+              color: randomColor
+            }
+          });
+        }
 
         // Cache the user data in our database
         await db.insert(cachedUsers).values({
