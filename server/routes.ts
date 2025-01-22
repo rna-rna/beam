@@ -85,7 +85,7 @@ export function registerRoutes(app: Express): Server {
         });
 
         if (!existingColor) {
-          const palette = ["#F44336","#E91E63","#9C27B0","#673AB7","#3F51B5","#607D8B"];
+          const palette = ["#F44336","#E91E63","#9C27B0","#3AB79C","#A7DE43","#F84CCF"];
           const randomColor = palette[Math.floor(Math.random() * palette.length)];
 
           // Update user metadata in Clerk with color
