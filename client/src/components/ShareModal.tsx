@@ -108,15 +108,24 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
   };
 
   const handleSendInvite = async () => {
-    const emailToInvite = selectedUser ? selectedUser.email : email;
+    const emailToInvite = selectedUser ? selectedUser.email : email.toLowerCase();
     if (!emailToInvite) return;
+
+    if (invitedUsers.some(user => user.email.toLowerCase() === emailToInvite)) {
+      toast({
+        title: "Warning",
+        description: "This email is already invited.",
+        variant: "default"
+      });
+      return;
+    }
 
     try {
       const res = await fetch(`/api/galleries/${slug}/invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: emailToInvite.toLowerCase(),
+          email: emailToInvite,
           role: "View"
         }),
       });
