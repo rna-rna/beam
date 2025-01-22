@@ -3,30 +3,25 @@ import { useAuth } from '@clerk/clerk-react';
 import { useDropzone } from 'react-dropzone';
 import { queryClient } from '@/lib/queryClient';
 import { toast } from '@/components/ui/toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Lock } from 'lucide-react';
 import type { GalleryRole } from '@/types/gallery';
-import { canUpload } from '@/lib/roles';
 
 interface UploadDropzoneProps {
   gallery: any;
   userRole: GalleryRole;
+  canUpload: boolean;
   onUpload: () => void;
   imageCount?: number;
   gallerySlug: string;
 }
 
-export function UploadDropzone({ gallery, userRole, onUpload, imageCount = 0, gallerySlug }: UploadDropzoneProps) {
+export function UploadDropzone({ gallery, userRole, canUpload, onUpload, imageCount = 0, gallerySlug }: UploadDropzoneProps) {
   const { batches, addBatch, updateBatchProgress, completeBatch } = useUpload();
   const { getToken } = useAuth();
 
   // Use ref to persist processed files across renders
   const processedFiles = useRef(new Set<string>());
 
-  const hasUploadPermission = canUpload(userRole);
-
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (!hasUploadPermission) return;
     if (!acceptedFiles?.length) {
       console.log('[Upload] No valid files to process');
       return;
@@ -207,18 +202,18 @@ export function UploadDropzone({ gallery, userRole, onUpload, imageCount = 0, ga
     } finally {
       completeBatch(batchId, true);
     }
-  }, [onUpload, addBatch, updateBatchProgress, completeBatch, gallerySlug, getToken, hasUploadPermission]);
+  }, [onUpload, addBatch, updateBatchProgress, completeBatch, gallerySlug, getToken]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
-    disabled: !hasUploadPermission,
+    disabled: !canUpload,
     noClick: true,
     noKeyboard: true,
     onDropRejected: () => {
-      if (!hasUploadPermission) {
+      if (!canUpload) {
         toast({
           title: "Permission Denied",
           description: "You don't have permission to upload images to this gallery",
@@ -228,21 +223,10 @@ export function UploadDropzone({ gallery, userRole, onUpload, imageCount = 0, ga
     }
   });
 
-  if (!hasUploadPermission) {
-    return (
-      <Alert className="mt-4">
-        <Lock className="h-4 w-4" />
-        <AlertDescription>
-          You don't have permission to upload images to this gallery
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   return (
     <div {...getRootProps()} className="flex-1 w-full h-full flex items-center justify-center p-8">
       <input {...getInputProps()} />
-      {isDragActive && hasUploadPermission && (
+      {isDragActive && canUpload && (
         <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="text-center">
             <h3 className="text-xl font-semibold">Drop images here</h3>
