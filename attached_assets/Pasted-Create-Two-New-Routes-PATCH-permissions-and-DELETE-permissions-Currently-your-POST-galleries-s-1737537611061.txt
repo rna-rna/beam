@@ -1,0 +1,111 @@
+Create Two New Routes: PATCH /permissions and DELETE /permissions
+Currently, your POST /galleries/:slug/invite route both creates/updates invites and always sends an email. We need separate endpoints:
+
+A PATCH endpoint for updating the role without sending an email.
+A DELETE endpoint for removing the user invite entirely (again, no email).
+A) Add a PATCH route for permissions
+Inside routes.ts (somewhere below the existing POST /galleries/:slug/invite block), create:
+
+ts
+Copy
+/**
+ * Update a user’s role (no email).
+ * Example request body:
+ * {
+ *   "email": "bob@example.com",
+ *   "role": "Edit"  // or "View" or "Comment", etc.
+ * }
+ */
+protectedRouter.patch('/galleries/:slug/permissions', async (req, res) => {
+  const { email, role } = req.body;
+  const { slug } = req.params;
+
+  try {
+    // 1) Find the gallery by slug
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, slug)
+    });
+
+    if (!gallery) {
+      return res.status(404).json({ success: false, message: 'Gallery not found' });
+    }
+
+    // 2) Ensure the requesting user can manage invites 
+    // (just like you do in the 'POST /galleries/:slug/invite' route).
+    // If needed, add getGalleryUserRole + canManageGallery check here:
+
+    // 3) Update invites table without sending email
+    const [updatedInvite] = await db.update(invites)
+      .set({ role })
+      .where(and(
+        eq(invites.galleryId, gallery.id),
+        eq(invites.email, email.toLowerCase())
+      ))
+      .returning();
+
+    if (!updatedInvite) {
+      return res.status(404).json({ success: false, message: 'Invite not found for that email' });
+    }
+
+    // 4) Respond
+    res.json({ success: true, message: 'Role updated successfully' });
+  } catch (error) {
+    console.error('Failed to update permissions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update permissions',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+B) Add a DELETE route for permissions
+Right below that, create:
+
+ts
+Copy
+/**
+ * Remove a user from the gallery (no email).
+ * Example request body:
+ * { "email": "bob@example.com" }
+ */
+protectedRouter.delete('/galleries/:slug/permissions', async (req, res) => {
+  const { email } = req.body;
+  const { slug } = req.params;
+
+  try {
+    // 1) Find the gallery by slug
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, slug)
+    });
+
+    if (!gallery) {
+      return res.status(404).json({ success: false, message: 'Gallery not found' });
+    }
+
+    // 2) Ensure the requesting user can manage invites
+    // (again, add role checks if needed)
+
+    // 3) Delete from invites
+    const result = await db.delete(invites).where(and(
+      eq(invites.galleryId, gallery.id),
+      eq(invites.email, email.toLowerCase())
+    ));
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'No invite found to remove' });
+    }
+
+    // 4) Respond
+    res.json({ success: true, message: 'User removed successfully' });
+  } catch (error) {
+    console.error('Failed to remove user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to remove user',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+Important: Make sure these two endpoints are within protectedRouter so they require authentication.
+
+Now you’ve separated the “invite” action (which sends an email) from “update role” or “remove user” (which should not send email).

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select";
+import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent, SelectSeparator } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Copy, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -81,10 +81,17 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
         return;
       }
       try {
-        const res = await fetch(`/api/users/search?email=${email}`);
+        const res = await fetch(`/api/users/search?email=${email.toLowerCase()}`);
         const data = await res.json();
         if (data.success) {
-          setUserSuggestions(data.users || []);
+          const exactMatch = data.users.find((user: User) => user.email.toLowerCase() === email.toLowerCase());
+          if (exactMatch) {
+            setSelectedUser(exactMatch);
+            setEmail(""); // Clear the input
+            setUserSuggestions([]);
+          } else {
+            setUserSuggestions(data.users || []);
+          }
         }
       } catch (error) {
         console.error("User lookup failed:", error);
@@ -101,15 +108,24 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
   };
 
   const handleSendInvite = async () => {
-    const emailToInvite = selectedUser ? selectedUser.email : email;
+    const emailToInvite = selectedUser ? selectedUser.email : email.toLowerCase();
     if (!emailToInvite) return;
+
+    if (invitedUsers.some(user => user.email.toLowerCase() === emailToInvite)) {
+      toast({
+        title: "Warning",
+        description: "This email is already invited.",
+        variant: "default"
+      });
+      return;
+    }
 
     try {
       const res = await fetch(`/api/galleries/${slug}/invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: emailToInvite.toLowerCase(),
+          email: emailToInvite,
           role: "View"
         }),
       });
@@ -288,62 +304,96 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </div>
-              {user.id === 'owner' ? (
-                <p className="text-sm font-medium text-muted-foreground">Owner</p>
-              ) : (
-                <Select
-                  value={user.role}
-                  onValueChange={async (newRole) => {
-                    // Store previous state for potential rollback
-                    const previousUsers = [...invitedUsers];
+              <div className="flex items-center gap-2">
+                {user.id === 'owner' ? (
+                  <p className="text-sm font-medium text-muted-foreground">Owner</p>
+                ) : (
+                  <>
+                    <Select
+                      value={user.role}
+                      onValueChange={async (newRole) => {
+                        const previousUsers = [...invitedUsers];
+                        setInvitedUsers(prev =>
+                          prev.map(u => u.id === user.id ? { ...u, role: newRole } : u)
+                        );
 
-                    // Optimistically update UI
-                    setInvitedUsers(prev =>
-                      prev.map(u => u.id === user.id ? { ...u, role: newRole } : u)
-                    );
+                        try {
+                          const res = await fetch(`/api/galleries/${slug}/invite`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              email: user.email,
+                              role: newRole,
+                            }),
+                          });
 
-                    try {
-                      const res = await fetch(`/api/galleries/${slug}/invite`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          email: user.email,
-                          role: newRole,
-                        }),
-                      });
+                          const data = await res.json();
+                          if (!res.ok || data.message !== "Invite sent successfully") {
+                            throw new Error(data.message || "Failed to update role");
+                          }
 
-                      const data = await res.json();
+                          toast({
+                            title: "Success",
+                            description: "Role updated successfully"
+                          });
+                        } catch (error) {
+                          setInvitedUsers(previousUsers);
+                          toast({
+                            title: "Error",
+                            description: "Failed to update role. Changes were reverted.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-28">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="View">Viewer</SelectItem>
+                        <SelectItem value="Comment">Commenter</SelectItem>
+                        <SelectItem value="Edit">Editor</SelectItem>
+                        <SelectSeparator />
+                        <SelectItem 
+                          value="remove" 
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                          onSelect={async (e) => {
+                            e.preventDefault();
+                            const previousUsers = [...invitedUsers];
+                            setInvitedUsers(prev => prev.filter(u => u.id !== user.id));
+                            
+                            try {
+                              const res = await fetch(`/api/galleries/${slug}/invite`, {
+                                method: "DELETE",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ email: user.email }),
+                              });
 
-                      if (!res.ok || data.message !== "Invite sent successfully") {
-                        throw new Error(data.message || "Failed to update role");
-                      }
+                              if (!res.ok) {
+                                throw new Error("Failed to remove user");
+                              }
 
-                      toast({
-                        title: "Success",
-                        description: "Role updated successfully"
-                      });
-                    } catch (error) {
-                      // Rollback to previous state
-                      setInvitedUsers(previousUsers);
-
-                      toast({
-                        title: "Error",
-                        description: "Failed to update role. Changes were reverted.",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-28">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="View">Viewer</SelectItem>
-                    <SelectItem value="Comment">Commenter</SelectItem>
-                    <SelectItem value="Edit">Editor</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
+                              toast({
+                                title: "Success",
+                                description: "User removed successfully"
+                              });
+                            } catch (error) {
+                              setInvitedUsers(previousUsers);
+                              toast({
+                                title: "Error",
+                                description: "Failed to remove user. Changes were reverted.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          Remove Access
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+              </div>
             </div>
           ))}
 

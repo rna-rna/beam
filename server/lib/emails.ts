@@ -1,5 +1,6 @@
 
 import sgMail from "@sendgrid/mail";
+import { SendGridTemplates } from "./sendgridTemplates";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
@@ -8,8 +9,8 @@ interface SendInviteEmailOptions {
   fromEmail?: string;
   galleryTitle: string;
   inviteUrl: string;
-  galleryThumbnail?: string;
-  photographerName?: string;
+  galleryThumbnail: string | null;
+  photographerName: string;
   recipientName?: string;
   role: string;
   isRegistered: boolean;
@@ -21,55 +22,41 @@ export async function sendInviteEmail(opts: SendInviteEmailOptions) {
     fromEmail = "hello@beam.ms",
     galleryTitle,
     inviteUrl,
-    galleryThumbnail = "",
-    photographerName = "A Beam User",
+    galleryThumbnail,
+    photographerName,
     recipientName = "there",
     role,
     isRegistered,
   } = opts;
 
-  const templateId = process.env.SENDGRID_TEMPLATE_ID || "d-defaulttemplateid";
+  const templateId = SendGridTemplates.inviteEmail;
+
+  if (!templateId) {
+    throw new Error("Invite email template ID not configured");
+  }
 
   const dynamicTemplateData = {
     recipientName,
     photographerName,
     galleryName: galleryTitle,
     galleryUrl: inviteUrl,
-    galleryThumbnail,
+    galleryThumbnail: galleryThumbnail || "https://cdn.beam.ms/placeholder.jpg",
     role,
     isRegistered,
-    signUpUrl: `${process.env.VITE_APP_URL}/sign-up?email=${encodeURIComponent(toEmail)}`,
-    roleDescription: role === 'Edit' ? 'edit and comment on' : role === 'Comment' ? 'comment on' : 'view',
-    galleryPreviewText: galleryThumbnail ? 'Preview your gallery below:' : 'Click the link to view the gallery:',
-    inviteType: isRegistered ? 'existing' : 'new'
   };
 
   const msg = {
     to: toEmail,
-    from: {
-      email: fromEmail,
-      name: "Beam Galleries"
-    },
+    from: fromEmail,
     templateId,
     dynamic_template_data: dynamicTemplateData,
   };
 
   try {
     await sgMail.send(msg);
-    console.log("Invite email sent:", {
-      to: toEmail,
-      galleryName: galleryTitle,
-      role,
-      isRegistered,
-      timestamp: new Date().toISOString()
-    });
+    console.log(`Invite email sent to ${toEmail}`);
   } catch (error) {
-    console.error("Failed to send invite email:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-      to: toEmail,
-      galleryName: galleryTitle,
-      timestamp: new Date().toISOString()
-    });
+    console.error("Error sending invite email:", error);
     throw error;
   }
 }
