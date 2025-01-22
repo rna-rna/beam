@@ -12,6 +12,7 @@ interface Props {
   onUpload: () => void;
   imageCount?: number;
   gallerySlug: string;
+  userRole: string;
 }
 
 export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }: Props) {
@@ -204,12 +205,13 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
     }
   }, [onUpload, addBatch, updateBatchProgress, completeBatch, gallerySlug]);
 
+  const canUpload = userRole === 'owner' || userRole === 'Edit';
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
-    disabled: false
+    disabled: !canUpload
   });
 
   return (
