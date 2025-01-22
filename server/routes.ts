@@ -6,7 +6,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images, comments, stars, folders, galleryFolders, notifications } from '@db/schema';
+import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts } from '@db/schema';
 import { eq, and, sql, inArray, or, desc } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
@@ -65,6 +65,53 @@ export function registerRoutes(app: Express): Server {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
   app.use('/uploads', express.static(uploadsDir));
+
+  // Clerk webhook handler
+  app.post("/clerk-webhook", express.json(), async (req, res) => {
+    try {
+      const event = req.body;
+      
+      if (event.type === "user.created") {
+        const newUser = event.data;
+        const userId = newUser.id;
+
+        console.log("New user created via Clerk webhook:", {
+          userId,
+          firstName: newUser.first_name,
+          lastName: newUser.last_name,
+          timestamp: new Date().toISOString()
+        });
+
+        const palette = ["#F44336","#E91E63","#9C27B0","#673AB7","#3F51B5","#607D8B"];
+        const randomColor = palette[Math.floor(Math.random() * palette.length)];
+
+        // Update user metadata in Clerk with color
+        await clerkClient.users.updateUserMetadata(userId, {
+          publicMetadata: {
+            color: randomColor
+          }
+        });
+
+        // Cache the user data in our database
+        await db.insert(cachedUsers).values({
+          userId,
+          firstName: newUser.first_name || null,
+          lastName: newUser.last_name || null,
+          imageUrl: newUser.image_url || null,
+          color: randomColor,
+          updatedAt: new Date()
+        });
+      }
+
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Failed to process clerk webhook:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
   // Get Clerk auth middleware
   const protectRoute = setupClerkAuth(app);
@@ -1806,7 +1853,7 @@ export function registerRoutes(app: Express): Server {
                 id: 'owner',
                 email: ownerEmail,
                 fullName: `${ownerData.firstName || ''} ${ownerData.lastName || ''}`.trim(),
-                role: 'Editor',
+                role: 'Edit',
                 avatarUrl: ownerData.imageUrl
               });
             }
@@ -1966,6 +2013,12 @@ export function registerRoutes(app: Express): Server {
           orderBy: (images, { asc }) => [asc(images.position)]
         });
 
+        console.log('Gallery thumbnail URL:', {
+          thumbnailUrl: thumbnail?.url || null,
+          galleryId: gallery.id,
+          imageId: thumbnail?.id
+        });
+
         await sendInviteEmail({
           toEmail: email,
           galleryTitle,
@@ -2065,7 +2118,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // User search endpoint
-  protectedRouter.get('/api/users/search', async (req, res) => {
+  protectedRouter.get('/users/search', async (req, res) => {
     try {
       const currentUserId = req.auth.userId;
       const email = req.query.email?.toString().toLowerCase() || "";
@@ -2087,7 +2140,7 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      // Map results to user format
+      // Map contacts to user format
       const users = matches.map(contact => ({
         id: contact.contactUserId || contact.contactEmail,
         email: contact.contactEmail,
@@ -2096,6 +2149,39 @@ export function registerRoutes(app: Express): Server {
           contact.contactEmail.split("@")[0],
         avatarUrl: contact.contact?.imageUrl || null
       }));
+
+      // Check if it's a valid email for direct Clerk lookup
+      const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      
+      if (isValidEmail) {
+        try {
+          const clerkUsers = await clerkClient.users.getUserList({
+            emailAddress: [email]
+          });
+
+          const exactUser = clerkUsers.find(user => 
+            user.emailAddresses.some(e => 
+              e.emailAddress.toLowerCase() === email
+            )
+          );
+
+          if (exactUser && !users.some(u => u.email === email)) {
+            const primaryEmail = exactUser.emailAddresses.find(
+              e => e.id === exactUser.primaryEmailAddressId
+            )?.emailAddress;
+
+            users.push({
+              id: exactUser.id,
+              email: primaryEmail || email,
+              fullName: `${exactUser.firstName || ''} ${exactUser.lastName || ''}`.trim(),
+              avatarUrl: exactUser.imageUrl
+            });
+          }
+        } catch (error) {
+          console.error('Clerk user lookup error:', error);
+          // Continue without Clerk results if lookup fails
+        }
+      }
 
       return res.json({ success: true, users });
     } catch (error) {
