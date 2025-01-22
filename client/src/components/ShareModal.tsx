@@ -402,10 +402,6 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                         <SelectItem 
                           value="remove" 
                           className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                          onSelect={async (e) => {
-                            e.preventDefault();
-                            await handleRemoveUser(user);
-                          }}
                         >
                           Remove Access
                         </SelectItem>
