@@ -57,42 +57,6 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
           }
         })
         .catch(() => {
-
-  const handleRemoveUser = async (user: User) => {
-    const previousUsers = [...invitedUsers];
-    setInvitedUsers(prev => prev.filter(u => u.id !== user.id));
-    
-    try {
-      const res = await fetch(`/api/galleries/${slug}/permissions`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to remove user");
-      }
-
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.message || "Failed to remove user");
-      }
-
-      toast({
-        title: "Success",
-        description: "User removed successfully"
-      });
-    } catch (error) {
-      setInvitedUsers(previousUsers);
-      toast({
-        title: "Error",
-        description: "Failed to remove user. Changes were reverted.",
-        variant: "destructive",
-      });
-    }
-  };
-
-
           console.error("Failed to load existing permissions");
           toast({
             title: "Error", 
@@ -206,6 +170,41 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
       description: "Link copied to clipboard",
     });
   };
+
+  const handleRemoveUser = async (user: User) => {
+    const previousUsers = [...invitedUsers];
+    setInvitedUsers(prev => prev.filter(u => u.id !== user.id));
+
+    try {
+      const res = await fetch(`/api/galleries/${slug}/permissions`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to remove user");
+      }
+
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.message || "Failed to remove user");
+      }
+
+      toast({
+        title: "Success",
+        description: "User removed successfully"
+      });
+    } catch (error) {
+      setInvitedUsers(previousUsers);
+      toast({
+        title: "Error",
+        description: "Failed to remove user. Changes were reverted.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
