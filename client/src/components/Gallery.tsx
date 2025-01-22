@@ -10,19 +10,12 @@ import { PencilRuler } from 'lucide-react';
 import GalleryActions from './GalleryActions';
 
 function Gallery({gallery, userRole = 'View', ...props}: any) {
-  const canUpload = userRole === 'owner' || userRole === 'Edit';
-
   return (
     <div className="relative">
       <GalleryActions 
         gallery={gallery} 
-        userRole={userRole}
+        userRole={props.userRole} 
         isDark={props.isDark}
-      />
-      <UploadDropzone 
-        gallery={gallery}
-        userRole={userRole}
-        canUpload={canUpload}
       />
     </div>
   );

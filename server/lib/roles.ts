@@ -40,12 +40,7 @@ export type GalleryRole = 'owner' | 'Edit' | 'Comment' | 'View' | null;
 
 
 export function canManageGallery(role: GalleryRole): boolean {
-  if (!role) return false;
   return role === 'owner' || role === 'Edit';
-}
-
-export function canUpload(role: GalleryRole): boolean {
-  return canManageGallery(role); // Same permissions for now
 }
 
 export function canStar(role: GalleryRole): boolean {

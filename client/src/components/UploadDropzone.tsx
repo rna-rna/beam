@@ -1,20 +1,20 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useDropzone } from 'react-dropzone';
 import { queryClient } from '@/lib/queryClient';
-import { toast } from '@/components/ui/toast';
-import type { GalleryRole } from '@/types/gallery';
+import { toast } from '@/hooks/use-toast';
+import { Button } from './ui/button';
+import { Loader2, Upload } from 'lucide-react';
+import { Progress } from './ui/progress';
+import { useUpload } from '../context/UploadContext';
 
-interface UploadDropzoneProps {
-  gallery: any;
-  userRole: GalleryRole;
-  canUpload: boolean;
+interface Props {
   onUpload: () => void;
   imageCount?: number;
   gallerySlug: string;
 }
 
-export function UploadDropzone({ gallery, userRole, canUpload, onUpload, imageCount = 0, gallerySlug }: UploadDropzoneProps) {
+export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }: Props) {
   const { batches, addBatch, updateBatchProgress, completeBatch } = useUpload();
   const { getToken } = useAuth();
 
@@ -101,11 +101,11 @@ export function UploadDropzone({ gallery, userRole, canUpload, onUpload, imageCo
 
       // Get auth token from Clerk
       const token = await getToken();
-
+      
       // Request presigned URL with auth token
       const response = await fetch(`/api/galleries/${gallerySlug}/images`, {
         method: 'POST',
-        headers: {
+        headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -165,7 +165,7 @@ export function UploadDropzone({ gallery, userRole, canUpload, onUpload, imageCo
       const remainingUploads = batches.filter(batch => batch.id !== batchId);
       if (remainingUploads.length === 0) {
         if (gallerySlug) {
-          await queryClient.invalidateQueries({
+          await queryClient.invalidateQueries({ 
             queryKey: [`/api/galleries/${gallerySlug}`],
             refetchType: 'all'
           });
@@ -202,57 +202,49 @@ export function UploadDropzone({ gallery, userRole, canUpload, onUpload, imageCo
     } finally {
       completeBatch(batchId, true);
     }
-  }, [onUpload, addBatch, updateBatchProgress, completeBatch, gallerySlug, getToken]);
+  }, [onUpload, addBatch, updateBatchProgress, completeBatch, gallerySlug]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
-    disabled: !canUpload,
-    noClick: true,
-    noKeyboard: true,
-    onDropRejected: () => {
-      if (!canUpload) {
-        toast({
-          title: "Permission Denied",
-          description: "You don't have permission to upload images to this gallery",
-          variant: "destructive"
-        });
-      }
-    }
+    disabled: false
   });
 
   return (
-    <div {...getRootProps()} className="flex-1 w-full h-full flex items-center justify-center p-8">
+    <div
+      {...getRootProps()}
+      className="flex-1 w-full h-full flex items-center justify-center p-8"
+    >
       <input {...getInputProps()} />
-      {isDragActive && canUpload && (
-        <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="text-center">
-            <h3 className="text-xl font-semibold">Drop images here</h3>
+      <div className="w-full max-w-xl mx-auto text-center">
+        {false ? (
+          <div className="space-y-4">
+            <Loader2 className="w-8 h-8 mx-auto animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Drop files to upload</p>
           </div>
-        </div>
-      )}
-      {!isDragActive && (
-        <div className="w-full max-w-xl mx-auto text-center">
+        ) : (
           <div className="space-y-4">
             <Upload className="w-12 h-12 mx-auto text-muted-foreground" />
             <div>
-              <p className="text-lg mb-2">Drag and drop images here, or click to select</p>
-              <p className="text-sm text-muted-foreground">
-                {imageCount === 0 ? 'No images uploaded yet' : `${imageCount} images uploaded`}
-              </p>
+              {isDragActive ? (
+                <p className="text-lg">Drop images here...</p>
+              ) : (
+                <>
+                  <p className="text-lg mb-2">Drag and drop images here, or click to select</p>
+                  <p className="text-sm text-muted-foreground">
+                    {imageCount === 0 ? 'No images uploaded yet' : `${imageCount} images uploaded`}
+                  </p>
+                </>
+              )}
             </div>
             <Button variant="outline" className="mx-auto">
               Select Images
             </Button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
-
-import { useUpload } from '../context/UploadContext';
-import { Button } from './ui/button';
-import { Upload } from 'lucide-react';
