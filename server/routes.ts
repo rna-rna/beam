@@ -76,25 +76,26 @@ export function registerRoutes(app: Express): Server {
         
         // Fetch current user data directly from Clerk
         const clerkUser = await clerkClient.users.getUser(userId);
-        
+        const existingColor = clerkUser.publicMetadata?.color;
+
         console.log("New user created via Clerk webhook:", {
           userId,
           firstName: clerkUser.firstName,
           lastName: clerkUser.lastName,
-          existingColor: clerkUser.publicMetadata?.color,
+          existingColor,
           timestamp: new Date().toISOString()
         });
 
-        let finalColor = clerkUser.publicMetadata?.color;
-
-        if (!finalColor) {
+        // Only assign color if this is truly a new user without a color
+        let userColor = existingColor;
+        if (!existingColor) {
           const palette = ["#F44336","#E91E63","#9C27B0","#3AB79C","#A7DE43","#F84CCF"];
-          finalColor = palette[Math.floor(Math.random() * palette.length)];
-
-          // Update user metadata in Clerk with color
+          userColor = palette[Math.floor(Math.random() * palette.length)];
+          
+          // Set initial color in Clerk
           await clerkClient.users.updateUserMetadata(userId, {
             publicMetadata: {
-              color: finalColor
+              color: userColor
             }
           });
         }
@@ -105,7 +106,7 @@ export function registerRoutes(app: Express): Server {
           firstName: clerkUser.firstName || null,
           lastName: clerkUser.lastName || null,
           imageUrl: clerkUser.imageUrl || null,
-          color: finalColor,
+          color: userColor,
           updatedAt: new Date()
         });
       }
