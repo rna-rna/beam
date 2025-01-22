@@ -2778,6 +2778,14 @@ export default function Gallery({
             onClose={() => setShowSignUpModal(false)}
           />
         </div>
+        <SignedOut>
+          <UploadDropzone 
+            onUpload={handleUploadComplete} 
+            imageCount={gallery?.images?.length || 0}
+            gallerySlug={slug}
+            userRole={userRole}
+          />
+        </SignedOut>
       </>
     </UploadProvider>
   );

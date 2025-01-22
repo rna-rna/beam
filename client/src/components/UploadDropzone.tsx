@@ -15,7 +15,7 @@ interface Props {
   userRole: string;
 }
 
-export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }: Props) {
+export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug, userRole }: Props) {
   const { batches, addBatch, updateBatchProgress, completeBatch } = useUpload();
   const { getToken } = useAuth();
 
