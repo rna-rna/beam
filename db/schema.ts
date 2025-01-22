@@ -190,3 +190,30 @@ export const cachedUsers = pgTable('cached_users', {
 
 export type CachedUser = typeof cachedUsers.$inferSelect;
 export type NewCachedUser = typeof cachedUsers.$inferInsert;
+
+export const contacts = pgTable('contacts', {
+  id: serial('id').primaryKey(),
+  ownerUserId: text('owner_user_id').notNull(),
+  contactUserId: text('contact_user_id'),
+  contactEmail: text('contact_email').notNull(),
+  inviteCount: integer('invite_count').default(1).notNull(),
+  lastInvitedAt: timestamp('last_invited_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  ownerContactIdx: index('contacts_owner_email_idx', {
+    unique: true
+  }).on(table.ownerUserId, table.contactEmail)
+}));
+
+export const contactsRelations = relations(contacts, ({ one }) => ({
+  owner: one(cachedUsers, {
+    fields: [contacts.ownerUserId],
+    references: [cachedUsers.userId]
+  }),
+  contact: one(cachedUsers, {
+    fields: [contacts.contactUserId],
+    references: [cachedUsers.userId]
+  })
+}));
+
+export type Contact = typeof contacts.$inferSelect;
+export type NewContact = typeof contacts.$inferInsert;
