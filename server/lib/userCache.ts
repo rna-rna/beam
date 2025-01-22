@@ -46,7 +46,8 @@ export async function fetchCachedUserData(userIds: string[]): Promise<CachedUser
 
       // Insert new users with upsert
       for (const user of users) {
-        const color = `#${Math.floor(Math.random()*16777215).toString(16)}`;
+        const clerkColor = user.publicMetadata?.color as string;
+        const color = clerkColor || `#${Math.floor(Math.random()*16777215).toString(16)}`;
 
         await db
           .insert(cachedUsers)
@@ -64,6 +65,7 @@ export async function fetchCachedUserData(userIds: string[]): Promise<CachedUser
               firstName: user.firstName,
               lastName: user.lastName,
               imageUrl: user.imageUrl,
+              color: color,
               updatedAt: new Date()
             }
           });
