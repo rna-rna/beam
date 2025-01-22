@@ -281,6 +281,12 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                     placeholder="Enter email address"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && isValidEmail(email)) {
+                        e.preventDefault();
+                        handleSendInvite();
+                      }
+                    }}
                     className="flex-1"
                   />
                 )}
