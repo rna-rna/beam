@@ -82,7 +82,6 @@ import { StarredAvatars } from "@/components/StarredAvatars";
 import { Logo } from "@/components/Logo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { SignUpModal } from "@/components/SignUpModal";
-import UploadDropzone from "@/components/UploadDropzone";
 import PusherClient from "pusher-js";
 import { nanoid } from "nanoid";
 import { CursorOverlay } from "@/components/CursorOverlay";
@@ -2779,14 +2778,6 @@ export default function Gallery({
             onClose={() => setShowSignUpModal(false)}
           />
         </div>
-        <SignedOut>
-          <UploadDropzone 
-            onUpload={handleUploadComplete} 
-            imageCount={gallery?.images?.length || 0}
-            gallerySlug={slug}
-            userRole={userRole}
-          />
-        </SignedOut>
       </>
     </UploadProvider>
   );
