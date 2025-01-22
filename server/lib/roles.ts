@@ -38,6 +38,12 @@ export async function getGalleryUserRole(galleryId: number, userId: string) {
 
 export type GalleryRole = 'owner' | 'Edit' | 'Comment' | 'View' | null;
 
+// Convert legacy Editor role to Edit
+export function normalizeRole(role: string): GalleryRole {
+  if (role === 'Editor') return 'Edit';
+  return role as GalleryRole;
+}
+
 
 export function canManageGallery(role: GalleryRole): boolean {
   return role === 'owner' || role === 'Edit';

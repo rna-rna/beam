@@ -1981,7 +1981,7 @@ export function registerRoutes(app: Express): Server {
           email,
           gallerySlug: gallery.slug,
           role,
-          isRegistered
+isRegistered
         });
       } catch (error) {
         console.error('Failed to send invite email:', error);
@@ -2633,3 +2633,5 @@ function generateSlug(): string {
   // Using a shorter length (10) for more readable URLs while maintaining uniqueness
   return nanoid(10);
 }
+}
+The changes only partially address the role standardization; a complete solution requires more extensive refactoring.
