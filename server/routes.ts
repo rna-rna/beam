@@ -66,6 +66,53 @@ export function registerRoutes(app: Express): Server {
   }
   app.use('/uploads', express.static(uploadsDir));
 
+  // Clerk webhook handler
+  app.post("/clerk-webhook", express.json(), async (req, res) => {
+    try {
+      const event = req.body;
+      
+      if (event.type === "user.created") {
+        const newUser = event.data;
+        const userId = newUser.id;
+
+        console.log("New user created via Clerk webhook:", {
+          userId,
+          firstName: newUser.first_name,
+          lastName: newUser.last_name,
+          timestamp: new Date().toISOString()
+        });
+
+        const palette = ["#F44336","#E91E63","#9C27B0","#673AB7","#3F51B5","#607D8B"];
+        const randomColor = palette[Math.floor(Math.random() * palette.length)];
+
+        // Update user metadata in Clerk with color
+        await clerkClient.users.updateUserMetadata(userId, {
+          publicMetadata: {
+            color: randomColor
+          }
+        });
+
+        // Cache the user data in our database
+        await db.insert(cachedUsers).values({
+          userId,
+          firstName: newUser.first_name || null,
+          lastName: newUser.last_name || null,
+          imageUrl: newUser.image_url || null,
+          color: randomColor,
+          updatedAt: new Date()
+        });
+      }
+
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Failed to process clerk webhook:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Get Clerk auth middleware
   const protectRoute = setupClerkAuth(app);
 
