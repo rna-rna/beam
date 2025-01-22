@@ -1,0 +1,89 @@
+Issue
+Your dropzone is always enabled/disabled in the wrong way; specifically, Editors and Owners see the dropzone as disabled, but you only want to disable it for Viewers and Commenters.
+
+Currently, in your UploadDropzone component, you have this in your useDropzone config:
+
+tsx
+Copy
+const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  onDrop,
+  accept: {
+    'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+  },
+  disabled: false
+});
+Because disabled is hard-coded to false, everyone can use the dropzone. Or if you've tried flipping it to true, then nobody can use it. You need it to be dynamic based on the user’s role.
+
+How to Fix
+Make sure you have the user’s role available in your React component (or at least a boolean that tells you if the user can manage the gallery or not). You’ve already got a helper in roles.ts:
+
+ts
+Copy
+export function canManageGallery(role: GalleryRole): boolean {
+  return role === 'owner' || role === 'Edit';
+}
+Use the role (or that helper) to set the disabled prop in useDropzone. For example:
+
+tsx
+Copy
+// Suppose you pass in a 'role' prop from above or use something like `useGalleryRole()`
+import { canManageGallery } from '@/lib/roles';
+
+interface Props {
+  onUpload: () => void;
+  imageCount?: number;
+  gallerySlug: string;
+  role: GalleryRole; // e.g., "owner" | "Edit" | "View" | "Comment" | null
+}
+
+export default function UploadDropzone({ 
+  onUpload, 
+  imageCount = 0, 
+  gallerySlug,
+  role
+}: Props) {
+  ...
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+    },
+    // Only enable dropzone if user can manage the gallery
+    disabled: !canManageGallery(role)
+  });
+
+  ...
+}
+If your role is "owner" or "Edit", then canManageGallery(role) returns true, so disabled becomes false.
+Otherwise, it becomes true, meaning the dropzone is disabled for "Comment" or "View", as intended.
+Ensure you’re actually getting the role from the server and passing it into UploadDropzone. For example, if you fetch the gallery data from /api/galleries/:slug (or a similar endpoint) and it returns something like:
+
+json
+Copy
+{
+  "id": 123,
+  "slug": "xyz-gallery",
+  "title": "My Gallery",
+  "role": "Edit",
+  ...
+}
+Then in your page or parent component, do something like:
+
+tsx
+Copy
+const { data: gallery } = useGalleryData(slug); // or however you fetch
+if (!gallery) return null;
+
+return (
+  <UploadDropzone
+    onUpload={handleUpload}
+    gallerySlug={gallery.slug}
+    role={gallery.role}     // pass the role down
+    imageCount={gallery.images.length}
+  />
+);
+Summary
+Key change: Inside useDropzone, set disabled: !canManageGallery(role) (or a manual check disabled: role !== 'owner' && role !== 'Edit'). That way, owners and editors can upload, while viewers/commenters are blocked.
+
+That’s it! This tiny one-liner—making disabled depend on the user’s role—will ensure the dropzone is enabled for Owners/Editors and disabled for Viewers/Commenters.
