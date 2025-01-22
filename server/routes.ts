@@ -2071,7 +2071,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // User search endpoint
-  protectedRouter.get('/api/users/search', async (req, res) => {
+  protectedRouter.get('/users/search', async (req, res) => {
     try {
       const currentUserId = req.auth.userId;
       const email = req.query.email?.toString().toLowerCase() || "";
