@@ -57,6 +57,42 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
           }
         })
         .catch(() => {
+
+  const handleRemoveUser = async (user: User) => {
+    const previousUsers = [...invitedUsers];
+    setInvitedUsers(prev => prev.filter(u => u.id !== user.id));
+    
+    try {
+      const res = await fetch(`/api/galleries/${slug}/permissions`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to remove user");
+      }
+
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.message || "Failed to remove user");
+      }
+
+      toast({
+        title: "Success",
+        description: "User removed successfully"
+      });
+    } catch (error) {
+      setInvitedUsers(previousUsers);
+      toast({
+        title: "Error",
+        description: "Failed to remove user. Changes were reverted.",
+        variant: "destructive",
+      });
+    }
+  };
+
+
           console.error("Failed to load existing permissions");
           toast({
             title: "Error", 
@@ -312,14 +348,19 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                     <Select
                       value={user.role}
                       onValueChange={async (newRole) => {
+                        if (newRole === "remove") {
+                          await handleRemoveUser(user);
+                          return;
+                        }
+
                         const previousUsers = [...invitedUsers];
                         setInvitedUsers(prev =>
                           prev.map(u => u.id === user.id ? { ...u, role: newRole } : u)
                         );
 
                         try {
-                          const res = await fetch(`/api/galleries/${slug}/invite`, {
-                            method: "POST",
+                          const res = await fetch(`/api/galleries/${slug}/permissions`, {
+                            method: "PATCH",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                               email: user.email,
@@ -327,8 +368,12 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                             }),
                           });
 
+                          if (!res.ok) {
+                            throw new Error("Failed to update role");
+                          }
+
                           const data = await res.json();
-                          if (!res.ok || data.message !== "Invite sent successfully") {
+                          if (!data.success) {
                             throw new Error(data.message || "Failed to update role");
                           }
 
@@ -359,32 +404,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                           className="text-destructive focus:text-destructive focus:bg-destructive/10"
                           onSelect={async (e) => {
                             e.preventDefault();
-                            const previousUsers = [...invitedUsers];
-                            setInvitedUsers(prev => prev.filter(u => u.id !== user.id));
-                            
-                            try {
-                              const res = await fetch(`/api/galleries/${slug}/invite`, {
-                                method: "DELETE",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ email: user.email }),
-                              });
-
-                              if (!res.ok) {
-                                throw new Error("Failed to remove user");
-                              }
-
-                              toast({
-                                title: "Success",
-                                description: "User removed successfully"
-                              });
-                            } catch (error) {
-                              setInvitedUsers(previousUsers);
-                              toast({
-                                title: "Error",
-                                description: "Failed to remove user. Changes were reverted.",
-                                variant: "destructive",
-                              });
-                            }
+                            await handleRemoveUser(user);
                           }}
                         >
                           Remove Access
