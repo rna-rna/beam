@@ -2065,37 +2065,44 @@ export function registerRoutes(app: Express): Server {
   });
 
   // User search endpoint
-  app.get('/api/users/search', async (req, res) => {
+  protectedRouter.get('/api/users/search', async (req, res) => {
     try {
-      const email = req.query.email?.toString().toLowerCase();
+      const currentUserId = req.auth.userId;
+      const email = req.query.email?.toString().toLowerCase() || "";
 
-      if (!email) {
-        return res.status(40).json({
-          success: false,
-          message: 'Email query parameter is required'
-        });
+      // Quick short-circuit if < 3 chars typed
+      if (email.length < 3) {
+        return res.json({ success: true, users: [] });
       }
 
-      const usersResponse = await clerkClient.users.getUserList({
-        email_address_query: email,
+      // Query contacts table with partial email match
+      const matches = await db.query.contacts.findMany({
+        where: and(
+          eq(contacts.ownerUserId, currentUserId),
+          sql`${contacts.contactEmail} ILIKE ${'%' + email + '%'}`
+        ),
+        limit: 5,
+        with: {
+          contact: true
+        }
       });
 
-      const users = usersResponse?.data.map((user) => ({
-        id: user.id,
-        email: user.emailAddresses[0]?.emailAddress,
-        fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-        avatarUrl: user.imageUrl,
-      })) || [];
+      // Map results to user format
+      const users = matches.map(contact => ({
+        id: contact.contactUserId || contact.contactEmail,
+        email: contact.contactEmail,
+        fullName: contact.contact ? 
+          `${contact.contact.firstName || ''} ${contact.contact.lastName || ''}`.trim() :
+          contact.contactEmail.split("@")[0],
+        avatarUrl: contact.contact?.imageUrl || null
+      }));
 
-      res.json({
-        success: true,
-        users
-      });
+      return res.json({ success: true, users });
     } catch (error) {
-      console.error('User search error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to search users',
+      console.error('Search contacts error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to search contacts',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
