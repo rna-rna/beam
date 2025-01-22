@@ -1966,6 +1966,12 @@ export function registerRoutes(app: Express): Server {
           orderBy: (images, { asc }) => [asc(images.position)]
         });
 
+        console.log('Gallery thumbnail URL:', {
+          thumbnailUrl: thumbnail?.url || null,
+          galleryId: gallery.id,
+          imageId: thumbnail?.id
+        });
+
         await sendInviteEmail({
           toEmail: email,
           galleryTitle,
