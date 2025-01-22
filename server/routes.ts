@@ -85,28 +85,27 @@ export function registerRoutes(app: Express): Server {
           timestamp: new Date().toISOString()
         });
 
-        const existingColor = clerkUser.publicMetadata?.color;
-        let userColor = existingColor;
+        let finalColor = clerkUser.publicMetadata?.color;
 
-        if (!existingColor) {
+        if (!finalColor) {
           const palette = ["#F44336","#E91E63","#9C27B0","#3AB79C","#A7DE43","#F84CCF"];
-          userColor = palette[Math.floor(Math.random() * palette.length)];
+          finalColor = palette[Math.floor(Math.random() * palette.length)];
 
           // Update user metadata in Clerk with color
           await clerkClient.users.updateUserMetadata(userId, {
             publicMetadata: {
-              color: userColor
+              color: finalColor
             }
           });
         }
 
-        // Cache the user data in our database
+        // Cache the user data in our database with the synchronized color
         await db.insert(cachedUsers).values({
           userId,
           firstName: clerkUser.firstName || null,
           lastName: clerkUser.lastName || null,
           imageUrl: clerkUser.imageUrl || null,
-          color: userColor,
+          color: finalColor,
           updatedAt: new Date()
         });
       }
