@@ -2093,7 +2093,7 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      // Map results to user format
+      // Map contacts to user format
       const users = matches.map(contact => ({
         id: contact.contactUserId || contact.contactEmail,
         email: contact.contactEmail,
@@ -2102,6 +2102,39 @@ export function registerRoutes(app: Express): Server {
           contact.contactEmail.split("@")[0],
         avatarUrl: contact.contact?.imageUrl || null
       }));
+
+      // Check if it's a valid email for direct Clerk lookup
+      const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      
+      if (isValidEmail) {
+        try {
+          const clerkUsers = await clerkClient.users.getUserList({
+            emailAddress: [email]
+          });
+
+          const exactUser = clerkUsers.find(user => 
+            user.emailAddresses.some(e => 
+              e.emailAddress.toLowerCase() === email
+            )
+          );
+
+          if (exactUser && !users.some(u => u.email === email)) {
+            const primaryEmail = exactUser.emailAddresses.find(
+              e => e.id === exactUser.primaryEmailAddressId
+            )?.emailAddress;
+
+            users.push({
+              id: exactUser.id,
+              email: primaryEmail || email,
+              fullName: `${exactUser.firstName || ''} ${exactUser.lastName || ''}`.trim(),
+              avatarUrl: exactUser.imageUrl
+            });
+          }
+        } catch (error) {
+          console.error('Clerk user lookup error:', error);
+          // Continue without Clerk results if lookup fails
+        }
+      }
 
       return res.json({ success: true, users });
     } catch (error) {
