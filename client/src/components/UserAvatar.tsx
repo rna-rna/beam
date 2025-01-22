@@ -1,3 +1,4 @@
+
 import { useUser } from "@clerk/clerk-react";
 import { useMemo } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -10,23 +11,33 @@ interface UserAvatarProps {
   isActive?: boolean;
 }
 
-export function UserAvatar({ name: propName, imageUrl, className = "", isActive = false }: UserAvatarProps) {
+function getInitials(fullName: string): string {
+  return fullName
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || '?';
+}
+
+export function UserAvatar({ name: propName, imageUrl: propImageUrl, className = "", isActive = false }: UserAvatarProps) {
   const { user } = useUser();
   const name = propName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+  const imageUrl = propImageUrl || user?.imageUrl;
   
-  const initial = useMemo(() => {
-    return name ? name.charAt(0).toUpperCase() : "?";
-  }, [name]);
-
+  const initial = useMemo(() => getInitials(name), [name]);
   const backgroundColor = useMemo(() => {
-    return user?.publicMetadata?.avatarColor || '#ccc';
-  }, [user?.publicMetadata?.avatarColor]);
+    return user?.publicMetadata?.color || '#ccc';
+  }, [user?.publicMetadata?.color]);
 
   return (
     <div className="relative group">
       <Avatar className={cn(className)}>
         {imageUrl && <AvatarImage src={imageUrl} alt={name || 'User'} />}
-        <AvatarFallback style={{ backgroundColor, color: 'white' }}>
+        <AvatarFallback 
+          style={{ backgroundColor, color: 'white' }}
+          className="font-medium"
+        >
           {initial}
         </AvatarFallback>
       </Avatar>
