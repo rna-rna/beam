@@ -3,6 +3,7 @@ import { Router } from "express";
 import { pusher } from "../pusherConfig";
 import { extractUserInfo } from "../auth";
 import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
+import { fetchCachedUserData } from "../lib/userCache";
 
 const router = Router();
 
@@ -26,11 +27,17 @@ router.post("/pusher/auth", ClerkExpressRequireAuth(), async (req, res) => {
     // Get authenticated user info using our helper
     const userInfo = await extractUserInfo(req);
     
+    // Get cached user data with color
+    const [cachedUser] = await fetchCachedUserData([userInfo.userId]);
+    
     const presenceData = {
       user_id: userInfo.userId,
       user_info: {
-        name: userInfo.userName,
-        avatar: userInfo.userImageUrl || `https://clerk.dev/placeholder-avatar.png`,
+        name: cachedUser 
+          ? `${cachedUser.firstName || ""} ${cachedUser.lastName || ""}`.trim() 
+          : "Unknown User",
+        avatar: cachedUser?.imageUrl || null,
+        color: cachedUser?.color || "#ccc",
       },
     };
 
