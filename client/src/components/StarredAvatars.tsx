@@ -1,8 +1,9 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { HoverCard, HoverCardTrigger, HoverCardContent, HoverCardPortal } from "@/components/ui/hover-card";
 import { Star } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
+import { useUser } from "@clerk/clerk-react";
 
 interface StarData {
   id: number;
@@ -27,6 +28,56 @@ interface StarResponse {
 }
 
 export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProps) {
+  const { user } = useUser();
+  const queryClient = useQueryClient();
+
+  const toggleStarMutation = useMutation({
+    mutationFn: async ({ imageId, isStarred }: { imageId: number; isStarred: boolean }) => {
+      const res = await fetch(`/api/images/${imageId}/star`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isStarred })
+      });
+      return res.json();
+    },
+    onMutate: async ({ imageId, isStarred }) => {
+      await queryClient.cancelQueries([`/api/images/${imageId}/stars`]);
+      const previousStars = queryClient.getQueryData([`/api/images/${imageId}/stars`]);
+
+      queryClient.setQueryData([`/api/images/${imageId}/stars`], (old: any) => {
+        if (!old) return { success: true, data: [] };
+        const newData = [...old.data];
+
+        if (!isStarred) {
+          newData.push({
+            userId: user?.id,
+            user: {
+              fullName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+              imageUrl: user?.imageUrl,
+              color: user?.publicMetadata?.color,
+            }
+          });
+        } else {
+          return { success: true, data: newData.filter(s => s.userId !== user?.id) };
+        }
+
+        return { ...old, data: newData };
+      });
+
+      return { previousStars };
+    },
+    onError: (err, { imageId }, context) => {
+      if (context?.previousStars) {
+        queryClient.setQueryData([`/api/images/${imageId}/stars`], context.previousStars);
+      }
+    },
+    onSettled: ({ imageId }) => {
+      queryClient.invalidateQueries([`/api/images/${imageId}/stars`]);
+    },
+  });
+
   const { data: response } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
     staleTime: 5000,
