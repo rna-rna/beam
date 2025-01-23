@@ -266,7 +266,11 @@ export default function Gallery({
     };
 
     socket.on('cursor-update', (data) => {
-      console.log("[cursor-update]", "Received from:", data.id, "I'm:", user.id);
+      console.log("[cursor-update]", "Received data:", {
+        ...data,
+        timestamp: new Date().toISOString(),
+        currentUser: user?.id
+      });
 
       setCursors((prev) => {
         const otherCursors = prev.filter((cursor) => cursor.id !== data.id);
