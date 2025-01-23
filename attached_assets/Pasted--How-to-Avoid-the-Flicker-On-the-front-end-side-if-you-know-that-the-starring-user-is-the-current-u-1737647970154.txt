@@ -1,8 +1,4 @@
-. Why The Flicker Occurs
-User triggers “star” → your React code might immediately add a new star object (like { userId: currentUserId }) to the local state or cache.
-That new star object has no user property or has user: { fullName: 'Unknown User', color: null } by default. So it shows “UU” with gray.
-A short moment later, the server responds with the actual user data, or your code fetches from the DB, merges the correct name/color, so it updates to “AB” with the correct color.
-B. How to Avoid the Flicker
+ How to Avoid the Flicker
 On the front-end side, if you know that the starring user is the current user, you already have their name + color from Clerk or your DB. So you can do an optimistic update that includes the real user data right away, rather than the placeholders.
 
 In your star mutation’s onMutate or useMutation config, do something like:
@@ -62,4 +58,3 @@ const toggleStarMutation = useMutation({
   }
 });
 This way, as soon as you star the item, your front end sees the actual user name and color (from the current user context), not a placeholder “UU.”
-
