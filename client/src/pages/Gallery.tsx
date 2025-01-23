@@ -1537,8 +1537,8 @@ export default function Gallery({
                 key={member.userId}
                 name={member.name}
                 imageUrl={member.avatar}
-                color={member.color}
-                size="sm"
+                color={member.color || "#ccc"}
+                size="xs"
                 isActive={true}
                 className="border-2 border-white/40 dark:border-black hover:translate-y-[-2px] transition-transform"
               />
