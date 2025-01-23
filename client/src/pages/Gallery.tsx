@@ -178,7 +178,7 @@ export default function Gallery({
     const cursorData = {
       id: user.id,
       name: user.firstName || user.username || 'Anonymous',
-      color: myColor,
+      color: myColor, // Will now properly update when myColor changes
       x: event.clientX,
       y: event.clientY,
       lastActive: Date.now()
@@ -291,7 +291,7 @@ export default function Gallery({
       socket.off('cursor-update');
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [user, socket]);
+  }, [user, socket, handleMouseMove]); // Added handleMouseMove which includes myColor dependency
 
   // Cleanup inactive cursors
   useEffect(() => {
