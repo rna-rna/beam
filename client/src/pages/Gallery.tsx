@@ -369,6 +369,7 @@ export default function Gallery({
             userId: member.id,
             name: userInfo.name || "Anonymous",
             avatar: userInfo.avatar || "/fallback-avatar.png",
+            color: userInfo.color || "#ccc",
             lastActive: new Date().toISOString(),
           },
         ];
@@ -1536,6 +1537,7 @@ export default function Gallery({
                 key={member.userId}
                 name={member.name}
                 imageUrl={member.avatar}
+                color={member.color}
                 size="sm"
                 isActive={true}
                 className="border-2 border-white/40 dark:border-black hover:translate-y-[-2px] transition-transform"
