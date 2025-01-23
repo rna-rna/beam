@@ -54,9 +54,8 @@ export function UserAvatar({
           <AvatarImage src={imageUrl} alt={name} />
         ) : null}
         <AvatarFallback
-          style={{ backgroundColor: bgColor || "#ccc", color: "white" }}
+          style={{ backgroundColor: bgColor, color: "white" }}
           className="font-medium"
-          data-color={bgColor}
         >
           {initials}
         </AvatarFallback>
