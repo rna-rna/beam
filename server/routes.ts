@@ -1,4 +1,4 @@
-import { fetchCachedUserData } from './lib/userCache';
+import { fetchCachedUserData, fetchUserAvatarData } from './lib/userCache';
 
 import express, { type Express, type Request } from "express";
 import { createServer, type Server } from "http";
@@ -1755,18 +1755,17 @@ export function registerRoutes(app: Express): Server {
 
       // Get unique user IDs and batch fetch from cache
       const userIds = [...new Set(starData.map(star => star.userId))];
-      const cachedUsers = await fetchCachedUserData(userIds);
+      const userData = await fetchUserAvatarData(userIds);
 
-      // Merge star data with cached user details
+      // Merge star data with user details from cache
       const starsWithUserData = starData.map(star => {
-        const user = cachedUsers.find(u => u.userId === star.userId);
+        const u = userData.find(ud => ud.userId === star.userId);
         return {
           ...star,
           user: {
-            firstName: user?.firstName,
-            lastName: user?.lastName,
-            imageUrl: user?.imageUrl,
-            color: user?.color
+            fullName: u?.fullName || 'Unknown User',
+            imageUrl: u?.imageUrl,
+            color: u?.color
           }
         };
       });

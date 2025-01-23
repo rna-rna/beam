@@ -1,0 +1,65 @@
+. Why The Flicker Occurs
+User triggers “star” → your React code might immediately add a new star object (like { userId: currentUserId }) to the local state or cache.
+That new star object has no user property or has user: { fullName: 'Unknown User', color: null } by default. So it shows “UU” with gray.
+A short moment later, the server responds with the actual user data, or your code fetches from the DB, merges the correct name/color, so it updates to “AB” with the correct color.
+B. How to Avoid the Flicker
+On the front-end side, if you know that the starring user is the current user, you already have their name + color from Clerk or your DB. So you can do an optimistic update that includes the real user data right away, rather than the placeholders.
+
+In your star mutation’s onMutate or useMutation config, do something like:
+
+ts
+Copy
+const toggleStarMutation = useMutation({
+  mutationFn: async ({ imageId, isStarred }) => {
+    // ... POST/DELETE star logic ...
+  },
+  onMutate: async ({ imageId, isStarred }) => {
+    // 1. Cancel any in-flight queries that might update the star list
+    await queryClient.cancelQueries([`/api/images/${imageId}/stars`]);
+
+    // 2. Snapshot the previous star data
+    const previousStars = queryClient.getQueryData([`/api/images/${imageId}/stars`]);
+
+    // 3. Construct an optimistic star object
+    const currentUser = clerk.user; // or your own store for the current user
+    const fullName = currentUser.publicMetadata?.fullName || currentUser.fullName;
+    const color = currentUser.publicMetadata?.color || "#ccc"; // or from DB
+
+    queryClient.setQueryData([`/api/images/${imageId}/stars`], (old: any) => {
+      if (!old) return { success: true, data: [] };
+      const newData = [...old.data];
+
+      if (!isStarred) {
+        // Adding a star
+        newData.push({
+          userId: currentUser.id,
+          user: {
+            fullName,
+            imageUrl: currentUser.imageUrl,
+            color
+          }
+        });
+      } else {
+        // Removing a star
+        return { success: true, data: newData.filter(s => s.userId !== currentUser.id) };
+      }
+
+      return { ...old, data: newData };
+    });
+
+    // 4. Return rollback data
+    return { previousStars };
+  },
+  onError: (err, { imageId }, context) => {
+    // revert on error
+    if (context?.previousStars) {
+      queryClient.setQueryData([`/api/images/${imageId}/stars`], context.previousStars);
+    }
+  },
+  onSettled: ({ imageId }) => {
+    // refetch final data from server to ensure correctness
+    queryClient.invalidateQueries([`/api/images/${imageId}/stars`]);
+  }
+});
+This way, as soon as you star the item, your front end sees the actual user name and color (from the current user context), not a placeholder “UU.”
+
