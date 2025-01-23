@@ -1753,18 +1753,19 @@ export function registerRoutes(app: Express): Server {
 
       const userStarred = userId ? starData.some(star => star.userId === userId) : false;
 
-      // Get unique user IDs and batch fetch from cache
+      // Get unique user IDs
       const userIds = [...new Set(starData.map(star => star.userId))];
-      const cachedUsers = await fetchCachedUserData(userIds);
 
-      // Merge star data with cached user details
+      // Fetch from cache using the avatar data helper
+      const userData = await fetchUserAvatarData(userIds);
+
+      // Merge star data with user details
       const starsWithUserData = starData.map(star => {
-        const user = cachedUsers.find(u => u.userId === star.userId);
+        const user = userData.find(ud => ud.userId === star.userId);
         return {
           ...star,
           user: {
-            firstName: user?.firstName,
-            lastName: user?.lastName,
+            fullName: user?.fullName || "Unknown User",
             imageUrl: user?.imageUrl,
             color: user?.color
           }
@@ -1804,40 +1805,17 @@ export function registerRoutes(app: Express): Server {
         where: eq(invites.galleryId, gallery.id)
       });
 
-      // Get user details from Clerk for each invite and the owner
-      const usersWithDetails = await Promise.all(
-        permissions.map(async (invite) => {
-          if (invite.userId) {
-            try {
-              const cachedUsers = await fetchCachedUserData([invite.userId]);
-              console.log('Debug - Cached user lookup:', {
-                userId: invite.userId,
-                found: cachedUsers.length > 0,
-                userData: cachedUsers[0] || null
-              });
+      // Get user IDs from permissions
+      const userIds = permissions
+        .filter(invite => invite.userId)
+        .map(invite => invite.userId as string);
 
-              const user = cachedUsers[0];
-              if (!user) {
-                console.warn('No cached user data found for:', invite.userId);
-                return {
-                  id: invite.id,
-                  email: invite.email,
-                  fullName: null,
-                  role: invite.role,
-                  avatarUrl: null
-                };
-              }
-              return {
-                id: invite.id,
-                email: invite.email,
-                fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-                role: invite.role,
-                avatarUrl: user.imageUrl
-              };
-            } catch (error) {
-              console.error('Failed to fetch user details:', error);
-            }
-          }
+      // Fetch user data from cache
+      const userData = await fetchUserAvatarData(userIds);
+
+      // Map permissions to response format
+      const usersWithDetails = permissions.map(invite => {
+        if (!invite.userId) {
           return {
             id: invite.id,
             email: invite.email,
@@ -1845,8 +1823,18 @@ export function registerRoutes(app: Express): Server {
             role: invite.role,
             avatarUrl: null
           };
-        })
-      );
+        }
+
+        const user = userData.find(u => u.userId === invite.userId);
+        return {
+          id: invite.id,
+          email: invite.email,
+          fullName: user?.fullName || null,
+          role: invite.role,
+          avatarUrl: user?.imageUrl || null,
+          color: user?.color
+        };
+      });
 
       // Add owner with Editor role if not already in permissions
       if (gallery.userId !== 'guest') {
