@@ -236,7 +236,7 @@ export default function Gallery({
       const cursorData = {
         id: user.id,
         name: user.firstName || user.username || 'Anonymous',
-        color: '#F24822',
+        color: myColor,
         x: event.clientX,
         y: event.clientY,
       };
