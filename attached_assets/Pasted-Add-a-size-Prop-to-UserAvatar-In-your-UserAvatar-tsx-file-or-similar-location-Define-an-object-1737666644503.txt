@@ -1,0 +1,83 @@
+Add a size Prop to <UserAvatar>
+In your UserAvatar.tsx file (or similar location):
+
+Define an object (sizeVariants) that maps a size key (e.g. "sm", "md", "lg") to the corresponding Tailwind classes for the circle’s dimensions and the text size.
+Add size?: "sm" | "md" | "lg" to the component’s prop interface.
+Merge that into the final classes along with any additional className from the parent.
+Example UserAvatar.tsx:
+tsx
+Copy
+// UserAvatar.tsx
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+
+interface UserAvatarProps {
+  name: string;
+  imageUrl?: string | null;
+  color?: string | null;
+  isActive?: boolean;
+  size?: "sm" | "md" | "lg";  // <--- new
+  className?: string;
+}
+
+const sizeVariants = {
+  sm: "h-6 w-6 text-xs",   // small circle, small text
+  md: "h-8 w-8 text-sm",   // medium circle, medium text
+  lg: "h-10 w-10 text-base" // large circle, bigger text
+};
+
+function getInitials(fullName: string): string {
+  return (
+    fullName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase() || "?"
+  );
+}
+
+function isClerkDefaultUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return (
+    url.includes("default_avatar") ||
+    url.includes("clerk_assets") ||
+    url.includes("ZGVmYXVsdC") // base64 chunk for "default"
+  );
+}
+
+export function UserAvatar({
+  name,
+  imageUrl,
+  color,
+  isActive = false,
+  size = "md",
+  className = ""
+}: UserAvatarProps) {
+  const initials = getInitials(name);
+  const bgColor = color || "#ccc";  
+  // Combine the size-based classes with user-supplied className
+  const combined = cn(sizeVariants[size], className);
+
+  return (
+    <div className="relative group">
+      <Avatar className={combined}>
+        {imageUrl && !isClerkDefaultUrl(imageUrl) ? (
+          <AvatarImage src={imageUrl} alt={name} />
+        ) : null}
+        <AvatarFallback
+          style={{ backgroundColor: bgColor, color: "white" }}
+          className="font-semibold leading-none"
+        >
+          {initials}
+        </AvatarFallback>
+      </Avatar>
+      {isActive && (
+        <span className="absolute bottom-[2px] right-[2px] block h-2 w-2 rounded-full bg-green-500 group-hover:translate-y-[-2px] transition-transform" />
+      )}
+    </div>
+  );
+}
+Notes:
+
+sm, md, lg are just examples. You can add more or rename them (like "xs", "sm", "md", "lg", "xl").
+The text-<size> classes ensure your initials scale with the circle size.

@@ -1753,19 +1753,19 @@ export function registerRoutes(app: Express): Server {
 
       const userStarred = userId ? starData.some(star => star.userId === userId) : false;
 
-      // Get unique user IDs and batch fetch from cache
+      // Get unique user IDs and batch fetch full user data from cache
       const userIds = [...new Set(starData.map(star => star.userId))];
-      const userData = await fetchUserAvatarData(userIds);
-
-      // Merge star data with user details from cache
+      const userData = await fetchCachedUserData(userIds);
+      
+      // Merge star data with full user details
       const starsWithUserData = starData.map(star => {
-        const u = userData.find(ud => ud.userId === star.userId);
+        const user = userData.find(u => u.userId === star.userId);
         return {
           ...star,
           user: {
-            fullName: u?.fullName || 'Unknown User',
-            imageUrl: u?.imageUrl,
-            color: u?.color
+            fullName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
+            imageUrl: user?.imageUrl,
+            color: user?.color
           }
         };
       });
@@ -1773,7 +1773,7 @@ export function registerRoutes(app: Express): Server {
       res.json({
         success: true,
         data: starsWithUserData,
-        userStarred
+        userStarred 
       });
     } catch (error) {
       console.error('Error fetching stars:', error);
