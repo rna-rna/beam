@@ -1823,7 +1823,8 @@ export function registerRoutes(app: Express): Server {
                   email: invite.email,
                   fullName: null,
                   role: invite.role,
-                  avatarUrl: null
+                  avatarUrl: null,
+                  color: null
                 };
               }
               return {
@@ -1831,7 +1832,8 @@ export function registerRoutes(app: Express): Server {
                 email: invite.email,
                 fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
                 role: invite.role,
-                avatarUrl: user.imageUrl
+                avatarUrl: user.imageUrl,
+                color: user.color
               };
             } catch (error) {
               console.error('Failed to fetch user details:', error);
@@ -1857,11 +1859,12 @@ export function registerRoutes(app: Express): Server {
 
             if (!isOwnerInPermissions && ownerEmail) {
               usersWithDetails.push({
-                id: 'owner',
+                id: 'owner', 
                 email: ownerEmail,
                 fullName: `${ownerData.firstName || ''} ${ownerData.lastName || ''}`.trim(),
                 role: 'Edit',
-                avatarUrl: ownerData.imageUrl
+                avatarUrl: ownerData.imageUrl,
+                color: ownerData.color
               });
             }
           } catch (error) {
