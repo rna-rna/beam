@@ -2718,6 +2718,32 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get cached user data for current user
+  app.get('/api/user/me', async (req, res) => {
+    try {
+      const userId = req.auth?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const [cached] = await fetchCachedUserData([userId]);
+      if (!cached) {
+        return res.status(404).json({ error: 'No cached user found' });
+      }
+
+      res.json({
+        userId: cached.userId,
+        firstName: cached.firstName,
+        lastName: cached.lastName,
+        imageUrl: cached.imageUrl,
+        color: cached.color,
+      });
+    } catch (error) {
+      console.error('Failed to fetch cached user:', error);
+      res.status(500).json({ error: 'Failed to fetch cached user' });
+    }
+  });
+
   app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);
