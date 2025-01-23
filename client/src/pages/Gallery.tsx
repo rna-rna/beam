@@ -195,6 +195,21 @@ export default function Gallery({
   const { session } = useClerk();
   const { user } = useUser();
 
+  const handleMouseMove = useCallback((event: MouseEvent) => {
+    if (!user || !myColor) return;
+    
+    const cursorData = {
+      id: user.id,
+      name: user.firstName || user.username || 'Anonymous',
+      color: myColor,
+      x: event.clientX,
+      y: event.clientY,
+      lastActive: Date.now()
+    };
+
+    socket.emit('cursor-update', cursorData);
+  }, [user, myColor, socket]);
+
   // Fetch user color when component mounts
   useEffect(() => {
     if (!user) return;
