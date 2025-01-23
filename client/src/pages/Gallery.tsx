@@ -138,7 +138,8 @@ export default function Gallery({
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
       // ... existing query logic ...
-    },
+
+  },
     enabled: !!slug,
   });
 
@@ -165,10 +166,45 @@ export default function Gallery({
     color: string;
     x: number;
     y: number;
-    lastActive: number; // Added lastActive property
+    lastActive: number;
   }[]>([]);
+  const [myColor, setMyColor] = useState("#ccc");
   const { session } = useClerk();
   const { user } = useUser();
+
+  const handleMouseMove = useCallback((event: MouseEvent) => {
+    if (!user || !myColor) return;
+    
+    const cursorData = {
+      id: user.id,
+      name: user.firstName || user.username || 'Anonymous',
+      color: myColor, // Will now properly update when myColor changes
+      x: event.clientX,
+      y: event.clientY,
+      lastActive: Date.now()
+    };
+
+    socket.emit('cursor-update', cursorData);
+  }, [user, myColor, socket]);
+
+  // Fetch user color when component mounts
+  useEffect(() => {
+    if (!user) return;
+
+    async function fetchMyColor() {
+      try {
+        const res = await fetch("/api/user/me", { credentials: "include" });
+        if (!res.ok) throw new Error("Failed to load cached user data");
+        const data = await res.json();
+        console.log("Fetched /api/user/me data:", data);
+        setMyColor(data.color || "#ccc");
+      } catch (err) {
+        console.error("Could not load cached user data:", err);
+      }
+    }
+
+    fetchMyColor();
+  }, [user]);
 
   // Refresh Clerk session if expired
   useEffect(() => {
@@ -232,20 +268,14 @@ export default function Gallery({
       });
     });
 
-    const handleMouseMove = (event: MouseEvent) => {
-      const cursorData = {
-        id: user.id,
-        name: user.firstName || user.username || 'Anonymous',
-        color: '#F24822',
-        x: event.clientX,
-        y: event.clientY,
-      };
+    
 
-      socket.emit('cursor-update', cursorData);
-    };
-
-    socket.on('cursor-update', (data) => {
-      console.log("[cursor-update]", "Received from:", data.id, "I'm:", user.id);
+  socket.on('cursor-update', (data) => {
+      console.log("[cursor-update]", "Received data:", {
+        ...data,
+        timestamp: new Date().toISOString(),
+        currentUser: user?.id
+      });
 
       setCursors((prev) => {
         const otherCursors = prev.filter((cursor) => cursor.id !== data.id);
@@ -261,7 +291,7 @@ export default function Gallery({
       socket.off('cursor-update');
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [user, socket]);
+  }, [user, socket, handleMouseMove]); // Added handleMouseMove which includes myColor dependency
 
   // Cleanup inactive cursors
   useEffect(() => {
@@ -369,6 +399,7 @@ export default function Gallery({
             userId: member.id,
             name: userInfo.name || "Anonymous",
             avatar: userInfo.avatar || "/fallback-avatar.png",
+            color: userInfo.color || "#ccc",
             lastActive: new Date().toISOString(),
           },
         ];
@@ -1536,7 +1567,8 @@ export default function Gallery({
                 key={member.userId}
                 name={member.name}
                 imageUrl={member.avatar}
-                size="sm"
+                color={member.color || "#ccc"}
+                size="xs"
                 isActive={true}
                 className="border-2 border-white/40 dark:border-black hover:translate-y-[-2px] transition-transform"
               />

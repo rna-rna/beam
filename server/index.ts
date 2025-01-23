@@ -47,13 +47,15 @@ io.on('connection', (socket) => {
     time: new Date().toISOString()
   });
 
-  socket.on('cursor-update', (data) => {
+  socket.on('cursor-update', (cursorData) => {
     console.log('Cursor update:', {
       socketId: socket.id,
-      userId: data.id,
-      position: { x: data.x, y: data.y }
+      userId: cursorData.id,
+      position: { x: cursorData.x, y: cursorData.y },
+      color: cursorData.color
     });
-    socket.broadcast.emit('cursor-update', data);
+    // Relay to all clients, including sender
+    io.emit('cursor-update', cursorData);
   });
 
   socket.on('disconnect', (reason) => {

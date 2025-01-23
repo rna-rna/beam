@@ -1823,7 +1823,8 @@ export function registerRoutes(app: Express): Server {
                   email: invite.email,
                   fullName: null,
                   role: invite.role,
-                  avatarUrl: null
+                  avatarUrl: null,
+                  color: null
                 };
               }
               return {
@@ -1831,7 +1832,8 @@ export function registerRoutes(app: Express): Server {
                 email: invite.email,
                 fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
                 role: invite.role,
-                avatarUrl: user.imageUrl
+                avatarUrl: user.imageUrl,
+                color: user.color
               };
             } catch (error) {
               console.error('Failed to fetch user details:', error);
@@ -1857,11 +1859,12 @@ export function registerRoutes(app: Express): Server {
 
             if (!isOwnerInPermissions && ownerEmail) {
               usersWithDetails.push({
-                id: 'owner',
+                id: 'owner', 
                 email: ownerEmail,
                 fullName: `${ownerData.firstName || ''} ${ownerData.lastName || ''}`.trim(),
                 role: 'Edit',
-                avatarUrl: ownerData.imageUrl
+                avatarUrl: ownerData.imageUrl,
+                color: ownerData.color
               });
             }
           } catch (error) {
@@ -2712,6 +2715,32 @@ export function registerRoutes(app: Express): Server {
         message: 'Failed to remove user',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  });
+
+  // Get cached user data for current user
+  app.get('/api/user/me', async (req, res) => {
+    try {
+      const userId = req.auth?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const [cached] = await fetchCachedUserData([userId]);
+      if (!cached) {
+        return res.status(404).json({ error: 'No cached user found' });
+      }
+
+      res.json({
+        userId: cached.userId,
+        firstName: cached.firstName,
+        lastName: cached.lastName,
+        imageUrl: cached.imageUrl,
+        color: cached.color,
+      });
+    } catch (error) {
+      console.error('Failed to fetch cached user:', error);
+      res.status(500).json({ error: 'Failed to fetch cached user' });
     }
   });
 

@@ -274,6 +274,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                     <UserAvatar 
                       name={selectedUser.fullName}
                       imageUrl={selectedUser.avatarUrl}
+                      color={selectedUser.color}
                       className="h-6 w-6"
                     />
                     <p className="text-sm">{selectedUser.email}</p>
@@ -327,6 +328,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                       <UserAvatar
                         name={user.fullName}
                         imageUrl={user.avatarUrl}
+                        color={user.color}
                         size="md"
                       />
                       <div className="flex-1"> {/* Added flex-1 to allow space for the Beam User indicator */}
@@ -354,6 +356,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                 <UserAvatar
                   name={user.fullName}
                   imageUrl={user.avatarUrl}
+                  color={user.color}
                   size="md"
                 />
                 <div>
