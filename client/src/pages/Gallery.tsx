@@ -165,10 +165,29 @@ export default function Gallery({
     color: string;
     x: number;
     y: number;
-    lastActive: number; // Added lastActive property
+    lastActive: number;
   }[]>([]);
+  const [myColor, setMyColor] = useState("#ccc");
   const { session } = useClerk();
   const { user } = useUser();
+
+  // Fetch user color when component mounts
+  useEffect(() => {
+    if (!user) return;
+
+    async function fetchMyColor() {
+      try {
+        const res = await fetch("/api/user/me", { credentials: "include" });
+        if (!res.ok) throw new Error("Failed to load cached user data");
+        const data = await res.json();
+        setMyColor(data.color || "#ccc");
+      } catch (err) {
+        console.error("Could not load cached user data:", err);
+      }
+    }
+
+    fetchMyColor();
+  }, [user]);
 
   // Refresh Clerk session if expired
   useEffect(() => {
