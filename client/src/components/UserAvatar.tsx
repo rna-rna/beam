@@ -7,10 +7,11 @@ interface UserAvatarProps {
   color?: string | null;
   isActive?: boolean;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 const sizeVariants = {
+  xs: 'w-6 h-6',
   sm: 'w-8 h-8',
   md: 'w-10 h-10',
   lg: 'w-12 h-12',
