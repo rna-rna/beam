@@ -1,8 +1,8 @@
-import { useQuery, useMutation, QueryClient } from "@tanstack/react-query";
+
+import { useQuery } from "@tanstack/react-query";
 import { HoverCard, HoverCardTrigger, HoverCardContent, HoverCardPortal } from "@/components/ui/hover-card";
 import { Star } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
-import { useAuth } from "@/hooks/auth";
 
 interface StarData {
   id: number;
@@ -27,7 +27,6 @@ interface StarResponse {
 }
 
 export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProps) {
-  const queryClient = new QueryClient(); // Initialize QueryClient
   const { data: response } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
     staleTime: 5000,
@@ -46,56 +45,6 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
   const stars = response?.data || [];
   const visibleStars = stars.slice(0, 3);
   const remainingCount = Math.max(0, stars.length - visibleStars.length);
-
-  const auth = useAuth();
-
-  const toggleStarMutation = useMutation({
-    mutationFn: async ({ imageId, isStarred }) => {
-      const res = await fetch(`/api/images/${imageId}/star`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isStarred }), // Add body for POST request
-      });
-      return res.json();
-    },
-    onMutate: async ({ imageId, isStarred }) => {
-      await queryClient.cancelQueries([`/api/images/${imageId}/stars`]);
-      const previousStars = queryClient.getQueryData([`/api/images/${imageId}/stars`]);
-      const user = auth.user;
-
-      queryClient.setQueryData([`/api/images/${imageId}/stars`], (old) => {
-        if (!old) return { success: true, data: [] };
-        const newData = [...old.data];
-
-        if (!isStarred) {
-          newData.push({
-            userId: user.id,
-            user: {
-              fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-              imageUrl: user.imageUrl,
-              color: user.publicMetadata?.color,
-            },
-          });
-        } else {
-          return { success: true, data: newData.filter(s => s.userId !== user.id) };
-        }
-
-        return { ...old, data: newData };
-      });
-
-      return { previousStars };
-    },
-    onError: (err, { imageId }, context) => {
-      if (context?.previousStars) {
-        queryClient.setQueryData([`/api/images/${imageId}/stars`], context.previousStars);
-      }
-    },
-    onSettled: ({ imageId }) => {
-      queryClient.invalidateQueries([`/api/images/${imageId}/stars`]);
-    },
-  });
 
   if (stars.length === 0) return null;
 
