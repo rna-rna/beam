@@ -237,8 +237,15 @@ export default function Gallery({
   useEffect(() => {
     if (!user || !slug) return;
 
-    // Join gallery room when component mounts
-    socket.emit('join-gallery', slug);
+    const joinGallery = () => {
+      if (slug && socket.connected) {
+        socket.emit('join-gallery', slug);
+        console.log('Joined gallery room:', slug);
+      }
+    };
+
+    // Join immediately if connected
+    joinGallery();
     
     socket.on('connect', () => {
       console.log('Connected to Socket.IO:', {
@@ -246,8 +253,9 @@ export default function Gallery({
         transport: socket.io.engine.transport.name,
         hostname: window.location.host,
         protocol: window.location.protocol,
-        readyState: socket.connected ? 'CONNECTED' : 'DISCONNECTED'
+        readyState: 'CONNECTED'
       });
+      joinGallery();
     });
 
     socket.on('connect_error', (error) => {
