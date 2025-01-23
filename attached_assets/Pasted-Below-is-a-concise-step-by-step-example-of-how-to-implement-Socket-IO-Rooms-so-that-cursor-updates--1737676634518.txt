@@ -1,0 +1,58 @@
+Below is a concise, step‐by‐step example of how to implement Socket.IO Rooms so that cursor updates (and any other real‐time events) only go to users in the same gallery.
+
+1. Server‐Side: Listen for “Join” Events and Put Sockets into Rooms
+Your server might look something like this:
+
+js
+Copy
+// server.js or wherever you configure Socket.IO
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  // Any Socket.IO server config you need
+});
+
+io.on("connection", (socket) => {
+  console.log(`Socket connected: ${socket.id}`);
+
+  // When the client says "join-gallery", put this socket in that "room"
+  socket.on("join-gallery", (gallerySlug) => {
+    socket.join(gallerySlug);
+    console.log(`Socket ${socket.id} joined room: ${gallerySlug}`);
+  });
+
+  // (Optional) Handle "leave-gallery" event if you want explicit leaving
+  socket.on("leave-gallery", (gallerySlug) => {
+    socket.leave(gallerySlug);
+    console.log(`Socket ${socket.id} left room: ${gallerySlug}`);
+  });
+
+  // Now, when we get a cursor update, broadcast it only to *other* users
+  // in the same gallery room.
+  socket.on("cursor-update", (cursorData) => {
+    // cursorData should include `gallerySlug`
+    // so we know which room to broadcast to:
+    const { gallerySlug } = cursorData;
+    if (!gallerySlug) return;
+    
+    // Send to everyone in the same room except this user
+    socket.to(gallerySlug).emit("cursor-update", cursorData);
+  });
+
+  // If a socket disconnects, log it
+  socket.on("disconnect", () => {
+    console.log(`Socket disconnected: ${socket.id}`);
+  });
+});
+
+server.listen(3000, () => {
+  console.log("Server listening on port 3000");
+});
+Notes
+We assume each gallery corresponds to a “room.” You can name the room gallery:${slug} or just use the slug directly if that is unique.
+socket.join(gallerySlug) is how Socket.IO logically groups connections.
+socket.to(gallerySlug).emit(...) sends an event to everyone in that room except the socket that sent it.
