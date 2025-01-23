@@ -256,9 +256,10 @@ export default function Gallery({
       const cursorData = {
         id: user.id,
         name: user.firstName || user.username || 'Anonymous',
-        color: myColor,
+        color: myColor || '#ccc', // Ensure default color if myColor is undefined
         x: event.clientX,
         y: event.clientY,
+        lastActive: Date.now()
       };
 
       socket.emit('cursor-update', cursorData);
