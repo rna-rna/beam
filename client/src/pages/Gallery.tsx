@@ -180,6 +180,7 @@ export default function Gallery({
         const res = await fetch("/api/user/me", { credentials: "include" });
         if (!res.ok) throw new Error("Failed to load cached user data");
         const data = await res.json();
+        console.log("Fetched /api/user/me data:", data);
         setMyColor(data.color || "#ccc");
       } catch (err) {
         console.error("Could not load cached user data:", err);
