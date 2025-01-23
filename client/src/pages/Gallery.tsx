@@ -139,27 +139,27 @@ export default function Gallery({
     queryFn: async () => {
       // ... existing query logic ...
 
+  const handleMouseMove = useCallback((event: MouseEvent) => {
+    if (!user || !myColor) return;
+
+    const cursorData = {
+      id: user.id,
+      name: user.firstName || user.username || 'Anonymous',  
+      color: myColor,
+      x: event.clientX,
+      y: event.clientY,
+      lastActive: Date.now()
+    };
+
+    socket.emit('cursor-update', cursorData);
+  }, [user, myColor]);
+
   useEffect(() => {
     if (!user) return;
     
-    function handleMouseMove(event: MouseEvent) {
-      if (!myColor) return;
-
-      const cursorData = {
-        id: user.id,
-        name: user.firstName || user.username || 'Anonymous',
-        color: myColor,
-        x: event.clientX,
-        y: event.clientY,
-        lastActive: Date.now()
-      };
-
-      socket.emit('cursor-update', cursorData);
-    }
-
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [user, myColor, socket]);
+  }, [user, handleMouseMove]);
 
 
     },
