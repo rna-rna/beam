@@ -1,4 +1,3 @@
-
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
@@ -8,7 +7,15 @@ interface UserAvatarProps {
   color?: string | null;
   isActive?: boolean;
   className?: string;
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }
+
+const sizeVariants = {
+  xs: 'w-6 h-6',
+  sm: 'w-8 h-8',
+  md: 'w-10 h-10',
+  lg: 'w-12 h-12',
+};
 
 function getInitials(fullName: string): string {
   return (
@@ -34,14 +41,15 @@ export function UserAvatar({
   imageUrl,
   color,
   isActive = false,
-  className = ""
+  className = "",
+  size = 'md'
 }: UserAvatarProps) {
   const initials = getInitials(name);
   const bgColor = color || "#ccc";  // fallback if DB has no color
 
   return (
     <div className="relative group">
-      <Avatar className={cn(className)}>
+      <Avatar className={cn(sizeVariants[size], className)}>
         {imageUrl && !isClerkDefaultUrl(imageUrl) ? (
           <AvatarImage src={imageUrl} alt={name} />
         ) : null}

@@ -327,7 +327,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                       <UserAvatar
                         name={user.fullName}
                         imageUrl={user.avatarUrl}
-                        className="h-8 w-8"
+                        size="md"
                       />
                       <div className="flex-1"> {/* Added flex-1 to allow space for the Beam User indicator */}
                         <p className="text-sm font-medium">{user.fullName || user.email?.split('@')[0] || 'Unknown User'}</p>
@@ -354,7 +354,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                 <UserAvatar
                   name={user.fullName}
                   imageUrl={user.avatarUrl}
-                  className="h-8 w-8"
+                  size="md"
                 />
                 <div>
                   <p className="text-sm font-medium">{user.fullName || user.email?.split('@')[0] || 'Unknown User'}</p>
