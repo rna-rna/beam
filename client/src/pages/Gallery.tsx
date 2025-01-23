@@ -138,6 +138,30 @@ export default function Gallery({
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
       // ... existing query logic ...
+
+  useEffect(() => {
+    if (!user) return;
+    
+    function handleMouseMove(event: MouseEvent) {
+      if (!myColor) return;
+
+      const cursorData = {
+        id: user.id,
+        name: user.firstName || user.username || 'Anonymous',
+        color: myColor,
+        x: event.clientX,
+        y: event.clientY,
+        lastActive: Date.now()
+      };
+
+      socket.emit('cursor-update', cursorData);
+    }
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [user, myColor, socket]);
+
+
     },
     enabled: !!slug,
   });
@@ -252,25 +276,7 @@ export default function Gallery({
       });
     });
 
-    useEffect(() => {
-    function handleMouseMove(event: MouseEvent) {
-      if (!myColor) return;
-
-      const cursorData = {
-        id: user.id,
-        name: user.firstName || user.username || 'Anonymous',
-        color: myColor,
-        x: event.clientX,
-        y: event.clientY,
-        lastActive: Date.now()
-      };
-
-      socket.emit('cursor-update', cursorData);
-    }
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [user, myColor, socket]);
+    
 
   socket.on('cursor-update', (data) => {
       console.log("[cursor-update]", "Received data:", {
