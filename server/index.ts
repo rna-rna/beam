@@ -47,15 +47,30 @@ io.on('connection', (socket) => {
     time: new Date().toISOString()
   });
 
+  socket.on('join-gallery', (gallerySlug) => {
+    socket.join(gallerySlug);
+    console.log(`Socket ${socket.id} joined gallery: ${gallerySlug}`);
+  });
+
+  socket.on('leave-gallery', (gallerySlug) => {
+    socket.leave(gallerySlug);
+    console.log(`Socket ${socket.id} left gallery: ${gallerySlug}`);
+  });
+
   socket.on('cursor-update', (cursorData) => {
+    const { gallerySlug, ...cursorInfo } = cursorData;
+    if (!gallerySlug) return;
+
     console.log('Cursor update:', {
       socketId: socket.id,
-      userId: cursorData.id,
-      position: { x: cursorData.x, y: cursorData.y },
-      color: cursorData.color
+      userId: cursorInfo.id,
+      position: { x: cursorInfo.x, y: cursorInfo.y },
+      color: cursorInfo.color,
+      gallery: gallerySlug
     });
-    // Relay to all clients, including sender
-    io.emit('cursor-update', cursorData);
+    
+    // Relay only to others in the same gallery
+    socket.to(gallerySlug).emit('cursor-update', cursorInfo);
   });
 
   socket.on('disconnect', (reason) => {

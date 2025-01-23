@@ -173,19 +173,20 @@ export default function Gallery({
   const { user } = useUser();
 
   const handleMouseMove = useCallback((event: MouseEvent) => {
-    if (!user || !myColor) return;
+    if (!user || !myColor || !slug) return;
     
     const cursorData = {
       id: user.id,
       name: user.firstName || user.username || 'Anonymous',
-      color: myColor, // Will now properly update when myColor changes
+      color: myColor,
       x: event.clientX,
       y: event.clientY,
-      lastActive: Date.now()
+      lastActive: Date.now(),
+      gallerySlug: slug
     };
 
     socket.emit('cursor-update', cursorData);
-  }, [user, myColor, socket]);
+  }, [user, myColor, socket, slug]);
 
   // Fetch user color when component mounts
   useEffect(() => {
@@ -234,8 +235,11 @@ export default function Gallery({
   // Pusher presence channel subscription
   // Socket.IO connection handlers
   useEffect(() => {
-    if (!user) return;
+    if (!user || !slug) return;
 
+    // Join gallery room when component mounts
+    socket.emit('join-gallery', slug);
+    
     socket.on('connect', () => {
       console.log('Connected to Socket.IO:', {
         id: socket.id,
@@ -290,8 +294,11 @@ export default function Gallery({
       socket.off('disconnect');
       socket.off('cursor-update');
       window.removeEventListener('mousemove', handleMouseMove);
+      if (slug) {
+        socket.emit('leave-gallery', slug);
+      }
     };
-  }, [user, socket, handleMouseMove]); // Added handleMouseMove which includes myColor dependency
+  }, [user, socket, handleMouseMove, slug]); // Added handleMouseMove which includes myColor dependency
 
   // Cleanup inactive cursors
   useEffect(() => {
