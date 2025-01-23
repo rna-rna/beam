@@ -329,7 +329,33 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Create new gallery with images
+  // Get cached user data for authenticated user
+app.get('/api/user/me', async (req: any, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const [cached] = await fetchCachedUserData([userId]);
+    if (!cached) {
+      return res.status(404).json({ error: 'No cached user found' });
+    }
+
+    return res.json({
+      userId: cached.userId,
+      firstName: cached.firstName,
+      lastName: cached.lastName,
+      imageUrl: cached.imageUrl,
+      color: cached.color,
+    });
+  } catch (error) {
+    console.error('Failed to fetch cached user:', error);
+    return res.status(500).json({ error: 'Failed to fetch cached user' });
+  }
+});
+
+// Create new gallery with images
   protectedRouter.post('/galleries', upload.array('images', 50), async (req: any, res) => {
     try {
       const userId = req.auth.userId;
