@@ -252,8 +252,9 @@ export default function Gallery({
       });
     });
 
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!myColor) return; // Don't emit until we have the color
+    useEffect(() => {
+    function handleMouseMove(event: MouseEvent) {
+      if (!myColor) return;
 
       const cursorData = {
         id: user.id,
@@ -265,9 +266,13 @@ export default function Gallery({
       };
 
       socket.emit('cursor-update', cursorData);
-    };
+    }
 
-    socket.on('cursor-update', (data) => {
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [user, myColor, socket]);
+
+  socket.on('cursor-update', (data) => {
       console.log("[cursor-update]", "Received data:", {
         ...data,
         timestamp: new Date().toISOString(),
