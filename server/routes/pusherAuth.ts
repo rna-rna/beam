@@ -35,8 +35,8 @@ router.post("/pusher/auth", ClerkExpressRequireAuth(), async (req, res) => {
       user_info: {
         name: cachedUser 
           ? `${cachedUser.firstName || ""} ${cachedUser.lastName || ""}`.trim() 
-          : "Unknown User",
-        avatar: cachedUser?.imageUrl || null,
+          : "Anonymous",
+        avatar: cachedUser?.imageUrl || "/fallback-avatar.png",
         color: cachedUser?.color || "#ccc",
       },
     };
