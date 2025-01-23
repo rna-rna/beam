@@ -109,7 +109,7 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
               name={star.user?.fullName || 'Unknown User'}
               imageUrl={star.user?.imageUrl}
               color={star.user?.color}
-              size={size === "lg" ? "md" : "sm"}
+              size="sm"
               className="shadow-sm -ml-2 first:ml-0"
             />
           ))}
