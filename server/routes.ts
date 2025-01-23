@@ -1,4 +1,4 @@
-import { fetchCachedUserData } from './lib/userCache';
+import { fetchCachedUserData, fetchUserAvatarData } from './lib/userCache';
 
 import express, { type Express, type Request } from "express";
 import { createServer, type Server } from "http";
