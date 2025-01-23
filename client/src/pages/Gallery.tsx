@@ -253,10 +253,12 @@ export default function Gallery({
     });
 
     const handleMouseMove = (event: MouseEvent) => {
+      if (!myColor) return; // Don't emit until we have the color
+
       const cursorData = {
         id: user.id,
         name: user.firstName || user.username || 'Anonymous',
-        color: myColor || '#ccc', // Ensure default color if myColor is undefined
+        color: myColor,
         x: event.clientX,
         y: event.clientY,
         lastActive: Date.now()
