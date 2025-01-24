@@ -48,6 +48,8 @@ interface CommentBubbleProps {
   timestamp?: string;
 }
 
+import { Button } from "@/components/ui/button";
+
 export function CommentBubble({ 
   x, 
   y, 
