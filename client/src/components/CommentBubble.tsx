@@ -345,10 +345,17 @@ export function CommentBubble({
                   size="xs"
                 />
                 <div>
-                  <span className="text-xs font-medium text-muted-foreground block mb-1">
-                    {author?.fullName || author?.username || 'Unknown User'}
-                  </span>
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {author?.fullName || author?.username || 'Unknown User'}
+                    </span>
+                    {timestamp && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatRelativeDate(new Date(timestamp))}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{content}</p>
                 </div>
               </div>
               {reactions.length > 0 && (
