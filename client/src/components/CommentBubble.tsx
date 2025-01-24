@@ -67,7 +67,6 @@ export function CommentBubble({
 }: CommentBubbleProps) {
   const { user } = useUser();
   const isAuthor = user?.id === author?.id;
-  console.log("Comment author data:", { author, color: author?.color });
   const [isEditing, setIsEditing] = useState(isNew);
   const [text, setText] = useState(content || "");
   const [showAuthModal, setShowAuthModal] = useState(false);
