@@ -1508,8 +1508,17 @@ export function registerRoutes(app: Express): Server {
       const cachedUsers = await fetchCachedUserData(userIds);
 
       // Merge comments with cached user details
-      const commentsWithUserData = await Promise.all(imageComments.map(async comment => {
-        const [user] = await fetchCachedUserData([comment.userId]);
+      const commentsWithUserData = imageComments.map(comment => {
+        const user = cachedUsers.find(u => u.userId === comment.userId);
+        console.log('Merging comment with user data:', {
+          commentId: comment.id,
+          userId: comment.userId,
+          cachedUser: user ? {
+            hasColor: !!user.color,
+            color: user.color,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim()
+          } : 'not found'
+        });
         return {
           ...comment,
           author: {
@@ -1521,7 +1530,7 @@ export function registerRoutes(app: Express): Server {
             lastName: user?.lastName
           }
         };
-      }));
+      });
 
       res.json(commentsWithUserData);
     } catch (error) {
