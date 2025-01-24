@@ -1,9 +1,10 @@
 
-import data from '@emoji-mart/data'
-import Picker from '@emoji-mart/react'
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useClickOutside } from '@/hooks/use-click-outside';
+import { Plus } from 'lucide-react';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
@@ -14,6 +15,7 @@ const FREQUENT_EMOJIS = ['👍', '❤️', '😄', '🎉', '👀', '🔥', '✨'
 
 export function EmojiPicker({ onEmojiSelect, onClose }: EmojiPickerProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const [showFullPicker, setShowFullPicker] = useState(false);
   useClickOutside(ref, onClose);
 
   return (
@@ -26,7 +28,7 @@ export function EmojiPicker({ onEmojiSelect, onClose }: EmojiPickerProps) {
         className="absolute left-full top-0 z-50 p-2 bg-card shadow-lg rounded-lg"
         style={{ transform: 'translateY(-50%)' }}
       >
-        <div className="flex gap-1 mb-2">
+        <div className="flex gap-1">
           {FREQUENT_EMOJIS.map((emoji) => (
             <button
               key={emoji}
@@ -39,20 +41,38 @@ export function EmojiPicker({ onEmojiSelect, onClose }: EmojiPickerProps) {
               {emoji}
             </button>
           ))}
+          <button
+            className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded transition-colors"
+            onClick={() => setShowFullPicker(!showFullPicker)}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
-        <div className="p-2 border-t">
-          <Picker 
-            data={data} 
-            onEmojiSelect={(emoji: any) => {
-              onEmojiSelect(emoji.native);
-              onClose();
-            }}
-            theme="light"
-            skinTonePosition="none"
-            previewPosition="none"
-            searchPosition="none" 
-          />
-        </div>
+
+        <AnimatePresence>
+          {showFullPicker && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-2 border-t mt-2">
+                <Picker 
+                  data={data} 
+                  onEmojiSelect={(emoji: any) => {
+                    onEmojiSelect(emoji.native);
+                    onClose();
+                  }}
+                  theme="light"
+                  skinTonePosition="none"
+                  previewPosition="none"
+                  searchPosition="none"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </AnimatePresence>
   );

@@ -280,10 +280,12 @@ export function CommentBubble({
                   onClick={() => {
                     if (!user) setShowAuthModal(true);
                   }}
-                  autoFocus={true}
                   ref={(input) => {
                     if (input && isNew) {
-                      setTimeout(() => input.focus(), 0);
+                      // Use RAF for more reliable focus
+                      requestAnimationFrame(() => {
+                        input.focus();
+                      });
                     }
                   }}
                 />
