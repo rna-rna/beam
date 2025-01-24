@@ -474,6 +474,7 @@ export function CommentBubble({
                       parentId={id}
                       imageId={imageId}
                       replies={[]}
+                      onSubmit={onSubmit}
                     />
                   ))}
                 </div>
