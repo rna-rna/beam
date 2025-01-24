@@ -297,9 +297,32 @@ export default function Gallery({
         currentUser: user?.id
       });
 
+      // Update cursors
       setCursors((prev) => {
         const otherCursors = prev.filter((cursor) => cursor.id !== data.id);
         return [...otherCursors, { ...data, lastActive: Date.now() }];
+      });
+
+      // Update active users
+      setActiveUsers((prev) => {
+        const withoutUser = prev.filter(u => u.userId !== data.id);
+        const isUserPresent = prev.some(u => u.userId === data.id);
+        
+        if (!isUserPresent) {
+          return [...withoutUser, {
+            userId: data.id,
+            name: data.name,
+            avatar: data.imageUrl,
+            color: data.color,
+            lastActive: Date.now()
+          }];
+        }
+        
+        return prev.map(u => 
+          u.userId === data.id 
+            ? { ...u, lastActive: Date.now() }
+            : u
+        );
       });
     });
 
