@@ -1,0 +1,76 @@
+4:39:33 PM [vite] warning: Duplicate key "onSuccess" in object literal
+865|        }));
+866|      },
+867|      onSuccess: (data) => {
+   |      ^
+868|        console.log("Processed comment data:", data);
+869|      }
+ChatGPT said:
+ChatGPT
+The issue here is a duplicate onSuccess key in your replyMutation. The object literal in your useMutation setup contains two onSuccess entries, which is invalid JavaScript.
+
+Steps to Fix the Issue
+Locate the Duplicate onSuccess Key:
+
+Your replyMutation object contains two onSuccess keys:
+javascript
+Copy
+Edit
+const replyMutation = useMutation({
+  mutationFn: async () => { ... },
+  onSuccess: (data) => { ... }, // First instance
+  onSuccess: () => { ... },    // Duplicate instance
+  onError: (error) => { ... }
+});
+This is causing the Vite warning and potentially overriding one of the handlers.
+Merge the onSuccess Logic:
+
+Combine the logic from both onSuccess handlers into a single function.
+Updated Code:
+
+typescript
+Copy
+Edit
+const replyMutation = useMutation({
+  mutationFn: async () => {
+    if (!imageId) throw new Error('Image ID is missing');
+    if (!id && !parentId) throw new Error('Parent comment ID is missing');
+
+    const token = await getToken();
+    const response = await fetch(`/api/comments/${id || parentId}/reply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        content: replyContent.trim(),
+        imageId,
+        parentId: id || parentId,
+        xPosition: x,
+        yPosition: y,
+        userName: user?.fullName || user?.firstName || 'Anonymous',
+        userImageUrl: user?.imageUrl || null,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to post reply');
+    }
+    return response.json();
+  },
+  onSuccess: (data) => {
+    // Merge both onSuccess handlers
+    console.log("Processed comment data:", data); // First onSuccess logic
+    setReplyContent('');
+    setIsReplying(false);
+    queryClient.invalidateQueries([`/api/images/${imageId}/comments`]); // Second onSuccess logic
+  },
+  onError: (error) => {
+    toast({
+      title: "Error",
+      description: error.message || "Failed to post reply",
+      variant: "destructive",
+    });
+  },
+});
