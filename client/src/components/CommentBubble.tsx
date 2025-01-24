@@ -218,7 +218,7 @@ export function CommentBubble({
 
   const replyMutation = useMutation({
     mutationFn: async () => {
-      if (!user || !id || !replyContent.trim() || !imageId) {
+      if (!user || !id || !replyContent.trim() || !imageId || typeof x !== 'number' || typeof y !== 'number') {
         throw new Error('Missing required data for reply');
       }
       const token = await getToken();
@@ -233,7 +233,10 @@ export function CommentBubble({
           imageId: imageId,
           parentId: id,
           xPosition: x,
-          yPosition: y
+          yPosition: y,
+          userId: user.id,
+          userName: user.fullName || user.firstName || 'Anonymous',
+          userImageUrl: user.imageUrl
         })
       });
       if (!response.ok) throw new Error('Failed to post reply');
@@ -427,4 +430,23 @@ export function CommentBubble({
       )}
     </motion.div>
   );
+}
+
+function formatRelativeDate(date: Date) {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+  } else if (hours > 0) {
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  } else if (minutes > 0) {
+    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  } else {
+    return "Just now";
+  }
 }
