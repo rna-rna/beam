@@ -1,0 +1,60 @@
+Diagnosing the Reply Issue
+After analyzing the backend routes and schema provided, the likely reasons for replies not working include:
+
+Incorrect parentId Handling:
+
+The parentId field in the comments table is designed to link replies to a parent comment. If this is not being correctly passed in the request body, the reply might not get associated properly.
+Schema or API Validation Issue:
+
+The parentId is nullable in the schema, so it's optional in requests. However, the POST /api/images/:imageId/comments route does not explicitly validate its presence when handling replies.
+Frontend Logic for Replies:
+
+The replyMutation function might not properly include parentId when sending the request.
+Fetching Replies in the API:
+
+The /api/images/:imageId/comments route fetches parent comments and replies separately. If the parent-child relationship isn’t correctly established (via parentId), replies won’t be displayed correctly.
+Fixing the Reply Issue
+Here’s how to address the problem:
+
+1. Ensure parentId Is Passed Correctly
+Update the frontend replyMutation to always send parentId in the request.
+Updated Frontend Reply Mutation:
+
+typescript
+Copy
+Edit
+const replyMutation = useMutation({
+  mutationFn: async () => {
+    if (!parentId) throw new Error("Parent comment ID is missing");
+    if (!imageId) throw new Error("Image ID is missing");
+
+    const token = await getToken();
+    const response = await fetch(`/api/images/${imageId}/comments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        content: replyContent.trim(),
+        xPosition: 0, // Optional: Adjust for positioning
+        yPosition: 0, // Optional: Adjust for positioning
+        parentId,
+      }),
+    });
+
+    if (!response.ok) throw new Error("Failed to post reply");
+    return response.json();
+  },
+  onSuccess: () => {
+    setReplyContent("");
+    queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+  },
+  onError: (error) => {
+    toast({
+      title: "Error",
+      description: error.message || "Failed to post reply",
+      variant: "destructive",
+    });
+  },
+});
