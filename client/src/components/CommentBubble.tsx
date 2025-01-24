@@ -73,6 +73,27 @@ export function CommentBubble({
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(isNew);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+
+  // Handle clicks outside the comment bubble
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+        setIsHovered(false);
+        if (!isNew) {
+          setIsEditing(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNew]);
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -206,11 +227,15 @@ export function CommentBubble({
 
   return (
     <motion.div
+      ref={bubbleRef}
       drag={isAuthor}
       dragConstraints={dragConstraints}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={handleDragEnd}
       className="absolute"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => !isExpanded && setIsHovered(false)}
+      onClick={() => setIsExpanded(true)}
       style={{
         left: `${x}%`,
         top: `${y}%`,
@@ -226,13 +251,17 @@ export function CommentBubble({
         <Card className={cn(
           "absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px]",
           isEditing ? "p-2" : "p-3",
-          "bg-card shadow-lg border-primary/20"
+          "bg-card shadow-lg border-primary/20",
+          (!isHovered && !isExpanded) && "hidden",
+          "transition-all duration-200"
         )}>
           {isEditing ? (
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
               if (text.trim()) {
-                commentMutation.mutateAsync(text);
+                await commentMutation.mutateAsync(text);
+                setIsExpanded(false);
+                setIsHovered(false);
               }
             }}>
               <div className="flex items-center gap-2">
