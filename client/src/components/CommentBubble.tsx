@@ -226,6 +226,8 @@ export function CommentBubble({
   const replyMutation = useMutation({
     mutationFn: async () => {
       console.log("[DEBUG] Starting reply mutation with:", {
+        component: 'CommentBubble',
+        props: { imageId, id, parentId },
         imageId,
         parentId: id || parentId,
         content: replyContent,
@@ -271,7 +273,8 @@ export function CommentBubble({
           content: replyContent.trim(),
           xPosition: x,
           yPosition: y,
-          parentId: commentParentId
+          parentId: id || parentId,
+          imageId: imageId
         })
       });
 
