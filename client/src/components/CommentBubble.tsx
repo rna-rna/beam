@@ -266,7 +266,7 @@ export function CommentBubble({
             }}>
               <div className="flex items-center gap-2">
                 <UserAvatar
-                  size="sm"
+                  size="xs"
                   name={user?.firstName || "Guest"}
                   imageUrl={user?.imageUrl}
                   color={user?.publicMetadata?.color as string}
@@ -281,26 +281,31 @@ export function CommentBubble({
                   onClick={() => {
                     if (!user) setShowAuthModal(true);
                   }}
-                  autoFocus
+                  autoFocus={true}
+                  ref={(input) => {
+                    if (input && isNew) {
+                      input.focus();
+                    }
+                  }}
                 />
               </div>
             </form>
           ) : (
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <UserAvatar
-                    name={author?.fullName || author?.username || 'Unknown User'}
-                    imageUrl={author?.imageUrl}
-                    color={author?.color || '#ccc'}
-                    size="sm"
-                  />
-                  <span className="text-xs font-medium text-muted-foreground">
+              <div className="flex gap-2">
+                <UserAvatar
+                  name={author?.fullName || author?.username || 'Unknown User'}
+                  imageUrl={author?.imageUrl}
+                  color={author?.color || '#ccc'}
+                  size="xs"
+                />
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground block mb-1">
                     {author?.fullName || author?.username || 'Unknown User'}
                   </span>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
                 </div>
               </div>
-              <p className="text-sm text-foreground whitespace-pre-wrap mb-2">{content}</p>
               {reactions.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2 mb-2">
                   {reactions.map((reaction, i) => (
