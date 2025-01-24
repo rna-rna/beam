@@ -224,7 +224,7 @@ export function CommentBubble({
       if (!replyContent.trim()) {
         throw new Error('Reply content is empty');
       }
-      if (!imageId && !parentId) {
+      if (!imageId) {
         throw new Error('Image ID missing');
       }
       if (!id && !parentId) {
@@ -232,7 +232,7 @@ export function CommentBubble({
       }
 
       const commentId = id || parentId;
-      const targetImageId = imageId || Number(window.location.pathname.split('/').pop());
+      const targetImageId = imageId;
 
       const token = await getToken();
       const response = await fetch(`/api/comments/${commentId}/reply`, {
