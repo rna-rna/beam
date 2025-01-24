@@ -454,6 +454,11 @@ export function CommentBubble({
       {showEmojiPicker && (
         <EmojiPicker
           onEmojiSelect={(emoji) => {
+            if (!user) {
+              setShowAuthModal(true);
+              setShowEmojiPicker(false);
+              return;
+            }
             addReactionMutation.mutate(emoji);
             setShowEmojiPicker(false);
           }}
