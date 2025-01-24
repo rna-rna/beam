@@ -68,11 +68,24 @@ export const comments = pgTable('comments', {
   userId: text('user_id').notNull(),
   userName: text('user_name').notNull(),
   userImageUrl: text('user_image_url'),
+  parentId: integer('parent_id').references(() => comments.id),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
 }, (table) => ({
   imageIdIdx: index('comments_image_id_idx').on(table.imageId),
-  userIdIdx: index('comments_user_id_idx').on(table.userId)
+  userIdIdx: index('comments_user_id_idx').on(table.userId),
+  parentIdIdx: index('comments_parent_id_idx').on(table.parentId)
+}));
+
+export const commentReactions = pgTable('comment_reactions', {
+  id: serial('id').primaryKey(),
+  commentId: integer('comment_id').references(() => comments.id).notNull(),
+  userId: text('user_id').notNull(),
+  emoji: text('emoji').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+}, (table) => ({
+  commentUserIdx: index('comment_reactions_comment_user_idx').on(table.commentId, table.userId),
+  userIdIdx: index('comment_reactions_user_id_idx').on(table.userId)
 }));
 
 // Define relationships
