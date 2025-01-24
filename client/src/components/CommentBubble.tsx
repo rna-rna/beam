@@ -225,6 +225,12 @@ export function CommentBubble({
 
   const replyMutation = useMutation({
     mutationFn: async () => {
+      console.log("[DEBUG] Starting reply mutation with:", {
+        imageId,
+        parentId: id || parentId,
+        content: replyContent,
+        position: { x, y }
+      });
       // Validate required fields immediately
       if (!imageId) {
         console.error("[DEBUG] Missing imageId in replyMutation:", {
@@ -466,6 +472,8 @@ export function CommentBubble({
                       x={x}
                       y={y + 10}
                       parentId={id}
+                      imageId={imageId}
+                      replies={[]}
                     />
                   ))}
                 </div>
