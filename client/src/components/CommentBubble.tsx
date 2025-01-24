@@ -98,7 +98,8 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           author: {
             id: user.id,
             username: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
-            imageUrl: user.imageUrl
+            imageUrl: user.imageUrl,
+            color: user.publicMetadata?.color || '#ccc'
           },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -122,7 +123,8 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
                 author: {
                   id: data.data.userId || user?.id,
                   username: data.data.userName || user?.fullName || 'Unknown User',
-                  imageUrl: data.data.userImageUrl || user?.imageUrl
+                  imageUrl: data.data.userImageUrl || user?.imageUrl,
+                  color: data.data.userColor || user?.publicMetadata?.color || '#ccc'
                 }
               }
             : comment
