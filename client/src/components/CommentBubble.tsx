@@ -218,10 +218,19 @@ export function CommentBubble({
 
   const replyMutation = useMutation({
     mutationFn: async () => {
-      if (!user || !id || !replyContent.trim() || !imageId) {
-        console.error('Missing data:', { user, id, replyContent, imageId, x, y });
-        throw new Error('Missing required data for reply');
+      if (!user?.id) {
+        throw new Error('User not authenticated');
       }
+      if (!id) {
+        throw new Error('Comment ID missing');
+      }
+      if (!replyContent.trim()) {
+        throw new Error('Reply content is empty');
+      }
+      if (!imageId) {
+        throw new Error('Image ID missing');
+      }
+
       const token = await getToken();
       const response = await fetch(`/api/comments/${id}/reply`, {
         method: 'POST',
@@ -231,11 +240,10 @@ export function CommentBubble({
         },
         body: JSON.stringify({ 
           content: replyContent.trim(),
-          imageId,
+          imageId: imageId,
           parentId: id,
           xPosition: x,
           yPosition: y,
-          userId: user.id,
           userName: user.fullName || user.firstName || 'Anonymous',
           userImageUrl: user.imageUrl || null
         })
