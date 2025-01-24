@@ -1494,16 +1494,12 @@ export function registerRoutes(app: Express): Server {
       // Merge comments with cached user details
       const commentsWithUserData = imageComments.map(comment => {
         const user = cachedUsers.find(u => u.userId === comment.userId);
-        console.log('Merging comment with user data:', {
+        console.log('Processing comment:', {
           commentId: comment.id,
-          userId: comment.userId,
-          cachedUser: user ? {
-            hasColor: !!user.color,
-            color: user.color,
-            name: `${user.firstName || ''} ${user.lastName || ''}`.trim()
-          } : 'not found'
+          userColor: user?.color || '#ccc'
         });
-        return {
+        
+        const processedComment = {
           ...comment,
           author: {
             id: comment.userId,
@@ -1514,6 +1510,11 @@ export function registerRoutes(app: Express): Server {
             lastName: user?.lastName
           }
         };
+
+        // Log final structure
+        console.log('Final comment structure:', JSON.stringify(processedComment, null, 2));
+        
+        return processedComment;
       });
 
       res.json(commentsWithUserData);
