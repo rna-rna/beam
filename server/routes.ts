@@ -1404,6 +1404,9 @@ export function registerRoutes(app: Express): Server {
         }
 
         // Create the comment
+        // Get cached user data for color
+        const [cachedUser] = await fetchCachedUserData([userId]);
+        
         const [comment] = await db.insert(comments)
           .values({
             imageId,
@@ -1426,7 +1429,22 @@ export function registerRoutes(app: Express): Server {
           })
           .where(eq(images.id, imageId));
 
-        // Emit real-time event via Pusher
+        // Add user color to response
+        const commentWithColor = {
+          ...comment,
+          userColor: cachedUser?.color || '#ccc'
+        };
+
+        // Emit real-time event via Pusher with color
+        pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'comment-added', {
+          ...commentWithColor,
+          timestamp: new Date().toISOString()
+        });
+
+        res.status(201).json({
+          success: true,
+          data: commentWithColor
+        });
         pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'comment-added', {
           imageId: comment.imageId,
           content: comment.content,
