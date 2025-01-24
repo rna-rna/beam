@@ -65,6 +65,13 @@ export function CommentBubble({
   timestamp,
   replies = []
 }: CommentBubbleProps) {
+  console.log("[DEBUG] CommentBubble initialized:", {
+    imageId,
+    id,
+    parentId,
+    isNew,
+    hasContent: !!content
+  });
   const { user } = useUser();
   const isAuthor = user?.id === author?.id;
   const [isEditing, setIsEditing] = useState(isNew);
@@ -218,11 +225,22 @@ export function CommentBubble({
 
   const replyMutation = useMutation({
     mutationFn: async () => {
+      // Validate required fields immediately
+      if (!imageId) {
+        console.error("[DEBUG] Missing imageId in replyMutation:", {
+          componentId: id,
+          parentId,
+          props: {imageId, id, parentId}
+        });
+        throw new Error('Image ID is missing');
+      }
+
       console.log("[DEBUG] Reply mutation started:", {
         imageId,
         parentId: id || parentId,
         userId: user?.id,
-        contentLength: replyContent?.length
+        contentLength: replyContent?.length,
+        position: {x, y}
       });
 
       if (!user?.id) {
