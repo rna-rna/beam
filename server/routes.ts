@@ -1987,7 +1987,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Inviter details not found' });
       }
 
-      const inviterName = `${inviterData.firstName || ''} ${inviterData.lastName || ''}``.trim() || 'A Beam User';
+      const inviterName = `${inviterData.firstName || ''} ${inviterData.lastName || ''}`.trim() || 'A Beam User';
       const inviterEmail = (await clerkClient.users.getUser(req.auth.userId)).emailAddresses[0]?.emailAddress;
 
       // We still need to use Clerk directly for email lookup since our cache is ID-based
