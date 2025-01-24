@@ -1510,10 +1510,12 @@ export function registerRoutes(app: Express): Server {
   // Get comments for an image
   app.get('/api/images/:imageId/comments', async (req, res) => {
     try {
+      const imageId = parseInt(req.params.imageId);
+      
       // Get parent comments first
       const parentComments = await db.query.comments.findMany({
         where: and(
-          eq(comments.imageId, parseInt(req.params.imageId)),
+          eq(comments.imageId, imageId),
           sql`${comments.parentId} IS NULL`
         ),
         orderBy: (comments, { asc }) => [asc(comments.createdAt)]
@@ -1522,27 +1524,20 @@ export function registerRoutes(app: Express): Server {
       // Get all replies
       const replies = await db.query.comments.findMany({
         where: and(
-          eq(comments.imageId, parseInt(req.params.imageId)),
+          eq(comments.imageId, imageId),
           sql`${comments.parentId} IS NOT NULL`
         ),
         orderBy: (comments, { asc }) => [asc(comments.createdAt)]
       });
 
-      // Get unique user IDs from comments
+      // Get all unique user IDs from both parents and replies
       const userIds = [...new Set([...parentComments, ...replies].map(comment => comment.userId))];
-
-      // Batch fetch user data using cache
       const cachedUsers = await fetchCachedUserData(userIds);
 
-      // Merge comments with cached user details
-      const commentsWithUserData = [...parentComments, ...replies].map(comment => {
+      // Helper function to enrich comment with user data
+      const enrichCommentWithUser = (comment) => {
         const user = cachedUsers.find(u => u.userId === comment.userId);
-        console.log('Processing comment:', {
-          commentId: comment.id,
-          userColor: user?.color || '#ccc'
-        });
-
-        const processedComment = {
+        return {
           ...comment,
           author: {
             id: comment.userId,
@@ -1553,17 +1548,20 @@ export function registerRoutes(app: Express): Server {
             lastName: user?.lastName
           }
         };
+      };
 
-        // Log final structure
-        console.log('Final comment structure:', JSON.stringify(processedComment, null, 2));
+      // Process parent comments and their replies
+      const threadedComments = parentComments.map(parent => {
+        const parentWithUser = enrichCommentWithUser(parent);
+        const commentReplies = replies
+          .filter(reply => reply.parentId === parent.id)
+          .map(enrichCommentWithUser);
 
-        return processedComment;
+        return {
+          ...parentWithUser,
+          replies: commentReplies
+        };
       });
-
-      const threadedComments = parentComments.map(parent => ({
-        ...parent,
-        replies: replies.filter(reply => reply.parentId === parent.id)
-      }));
 
       res.json(threadedComments);
     } catch (error) {
