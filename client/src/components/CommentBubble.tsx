@@ -225,8 +225,11 @@ export function CommentBubble({
       if (!replyContent.trim()) {
         throw new Error('Reply content is empty');
       }
-      if (!imageId && !parentId) {
-        throw new Error('Image ID missing');
+      if (!imageId) {
+        throw new Error('Image ID is missing');
+      }
+      if (!id && !parentId) {
+        throw new Error('Parent comment ID is missing');
       }
 
       const commentId = id || parentId;
@@ -240,16 +243,29 @@ export function CommentBubble({
         },
         body: JSON.stringify({ 
           content: replyContent.trim(),
-          imageId: targetImageId,
-          parentId: id,
+          imageId: imageId,
+          parentId: commentId,
           xPosition: x,
           yPosition: y,
           userName: user.fullName || user.firstName || 'Anonymous',
           userImageUrl: user.imageUrl || null
         })
       });
-      if (!response.ok) throw new Error('Failed to post reply');
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
       return response.json();
+    },
+    onMutate: () => {
+      console.log('Reply Mutation Payload:', {
+        content: replyContent,
+        imageId,
+        parentId: id || parentId,
+        position: { x, y }
+      });
     },
     onError: (error) => {
       toast({
