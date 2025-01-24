@@ -33,6 +33,18 @@ interface CommentBubbleProps {
   reactions?: Array<{emoji: string, count: number, userIds: string[]}>;
   children?: React.ReactNode;
   onPositionChange?: (x: number, y: number) => void;
+  replies?: Array<{
+    id: number;
+    content: string;
+    author: {
+      id: string;
+      username: string;
+      imageUrl?: string;
+      color?: string;
+    };
+    createdAt: string;
+  }>;
+  parentId?: number;
 }
 
 export function CommentBubble({ 
@@ -161,6 +173,31 @@ export function CommentBubble({
     setIsDragging(false);
   };
 
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyContent, setReplyContent] = useState('');
+
+  const replyMutation = useMutation({
+    mutationFn: async (content: string) => {
+      if (!user || !id) return;
+      const token = await getToken();
+      const response = await fetch(`/api/comments/${id}/reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ content })
+      });
+      if (!response.ok) throw new Error('Failed to post reply');
+      return response.json();
+    },
+    onSuccess: () => {
+      setReplyContent('');
+      setIsReplying(false);
+      queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+    }
+  });
+
   return (
     <motion.div
       drag={isAuthor}
@@ -242,6 +279,46 @@ export function CommentBubble({
                       <span>{reaction.emoji}</span>
                       <span>{reaction.count}</span>
                     </button>
+                  ))}
+                </div>
+              )}
+              {!parentId && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsReplying(!isReplying)}
+                  className="text-xs"
+                >
+                  Reply
+                </Button>
+              )}
+              {isReplying && (
+                <div className="mt-2">
+                  <Input
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    placeholder="Write a reply..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        replyMutation.mutate(replyContent);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+              {replies && replies.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {replies.map((reply) => (
+                    <CommentBubble
+                      key={reply.id}
+                      id={reply.id}
+                      content={reply.content}
+                      author={reply.author}
+                      x={x}
+                      y={y + 10}
+                      parentId={id}
+                    />
                   ))}
                 </div>
               )}
