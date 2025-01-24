@@ -171,6 +171,9 @@ export function CommentBubble({
 
   const addReactionMutation = useMutation({
     mutationFn: async (emoji: string) => {
+      if (!user || !id) {
+        throw new Error('Must be logged in to react');
+      }
       const token = await getToken();
       const response = await fetch(`/api/comments/${id}/reactions`, {
         method: 'POST',
@@ -178,11 +181,22 @@ export function CommentBubble({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ emoji })
+        body: JSON.stringify({ 
+          emoji,
+          commentId: id,
+          userId: user.id 
+        })
       });
 
       if (!response.ok) throw new Error('Failed to add reaction');
       return response.json();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add reaction",
+        variant: "destructive"
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
@@ -204,7 +218,9 @@ export function CommentBubble({
 
   const replyMutation = useMutation({
     mutationFn: async () => {
-      if (!user || !id || !replyContent.trim()) return;
+      if (!user || !id || !replyContent.trim()) {
+        throw new Error('Missing required data for reply');
+      }
       const token = await getToken();
       const response = await fetch(`/api/comments/${id}/reply`, {
         method: 'POST',
@@ -220,6 +236,13 @@ export function CommentBubble({
       });
       if (!response.ok) throw new Error('Failed to post reply');
       return response.json();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to post reply",
+        variant: "destructive"
+      });
     },
     onSuccess: () => {
       setReplyContent('');
