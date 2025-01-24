@@ -7,7 +7,7 @@ import { MoreHorizontal, MessageCircle, Edit, Trash2 } from "lucide-react";
 import { EmojiReactions } from "./EmojiReactions";
 import { UserAvatar } from "./UserAvatar";
 import { formatRelativeTime } from "@/lib/format-date";
-import { CommentInput } from "./CommentInput";
+import { CommentInput } from "@/components/CommentInput";
 import { useUser } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
