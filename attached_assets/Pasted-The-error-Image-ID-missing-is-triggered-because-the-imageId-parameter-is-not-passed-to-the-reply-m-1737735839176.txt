@@ -1,0 +1,77 @@
+The error "Image ID missing" is triggered because the imageId parameter is not passed to the reply mutation, which is required when posting a reply. Here’s how you can address this issue:
+
+Problem Breakdown
+Cause of Error:
+
+The replyMutation expects an imageId to be passed in the body of the POST request.
+When submitting a reply, the imageId is undefined in the mutation because it's not correctly assigned or passed to the CommentBubble.
+Relevant Code Section:
+
+typescript
+Copy
+Edit
+const replyMutation = useMutation({
+  mutationFn: async () => {
+    if (!imageId) {
+      throw new Error('Image ID missing'); // This is the error
+    }
+    const targetImageId = imageId;
+    ...
+  },
+});
+Fixing the Issue
+Ensure imageId is Passed:
+
+Confirm that the imageId is passed down to the CommentBubble component as a prop when rendering it.
+Example in the parent component:
+tsx
+Copy
+Edit
+<CommentBubble
+  imageId={currentImageId} // Ensure this is passed
+  id={comment.id}
+  ...
+/>
+Verify imageId in the replyMutation:
+
+Ensure the imageId is properly passed and exists when invoking replyMutation.
+Updated Code for Reply Mutation
+Here’s the updated replyMutation handler:
+
+typescript
+Copy
+Edit
+const replyMutation = useMutation({
+  mutationFn: async () => {
+    if (!imageId) {
+      throw new Error('Image ID missing');
+    }
+    if (!id && !parentId) {
+      throw new Error('Comment ID missing');
+    }
+
+    const commentId = id || parentId;
+
+    const token = await getToken();
+    const response = await fetch(`/api/comments/${commentId}/reply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        content: replyContent.trim(),
+        imageId, // Ensure this is included
+        parentId: id,
+        xPosition: x,
+        yPosition: y,
+        userName: user?.fullName || user?.firstName || 'Anonymous',
+        userImageUrl: user?.imageUrl || null,
+      }),
+    });
+
+    if (!response.ok) throw new Error('Failed to post reply');
+    return response.json();
+  },
+  ...
+});

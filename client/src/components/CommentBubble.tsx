@@ -171,6 +171,9 @@ export function CommentBubble({
 
   const addReactionMutation = useMutation({
     mutationFn: async (emoji: string) => {
+      if (!user || !id) {
+        throw new Error('Must be logged in to react');
+      }
       const token = await getToken();
       const response = await fetch(`/api/comments/${id}/reactions`, {
         method: 'POST',
@@ -178,11 +181,22 @@ export function CommentBubble({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ emoji })
+        body: JSON.stringify({ 
+          emoji,
+          commentId: id,
+          userId: user.id 
+        })
       });
 
       if (!response.ok) throw new Error('Failed to add reaction');
       return response.json();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add reaction",
+        variant: "destructive"
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
@@ -203,19 +217,49 @@ export function CommentBubble({
   const [replyContent, setReplyContent] = useState('');
 
   const replyMutation = useMutation({
-    mutationFn: async (content: string) => {
-      if (!user || !id) return;
+    mutationFn: async () => {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      if (!replyContent.trim()) {
+        throw new Error('Reply content is empty');
+      }
+      if (!imageId) {
+        throw new Error('Image ID missing');
+      }
+      if (!id && !parentId) {
+        throw new Error('Comment ID missing');
+      }
+
+      const commentId = id || parentId;
+      const targetImageId = imageId;
+
       const token = await getToken();
-      const response = await fetch(`/api/comments/${id}/reply`, {
+      const response = await fetch(`/api/comments/${commentId}/reply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ 
+          content: replyContent.trim(),
+          imageId: targetImageId,
+          parentId: id,
+          xPosition: x,
+          yPosition: y,
+          userName: user.fullName || user.firstName || 'Anonymous',
+          userImageUrl: user.imageUrl || null
+        })
       });
       if (!response.ok) throw new Error('Failed to post reply');
       return response.json();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to post reply",
+        variant: "destructive"
+      });
     },
     onSuccess: () => {
       setReplyContent('');
@@ -280,10 +324,12 @@ export function CommentBubble({
                   onClick={() => {
                     if (!user) setShowAuthModal(true);
                   }}
-                  autoFocus={true}
                   ref={(input) => {
                     if (input && isNew) {
-                      setTimeout(() => input.focus(), 0);
+                      // Use RAF for more reliable focus
+                      requestAnimationFrame(() => {
+                        input.focus();
+                      });
                     }
                   }}
                 />
@@ -299,10 +345,17 @@ export function CommentBubble({
                   size="xs"
                 />
                 <div>
-                  <span className="text-xs font-medium text-muted-foreground block mb-1">
-                    {author?.fullName || author?.username || 'Unknown User'}
-                  </span>
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {author?.fullName || author?.username || 'Unknown User'}
+                    </span>
+                    {timestamp && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatRelativeDate(new Date(timestamp))}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{content}</p>
                 </div>
               </div>
               {reactions.length > 0 && (
@@ -323,8 +376,19 @@ export function CommentBubble({
                   ))}
                 </div>
               )}
+              {timestamp && (
+                <span className="text-xs text-muted-foreground mt-1 block">
+                  {formatRelativeDate(new Date(timestamp))}
+                </span>
+              )}
               {!parentId && (
                 <div className="flex items-center gap-2 mt-2">
+                  <UserAvatar
+                    size="xs"
+                    name={user?.firstName || "Guest"}
+                    imageUrl={user?.imageUrl}
+                    color={user?.publicMetadata?.color as string}
+                  />
                   <Input
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
@@ -333,7 +397,7 @@ export function CommentBubble({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        replyMutation.mutate(replyContent);
+                        replyMutation.mutate();
                       }
                     }}
                   />
@@ -385,4 +449,23 @@ export function CommentBubble({
       )}
     </motion.div>
   );
+}
+
+function formatRelativeDate(date: Date) {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+  } else if (hours > 0) {
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  } else if (minutes > 0) {
+    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  } else {
+    return "Just now";
+  }
 }
