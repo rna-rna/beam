@@ -225,8 +225,11 @@ export function CommentBubble({
 
   const replyMutation = useMutation({
     mutationFn: async () => {
-      // Convert imageId to number if it's a string
+      // Ensure imageId is a valid number
       const numericImageId = typeof imageId === 'string' ? parseInt(imageId, 10) : imageId;
+      if (!numericImageId || isNaN(numericImageId)) {
+        throw new Error(`Invalid imageId: Expected a number, got ${typeof imageId}`);
+      }
       
       console.log("[DEBUG] Starting reply mutation with:", {
         component: 'CommentBubble',

@@ -174,7 +174,7 @@ export default function Gallery({
 
   const handleMouseMove = useCallback((event: MouseEvent) => {
     if (!user || !myColor || !slug) return;
-    
+
     const cursorData = {
       id: user.id,
       name: user.firstName || user.username || 'Anonymous',
@@ -252,7 +252,7 @@ export default function Gallery({
 
     // Join immediately if connected
     joinGallery();
-    
+
     socket.on('connect', () => {
       console.log('Connected to Socket.IO:', {
         id: socket.id,
@@ -307,7 +307,7 @@ export default function Gallery({
       setActiveUsers((prev) => {
         const withoutUser = prev.filter(u => u.userId !== data.id);
         const isUserPresent = prev.some(u => u.userId === data.id);
-        
+
         if (!isUserPresent) {
           return [...withoutUser, {
             userId: data.id,
@@ -317,7 +317,7 @@ export default function Gallery({
             lastActive: Date.now()
           }];
         }
-        
+
         return prev.map(u => 
           u.userId === data.id 
             ? { ...u, lastActive: Date.now() }
@@ -1989,8 +1989,7 @@ export default function Gallery({
 
                         toast({
                           title: "Error",
-                          description:
-                            "Failed to update star status. Please try again.",
+                          description:"Failed to update star status. Please try again.",
                           variant: "destructive",
                         });
                       },
@@ -2826,7 +2825,7 @@ export default function Gallery({
                           x={newCommentPos.x}
                           y={newCommentPos.y}
                           isNew={true}
-                          imageId={selectedImage.id}
+                          imageId={Number(selectedImage.id)}
                           replies={[]}
                           onSubmit={() => {
                             setNewCommentPos(null);
@@ -2849,7 +2848,7 @@ export default function Gallery({
               x={newCommentPos.x}
               y={newCommentPos.y}
               isNew={true}
-              imageId={selectedImage.id}
+              imageId={Number(selectedImage.id)}
               replies={[]}
               onSubmit={() => {
                 setNewCommentPos(null);
