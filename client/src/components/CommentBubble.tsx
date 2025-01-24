@@ -33,17 +33,17 @@ interface CommentBubbleProps {
 }
 
 export function CommentBubble({ 
-  id,
-  author,
-  content,
-  timestamp,
-  x,
-  y,
+  id = '',
+  author = { id: '', username: '' },
+  content = '',
+  timestamp = new Date(),
+  x = 0,
+  y = 0,
   replies = [],
-  imageId,
+  imageId = 0,
   onSubmit,
   isNew = false
-}: CommentBubbleProps) {
+}: Partial<CommentBubbleProps>) {
   const { user } = useUser();
   const [isEditing, setIsEditing] = useState(isNew);
   const [isExpanded, setIsExpanded] = useState(isNew);
