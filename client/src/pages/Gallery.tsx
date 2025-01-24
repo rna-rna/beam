@@ -853,14 +853,19 @@ export default function Gallery({
       console.error("Failed to fetch comments:", err);
     },
     select: (data) => {
+      console.log("Raw comment data:", data);
       return data.map((comment) => ({
         ...comment,
         author: {
           id: comment.userId || "unknown",
-          username: comment.userName || "Unknown User",
+          username: comment.userName || "Unknown User", 
           imageUrl: comment.userImageUrl || undefined,
+          color: comment.color || '#ccc'
         },
       }));
+    },
+    onSuccess: (data) => {
+      console.log("Processed comment data:", data);
     },
   });
 
