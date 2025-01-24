@@ -1498,8 +1498,9 @@ export function registerRoutes(app: Express): Server {
             id: comment.userId,
             username: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
             imageUrl: user?.imageUrl,
-            color: user?.color
-          }
+            color: user?.color || '#ccc'
+          },
+          userColor: user?.color || '#ccc' // Adding color at top level for backward compatibility
         };
       });
 
