@@ -273,7 +273,8 @@ export function CommentBubble({
         variant: "destructive"
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Processed comment data:", data);
       setReplyContent('');
       setIsReplying(false);
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
