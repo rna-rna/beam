@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, MessageCircle, Edit, Trash2 } from "lucide-react";
 import { EmojiReactions } from "./EmojiReactions";
 import { UserAvatar } from "./UserAvatar";
-import { formatRelativeTime } from "@/lib/format-date";
+import { formatRelativeDate } from "@/lib/format-date";
 import { CommentInput } from "@/components/CommentInput";
 import { useUser } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -171,7 +171,7 @@ export function CommentBubble({
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{author.username}</span>
                     <span className="text-muted-foreground/60 text-sm">
-                      {formatRelativeTime(timestamp)}
+                      {formatRelativeDate(timestamp)}
                     </span>
                   </div>
 
