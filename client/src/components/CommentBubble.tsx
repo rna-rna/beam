@@ -33,7 +33,7 @@ interface CommentBubbleProps {
   reactions?: Array<{emoji: string, count: number, userIds: string[]}>;
   children?: React.ReactNode;
   onPositionChange?: (x: number, y: number) => void;
-  replies?: Array<{
+  replies: Array<{
     id: number;
     content: string;
     author: {
@@ -63,7 +63,8 @@ export function CommentBubble({
   children,
   onPositionChange,
   parentId = null,
-  timestamp
+  timestamp,
+  replies = []
 }: CommentBubbleProps) {
   const { user } = useUser();
   const isAuthor = user?.id === author?.id;
