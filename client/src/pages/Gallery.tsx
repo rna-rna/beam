@@ -2808,6 +2808,7 @@ export default function Gallery({
                           y={newCommentPos.y}
                           isNew={true}
                           imageId={selectedImage.id}
+                          replies={[]}
                           onSubmit={() => {
                             setNewCommentPos(null);
                             queryClient.invalidateQueries({
@@ -2830,6 +2831,7 @@ export default function Gallery({
               y={newCommentPos.y}
               isNew={true}
               imageId={selectedImage.id}
+              replies={[]}
               onSubmit={() => {
                 setNewCommentPos(null);
                 queryClient.invalidateQueries({ queryKey: ["/api/galleries"] });

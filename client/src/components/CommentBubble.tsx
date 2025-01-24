@@ -1,13 +1,17 @@
-import { useState } from "react";
+
+import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, SmilePlus } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SignUp } from "@clerk/clerk-react";
+import { motion } from "framer-motion";
+import { EmojiPicker } from "./EmojiPicker";
+import { cn } from "@/lib/utils";
 
 interface CommentBubbleProps {
   x: number;
@@ -21,39 +25,59 @@ interface CommentBubbleProps {
     firstName?: string;
     lastName?: string;
     fullName?: string;
-  } | string;
+  };
   onSubmit?: () => void;
   isNew?: boolean;
   imageId?: number;
+  id?: number;
+  reactions?: Array<{emoji: string, count: number, userIds: string[]}>;
+  children?: React.ReactNode;
+  onPositionChange?: (x: number, y: number) => void;
+  replies: Array<{
+    id: number;
+    content: string;
+    author: {
+      id: string;
+      username: string;
+      imageUrl?: string;
+      color?: string;
+    };
+    createdAt: string;
+  }>;
+  parentId?: number | null;
+  timestamp?: string;
 }
 
-export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, imageId }: CommentBubbleProps) {
-  console.log("CommentBubble author:", { 
-    author,
-    color: typeof author === 'object' ? author.color : null,
-    hasAuthorObj: !!author,
-    authorType: typeof author,
-    fullAuthorObj: typeof author === 'object' ? author : null
-  });
-  
+import { Button } from "@/components/ui/button";
+
+export function CommentBubble({ 
+  x, 
+  y, 
+  content, 
+  author, 
+  onSubmit, 
+  isNew = false, 
+  imageId,
+  id,
+  reactions = [],
+  children,
+  onPositionChange,
+  parentId = null,
+  timestamp,
+  replies = []
+}: CommentBubbleProps) {
+  const { user } = useUser();
+  const isAuthor = user?.id === author?.id;
   const [isEditing, setIsEditing] = useState(isNew);
   const [text, setText] = useState(content || "");
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { user } = useUser();
+  const [isDragging, setIsDragging] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Simplified author display logic
-  const authorDisplay = typeof author === 'string'
-    ? { 
-        username: author,
-        imageUrl: undefined
-      }
-    : {
-        username: author?.username || 'Unknown User',
-        imageUrl: author?.imageUrl
-      };
+  const dragConstraints = useRef(null);
 
   const commentMutation = useMutation({
     mutationFn: async (commentText: string) => {
@@ -62,9 +86,9 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
         throw new Error('Please sign in to add comments');
       }
 
-      const token = await getToken().catch(() => null);
+      const token = await getToken();
       if (!token) {
-        throw new Error('Authentication failed: Unable to retrieve token');
+        throw new Error('Authentication failed');
       }
 
       const response = await fetch(`/api/images/${imageId}/comments`, {
@@ -81,110 +105,117 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
       });
 
       if (!response.ok) {
-        let errorMessage = "Failed to add comment";
-        try {
-          const error = await response.json();
-          errorMessage = error.message || error.details || errorMessage;
-        } catch (e) {
-          errorMessage = "Unexpected server error";
-        }
-        throw new Error(errorMessage);
+        throw new Error('Failed to add comment');
       }
 
       return response.json();
     },
-    onMutate: async (newCommentText) => {
-      await queryClient.cancelQueries({ queryKey: [`/api/images/${imageId}/comments`] });
-      const previousComments = queryClient.getQueryData([`/api/images/${imageId}/comments`]);
-
-      if (user) {
-        const optimisticComment = {
-          id: Date.now(),
-          content: newCommentText,
-          xPosition: x,
-          yPosition: y,
-          author: {
-            id: user.id,
-            username: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
-            imageUrl: user.imageUrl,
-            color: user.publicMetadata?.color || '#ccc'
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          optimistic: true
-        };
-
-        queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => [
-          ...old,
-          optimisticComment
-        ]);
-      }
-
-      return { previousComments };
-    },
     onSuccess: (data) => {
-      queryClient.setQueryData([`/api/images/${imageId}/comments`], (old: any[] = []) => {
-        return old.map((comment) =>
-          comment.optimistic && comment.content === data.data.content
-            ? {
-                ...data.data,
-                author: {
-                  id: data.data.userId || user?.id,
-                  username: data.data.userName || user?.fullName || 'Unknown User',
-                  imageUrl: data.data.userImageUrl || user?.imageUrl,
-                  color: data.data.userColor || user?.publicMetadata?.color || '#ccc'
-                }
-              }
-            : comment
-        );
-      });
-
       setText("");
       setIsEditing(false);
-      toast({
-        title: "Comment added",
-        duration: 2000
-      });
-      if (onSubmit) {
-        onSubmit();
-      }
+      if (onSubmit) onSubmit();
+      queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
     },
-    onError: (error: Error, _variables, context) => {
-      if (context?.previousComments) {
-        queryClient.setQueryData([`/api/images/${imageId}/comments`], context.previousComments);
-      }
+    onError: (error) => {
       if (!user) {
         setShowAuthModal(true);
       } else {
         toast({
           title: "Error",
           description: error.message || "Failed to add comment",
-          variant: "destructive",
-          duration: 3000
+          variant: "destructive"
         });
       }
     }
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+  const updatePositionMutation = useMutation({
+    mutationFn: async ({ newX, newY }: { newX: number, newY: number }) => {
+      const token = await getToken();
+      const response = await fetch(`/api/comments/${id}/position`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ x: newX, y: newY })
+      });
 
-    if (text.trim()) {
-      await commentMutation.mutateAsync(text);
+      if (!response.ok) throw new Error('Failed to update position');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
     }
+  });
+
+  const addReactionMutation = useMutation({
+    mutationFn: async (emoji: string) => {
+      const token = await getToken();
+      const response = await fetch(`/api/comments/${id}/reactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ emoji })
+      });
+
+      if (!response.ok) throw new Error('Failed to add reaction');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+    }
+  });
+
+  const handleDragEnd = (_e: any, info: { point: { x: number; y: number } }) => {
+    if (isAuthor && onPositionChange) {
+      const newX = (info.point.x / window.innerWidth) * 100;
+      const newY = (info.point.y / window.innerHeight) * 100;
+      onPositionChange(newX, newY);
+      updatePositionMutation.mutate({ newX, newY });
+    }
+    setIsDragging(false);
   };
 
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyContent, setReplyContent] = useState('');
+
+  const replyMutation = useMutation({
+    mutationFn: async (content: string) => {
+      if (!user || !id) return;
+      const token = await getToken();
+      const response = await fetch(`/api/comments/${id}/reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ content })
+      });
+      if (!response.ok) throw new Error('Failed to post reply');
+      return response.json();
+    },
+    onSuccess: () => {
+      setReplyContent('');
+      setIsReplying(false);
+      queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+    }
+  });
+
   return (
-    <div
+    <motion.div
+      drag={isAuthor}
+      dragConstraints={dragConstraints}
+      onDragStart={() => setIsDragging(true)}
+      onDragEnd={handleDragEnd}
       className="absolute"
       style={{
         left: `${x}%`,
         top: `${y}%`,
-        transform: 'translate(-50%, -50%)'
+        transform: 'translate(-50%, -50%)',
+        zIndex: isDragging ? 1000 : 1
       }}
     >
       <div className="relative">
@@ -192,9 +223,18 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           <MessageCircle className="w-4 h-4" />
         </div>
 
-        <Card className={`absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px] ${isEditing ? 'p-2' : 'p-3'} bg-card shadow-lg border-primary/20`}>
+        <Card className={cn(
+          "absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px]",
+          isEditing ? "p-2" : "p-3",
+          "bg-card shadow-lg border-primary/20"
+        )}>
           {isEditing ? (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (text.trim()) {
+                commentMutation.mutateAsync(text);
+              }
+            }}>
               <Input
                 type="text"
                 value={text}
@@ -203,33 +243,92 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
                 placeholder={user ? "Add comment..." : "Please sign in to comment"}
                 readOnly={!user}
                 onClick={() => {
-                  if (!user) {
-                    setShowAuthModal(true);
-                  }
+                  if (!user) setShowAuthModal(true);
                 }}
-                data-comment-input
                 autoFocus
               />
             </form>
           ) : (
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <UserAvatar
-                  name={typeof author === 'object' ? 
-                    author.fullName || `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.username || 'Unknown User' 
-                    : authorDisplay.username}
-                  imageUrl={typeof author === 'object' ? author.imageUrl : undefined}
-                  color={typeof author === 'object' ? author.color : '#ccc'}
-                  size="sm"
-                  className="shadow-sm"
-                />
-                <p className="text-xs font-medium text-muted-foreground">
-                  {typeof author === 'object' ? 
-                    author.fullName || `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.username || 'Unknown User'
-                    : authorDisplay.username}
-                </p>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <UserAvatar
+                    name={author?.fullName || author?.username || 'Unknown User'}
+                    imageUrl={author?.imageUrl}
+                    color={author?.color || '#ccc'}
+                    size="sm"
+                  />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {author?.fullName || author?.username || 'Unknown User'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowEmojiPicker(true)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <SmilePlus className="w-4 h-4" />
+                </button>
               </div>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap mb-2">{content}</p>
+              {reactions.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {reactions.map((reaction, i) => (
+                    <button
+                      key={i}
+                      onClick={() => addReactionMutation.mutate(reaction.emoji)}
+                      className={cn(
+                        "inline-flex items-center gap-1 text-xs rounded-full px-2 py-0.5",
+                        "bg-muted hover:bg-muted/80 transition-colors",
+                        reaction.userIds.includes(user?.id || '') && "bg-primary/20"
+                      )}
+                    >
+                      <span>{reaction.emoji}</span>
+                      <span>{reaction.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!parentId && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsReplying(!isReplying)}
+                  className="text-xs"
+                >
+                  Reply
+                </Button>
+              )}
+              {isReplying && (
+                <div className="mt-2">
+                  <Input
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    placeholder="Write a reply..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        replyMutation.mutate(replyContent);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+              {replies && replies.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {replies.map((reply) => (
+                    <CommentBubble
+                      key={reply.id}
+                      id={reply.id}
+                      content={reply.content}
+                      author={reply.author}
+                      x={x}
+                      y={y + 10}
+                      parentId={id}
+                    />
+                  ))}
+                </div>
+              )}
+              {children}
             </div>
           )}
         </Card>
@@ -238,11 +337,20 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
       {showAuthModal && (
         <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
           <DialogContent className="max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Sign Up to Comment</h2>
             <SignUp afterSignUpUrl={window.location.href} />
           </DialogContent>
         </Dialog>
       )}
-    </div>
+
+      {showEmojiPicker && (
+        <EmojiPicker
+          onEmojiSelect={(emoji) => {
+            addReactionMutation.mutate(emoji);
+            setShowEmojiPicker(false);
+          }}
+          onClose={() => setShowEmojiPicker(false)}
+        />
+      )}
+    </motion.div>
   );
 }

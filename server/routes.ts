@@ -981,7 +981,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Find the gallery first
-      const gallery = await db.query.galleries.findFirst({
+      const gallery= await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug)
       });
 
@@ -1347,7 +1347,7 @@ export function registerRoutes(app: Express): Server {
   // Comment submission endpoint - supports both authenticated and guest gallery comments
   app.post('/api/images/:imageId/comments', async (req: Request, res) => {
     try {
-      const { content, xPosition, yPosition } = req.body;
+      const { content, xPosition, yPosition, parentId } = req.body;
       const imageId = parseInt(req.params.imageId);
 
       // Early auth check
@@ -1406,13 +1406,14 @@ export function registerRoutes(app: Express): Server {
         // Create the comment
         // Get cached user data for color
         const [cachedUser] = await fetchCachedUserData([userId]);
-        
+
         const [comment] = await db.insert(comments)
           .values({
             imageId,
             content,
             xPosition,
             yPosition,
+            parentId: parentId || null,
             userId,
             userName,
             userImageUrl: userImageUrl || null,
@@ -1480,25 +1481,38 @@ export function registerRoutes(app: Express): Server {
   // Get comments for an image
   app.get('/api/images/:imageId/comments', async (req, res) => {
     try {
-      const imageComments = await db.query.comments.findMany({
-        where: eq(comments.imageId, parseInt(req.params.imageId)),
+      // Get parent comments first
+      const parentComments = await db.query.comments.findMany({
+        where: and(
+          eq(comments.imageId, parseInt(req.params.imageId)),
+          sql`${comments.parentId} IS NULL`
+        ),
+        orderBy: (comments, { asc }) => [asc(comments.createdAt)]
+      });
+
+      // Get all replies
+      const replies = await db.query.comments.findMany({
+        where: and(
+          eq(comments.imageId, parseInt(req.params.imageId)),
+          sql`${comments.parentId} IS NOT NULL`
+        ),
         orderBy: (comments, { asc }) => [asc(comments.createdAt)]
       });
 
       // Get unique user IDs from comments
-      const userIds = [...new Set(imageComments.map(comment => comment.userId))];
+      const userIds = [...new Set([...parentComments, ...replies].map(comment => comment.userId))];
 
       // Batch fetch user data using cache
       const cachedUsers = await fetchCachedUserData(userIds);
 
       // Merge comments with cached user details
-      const commentsWithUserData = imageComments.map(comment => {
+      const commentsWithUserData = [...parentComments, ...replies].map(comment => {
         const user = cachedUsers.find(u => u.userId === comment.userId);
         console.log('Processing comment:', {
           commentId: comment.id,
           userColor: user?.color || '#ccc'
         });
-        
+
         const processedComment = {
           ...comment,
           author: {
@@ -1513,11 +1527,16 @@ export function registerRoutes(app: Express): Server {
 
         // Log final structure
         console.log('Final comment structure:', JSON.stringify(processedComment, null, 2));
-        
+
         return processedComment;
       });
 
-      res.json(commentsWithUserData);
+      const threadedComments = parentComments.map(parent => ({
+        ...parent,
+        replies: replies.filter(reply => reply.parentId === parent.id)
+      }));
+
+      res.json(threadedComments);
     } catch (error) {
       console.error('Error fetching comments:', error);
       res.status(500).json({
@@ -1956,7 +1975,7 @@ export function registerRoutes(app: Express): Server {
           (e) => e.id === matchingUser.primaryEmailAddressId
         )?.emailAddress,
         allEmails: matchingUser?.emailAddresses.map((e) => e.emailAddress)
-      });
+});
 
       const user = matchingUser;
 
