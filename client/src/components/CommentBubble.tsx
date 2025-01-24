@@ -233,6 +233,12 @@ export function CommentBubble({
 
       const commentParentId = id || parentId;
       
+      console.log('Submitting reply to:', `/api/images/${imageId}/comments`, {
+        parentId: commentParentId,
+        imageId,
+        content: replyContent.trim()
+      });
+      
       const token = await getToken();
       const response = await fetch(`/api/images/${imageId}/comments`, {
         method: 'POST',
@@ -244,8 +250,7 @@ export function CommentBubble({
           content: replyContent.trim(),
           xPosition: x,
           yPosition: y,
-          parentId: commentParentId,
-          imageId
+          parentId: commentParentId
         })
       });
 
