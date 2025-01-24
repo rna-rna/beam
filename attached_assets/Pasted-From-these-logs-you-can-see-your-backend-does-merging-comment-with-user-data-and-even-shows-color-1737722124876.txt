@@ -1,0 +1,49 @@
+From these logs, you can see your backend does “merging comment with user data” and even shows color: '#3AB79C' on the server side, but the final response logged is truncated and doesn’t explicitly confirm that color made it into the actual JSON field that the frontend reads. In other words, your server is internally aware of comment.cachedUser.color, but you need to ensure that:
+
+You actually move that color into the final comment object (for example, comment.author.color = cachedUser.color or a similar structure),
+You return that updated author.color (or an equivalent field) in your JSON response rather than discarding it,
+Your frontend reads the same field name (author.color or comment.userColor) that the server is returning.
+Right now, the truncation and naming in the logs (cachedUser) strongly suggests your server merges in user color but might not embed that color in the final JSON where your React code expects it.
+
+1. Check Your Server’s “Merging” Logic
+You likely have something like:
+
+js
+Copy
+// Pseudocode
+comment.cachedUser = {
+  hasColor: true,
+  color: '#3AB79C',
+  name: 'Jack Butcher'
+};
+
+// Then you respond with `res.json(comment)`.
+But if your client code expects comment.author.color, you must actually set comment.author = { ... } (and add color: '#3AB79C'). If you only attach comment.cachedUser, the front end sees a different property (cachedUser.color)—or possibly no property at all, if you never include cachedUser in the final output.
+
+What to do
+Right before res.json(...), log JSON.stringify(comment, null, 2) so you can see the entire object structure and confirm the color is on the exact property your front end expects.
+
+For example, if you want each comment to have author.color, do something like:
+
+js
+Copy
+comment.author = {
+  id: comment.userId,
+  username: user.name,
+  color: user.color,
+  // ...
+};
+Then return it. Now your final JSON for each comment might look like:
+
+json
+Copy
+{
+  "id": 120,
+  "imageId": 2876,
+  "content": "...",
+  "author": {
+    "id": "user_2s0EN3oUCGiQaoVVatJcAZq83kA",
+    "username": "Jack Butcher",
+    "color": "#3AB79C"
+  }
+}

@@ -17,6 +17,10 @@ interface CommentBubbleProps {
     id: string;
     username: string;
     imageUrl?: string;
+    color?: string;
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
   } | string;
   onSubmit?: () => void;
   isNew?: boolean;
@@ -24,6 +28,14 @@ interface CommentBubbleProps {
 }
 
 export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, imageId }: CommentBubbleProps) {
+  console.log("CommentBubble author:", { 
+    author,
+    color: typeof author === 'object' ? author.color : null,
+    hasAuthorObj: !!author,
+    authorType: typeof author,
+    fullAuthorObj: typeof author === 'object' ? author : null
+  });
+  
   const [isEditing, setIsEditing] = useState(isNew);
   const [text, setText] = useState(content || "");
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -94,7 +106,8 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
           author: {
             id: user.id,
             username: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
-            imageUrl: user.imageUrl
+            imageUrl: user.imageUrl,
+            color: user.publicMetadata?.color || '#ccc'
           },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -118,7 +131,8 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
                 author: {
                   id: data.data.userId || user?.id,
                   username: data.data.userName || user?.fullName || 'Unknown User',
-                  imageUrl: data.data.userImageUrl || user?.imageUrl
+                  imageUrl: data.data.userImageUrl || user?.imageUrl,
+                  color: data.data.userColor || user?.publicMetadata?.color || '#ccc'
                 }
               }
             : comment
@@ -201,12 +215,18 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <UserAvatar
-                  name={authorDisplay.username}
-                  imageUrl={authorDisplay.imageUrl}
-                  className="w-6 h-6 text-xs"
+                  name={typeof author === 'object' ? 
+                    author.fullName || `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.username || 'Unknown User' 
+                    : authorDisplay.username}
+                  imageUrl={typeof author === 'object' ? author.imageUrl : undefined}
+                  color={typeof author === 'object' ? author.color : '#ccc'}
+                  size="sm"
+                  className="shadow-sm"
                 />
                 <p className="text-xs font-medium text-muted-foreground">
-                  {authorDisplay.username}
+                  {typeof author === 'object' ? 
+                    author.fullName || `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.username || 'Unknown User'
+                    : authorDisplay.username}
                 </p>
               </div>
               <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>

@@ -173,19 +173,20 @@ export default function Gallery({
   const { user } = useUser();
 
   const handleMouseMove = useCallback((event: MouseEvent) => {
-    if (!user || !myColor) return;
+    if (!user || !myColor || !slug) return;
     
     const cursorData = {
       id: user.id,
       name: user.firstName || user.username || 'Anonymous',
-      color: myColor, // Will now properly update when myColor changes
+      color: myColor,
       x: event.clientX,
       y: event.clientY,
-      lastActive: Date.now()
+      lastActive: Date.now(),
+      gallerySlug: slug
     };
 
     socket.emit('cursor-update', cursorData);
-  }, [user, myColor, socket]);
+  }, [user, myColor, socket, slug]);
 
   // Fetch user color when component mounts
   useEffect(() => {
@@ -234,16 +235,33 @@ export default function Gallery({
   // Pusher presence channel subscription
   // Socket.IO connection handlers
   useEffect(() => {
-    if (!user) return;
+    if (!user || !slug) {
+      // Reset presence states when not in a gallery
+      setActiveUsers([]);
+      setPresenceMembers({});
+      setCursors([]);
+      return;
+    }
 
+    const joinGallery = () => {
+      if (slug && socket.connected) {
+        socket.emit('join-gallery', slug);
+        console.log('Joined gallery room:', slug);
+      }
+    };
+
+    // Join immediately if connected
+    joinGallery();
+    
     socket.on('connect', () => {
       console.log('Connected to Socket.IO:', {
         id: socket.id,
         transport: socket.io.engine.transport.name,
         hostname: window.location.host,
         protocol: window.location.protocol,
-        readyState: socket.connected ? 'CONNECTED' : 'DISCONNECTED'
+        readyState: 'CONNECTED'
       });
+      joinGallery();
     });
 
     socket.on('connect_error', (error) => {
@@ -266,20 +284,45 @@ export default function Gallery({
         wasConnected: socket.connected,
         id: socket.id
       });
+      // Clear presence states on disconnect
+      setActiveUsers([]);
+      setPresenceMembers({});
+      setCursors([]);
     });
 
-    
-
-  socket.on('cursor-update', (data) => {
+    socket.on('cursor-update', (data) => {
       console.log("[cursor-update]", "Received data:", {
         ...data,
         timestamp: new Date().toISOString(),
         currentUser: user?.id
       });
 
+      // Update cursors
       setCursors((prev) => {
         const otherCursors = prev.filter((cursor) => cursor.id !== data.id);
         return [...otherCursors, { ...data, lastActive: Date.now() }];
+      });
+
+      // Update active users
+      setActiveUsers((prev) => {
+        const withoutUser = prev.filter(u => u.userId !== data.id);
+        const isUserPresent = prev.some(u => u.userId === data.id);
+        
+        if (!isUserPresent) {
+          return [...withoutUser, {
+            userId: data.id,
+            name: data.name,
+            avatar: data.imageUrl,
+            color: data.color,
+            lastActive: Date.now()
+          }];
+        }
+        
+        return prev.map(u => 
+          u.userId === data.id 
+            ? { ...u, lastActive: Date.now() }
+            : u
+        );
       });
     });
 
@@ -290,8 +333,15 @@ export default function Gallery({
       socket.off('disconnect');
       socket.off('cursor-update');
       window.removeEventListener('mousemove', handleMouseMove);
+      if (slug) {
+        socket.emit('leave-gallery', slug);
+      }
+      // Reset all presence states in cleanup
+      setActiveUsers([]);
+      setPresenceMembers({});
+      setCursors([]);
     };
-  }, [user, socket, handleMouseMove]); // Added handleMouseMove which includes myColor dependency
+  }, [user, socket, handleMouseMove, slug]); // Added handleMouseMove which includes myColor dependency
 
   // Cleanup inactive cursors
   useEffect(() => {
@@ -306,10 +356,16 @@ export default function Gallery({
   }, []);
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug || !user) return;
 
     const channelName = `presence-gallery-${slug}`;
     console.log("Attempting to subscribe to channel:", channelName);
+
+    // Cleanup any existing subscription first
+    if (pusherClient.channel(channelName)) {
+      console.log("Cleaning up existing subscription to:", channelName);
+      pusherClient.unsubscribe(channelName);
+    }
 
     const channel = pusherClient.subscribe(channelName);
 
@@ -330,6 +386,7 @@ export default function Gallery({
       queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
     });
+
     console.log("Channel details:", {
       name: channel.name,
       state: channel.state,
@@ -416,12 +473,16 @@ export default function Gallery({
       );
     });
 
+    // Clear active users when unmounting or changing galleries
     return () => {
-      console.log("Cleaning up Pusher subscription");
+      console.log("Cleaning up Pusher subscription for:", channelName);
+      setActiveUsers([]); // Clear active users immediately
+      setPresenceMembers({}); // Clear presence members
       channel.unbind_all();
       channel.unsubscribe();
+      pusherClient.unsubscribe(channelName); // Double-check unsubscription
     };
-  }, [slug]);
+  }, [slug, user]);
   const { toast } = useToast();
   const [guestGalleryCount, setGuestGalleryCount] = useState(
     Number(sessionStorage.getItem("guestGalleryCount")) || 0,
@@ -1562,7 +1623,10 @@ export default function Gallery({
         <div className="flex items-center gap-4">
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
-            {activeUsers.map((member) => (
+            {activeUsers.filter(member => 
+              member.lastActive && 
+              Date.now() - new Date(member.lastActive).getTime() < 30000
+            ).map((member) => (
               <UserAvatar
                 key={member.userId}
                 name={member.name}

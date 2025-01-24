@@ -70,10 +70,10 @@ export function registerRoutes(app: Express): Server {
   app.post("/clerk-webhook", express.json(), async (req, res) => {
     try {
       const event = req.body;
-      
+
       if (event.type === "user.created") {
         const userId = event.data.id;
-        
+
         // Fetch current user data directly from Clerk
         const clerkUser = await clerkClient.users.getUser(userId);
         const existingColor = clerkUser.publicMetadata?.color;
@@ -91,7 +91,7 @@ export function registerRoutes(app: Express): Server {
         if (!existingColor) {
           const palette = ["#F44336","#E91E63","#9C27B0","#3AB79C","#A7DE43","#F84CCF"];
           userColor = palette[Math.floor(Math.random() * palette.length)];
-          
+
           // Set initial color in Clerk
           await clerkClient.users.updateUserMetadata(userId, {
             publicMetadata: {
@@ -1404,6 +1404,9 @@ export function registerRoutes(app: Express): Server {
         }
 
         // Create the comment
+        // Get cached user data for color
+        const [cachedUser] = await fetchCachedUserData([userId]);
+        
         const [comment] = await db.insert(comments)
           .values({
             imageId,
@@ -1426,16 +1429,15 @@ export function registerRoutes(app: Express): Server {
           })
           .where(eq(images.id, imageId));
 
-        // Emit real-time event via Pusher
+        // Add user color to response
+        const commentWithColor = {
+          ...comment,
+          userColor: cachedUser?.color || '#ccc'
+        };
+
+        // Emit real-time event via Pusher with color
         pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'comment-added', {
-          imageId: comment.imageId,
-          content: comment.content,
-          userId: comment.userId,
-          userName: comment.userName,
-          userImageUrl: comment.userImageUrl,
-          xPosition: comment.xPosition,
-          yPosition: comment.yPosition,
-          createdAt: comment.createdAt,
+          ...commentWithColor,
           timestamp: new Date().toISOString()
         });
 
@@ -1445,9 +1447,9 @@ export function registerRoutes(app: Express): Server {
           imageId
         });
 
-        res.status(201).json({
+        return res.status(201).json({
           success: true,
-          data: comment
+          data: commentWithColor
         });
       } catch (error: any) {
         console.error('Error processing user data:', error);
@@ -1492,13 +1494,24 @@ export function registerRoutes(app: Express): Server {
       // Merge comments with cached user details
       const commentsWithUserData = imageComments.map(comment => {
         const user = cachedUsers.find(u => u.userId === comment.userId);
+        console.log('Merging comment with user data:', {
+          commentId: comment.id,
+          userId: comment.userId,
+          cachedUser: user ? {
+            hasColor: !!user.color,
+            color: user.color,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim()
+          } : 'not found'
+        });
         return {
           ...comment,
           author: {
             id: comment.userId,
             username: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
             imageUrl: user?.imageUrl,
-            color: user?.color
+            color: user?.color || '#ccc',
+            firstName: user?.firstName,
+            lastName: user?.lastName
           }
         };
       });
@@ -1756,7 +1769,7 @@ export function registerRoutes(app: Express): Server {
       // Get unique user IDs and batch fetch full user data from cache
       const userIds = [...new Set(starData.map(star => star.userId))];
       const userData = await fetchCachedUserData(userIds);
-      
+
       // Merge star data with full user details
       const starsWithUserData = starData.map(star => {
         const user = userData.find(u => u.userId === star.userId);
@@ -2162,7 +2175,7 @@ export function registerRoutes(app: Express): Server {
 
       // Check if it's a valid email for direct Clerk lookup
       const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      
+
       if (isValidEmail) {
         try {
           const clerkUsers = await clerkClient.users.getUserList({
