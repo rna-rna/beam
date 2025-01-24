@@ -1347,8 +1347,19 @@ export function registerRoutes(app: Express): Server {
   // Comment submission endpoint - supports both authenticated and guest gallery comments
   app.post('/api/images/:imageId/comments', async (req: Request, res) => {
     try {
+      console.log("Comment Request params:", req.params);
+      console.log("Comment Request body:", req.body);
+      
       const { content, xPosition, yPosition, parentId } = req.body;
       const imageId = parseInt(req.params.imageId);
+
+      if (!imageId) {
+        console.error("Invalid imageId:", req.params.imageId);
+        return res.status(400).json({ 
+          success: false, 
+          message: "Image ID is missing or invalid" 
+        });
+      }
 
       // Early auth check
       if (!req.auth?.userId) {

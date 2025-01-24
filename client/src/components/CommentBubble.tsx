@@ -244,7 +244,8 @@ export function CommentBubble({
           content: replyContent.trim(),
           xPosition: x,
           yPosition: y,
-          parentId: commentParentId
+          parentId: commentParentId,
+          imageId
         })
       });
 
