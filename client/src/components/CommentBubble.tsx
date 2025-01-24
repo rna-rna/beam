@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -73,6 +72,27 @@ export function CommentBubble({
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(isNew);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+
+  // Handle clicks outside the comment bubble
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+        setIsHovered(false);
+        if (!isNew) {
+          setIsEditing(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNew]);
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -206,11 +226,15 @@ export function CommentBubble({
 
   return (
     <motion.div
+      ref={bubbleRef}
       drag={isAuthor}
       dragConstraints={dragConstraints}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={handleDragEnd}
       className="absolute"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => !isExpanded && setIsHovered(false)}
+      onClick={() => setIsExpanded(true)}
       style={{
         left: `${x}%`,
         top: `${y}%`,
@@ -226,52 +250,63 @@ export function CommentBubble({
         <Card className={cn(
           "absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px]",
           isEditing ? "p-2" : "p-3",
-          "bg-card shadow-lg border-primary/20"
+          "bg-card shadow-lg border-primary/20",
+          (!isHovered && !isExpanded) && "hidden",
+          "transition-all duration-200"
         )}>
           {isEditing ? (
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
               if (text.trim()) {
-                commentMutation.mutateAsync(text);
+                await commentMutation.mutateAsync(text);
+                setIsExpanded(false);
+                setIsHovered(false);
               }
             }}>
-              <Input
-                type="text"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                className="min-w-[200px] h-8"
-                placeholder={user ? "Add comment..." : "Please sign in to comment"}
-                readOnly={!user}
-                onClick={() => {
-                  if (!user) setShowAuthModal(true);
-                }}
-                autoFocus
-              />
+              <div className="flex items-center gap-2">
+                <UserAvatar
+                  size="xs"
+                  name={user?.firstName || "Guest"}
+                  imageUrl={user?.imageUrl}
+                  color={user?.publicMetadata?.color as string}
+                />
+                <Input
+                  type="text"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  className="flex-1 h-10 px-4 bg-background/80 backdrop-blur-sm border-0 shadow-none rounded-full focus-visible:ring-1 focus-visible:ring-offset-0"
+                  placeholder={user ? "Add a comment" : "Please sign in to comment"}
+                  readOnly={!user}
+                  onClick={() => {
+                    if (!user) setShowAuthModal(true);
+                  }}
+                  autoFocus={true}
+                  ref={(input) => {
+                    if (input && isNew) {
+                      setTimeout(() => input.focus(), 0);
+                    }
+                  }}
+                />
+              </div>
             </form>
           ) : (
             <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <UserAvatar
-                    name={author?.fullName || author?.username || 'Unknown User'}
-                    imageUrl={author?.imageUrl}
-                    color={author?.color || '#ccc'}
-                    size="sm"
-                  />
-                  <span className="text-xs font-medium text-muted-foreground">
+              <div className="flex gap-2">
+                <UserAvatar
+                  name={author?.fullName || author?.username || 'Unknown User'}
+                  imageUrl={author?.imageUrl}
+                  color={author?.color || '#ccc'}
+                  size="xs"
+                />
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground block mb-1">
                     {author?.fullName || author?.username || 'Unknown User'}
                   </span>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
                 </div>
-                <button
-                  onClick={() => setShowEmojiPicker(true)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <SmilePlus className="w-4 h-4" />
-                </button>
               </div>
-              <p className="text-sm text-foreground whitespace-pre-wrap mb-2">{content}</p>
               {reactions.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
+                <div className="flex flex-wrap gap-1 mt-2 mb-2">
                   {reactions.map((reaction, i) => (
                     <button
                       key={i}
@@ -289,21 +324,12 @@ export function CommentBubble({
                 </div>
               )}
               {!parentId && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsReplying(!isReplying)}
-                  className="text-xs"
-                >
-                  Reply
-                </Button>
-              )}
-              {isReplying && (
-                <div className="mt-2">
+                <div className="flex items-center gap-2 mt-2">
                   <Input
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
                     placeholder="Write a reply..."
+                    className="flex-1"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -311,6 +337,12 @@ export function CommentBubble({
                       }
                     }}
                   />
+                  <button
+                    onClick={() => setShowEmojiPicker(true)}
+                    className="text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-muted/80"
+                  >
+                    <SmilePlus className="w-4 h-4" />
+                  </button>
                 </div>
               )}
               {replies && replies.length > 0 && (
