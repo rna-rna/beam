@@ -231,15 +231,35 @@ export function CommentBubble({
         content: replyContent,
         position: { x, y }
       });
+
       // Validate required fields immediately
-      if (!imageId) {
-        console.error("[DEBUG] Missing imageId in replyMutation:", {
-          componentId: id,
-          parentId,
-          props: {imageId, id, parentId}
+      if (!imageId || typeof imageId !== 'number') {
+        console.error("[DEBUG] Invalid imageId in replyMutation:", {
+          imageId,
+          type: typeof imageId,
+          parentId: id || parentId
         });
-        throw new Error('Image ID is missing');
+        throw new Error('Valid image ID is required');
       }
+
+      if (!replyContent.trim()) {
+        throw new Error('Reply content cannot be empty');
+      }
+
+      const token = await getToken();
+      const response = await fetch(`/api/images/${imageId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          content: replyContent.trim(),
+          xPosition: x,
+          yPosition: y,
+          parentId: id || parentId
+        })
+      });
 
       console.log("[DEBUG] Reply mutation started:", {
         imageId,
