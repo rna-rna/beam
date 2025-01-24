@@ -235,18 +235,26 @@ export function CommentBubble({
                 commentMutation.mutateAsync(text);
               }
             }}>
-              <Input
-                type="text"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                className="min-w-[200px] h-8"
-                placeholder={user ? "Add comment..." : "Please sign in to comment"}
-                readOnly={!user}
-                onClick={() => {
-                  if (!user) setShowAuthModal(true);
-                }}
-                autoFocus
-              />
+              <div className="flex items-center gap-2">
+                <UserAvatar
+                  size="sm"
+                  name={user?.firstName || "Guest"}
+                  imageUrl={user?.imageUrl}
+                  color={user?.publicMetadata?.color as string}
+                />
+                <Input
+                  type="text"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  className="flex-1 h-10 px-4 bg-background/80 backdrop-blur-sm border-0 shadow-none rounded-full focus-visible:ring-1 focus-visible:ring-offset-0"
+                  placeholder={user ? "Add a comment" : "Please sign in to comment"}
+                  readOnly={!user}
+                  onClick={() => {
+                    if (!user) setShowAuthModal(true);
+                  }}
+                  autoFocus
+                />
+              </div>
             </form>
           ) : (
             <div>
