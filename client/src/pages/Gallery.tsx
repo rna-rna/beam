@@ -235,7 +235,13 @@ export default function Gallery({
   // Pusher presence channel subscription
   // Socket.IO connection handlers
   useEffect(() => {
-    if (!user || !slug) return;
+    if (!user || !slug) {
+      // Reset presence states when not in a gallery
+      setActiveUsers([]);
+      setPresenceMembers({});
+      setCursors([]);
+      return;
+    }
 
     const joinGallery = () => {
       if (slug && socket.connected) {
@@ -278,11 +284,13 @@ export default function Gallery({
         wasConnected: socket.connected,
         id: socket.id
       });
+      // Clear presence states on disconnect
+      setActiveUsers([]);
+      setPresenceMembers({});
+      setCursors([]);
     });
 
-    
-
-  socket.on('cursor-update', (data) => {
+    socket.on('cursor-update', (data) => {
       console.log("[cursor-update]", "Received data:", {
         ...data,
         timestamp: new Date().toISOString(),
@@ -305,6 +313,10 @@ export default function Gallery({
       if (slug) {
         socket.emit('leave-gallery', slug);
       }
+      // Reset all presence states in cleanup
+      setActiveUsers([]);
+      setPresenceMembers({});
+      setCursors([]);
     };
   }, [user, socket, handleMouseMove, slug]); // Added handleMouseMove which includes myColor dependency
 
