@@ -325,8 +325,19 @@ export function CommentBubble({
                   ))}
                 </div>
               )}
+              {timestamp && (
+                <span className="text-xs text-muted-foreground mt-1 block">
+                  {formatRelativeDate(new Date(timestamp))}
+                </span>
+              )}
               {!parentId && (
                 <div className="flex items-center gap-2 mt-2">
+                  <UserAvatar
+                    size="xs"
+                    name={user?.firstName || "Guest"}
+                    imageUrl={user?.imageUrl}
+                    color={user?.publicMetadata?.color as string}
+                  />
                   <Input
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
