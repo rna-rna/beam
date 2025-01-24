@@ -218,7 +218,8 @@ export function CommentBubble({
 
   const replyMutation = useMutation({
     mutationFn: async () => {
-      if (!user || !id || !replyContent.trim() || !imageId || typeof x !== 'number' || typeof y !== 'number') {
+      if (!user || !id || !replyContent.trim() || !imageId) {
+        console.error('Missing data:', { user, id, replyContent, imageId, x, y });
         throw new Error('Missing required data for reply');
       }
       const token = await getToken();
@@ -230,13 +231,13 @@ export function CommentBubble({
         },
         body: JSON.stringify({ 
           content: replyContent.trim(),
-          imageId: imageId,
+          imageId,
           parentId: id,
           xPosition: x,
           yPosition: y,
           userId: user.id,
           userName: user.fullName || user.firstName || 'Anonymous',
-          userImageUrl: user.imageUrl
+          userImageUrl: user.imageUrl || null
         })
       });
       if (!response.ok) throw new Error('Failed to post reply');
