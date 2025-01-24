@@ -70,10 +70,10 @@ export function registerRoutes(app: Express): Server {
   app.post("/clerk-webhook", express.json(), async (req, res) => {
     try {
       const event = req.body;
-      
+
       if (event.type === "user.created") {
         const userId = event.data.id;
-        
+
         // Fetch current user data directly from Clerk
         const clerkUser = await clerkClient.users.getUser(userId);
         const existingColor = clerkUser.publicMetadata?.color;
@@ -91,7 +91,7 @@ export function registerRoutes(app: Express): Server {
         if (!existingColor) {
           const palette = ["#F44336","#E91E63","#9C27B0","#3AB79C","#A7DE43","#F84CCF"];
           userColor = palette[Math.floor(Math.random() * palette.length)];
-          
+
           // Set initial color in Clerk
           await clerkClient.users.updateUserMetadata(userId, {
             publicMetadata: {
@@ -1492,15 +1492,16 @@ export function registerRoutes(app: Express): Server {
       // Merge comments with cached user details
       const commentsWithUserData = imageComments.map(comment => {
         const user = cachedUsers.find(u => u.userId === comment.userId);
+        const userColor = user?.color || '#ccc';
         return {
           ...comment,
           author: {
             id: comment.userId,
             username: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
             imageUrl: user?.imageUrl,
-            color: user?.color || '#ccc'
+            color: userColor
           },
-          userColor: user?.color || '#ccc' // Adding color at top level for backward compatibility
+          userColor // Adding color at top level for consistency
         };
       });
 
@@ -1757,7 +1758,7 @@ export function registerRoutes(app: Express): Server {
       // Get unique user IDs and batch fetch full user data from cache
       const userIds = [...new Set(starData.map(star => star.userId))];
       const userData = await fetchCachedUserData(userIds);
-      
+
       // Merge star data with full user details
       const starsWithUserData = starData.map(star => {
         const user = userData.find(u => u.userId === star.userId);
@@ -2163,7 +2164,7 @@ export function registerRoutes(app: Express): Server {
 
       // Check if it's a valid email for direct Clerk lookup
       const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      
+
       if (isValidEmail) {
         try {
           const clerkUsers = await clerkClient.users.getUserList({

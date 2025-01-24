@@ -17,6 +17,7 @@ interface CommentBubbleProps {
     id: string;
     username: string;
     imageUrl?: string;
+    color?: string;
   } | string;
   onSubmit?: () => void;
   isNew?: boolean;
@@ -203,6 +204,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
                 <UserAvatar
                   name={authorDisplay.username}
                   imageUrl={authorDisplay.imageUrl}
+                  color={typeof author === 'object' ? author.color : undefined}
                   className="w-6 h-6 text-xs"
                 />
                 <p className="text-xs font-medium text-muted-foreground">
