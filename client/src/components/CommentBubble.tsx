@@ -218,6 +218,13 @@ export function CommentBubble({
 
   const replyMutation = useMutation({
     mutationFn: async () => {
+      console.log("[DEBUG] Reply mutation started:", {
+        imageId,
+        parentId: id || parentId,
+        userId: user?.id,
+        contentLength: replyContent?.length
+      });
+
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
@@ -232,15 +239,17 @@ export function CommentBubble({
       }
 
       const commentParentId = id || parentId;
+      const endpoint = `/api/images/${imageId}/comments`;
       
-      console.log('Submitting reply to:', `/api/images/${imageId}/comments`, {
+      console.log("[DEBUG] Preparing request:", {
+        endpoint,
         parentId: commentParentId,
-        imageId,
-        content: replyContent.trim()
+        position: { x, y },
+        contentPreview: replyContent.trim().substring(0, 50) + '...'
       });
       
       const token = await getToken();
-      const response = await fetch(`/api/images/${imageId}/comments`, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -256,12 +265,24 @@ export function CommentBubble({
 
       if (!response.ok) {
         const error = await response.text();
+        console.error("[DEBUG] Reply mutation failed:", {
+          status: response.status,
+          error,
+          endpoint: `/api/images/${imageId}/comments`
+        });
         throw new Error(error);
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log("[DEBUG] Reply mutation succeeded:", {
+        commentId: data.id,
+        imageId,
+        parentId: id || parentId
+      });
+      return data;
     },
     onError: (error) => {
+      console.error("[DEBUG] Reply mutation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to post reply",
