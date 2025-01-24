@@ -221,18 +221,20 @@ export function CommentBubble({
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
-      if (!id) {
-        throw new Error('Comment ID missing');
-      }
       if (!replyContent.trim()) {
         throw new Error('Reply content is empty');
       }
       if (!imageId) {
         throw new Error('Image ID missing');
       }
+      if (!id && !parentId) {
+        throw new Error('Comment ID missing');
+      }
+
+      const commentId = id || parentId;
 
       const token = await getToken();
-      const response = await fetch(`/api/comments/${id}/reply`, {
+      const response = await fetch(`/api/comments/${commentId}/reply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
