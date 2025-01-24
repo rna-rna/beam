@@ -1367,6 +1367,35 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
+      // Validate parentId if provided
+      if (parentId) {
+        const parentComment = await db.query.comments.findFirst({
+          where: eq(comments.id, parentId)
+        });
+
+        if (!parentComment) {
+          return res.status(404).json({
+            success: false,
+            message: 'Parent comment not found'
+          });
+        }
+
+        if (parentComment.imageId !== imageId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Parent comment does not belong to this image'
+          });
+        }
+
+        // Prevent nested replies (only allow one level deep)
+        if (parentComment.parentId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Nested replies are not allowed'
+          });
+        }
+      }
+
       const image = await db.query.images.findFirst({
         where: eq(images.id, imageId),
         with: {
