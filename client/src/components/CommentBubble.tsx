@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { motion, useDragControls } from "framer-motion";
 import { Card } from "@/components/ui/card";
@@ -54,7 +53,7 @@ export function CommentBubble({
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const isOwner = user?.id === author.id;
-  
+
   const updatePositionMutation = useMutation({
     mutationFn: async ({ x, y }: { x: number; y: number }) => {
       const res = await fetch(`/api/comments/${id}/position`, {
@@ -175,7 +174,7 @@ export function CommentBubble({
                       {formatRelativeTime(timestamp)}
                     </span>
                   </div>
-                  
+
                   {isOwner && !isEditing && (
                     <div className="flex gap-1">
                       <Button
@@ -254,7 +253,7 @@ export function CommentBubble({
                     </div>
                   </div>
                 ))}
-                
+
                 <CommentInput
                   onSubmit={(content) => createReplyMutation.mutate(content)}
                   isReply
