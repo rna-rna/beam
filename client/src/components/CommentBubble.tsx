@@ -28,6 +28,8 @@ interface CommentBubbleProps {
 }
 
 export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, imageId }: CommentBubbleProps) {
+  console.log("CommentBubble author:", { author, color: typeof author === 'object' ? author.color : null });
+  
   const [isEditing, setIsEditing] = useState(isNew);
   const [text, setText] = useState(content || "");
   const [showAuthModal, setShowAuthModal] = useState(false);
