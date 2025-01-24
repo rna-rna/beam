@@ -1,0 +1,80 @@
+Objective
+To design and develop a fully-functional, real-time comment system for Beam with:
+
+Draggable and repositionable comment bubbles (for own comments only).
+Threaded comments and replies with a modern, user-friendly UI.
+Emoji reactions, including support for custom color emojis.
+Real-time updates for all features using Pusher.
+Integration with Beam's backend for persistence, roles, and permissions.
+Refactored and upgraded v0 functionality using ShadCN components for styling consistency.
+Requirements
+Frontend Design
+The new frontend should be based on:
+
+Modern UI Framework:
+
+Use ShadCN components for Cards, Buttons, Popovers, and other UI elements.
+Ensure responsive and mobile-friendly design.
+Key Features:
+
+Draggable Bubbles:
+Only the author of a comment can drag and reposition their bubble.
+Changes should be persisted in the database and reflected in real-time for all users via Pusher.
+Threaded Replies:
+A clear hierarchy for parent comments and their replies.
+Expandable/collapsible threads for long discussions.
+Emoji Reactions:
+Allow users to react to comments with predefined and custom emojis.
+Show aggregated reactions with counts next to each comment.
+Real-Time Updates:
+Use Pusher to reflect changes live across all collaborators:
+New comments
+Edited/deleted comments
+Reactions
+Bubble repositioning
+Backend Development
+The backend must:
+
+Extend the Database Schema:
+
+Add support for threaded replies and emoji reactions:
+sql
+Copy
+Edit
+ALTER TABLE comments ADD COLUMN parentId INT REFERENCES comments(id) ON DELETE CASCADE;
+CREATE TABLE commentReactions (
+    id SERIAL PRIMARY KEY,
+    commentId INT REFERENCES comments(id) ON DELETE CASCADE,
+    userId TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    createdAt TIMESTAMP DEFAULT NOW()
+);
+Ensure bubble positions (xPosition, yPosition) are stored and updated.
+Create/Update API Endpoints:
+
+Comments:
+POST /api/comments – Create a new comment or reply.
+PUT /api/comments/:id – Edit a comment.
+DELETE /api/comments/:id – Delete a comment.
+PUT /api/comments/:id/position – Update bubble position.
+Reactions:
+POST /api/comments/:id/reactions – Add a reaction.
+GET /api/comments/:id/reactions – Fetch reactions for a comment.
+Ensure API endpoints validate permissions:
+Only the comment owner can edit, delete, or reposition bubbles.
+Integrate Pusher:
+
+Emit real-time events for:
+Comment creation, deletion, editing
+Reaction updates
+Bubble repositioning
+Example event format:
+json
+Copy
+Edit
+{
+  "event": "comment-added",
+  "data": {
+    "comment": { "id": 123, "content": "New comment", ... }
+  }
+}
