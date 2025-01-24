@@ -209,7 +209,7 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
                     author.fullName || `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.username || 'Unknown User' 
                     : authorDisplay.username}
                   imageUrl={typeof author === 'object' ? author.imageUrl : undefined}
-                  color={typeof author === 'object' ? author.color : undefined}
+                  color={typeof author === 'object' ? author.color : '#ccc'}
                   size="sm"
                   className="shadow-sm"
                 />

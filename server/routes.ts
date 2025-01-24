@@ -1492,16 +1492,14 @@ export function registerRoutes(app: Express): Server {
       // Merge comments with cached user details
       const commentsWithUserData = imageComments.map(comment => {
         const user = cachedUsers.find(u => u.userId === comment.userId);
-        const userColor = user?.color || '#ccc';
         return {
           ...comment,
           author: {
             id: comment.userId,
             username: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
             imageUrl: user?.imageUrl,
-            color: userColor
-          },
-          userColor // Adding color at top level for consistency
+            color: user?.color || '#ccc'
+          }
         };
       });
 
