@@ -18,6 +18,9 @@ interface CommentBubbleProps {
     username: string;
     imageUrl?: string;
     color?: string;
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
   } | string;
   onSubmit?: () => void;
   isNew?: boolean;
@@ -202,13 +205,18 @@ export function CommentBubble({ x, y, content, author, onSubmit, isNew = false, 
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <UserAvatar
-                  name={authorDisplay.username}
-                  imageUrl={authorDisplay.imageUrl}
+                  name={typeof author === 'object' ? 
+                    author.fullName || `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.username || 'Unknown User' 
+                    : authorDisplay.username}
+                  imageUrl={typeof author === 'object' ? author.imageUrl : undefined}
                   color={typeof author === 'object' ? author.color : undefined}
-                  className="w-6 h-6 text-xs"
+                  size="sm"
+                  className="shadow-sm"
                 />
                 <p className="text-xs font-medium text-muted-foreground">
-                  {authorDisplay.username}
+                  {typeof author === 'object' ? 
+                    author.fullName || `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.username || 'Unknown User'
+                    : authorDisplay.username}
                 </p>
               </div>
               <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
