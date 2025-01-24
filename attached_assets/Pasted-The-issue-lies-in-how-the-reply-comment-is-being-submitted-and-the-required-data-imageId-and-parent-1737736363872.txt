@@ -1,0 +1,96 @@
+The issue lies in how the reply comment is being submitted and the required data (imageId and parentId) not being properly passed to the backend. Here’s how to fix the issue:
+
+Root Cause
+The replyMutation expects both imageId and parentId to correctly associate the reply with:
+
+The image being commented on (imageId)
+The parent comment being replied to (parentId)
+If imageId or parentId is missing, the mutation fails.
+
+Fixing the Issue
+Ensure imageId and parentId Are Passed Correctly
+
+Check if both imageId and parentId are properly passed to the CommentBubble component.
+In the parent component (e.g., CommentSystem), ensure:
+tsx
+Copy
+Edit
+<CommentBubble
+  id={comment.id}
+  parentId={comment.parentId || null}
+  imageId={imageId} // This must be defined
+  ...
+/>
+Update the replyMutation to Validate Data
+
+Ensure both imageId and parentId are passed when calling the mutation.
+Updated replyMutation:
+
+typescript
+Copy
+Edit
+const replyMutation = useMutation({
+  mutationFn: async () => {
+    if (!imageId) throw new Error('Image ID is missing');
+    if (!id && !parentId) throw new Error('Parent comment ID is missing');
+
+    const token = await getToken();
+    const response = await fetch(`/api/comments/${id || parentId}/reply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        content: replyContent.trim(),
+        imageId,
+        parentId: id || parentId,
+        xPosition: x,
+        yPosition: y,
+        userName: user?.fullName || user?.firstName || 'Anonymous',
+        userImageUrl: user?.imageUrl || null,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to post reply');
+    }
+    return response.json();
+  },
+  onSuccess: () => {
+    setReplyContent('');
+    setIsReplying(false);
+    queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+  },
+  onError: (error) => {
+    toast({
+      title: "Error",
+      description: error.message || "Failed to post reply",
+      variant: "destructive",
+    });
+  },
+});
+Key Debugging Steps
+Confirm imageId and parentId in the Component
+
+Log imageId and parentId in the CommentBubble to verify:
+tsx
+Copy
+Edit
+console.log('Image ID:', imageId, 'Parent ID:', parentId);
+Validate API Endpoint
+
+Check that the backend endpoint /api/comments/:id/reply:
+Correctly handles replies using both imageId and parentId.
+Validates and associates replies with the correct parent comment and image.
+Check Mutation Execution
+
+Ensure the mutation function is called with all necessary data:
+tsx
+Copy
+Edit
+console.log('Reply Mutation Payload:', {
+  content: replyContent,
+  imageId,
+  parentId: id || parentId,
+});
