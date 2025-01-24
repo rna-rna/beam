@@ -1600,7 +1600,10 @@ export default function Gallery({
         <div className="flex items-center gap-4">
           {/* Presence Avatars */}
           <div className="flex -space-x-2">
-            {activeUsers.map((member) => (
+            {activeUsers.filter(member => 
+              member.lastActive && 
+              Date.now() - new Date(member.lastActive).getTime() < 30000
+            ).map((member) => (
               <UserAvatar
                 key={member.userId}
                 name={member.name}
