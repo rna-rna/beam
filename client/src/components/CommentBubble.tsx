@@ -232,7 +232,13 @@ export function CommentBubble({
         position: { x, y }
       });
 
-      // Validate required fields immediately
+      // Validate all required fields upfront
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      if (!replyContent.trim()) {
+        throw new Error('Reply content is empty');
+      }
       if (!imageId || typeof imageId !== 'number') {
         console.error("[DEBUG] Invalid imageId in replyMutation:", {
           imageId,
@@ -241,58 +247,20 @@ export function CommentBubble({
         });
         throw new Error('Valid image ID is required');
       }
-
-      if (!replyContent.trim()) {
-        throw new Error('Reply content cannot be empty');
-      }
-
-      const token = await getToken();
-      const response = await fetch(`/api/images/${imageId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          content: replyContent.trim(),
-          xPosition: x,
-          yPosition: y,
-          parentId: id || parentId
-        })
-      });
-
-      console.log("[DEBUG] Reply mutation started:", {
-        imageId,
-        parentId: id || parentId,
-        userId: user?.id,
-        contentLength: replyContent?.length,
-        position: {x, y}
-      });
-
-      if (!user?.id) {
-        throw new Error('User not authenticated');
-      }
-      if (!replyContent.trim()) {
-        throw new Error('Reply content is empty');
-      }
-      if (!imageId) {
-        throw new Error('Image ID is missing');
-      }
       if (!id && !parentId) {
         throw new Error('Parent comment ID is missing');
       }
 
-      const commentParentId = id || parentId;
+      const token = await getToken();
       const endpoint = `/api/images/${imageId}/comments`;
       
       console.log("[DEBUG] Preparing request:", {
         endpoint,
-        parentId: commentParentId,
+        parentId: id || parentId,
         position: { x, y },
         contentPreview: replyContent.trim().substring(0, 50) + '...'
       });
       
-      const token = await getToken();
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
