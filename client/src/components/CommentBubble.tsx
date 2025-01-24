@@ -44,7 +44,8 @@ interface CommentBubbleProps {
     };
     createdAt: string;
   }>;
-  parentId?: number;
+  parentId?: number | null;
+  timestamp?: string;
 }
 
 export function CommentBubble({ 
@@ -58,7 +59,9 @@ export function CommentBubble({
   id,
   reactions = [],
   children,
-  onPositionChange
+  onPositionChange,
+  parentId = null,
+  timestamp
 }: CommentBubbleProps) {
   const { user } = useUser();
   const isAuthor = user?.id === author?.id;
