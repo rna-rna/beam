@@ -981,7 +981,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Find the gallery first
-      const gallery= await db.query.galleries.findFirst({
+      const gallery= await db.query.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug)
       });
 
@@ -1349,7 +1349,7 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log("Comment Request params:", req.params);
       console.log("Comment Request body:", req.body);
-      
+
       const { content, xPosition, yPosition, parentId } = req.body;
       const imageId = parseInt(req.params.imageId);
 
@@ -1429,10 +1429,10 @@ export function registerRoutes(app: Express): Server {
       try {
         // Extract user information using helper
         const { userId, userName, userImageUrl } = await extractUserInfo(req);
-        console.log('Debug - Comment creation:', {
-          userId,
+        // Only log essential info
+        console.log('Creating comment:', {
           imageId,
-          hasContent: !!content
+          hasParent: !!parentId
         });
 
         // Validate user info
@@ -1522,7 +1522,7 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/images/:imageId/comments', async (req, res) => {
     try {
       const imageId = parseInt(req.params.imageId);
-      
+
       // Get parent comments first
       const parentComments = await db.query.comments.findMany({
         where: and(
@@ -1987,7 +1987,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Inviter details not found' });
       }
 
-      const inviterName = `${inviterData.firstName || ''} ${inviterData.lastName || ''}`.trim() || 'A Beam User';
+      const inviterName = `${inviterData.firstName || ''} ${inviterData.lastName || ''}``.trim() || 'A Beam User';
       const inviterEmail = (await clerkClient.users.getUser(req.auth.userId)).emailAddresses[0]?.emailAddress;
 
       // We still need to use Clerk directly for email lookup since our cache is ID-based
