@@ -225,10 +225,13 @@ export function CommentBubble({
 
   const replyMutation = useMutation({
     mutationFn: async () => {
+      // Convert imageId to number if it's a string
+      const numericImageId = typeof imageId === 'string' ? parseInt(imageId, 10) : imageId;
+      
       console.log("[DEBUG] Starting reply mutation with:", {
         component: 'CommentBubble',
-        props: { imageId, id, parentId },
-        imageId,
+        props: { imageId: numericImageId, id, parentId },
+        imageId: numericImageId,
         parentId: id || parentId,
         content: replyContent,
         position: { x, y }
@@ -241,9 +244,11 @@ export function CommentBubble({
       if (!replyContent.trim()) {
         throw new Error('Reply content is empty');
       }
-      if (!imageId || typeof imageId !== 'number') {
+      const numericImageId = typeof imageId === 'string' ? parseInt(imageId, 10) : imageId;
+      if (!numericImageId || typeof numericImageId !== 'number' || isNaN(numericImageId)) {
         console.error("[DEBUG] Invalid imageId in replyMutation:", {
           imageId,
+          numericImageId,
           type: typeof imageId,
           parentId: id || parentId
         });
@@ -274,7 +279,7 @@ export function CommentBubble({
           xPosition: x,
           yPosition: y,
           parentId: id || parentId,
-          imageId: imageId
+          imageId: numericImageId
         })
       });
 
