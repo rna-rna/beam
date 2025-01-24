@@ -2048,10 +2048,18 @@ export default function Gallery({
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Allow Escape key regardless of focus state
       if (e.key === "Escape" && selectMode) {
         e.preventDefault();
         setSelectedImages([]);
         setSelectMode(false);
+        return;
+      }
+
+      // Skip other shortcuts if input/textarea is focused
+      if (document.activeElement instanceof HTMLInputElement || 
+          document.activeElement instanceof HTMLTextAreaElement) {
+        return;
       }
     };
 
@@ -2062,6 +2070,12 @@ export default function Gallery({
   useEffect(() => {
     if (selectedImageIndex >= 0) {
       const handleKeyDown = (e: KeyboardEvent) => {
+        // Skip keyboard shortcuts if any input/textarea is focused
+        if (document.activeElement instanceof HTMLInputElement || 
+            document.activeElement instanceof HTMLTextAreaElement) {
+          return;
+        }
+
         if (!gallery?.images?.length) return;
         if (e.key === "ArrowLeft") {
           setSelectedImageIndex((prev) =>
