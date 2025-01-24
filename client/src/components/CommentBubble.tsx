@@ -11,7 +11,7 @@ import { CommentInput } from "@/components/CommentInput";
 import { useUser } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { SpeechBubble } from "./SpeechBubble";
+import { SpeechBubble } from "@/components/SpeechBubble";
 
 interface Author {
   id: string;
