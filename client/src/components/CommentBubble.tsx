@@ -203,8 +203,8 @@ export function CommentBubble({
   const [replyContent, setReplyContent] = useState('');
 
   const replyMutation = useMutation({
-    mutationFn: async (content: string) => {
-      if (!user || !id) return;
+    mutationFn: async () => {
+      if (!user || !id || !replyContent.trim()) return;
       const token = await getToken();
       const response = await fetch(`/api/comments/${id}/reply`, {
         method: 'POST',
@@ -212,7 +212,11 @@ export function CommentBubble({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ 
+          content: replyContent,
+          imageId,
+          parentId: id
+        })
       });
       if (!response.ok) throw new Error('Failed to post reply');
       return response.json();
@@ -346,7 +350,7 @@ export function CommentBubble({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        replyMutation.mutate(replyContent);
+                        replyMutation.mutate();
                       }
                     }}
                   />
