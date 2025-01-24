@@ -1441,31 +1441,15 @@ export function registerRoutes(app: Express): Server {
           timestamp: new Date().toISOString()
         });
 
-        res.status(201).json({
-          success: true,
-          data: commentWithColor
-        });
-        pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'comment-added', {
-          imageId: comment.imageId,
-          content: comment.content,
-          userId: comment.userId,
-          userName: comment.userName,
-          userImageUrl: comment.userImageUrl,
-          xPosition: comment.xPosition,
-          yPosition: comment.yPosition,
-          createdAt: comment.createdAt,
-          timestamp: new Date().toISOString()
-        });
-
         console.log('Debug - Comment created successfully:', {
           commentId: comment.id,
           userId,
           imageId
         });
 
-        res.status(201).json({
+        return res.status(201).json({
           success: true,
-          data: comment
+          data: commentWithColor
         });
       } catch (error: any) {
         console.error('Error processing user data:', error);
