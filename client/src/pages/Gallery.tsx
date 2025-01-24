@@ -321,10 +321,16 @@ export default function Gallery({
   }, []);
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug || !user) return;
 
     const channelName = `presence-gallery-${slug}`;
     console.log("Attempting to subscribe to channel:", channelName);
+
+    // Cleanup any existing subscription first
+    if (pusherClient.channel(channelName)) {
+      console.log("Cleaning up existing subscription to:", channelName);
+      pusherClient.unsubscribe(channelName);
+    }
 
     const channel = pusherClient.subscribe(channelName);
 
@@ -345,6 +351,7 @@ export default function Gallery({
       queryClient.invalidateQueries([`/api/images/${data.imageId}/comments`]);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
     });
+
     console.log("Channel details:", {
       name: channel.name,
       state: channel.state,
@@ -431,12 +438,16 @@ export default function Gallery({
       );
     });
 
+    // Clear active users when unmounting or changing galleries
     return () => {
-      console.log("Cleaning up Pusher subscription");
+      console.log("Cleaning up Pusher subscription for:", channelName);
+      setActiveUsers([]); // Clear active users immediately
+      setPresenceMembers({}); // Clear presence members
       channel.unbind_all();
       channel.unsubscribe();
+      pusherClient.unsubscribe(channelName); // Double-check unsubscription
     };
-  }, [slug]);
+  }, [slug, user]);
   const { toast } = useToast();
   const [guestGalleryCount, setGuestGalleryCount] = useState(
     Number(sessionStorage.getItem("guestGalleryCount")) || 0,
