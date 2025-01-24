@@ -244,7 +244,6 @@ export function CommentBubble({
       if (!replyContent.trim()) {
         throw new Error('Reply content is empty');
       }
-      const numericImageId = typeof imageId === 'string' ? parseInt(imageId, 10) : imageId;
       if (!numericImageId || typeof numericImageId !== 'number' || isNaN(numericImageId)) {
         console.error("[DEBUG] Invalid imageId in replyMutation:", {
           imageId,
