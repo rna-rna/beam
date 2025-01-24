@@ -287,7 +287,7 @@ export function CommentBubble({
             </form>
           ) : (
             <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2">
                 <div className="flex items-center gap-2">
                   <UserAvatar
                     name={author?.fullName || author?.username || 'Unknown User'}
@@ -299,16 +299,10 @@ export function CommentBubble({
                     {author?.fullName || author?.username || 'Unknown User'}
                   </span>
                 </div>
-                <button
-                  onClick={() => setShowEmojiPicker(true)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <SmilePlus className="w-4 h-4" />
-                </button>
               </div>
               <p className="text-sm text-foreground whitespace-pre-wrap mb-2">{content}</p>
               {reactions.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
+                <div className="flex flex-wrap gap-1 mt-2 mb-2">
                   {reactions.map((reaction, i) => (
                     <button
                       key={i}
@@ -326,21 +320,12 @@ export function CommentBubble({
                 </div>
               )}
               {!parentId && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsReplying(!isReplying)}
-                  className="text-xs"
-                >
-                  Reply
-                </Button>
-              )}
-              {isReplying && (
-                <div className="mt-2">
+                <div className="flex items-center gap-2 mt-2">
                   <Input
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
                     placeholder="Write a reply..."
+                    className="flex-1"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -348,6 +333,12 @@ export function CommentBubble({
                       }
                     }}
                   />
+                  <button
+                    onClick={() => setShowEmojiPicker(true)}
+                    className="text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-muted/80"
+                  >
+                    <SmilePlus className="w-4 h-4" />
+                  </button>
                 </div>
               )}
               {replies && replies.length > 0 && (
