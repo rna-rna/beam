@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -284,7 +283,7 @@ export function CommentBubble({
                   autoFocus={true}
                   ref={(input) => {
                     if (input && isNew) {
-                      input.focus();
+                      setTimeout(() => input.focus(), 0);
                     }
                   }}
                 />
