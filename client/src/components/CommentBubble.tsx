@@ -231,10 +231,10 @@ export function CommentBubble({
         throw new Error('Parent comment ID is missing');
       }
 
-      const commentId = id || parentId;
-
+      const commentParentId = id || parentId;
+      
       const token = await getToken();
-      const response = await fetch(`/api/comments/${commentId}/reply`, {
+      const response = await fetch(`/api/images/${imageId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -242,12 +242,9 @@ export function CommentBubble({
         },
         body: JSON.stringify({ 
           content: replyContent.trim(),
-          imageId: imageId,
-          parentId: commentId,
           xPosition: x,
           yPosition: y,
-          userName: user.fullName || user.firstName || 'Anonymous',
-          userImageUrl: user.imageUrl || null
+          parentId: commentParentId
         })
       });
 
@@ -258,14 +255,6 @@ export function CommentBubble({
 
       return response.json();
     },
-    onMutate: () => {
-      console.log('Reply Mutation Payload:', {
-        content: replyContent,
-        imageId,
-        parentId: id || parentId,
-        position: { x, y }
-      });
-    },
     onError: (error) => {
       toast({
         title: "Error",
@@ -274,7 +263,6 @@ export function CommentBubble({
       });
     },
     onSuccess: (data) => {
-      console.log("Processed comment data:", data);
       setReplyContent('');
       setIsReplying(false);
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
