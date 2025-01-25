@@ -55,7 +55,7 @@ const LightboxDialogContent = React.forwardRef<
       tabIndex={-1}
       {...props}
       className={cn(
-        "fixed inset-0 w-screen h-screen z-50 flex items-center justify-center bg-black/100 p-0 outline-none",
+        "fixed inset-0 w-screen h-screen z-50 flex items-center justify-center bg-background dark:bg-black/100 p-0 outline-none",
         className
       )}
     >
