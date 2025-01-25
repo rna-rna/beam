@@ -777,7 +777,7 @@ export function registerRoutes(app: Express): Server {
             // Get all editor users for notifications
             const editorUserIds = await getEditorUserIds(gallery.id);
 
-            // Notify all editors except the actor
+            // Notify all editors except the actor about the new image
             for (const editorId of editorUserIds) {
               if (editorId === req.auth?.userId) continue;
 
@@ -785,35 +785,12 @@ export function registerRoutes(app: Express): Server {
                 recipientId: editorId,
                 actorId: req.auth?.userId,
                 galleryId: gallery.id,
-                type: 'comment-added',
+                type: 'image-uploaded',
                 data: {
-                  commentId: comment.id,
-                  excerpt: content.slice(0, 50),
-                  imageId: imageId
+                  imageId: image.id,
+                  url: publicUrl,
                 }
               });
-            }
-
-            // If this is a reply, notify the parent comment's author
-            if (parentId) {
-              const parentComment = await db.query.comments.findFirst({
-                where: eq(comments.id, parentId)
-              });
-
-              if (parentComment && parentComment.userId !== req.auth?.userId) {
-                await createOrUpdateNotification({
-                  recipientId: parentComment.userId,
-                  actorId: req.auth?.userId,
-                  galleryId: gallery.id,
-                  type: 'comment-reply',
-                  data: {
-                    commentId: comment.id,
-                    parentId,
-                    excerpt: content.slice(0, 50),
-                    imageId: imageId
-                  }
-                });
-              }
             }
 
             // Emit real-time event via Pusher
