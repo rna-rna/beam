@@ -42,9 +42,14 @@ export function CursorOverlay({ cursors = [] }: CursorOverlayProps) {
 
     socket.on('cursor-update', (data) => {
       console.log("Received cursor-update:", data);
-      if (data && data.id) {
+      if (data && data.id && data.id !== user?.id) {
         setCursors(prevCursors => {
-          const otherCursors = prevCursors.filter(c => c.id !== data.id);
+          // Filter out stale cursors and the current user's cursor
+          const otherCursors = prevCursors.filter(c => 
+            c.id !== data.id && 
+            c.id !== user?.id && 
+            Date.now() - c.lastActive < 5000
+          );
           return [...otherCursors, {
             id: data.id,
             name: data.name || 'Anonymous',
