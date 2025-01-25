@@ -1,0 +1,49 @@
+
+
+Thought about Socket.IO WebSocket connection for 13 seconds
+If the logs show Socket.IO events going through, but nothing appears in your UI, the most common reasons are:
+
+No Matching “.on()” Handler in the Front End
+
+You might be emitting "cursor-update" (etc.) on the server, but in your client code, you need:
+js
+Copy
+Edit
+socket.on("cursor-update", (data) => {
+  console.log("Received cursor-update event", data);
+  // update your UI accordingly
+});
+If you never call socket.on("cursor-update", ...), you’ll see nothing happen in the UI.
+Typos or Mismatch in Event Names
+
+Double-check that the event name you emit from the server exactly matches the one you listen for in the client. (e.g., "cursor-update" vs. "cursorupdate", or mismatch in letter case).
+Sometimes one side uses "cursor_updated" or "CursorUpdate", or a small spelling difference. Socket.IO won’t warn you if you mismatch names.
+Namespace or Connection Issues
+
+If you’re using custom namespaces (e.g., io.of("/admin") on the server), you must connect to that same namespace in the client: const socket = io("/admin");
+If you accidentally connect to the default namespace but send events in a custom namespace, the client never sees them.
+Frontend Code Doesn’t Actually Use the Data
+
+Even if you do socket.on("cursor-update", (data) => console.log(data)), you’ll only see logs in the console. If you want to display data in the DOM, you need to manually update the UI (e.g., setting some <div>.innerText or using a React/Vue state).
+Make sure your event handler actually changes the page in some way.
+Check for Client-Side Errors
+
+If your frontend code has a JavaScript error earlier, the socket code may never run. Open DevTools → Console to see if there are any runtime errors preventing the code from executing.
+Quick Debug Steps
+Add console logs:
+js
+Copy
+Edit
+console.log("Attempting to connect...");
+const socket = io(); // or your full URL
+
+socket.on("connect", () => {
+  console.log("Connected with ID:", socket.id);
+});
+
+socket.on("cursor-update", (data) => {
+  console.log("Got cursor-update:", data);
+  // do something with data
+});
+Watch the browser console for these logs. If you see “Connected with ID: …” but never see “Got cursor-update: …”, you know the event name or namespace is mismatched. If you don’t even see “Connected with ID…”, the client code might not be running or the connection is failing.
+Once you have a matching socket.on("some-event") in the client that does something with the data, you’ll see the updates appear in your front-end.
