@@ -12,7 +12,7 @@ interface CreateOrUpdateNotificationOptions {
   actorId: string;      
   galleryId: number;    
   type: string;         
-  data?: any;           
+  data?: Record<string, unknown>;
 }
 
 export async function createOrUpdateNotification({
@@ -23,7 +23,8 @@ export async function createOrUpdateNotification({
   data = {},
 }: CreateOrUpdateNotificationOptions) {
 
-  const fiveMinAgo = sql`NOW() - INTERVAL '${GROUPING_WINDOW_MINUTES} minutes'`;
+  const fiveMinAgo = new Date(Date.now() - GROUPING_WINDOW_MINUTES * 60 * 1000);
+  
   const existing = await db.query.notifications.findFirst({
     where: and(
       eq(notifications.userId, recipientId),
@@ -42,7 +43,7 @@ export async function createOrUpdateNotification({
         count: newCount,
         createdAt: new Date(),
         needsEmail: true,
-        data: data,
+        data: data as any,
       })
       .where(eq(notifications.id, existing.id));
 
@@ -59,7 +60,7 @@ export async function createOrUpdateNotification({
       actorId,
       galleryId,
       type,
-      data,
+      data: data as any,
       groupId,
       count: 1,
       isSeen: false,
