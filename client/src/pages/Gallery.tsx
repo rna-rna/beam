@@ -2815,13 +2815,13 @@ export default function Gallery({
                           return (
                             <CommentBubble
                               key={comment.id}
+                              id={comment.id}
                               x={comment.xPosition}
                               y={comment.yPosition}
                               content={comment.content}
                               author={comment.author}
                               imageId={Number(selectedImage.id)}
                               replies={comment.replies || []}
-                              id={comment.id}
                               parentId={comment.parentId}
                             />
                           );
