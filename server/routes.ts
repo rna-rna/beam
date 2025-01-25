@@ -978,7 +978,7 @@ export function registerRoutes(app: Express): Server {
 
       if (!Array.isArray(imageIds)) {
         return res.status(400).json({ message: 'Invalid request: imageIds must be an array' });
-      }
+}
 
       // Find the gallery first
       const gallery= await db.query.query.galleries.findFirst({
@@ -1562,17 +1562,59 @@ export function registerRoutes(app: Express): Server {
       };
 
       // Process parent comments and their replies
-      const threadedComments = parentComments.map(parent => {
+      const threadedComments = await Promise.all(parentComments.map(async parent => {
         const parentWithUser = enrichCommentWithUser(parent);
-        const commentReplies = replies
-          .filter(reply => reply.parentId === parent.id)
-          .map(enrichCommentWithUser);
+
+        // Get reactions for parent comment
+        const parentReactions = await db.query.commentReactions.findMany({
+          where: eq(commentReactions.commentId, parent.id)
+        });
+
+        // Group parent reactions
+        const groupedParentReactions = parentReactions.reduce((acc, reaction) => {
+          if (!acc[reaction.emoji]) {
+            acc[reaction.emoji] = { emoji: reaction.emoji, count: 0, userIds: [] };
+          }
+          acc[reaction.emoji].count++;
+          acc[reaction.emoji].userIds.push(reaction.userId);
+          return acc;
+        }, {} as Record<string, {emoji: string, count: number, userIds: string[]}>);
+
+        // Get and enrich replies with reactions
+        const repliesWithReactions = await Promise.all(
+          replies
+            .filter(reply => reply.parentId === parent.id)
+            .map(async reply => {
+              const enrichedReply = enrichCommentWithUser(reply);
+              
+              // Get reactions for this reply
+              const replyReactions = await db.query.commentReactions.findMany({
+                where: eq(commentReactions.commentId, reply.id)
+              });
+
+              // Group reply reactions
+              const groupedReplyReactions = replyReactions.reduce((acc, reaction) => {
+                if (!acc[reaction.emoji]) {
+                  acc[reaction.emoji] = { emoji: reaction.emoji, count: 0, userIds: [] };
+                }
+                acc[reaction.emoji].count++;
+                acc[reaction.emoji].userIds.push(reaction.userId);
+                return acc;
+              }, {} as Record<string, {emoji: string, count: number, userIds: string[]}>);
+
+              return {
+                ...enrichedReply,
+                reactions: Object.values(groupedReplyReactions)
+              };
+            })
+        );
 
         return {
           ...parentWithUser,
-          replies: commentReplies
+          replies: repliesWithReactions,
+          reactions: Object.values(groupedParentReactions)
         };
-      });
+      }));
 
       res.json(threadedComments);
     } catch (error) {
@@ -1964,7 +2006,7 @@ export function registerRoutes(app: Express): Server {
     const userId = req.auth.userId;
 
     try {
-      console.log('Invite attempt:', {
+      consolelog('Invite attempt:', {
         slug,
         email,
         role,
@@ -2828,7 +2870,7 @@ export function registerRoutes(app: Express): Server {
         // Remove existing reaction
         await db.delete(commentReactions)
           .where(eq(commentReactions.id, existingReaction.id));
-        
+
         res.json({
           success: true,
           message: 'Reaction removed',

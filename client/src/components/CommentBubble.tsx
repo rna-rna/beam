@@ -65,7 +65,7 @@ export function CommentBubble({
   timestamp,
   replies = []
 }: CommentBubbleProps) {
-  
+
   const { user } = useUser();
   const isAuthor = user?.id === author?.id;
   const [isEditing, setIsEditing] = useState(isNew);
@@ -204,7 +204,11 @@ export function CommentBubble({
       });
     },
     onSuccess: () => {
+      // Invalidate both comments and reactions queries
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+      queryClient.invalidateQueries([`/api/comments/${id}/reactions`]);
+      // Force refetch
+      queryClient.refetchQueries([`/api/images/${imageId}/comments`]);
     }
   });
 
@@ -228,8 +232,8 @@ export function CommentBubble({
       if (!numericImageId || isNaN(numericImageId)) {
         throw new Error(`Invalid imageId: Expected a number, got ${typeof imageId}`);
       }
-      
-      
+
+
 
       // Validate all required fields upfront
       if (!user?.id) {
@@ -239,7 +243,7 @@ export function CommentBubble({
         throw new Error('Reply content is empty');
       }
       if (!numericImageId || typeof numericImageId !== 'number' || isNaN(numericImageId)) {
-        
+
         throw new Error('Valid image ID is required');
       }
       if (!id && !parentId) {
@@ -248,9 +252,9 @@ export function CommentBubble({
 
       const token = await getToken();
       const endpoint = `/api/images/${imageId}/comments`;
-      
-      
-      
+
+
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -268,12 +272,12 @@ export function CommentBubble({
 
       if (!response.ok) {
         const error = await response.text();
-        
+
         throw new Error(error);
       }
 
       const data = await response.json();
-      
+
       return data;
     },
     onError: (error) => {
@@ -427,6 +431,24 @@ export function CommentBubble({
                             )}
                           </div>
                           <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{reply.content}</p>
+                          {reply.reactions && reply.reactions.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {reply.reactions.map((reaction, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => addReactionMutation.mutate(reaction.emoji)}
+                                  className={cn(
+                                    "inline-flex items-center gap-1 text-xs rounded-full px-2 py-0.5",
+                                    "bg-muted hover:bg-muted/80 transition-colors",
+                                    reaction.userIds.includes(user?.id || '') && "bg-primary/20"
+                                  )}
+                                >
+                                  <span>{reaction.emoji}</span>
+                                  <span>{reaction.count}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
