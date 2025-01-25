@@ -6,7 +6,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts, cachedUsers } from '@db/schema';
+import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts, cachedUsers, commentReactions } from '@db/schema';
 import { eq, and, sql, inArray, or, desc } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
