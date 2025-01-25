@@ -1,3 +1,4 @@
+
 import express, { type Express } from "express";
 import fs from "fs";
 import path, { dirname } from "path";
@@ -33,36 +34,34 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
-  // Handle Pusher auth specifically
-  app.use('/pusher/auth', (req, res, next) => {
-    log(`Pusher Auth Request: ${req.method} ${req.url}`);
-    if (!req.headers['content-type']?.includes('application/json')) {
+  // Handle API and Pusher routes first
+  app.use(['/api/', '/pusher/'], (req, res, next) => {
+    log(`API/Pusher Request: ${req.method} ${req.url}`);
+    
+    // Ensure content-type for Pusher auth
+    if (req.url.startsWith('/pusher/auth')) {
       req.headers['content-type'] = 'application/json';
     }
+    
     next();
   });
 
-  // Handle API routes
-  app.use('/api', (req, res, next) => {
-    log(`API Request: ${req.method} ${req.url}`);
-    next();
-  });
-
-  // Non-API routes go through Vite
+  // Handle all other routes with Vite
   app.use((req, res, next) => {
     if (req.url.startsWith('/api/') || req.url.startsWith('/pusher/')) {
       return next();
     }
+    
     log(`Non-API Request: ${req.method} ${req.url}`);
     vite.middlewares(req, res, next);
   });
 
-  // Fallback should only handle non-API routes
+  // Fallback handler
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
-    // Skip API routes in the fallback handler
-    if (url.startsWith('/api/')) {
+    // Skip API/Pusher routes
+    if (url.startsWith('/api/') || url.startsWith('/pusher/')) {
       return next();
     }
 
