@@ -23,7 +23,7 @@ export function CursorOverlay({ cursors }: CursorOverlayProps) {
   useEffect(() => {
     console.log("Attempting to connect socket...");
     const socket = io({
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       path: '/socket.io'
     });
 
@@ -37,13 +37,42 @@ export function CursorOverlay({ cursors }: CursorOverlayProps) {
 
     socket.on('cursor-update', (data) => {
       console.log("Received cursor-update:", data);
-      setCursors(prevCursors => ({
-        ...prevCursors,
-        [data.userId]: data
-      }));
+      if (data && data.id) {
+        setCursors(prevCursors => {
+          console.log("Updating cursors state:", { prev: prevCursors, new: data });
+          const newState = {
+            ...prevCursors,
+            [data.id]: {
+              id: data.id,
+              name: data.name || 'Anonymous',
+              color: data.color || '#000000',
+              x: data.x || 0,
+              y: data.y || 0,
+              lastActive: Date.now()
+            }
+          };
+          console.log("New cursors state:", newState);
+          return newState;
+        });
+      }
     });
 
+    // Cleanup stale cursors every 5 seconds
+    const cleanup = setInterval(() => {
+      setCursors(prev => {
+        const now = Date.now();
+        const filtered = Object.entries(prev).reduce((acc, [id, cursor]) => {
+          if (now - cursor.lastActive < 5000) {
+            acc[id] = cursor;
+          }
+          return acc;
+        }, {} as Record<string, UserCursor>);
+        return filtered;
+      });
+    }, 5000);
+
     return () => {
+      clearInterval(cleanup);
       socket.disconnect();
     };
   }, []);
