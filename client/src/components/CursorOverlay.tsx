@@ -54,7 +54,7 @@ export function CursorOverlay({ cursors }: CursorOverlayProps) {
       className="fixed inset-0 pointer-events-none"
       style={{ zIndex: 99999 }}
     >
-      {cursorsState
+      {Object.values(cursorsState)
         .filter((cursor) => cursor.id !== user?.id)
         .map((otherUser) => (
           <motion.div
