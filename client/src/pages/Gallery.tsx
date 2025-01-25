@@ -2809,6 +2809,7 @@ export default function Gallery({
 
                       {/* Comments */}
                       {showAnnotations &&
+                        selectedImage?.id &&
                         comments.map((comment) => (
                           <CommentBubble
                             key={comment.id}
@@ -2816,6 +2817,8 @@ export default function Gallery({
                             y={comment.yPosition}
                             content={comment.content}
                             author={comment.author}
+                            imageId={Number(selectedImage.id)}
+                            replies={comment.replies || []}
                           />
                         ))}
 
