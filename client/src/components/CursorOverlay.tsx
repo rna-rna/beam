@@ -56,13 +56,7 @@ export function CursorOverlay({ cursors = [] }: CursorOverlayProps) {
     const cleanup = setInterval(() => {
       setCursors(prev => {
         const now = Date.now();
-        const filtered = Object.entries(prev).reduce((acc, [id, cursor]) => {
-          if (now - cursor.lastActive < 5000) {
-            acc[id] = cursor;
-          }
-          return acc;
-        }, {} as Record<string, UserCursor>);
-        return filtered;
+        return prev.filter(cursor => now - cursor.lastActive < 5000);
       });
     }, 5000);
 
