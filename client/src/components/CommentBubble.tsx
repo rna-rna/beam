@@ -65,6 +65,7 @@ export function CommentBubble({
   timestamp,
   replies = []
 }: CommentBubbleProps) {
+  
   const { user } = useUser();
   const isAuthor = user?.id === author?.id;
   const [isEditing, setIsEditing] = useState(isNew);
@@ -99,6 +100,8 @@ export function CommentBubble({
 
   const dragConstraints = useRef(null);
 
+  const [localCommentId, setLocalCommentId] = useState<number | null>(null);
+
   const commentMutation = useMutation({
     mutationFn: async (commentText: string) => {
       if (!user) {
@@ -128,12 +131,14 @@ export function CommentBubble({
         throw new Error('Failed to add comment');
       }
 
-      return response.json();
+      const data = await response.json();
+      return data;
     },
     onSuccess: (data) => {
       setText("");
       setIsEditing(false);
       if (onSubmit) onSubmit();
+      setLocalCommentId(data.data.id);
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
     },
     onError: (error) => {
@@ -218,23 +223,35 @@ export function CommentBubble({
 
   const replyMutation = useMutation({
     mutationFn: async () => {
+      // Ensure imageId is a valid number
+      const numericImageId = typeof imageId === 'string' ? parseInt(imageId, 10) : imageId;
+      if (!numericImageId || isNaN(numericImageId)) {
+        throw new Error(`Invalid imageId: Expected a number, got ${typeof imageId}`);
+      }
+      
+      
+
+      // Validate all required fields upfront
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
       if (!replyContent.trim()) {
         throw new Error('Reply content is empty');
       }
-      if (!imageId) {
-        throw new Error('Image ID is missing');
+      if (!numericImageId || typeof numericImageId !== 'number' || isNaN(numericImageId)) {
+        
+        throw new Error('Valid image ID is required');
       }
       if (!id && !parentId) {
         throw new Error('Parent comment ID is missing');
       }
 
-      const commentId = id || parentId;
-
       const token = await getToken();
-      const response = await fetch(`/api/comments/${commentId}/reply`, {
+      const endpoint = `/api/images/${imageId}/comments`;
+      
+      
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -242,31 +259,25 @@ export function CommentBubble({
         },
         body: JSON.stringify({ 
           content: replyContent.trim(),
-          imageId: imageId,
-          parentId: commentId,
           xPosition: x,
           yPosition: y,
-          userName: user.fullName || user.firstName || 'Anonymous',
-          userImageUrl: user.imageUrl || null
+          parentId: id || parentId,
+          imageId: numericImageId
         })
       });
 
       if (!response.ok) {
         const error = await response.text();
+        
         throw new Error(error);
       }
 
-      return response.json();
-    },
-    onMutate: () => {
-      console.log('Reply Mutation Payload:', {
-        content: replyContent,
-        imageId,
-        parentId: id || parentId,
-        position: { x, y }
-      });
+      const data = await response.json();
+      
+      return data;
     },
     onError: (error) => {
+      console.error("Reply mutation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to post reply",
@@ -274,7 +285,6 @@ export function CommentBubble({
       });
     },
     onSuccess: (data) => {
-      console.log("Processed comment data:", data);
       setReplyContent('');
       setIsReplying(false);
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
@@ -394,7 +404,36 @@ export function CommentBubble({
                   {formatRelativeDate(new Date(timestamp))}
                 </span>
               )}
-              {!parentId && (
+              {replies && replies.length > 0 && (
+                <div className="mt-2 space-y-2 border-l-2 border-muted pl-3">
+                  {replies.map((reply) => (
+                    <div key={reply.id} className="relative">
+                      <div className="flex gap-2 items-start">
+                        <UserAvatar
+                          size="xs"
+                          name={reply.author?.username ?? "Unknown"}
+                          imageUrl={reply.author?.imageUrl}
+                          color={reply.author?.color ?? '#ccc'}
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {reply.author?.username || 'Unknown User'}
+                            </span>
+                            {reply.createdAt && (
+                              <span className="text-xs text-muted-foreground">
+                                {formatRelativeDate(new Date(reply.createdAt))}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{reply.content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!parentId && (id || localCommentId) && (
                 <div className="flex items-center gap-2 mt-2">
                   <UserAvatar
                     size="xs"
@@ -420,21 +459,6 @@ export function CommentBubble({
                   >
                     <SmilePlus className="w-4 h-4" />
                   </button>
-                </div>
-              )}
-              {replies && replies.length > 0 && (
-                <div className="mt-2 space-y-2">
-                  {replies.map((reply) => (
-                    <CommentBubble
-                      key={reply.id}
-                      id={reply.id}
-                      content={reply.content}
-                      author={reply.author}
-                      x={x}
-                      y={y + 10}
-                      parentId={id}
-                    />
-                  ))}
                 </div>
               )}
               {children}

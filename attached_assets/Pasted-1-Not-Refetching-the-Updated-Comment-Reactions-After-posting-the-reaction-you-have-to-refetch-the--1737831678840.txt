@@ -1,0 +1,76 @@
+1) Not Refetching the Updated Comment/Reactions
+After posting the reaction, you have to refetch the comment data or otherwise update state so your UI knows about the new reaction. For example, if you are using React Query for comments:
+
+ts
+Copy
+Edit
+const addReactionMutation = useMutation({
+  mutationFn: async (emoji: string) => {
+    // send POST /api/comments/:id/reactions
+  },
+  onSuccess: () => {
+    // Re-fetch comments so we get the new reaction
+    queryClient.invalidateQueries(["/api/images", imageId, "comments"])
+  }
+});
+If you don’t invalidate the relevant query (or do an “optimistic update”), your component will keep showing the old reactions=[] from its last fetch and never show the new one.
+
+2) The Server Doesn’t Return the Reaction in the GET Endpoint
+Even if you refetch, you must ensure your GET endpoint that loads comments includes the reaction data. For instance, if you’re storing them in a separate “comment_reactions” table, your “fetch comments” code needs to join or otherwise load that reaction info. Something like:
+
+sql
+Copy
+Edit
+SELECT c.*, (
+  SELECT json_agg(json_build_object('emoji', r.emoji, 'userId', r.user_id))
+  FROM comment_reactions r
+  WHERE r.comment_id = c.id
+) as reactions
+FROM comments c
+WHERE c.image_id = ...
+Or in your code:
+
+js
+Copy
+Edit
+// Example: For each comment, also fetch the associated reactions
+const comments = await db.query.comments.findMany(...);
+for (const comment of comments) {
+  const reactionRows = await db.query.commentReactions.findMany({
+    where: eq(commentReactions.commentId, comment.id)
+  });
+  comment.reactions = reactionRows; // attach them so the front-end sees them
+}
+Then your front end’s useQuery(["/api/images", imageId, "comments"]) returns something like:
+
+js
+Copy
+Edit
+[
+  {
+    id: 148,
+    content: "...",
+    reactions: [
+      { emoji: "✨", userId: "user_..." },
+      // ...
+    ],
+    ...
+  }
+]
+Make sure your UI actually references comment.reactions.
+
+3) The UI Doesn’t Actually Render reactions
+Double-check your JSX:
+
+tsx
+Copy
+Edit
+{reactions.length > 0 && (
+  <div>
+    {reactions.map(r => (
+      <span key={r.emoji}>{r.emoji}</span>
+    ))}
+  </div>
+)}
+If your code never displays reactions (or the field is always empty), you’ll never see it in the UI. Make sure you’re reading the correct property that you refetched.
+

@@ -6,7 +6,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts, cachedUsers } from '@db/schema';
+import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts, cachedUsers, commentReactions } from '@db/schema';
 import { eq, and, sql, inArray, or, desc } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
@@ -981,7 +981,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Find the gallery first
-      const gallery= await db.query.galleries.findFirst({
+      const gallery= await db.query.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug)
       });
 
@@ -1347,8 +1347,19 @@ export function registerRoutes(app: Express): Server {
   // Comment submission endpoint - supports both authenticated and guest gallery comments
   app.post('/api/images/:imageId/comments', async (req: Request, res) => {
     try {
+      console.log("Comment Request params:", req.params);
+      console.log("Comment Request body:", req.body);
+
       const { content, xPosition, yPosition, parentId } = req.body;
       const imageId = parseInt(req.params.imageId);
+
+      if (!imageId) {
+        console.error("Invalid imageId:", req.params.imageId);
+        return res.status(400).json({ 
+          success: false, 
+          message: "Image ID is missing or invalid" 
+        });
+      }
 
       // Early auth check
       if (!req.auth?.userId) {
@@ -1365,6 +1376,35 @@ export function registerRoutes(app: Express): Server {
           success: false,
           message: 'Invalid request: content, xPosition, and yPosition are required'
         });
+      }
+
+      // Validate parentId if provided
+      if (parentId) {
+        const parentComment = await db.query.comments.findFirst({
+          where: eq(comments.id, parentId)
+        });
+
+        if (!parentComment) {
+          return res.status(404).json({
+            success: false,
+            message: 'Parent comment not found'
+          });
+        }
+
+        if (parentComment.imageId !== imageId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Parent comment does not belong to this image'
+          });
+        }
+
+        // Prevent nested replies (only allow one level deep)
+        if (parentComment.parentId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Nested replies are not allowed'
+          });
+        }
       }
 
       const image = await db.query.images.findFirst({
@@ -1389,10 +1429,10 @@ export function registerRoutes(app: Express): Server {
       try {
         // Extract user information using helper
         const { userId, userName, userImageUrl } = await extractUserInfo(req);
-        console.log('Debug - Comment creation:', {
-          userId,
+        // Only log essential info
+        console.log('Creating comment:', {
           imageId,
-          hasContent: !!content
+          hasParent: !!parentId
         });
 
         // Validate user info
@@ -1481,10 +1521,12 @@ export function registerRoutes(app: Express): Server {
   // Get comments for an image
   app.get('/api/images/:imageId/comments', async (req, res) => {
     try {
+      const imageId = parseInt(req.params.imageId);
+
       // Get parent comments first
       const parentComments = await db.query.comments.findMany({
         where: and(
-          eq(comments.imageId, parseInt(req.params.imageId)),
+          eq(comments.imageId, imageId),
           sql`${comments.parentId} IS NULL`
         ),
         orderBy: (comments, { asc }) => [asc(comments.createdAt)]
@@ -1493,27 +1535,20 @@ export function registerRoutes(app: Express): Server {
       // Get all replies
       const replies = await db.query.comments.findMany({
         where: and(
-          eq(comments.imageId, parseInt(req.params.imageId)),
+          eq(comments.imageId, imageId),
           sql`${comments.parentId} IS NOT NULL`
         ),
         orderBy: (comments, { asc }) => [asc(comments.createdAt)]
       });
 
-      // Get unique user IDs from comments
+      // Get all unique user IDs from both parents and replies
       const userIds = [...new Set([...parentComments, ...replies].map(comment => comment.userId))];
-
-      // Batch fetch user data using cache
       const cachedUsers = await fetchCachedUserData(userIds);
 
-      // Merge comments with cached user details
-      const commentsWithUserData = [...parentComments, ...replies].map(comment => {
+      // Helper function to enrich comment with user data
+      const enrichCommentWithUser = (comment) => {
         const user = cachedUsers.find(u => u.userId === comment.userId);
-        console.log('Processing comment:', {
-          commentId: comment.id,
-          userColor: user?.color || '#ccc'
-        });
-
-        const processedComment = {
+        return {
           ...comment,
           author: {
             id: comment.userId,
@@ -1524,17 +1559,20 @@ export function registerRoutes(app: Express): Server {
             lastName: user?.lastName
           }
         };
+      };
 
-        // Log final structure
-        console.log('Final comment structure:', JSON.stringify(processedComment, null, 2));
+      // Process parent comments and their replies
+      const threadedComments = parentComments.map(parent => {
+        const parentWithUser = enrichCommentWithUser(parent);
+        const commentReplies = replies
+          .filter(reply => reply.parentId === parent.id)
+          .map(enrichCommentWithUser);
 
-        return processedComment;
+        return {
+          ...parentWithUser,
+          replies: commentReplies
+        };
       });
-
-      const threadedComments = parentComments.map(parent => ({
-        ...parent,
-        replies: replies.filter(reply => reply.parentId === parent.id)
-      }));
 
       res.json(threadedComments);
     } catch (error) {
@@ -2751,7 +2789,79 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get cached user data for current user
+  // Add reaction to comment
+  app.post('/api/comments/:commentId/reactions', async (req: Request, res) => {
+    try {
+      const commentId = parseInt(req.params.commentId);
+      const { emoji } = req.body;
+
+      if (!req.auth?.userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          requiresAuth: true
+        });
+      }
+
+      // Verify comment exists
+      const comment = await db.query.comments.findFirst({
+        where: eq(comments.id, commentId)
+      });
+
+      if (!comment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Comment not found'
+        });
+      }
+
+      // Check if reaction already exists
+      const existingReaction = await db.query.commentReactions.findFirst({
+        where: and(
+          eq(commentReactions.commentId, commentId),
+          eq(commentReactions.userId, req.auth.userId),
+          eq(commentReactions.emoji, emoji)
+        )
+      });
+
+      if (existingReaction) {
+        // Remove existing reaction
+        await db.delete(commentReactions)
+          .where(eq(commentReactions.id, existingReaction.id));
+        
+        res.json({
+          success: true,
+          message: 'Reaction removed',
+          removed: true
+        });
+      } else {
+        // Add new reaction
+        const [reaction] = await db.insert(commentReactions)
+          .values({
+            commentId,
+            userId: req.auth.userId,
+            emoji,
+            createdAt: new Date()
+          })
+          .returning();
+
+        res.json({
+          success: true,
+          message: 'Reaction added',
+          data: reaction
+        });
+      }
+    } catch (error) {
+      console.error('Error handling reaction:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to handle reaction',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get cached user data for current user  
   app.get('/api/user/me', async (req, res) => {
     try {
       const userId = req.auth?.userId;
