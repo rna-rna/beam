@@ -1564,17 +1564,14 @@ export function registerRoutes(app: Express): Server {
       // Process parent comments and their replies
       const threadedComments = await Promise.all(parentComments.map(async parent => {
         const parentWithUser = enrichCommentWithUser(parent);
-        const commentReplies = replies
-          .filter(reply => reply.parentId === parent.id)
-          .map(enrichCommentWithUser);
 
-        // Get reactions for this comment
-        const reactions = await db.query.commentReactions.findMany({
+        // Get reactions for parent comment
+        const parentReactions = await db.query.commentReactions.findMany({
           where: eq(commentReactions.commentId, parent.id)
         });
 
-        // Group reactions by emoji
-        const groupedReactions = reactions.reduce((acc, reaction) => {
+        // Group parent reactions
+        const groupedParentReactions = parentReactions.reduce((acc, reaction) => {
           if (!acc[reaction.emoji]) {
             acc[reaction.emoji] = { emoji: reaction.emoji, count: 0, userIds: [] };
           }
@@ -1583,10 +1580,39 @@ export function registerRoutes(app: Express): Server {
           return acc;
         }, {} as Record<string, {emoji: string, count: number, userIds: string[]}>);
 
+        // Get and enrich replies with reactions
+        const repliesWithReactions = await Promise.all(
+          replies
+            .filter(reply => reply.parentId === parent.id)
+            .map(async reply => {
+              const enrichedReply = enrichCommentWithUser(reply);
+              
+              // Get reactions for this reply
+              const replyReactions = await db.query.commentReactions.findMany({
+                where: eq(commentReactions.commentId, reply.id)
+              });
+
+              // Group reply reactions
+              const groupedReplyReactions = replyReactions.reduce((acc, reaction) => {
+                if (!acc[reaction.emoji]) {
+                  acc[reaction.emoji] = { emoji: reaction.emoji, count: 0, userIds: [] };
+                }
+                acc[reaction.emoji].count++;
+                acc[reaction.emoji].userIds.push(reaction.userId);
+                return acc;
+              }, {} as Record<string, {emoji: string, count: number, userIds: string[]}>);
+
+              return {
+                ...enrichedReply,
+                reactions: Object.values(groupedReplyReactions)
+              };
+            })
+        );
+
         return {
           ...parentWithUser,
-          replies: commentReplies,
-          reactions: Object.values(groupedReactions)
+          replies: repliesWithReactions,
+          reactions: Object.values(groupedParentReactions)
         };
       }));
 
