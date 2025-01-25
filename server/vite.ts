@@ -34,24 +34,23 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
-  // Handle API and Pusher routes first
-  app.use(['/api/', '/pusher/'], (req, res, next) => {
-    log(`API/Pusher Request: ${req.method} ${req.url}`);
-    
-    // Ensure content-type for Pusher auth
-    if (req.url.startsWith('/pusher/auth')) {
-      req.headers['content-type'] = 'application/json';
-    }
-    
-    next();
-  });
+  // Handle Pusher auth route first
+  // Import and use the Pusher auth router first
+  const pusherAuthRouter = (await import('./routes/pusherAuth.js')).default;
+  app.use(pusherAuthRouter);
 
-  // Handle all other routes with Vite
+  // Socket.IO and API routes should be handled before Vite
   app.use((req, res, next) => {
-    if (req.url.startsWith('/api/') || req.url.startsWith('/pusher/')) {
+    if (req.url.startsWith('/socket.io/')) {
+      log(`Socket.IO Request: ${req.method} ${req.url}`);
       return next();
     }
     
+    if (req.url.startsWith('/api/')) {
+      log(`API Request: ${req.method} ${req.url}`);
+      return next();
+    }
+
     log(`Non-API Request: ${req.method} ${req.url}`);
     vite.middlewares(req, res, next);
   });
@@ -60,8 +59,8 @@ export async function setupVite(app: Express, server: Server) {
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
-    // Skip API/Pusher routes
-    if (url.startsWith('/api/') || url.startsWith('/pusher/')) {
+    // Skip API/Pusher/Socket.IO routes
+    if (url.startsWith('/api/') || url.startsWith('/pusher/') || url.startsWith('/socket.io/')) {
       return next();
     }
 
