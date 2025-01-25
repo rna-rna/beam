@@ -40,9 +40,24 @@ export function NotificationSystem() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("/api/notifications");
-      const data = await res.json();
-      setNotifications(Array.isArray(data) ? data : []);
+      const res = await fetch("/api/notifications", {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
+      const response = await res.json();
+      if (response.success && response.data) {
+        setNotifications(Array.isArray(response.data) ? response.data : []);
+      } else {
+        setNotifications([]);
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
       setNotifications([]);
