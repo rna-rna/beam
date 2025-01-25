@@ -65,7 +65,7 @@ export function CommentBubble({
   timestamp,
   replies = []
 }: CommentBubbleProps) {
-  
+
   const { user } = useUser();
   const isAuthor = user?.id === author?.id;
   const [isEditing, setIsEditing] = useState(isNew);
@@ -204,7 +204,9 @@ export function CommentBubble({
       });
     },
     onSuccess: () => {
+      // Invalidate both comments and reactions queries
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+      queryClient.invalidateQueries([`/api/comments/${id}/reactions`]);
     }
   });
 
@@ -228,8 +230,8 @@ export function CommentBubble({
       if (!numericImageId || isNaN(numericImageId)) {
         throw new Error(`Invalid imageId: Expected a number, got ${typeof imageId}`);
       }
-      
-      
+
+
 
       // Validate all required fields upfront
       if (!user?.id) {
@@ -239,7 +241,7 @@ export function CommentBubble({
         throw new Error('Reply content is empty');
       }
       if (!numericImageId || typeof numericImageId !== 'number' || isNaN(numericImageId)) {
-        
+
         throw new Error('Valid image ID is required');
       }
       if (!id && !parentId) {
@@ -248,9 +250,9 @@ export function CommentBubble({
 
       const token = await getToken();
       const endpoint = `/api/images/${imageId}/comments`;
-      
-      
-      
+
+
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -268,12 +270,12 @@ export function CommentBubble({
 
       if (!response.ok) {
         const error = await response.text();
-        
+
         throw new Error(error);
       }
 
       const data = await response.json();
-      
+
       return data;
     },
     onError: (error) => {
