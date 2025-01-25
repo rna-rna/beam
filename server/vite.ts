@@ -33,26 +33,18 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
-  // Handle Pusher auth specifically
-  app.use('/pusher/auth', (req, res, next) => {
-    log(`Pusher Auth Request: ${req.method} ${req.url}`);
-    if (!req.headers['content-type']?.includes('application/json')) {
-      req.headers['content-type'] = 'application/json';
-    }
-    next();
-  });
-
-  // Handle API routes
-  app.use('/api', (req, res, next) => {
-    log(`API Request: ${req.method} ${req.url}`);
-    next();
-  });
-
-  // Non-API routes go through Vite
+  // Set up Pusher auth and API routes before Vite middleware
   app.use((req, res, next) => {
+    // Skip Vite for API and Pusher routes
     if (req.url.startsWith('/api/') || req.url.startsWith('/pusher/')) {
+      log(`API/Pusher Request: ${req.method} ${req.url}`);
+      if (req.url.startsWith('/pusher/auth') && !req.headers['content-type']?.includes('application/json')) {
+        req.headers['content-type'] = 'application/json';
+      }
       return next();
     }
+
+    // All other routes go through Vite
     log(`Non-API Request: ${req.method} ${req.url}`);
     vite.middlewares(req, res, next);
   });
