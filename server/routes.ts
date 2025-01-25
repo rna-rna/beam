@@ -19,6 +19,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from 'sharp';
 import { pusher } from './pusherConfig';
 import { getGalleryUserRole, canManageGallery, canStar } from './lib/roles';
+import { createOrUpdateNotification } from './lib/notificationService';
 
 // Replace with your actual bucket name and endpoint
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
