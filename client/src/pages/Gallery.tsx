@@ -2806,17 +2806,26 @@ export default function Gallery({
                       {/* Comments */}
                       {showAnnotations &&
                         selectedImage?.id &&
-                        comments.map((comment) => (
-                          <CommentBubble
-                            key={comment.id}
-                            x={comment.xPosition}
-                            y={comment.yPosition}
-                            content={comment.content}
-                            author={comment.author}
-                            imageId={Number(selectedImage.id)}
-                            replies={comment.replies || []}
-                          />
-                        ))}
+                        comments.map((comment) => {
+                          console.log('Rendering CommentBubble:', {
+                            commentId: comment.id,
+                            parentId: comment.parentId,
+                            imageId: selectedImage.id
+                          });
+                          return (
+                            <CommentBubble
+                              key={comment.id}
+                              x={comment.xPosition}
+                              y={comment.yPosition}
+                              content={comment.content}
+                              author={comment.author}
+                              imageId={Number(selectedImage.id)}
+                              replies={comment.replies || []}
+                              id={comment.id}
+                              parentId={comment.parentId}
+                            />
+                          );
+                        })}
 
                       {/* New comment placement */}
                       {newCommentPos && selectedImage && (
