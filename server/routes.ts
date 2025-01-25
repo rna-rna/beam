@@ -2577,16 +2577,21 @@ export function registerRoutes(app: Express): Server {
 
   // Get grouped notifications
   protectedRouter.get('/api/notifications', async (req: any, res) => {
+    console.log("[DEBUG] /api/notifications endpoint hit!");
+    
     try {
       const userId = req.auth?.userId;
+      console.log("[DEBUG] userId in /api/notifications:", userId);
+
       if (!userId) {
+        console.log("[DEBUG] No userId - returning 401");
         return res.status(401).json({ 
           success: false,
           message: 'Authentication required'
         });
       }
 
-      console.log('[Notifications] Fetching for user:', userId);
+      console.log('[DEBUG] Fetching notifications for user:', userId);
 
       const notifications = await db.query.notifications.findMany({
         where: and(
@@ -2626,6 +2631,12 @@ export function registerRoutes(app: Express): Server {
 
       // Sort by latest time
       grouped.sort((a, b) => b.latestTime.getTime() - a.latestTime.getTime());
+
+      console.log("[DEBUG] Found and grouped notifications:", {
+        total: notifications.length,
+        groupedCount: grouped.length,
+        sample: grouped[0]
+      });
 
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.json({
