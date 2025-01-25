@@ -52,14 +52,8 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
-  // Handle API routes first
-  app.use('/api', (req, res, next) => {
-    next();
-  });
-
-  // Then let Vite handle everything else
   app.use(vite.middlewares);
-  
+
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
