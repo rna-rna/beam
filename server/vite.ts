@@ -34,23 +34,24 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
-  // Handle Pusher auth route first
-  // Import and use the Pusher auth router first
+  // Handle Socket.IO requests before anything else
+  app.use('/socket.io', (req, res, next) => {
+    log(`Socket.IO Request: ${req.method} ${req.url}`);
+    return next();
+  });
+
+  // Handle Pusher auth route
   const pusherAuthRouter = (await import('./routes/pusherAuth.js')).default;
   app.use(pusherAuthRouter);
 
-  // Socket.IO and API routes should be handled before Vite
-  app.use((req, res, next) => {
-    if (req.url.startsWith('/socket.io/')) {
-      log(`Socket.IO Request: ${req.method} ${req.url}`);
-      return next();
-    }
-    
-    if (req.url.startsWith('/api/')) {
-      log(`API Request: ${req.method} ${req.url}`);
-      return next();
-    }
+  // Handle API routes
+  app.use('/api', (req, res, next) => {
+    log(`API Request: ${req.method} ${req.url}`);
+    return next();
+  });
 
+  // Handle all other routes with Vite
+  app.use((req, res, next) => {
     log(`Non-API Request: ${req.method} ${req.url}`);
     vite.middlewares(req, res, next);
   });
