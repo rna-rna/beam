@@ -23,6 +23,19 @@ export interface Notification {
 export function NotificationSystem() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const markAllAsRead = async () => {
+    try {
+      await fetch('/api/notifications/mark-all-read', { 
+        method: 'POST',
+        credentials: 'include'
+      });
+      // Re-fetch notifications to update state
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+    }
+  };
   const { slug } = useParams();
 
   const fetchNotifications = async () => {
@@ -44,7 +57,13 @@ export function NotificationSystem() {
     <div className="relative">
       <NotificationBell 
         notifications={notifications} 
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
+        onClick={() => {
+    const wasOpen = isDropdownOpen;
+    setIsDropdownOpen(!wasOpen);
+    if (!wasOpen) {
+      markAllAsRead();
+    }
+  }} 
       />
       {isDropdownOpen && (
         <NotificationDropdown 

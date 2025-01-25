@@ -2579,6 +2579,24 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Mark all notifications as read
+  protectedRouter.post('/api/notifications/mark-all-read', async (req: any, res) => {
+    try {
+      const userId = req.auth.userId;
+      await db.update(notifications)
+        .set({ isSeen: true })
+        .where(and(
+          eq(notifications.userId, userId),
+          eq(notifications.isSeen, false)
+        ));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error marking notifications read:', error);
+      res.status(500).json({ success: false });
+    }
+  });
+
   // Get grouped notifications
   protectedRouter.get('/api/notifications', async (req: any, res) => {
     try {
