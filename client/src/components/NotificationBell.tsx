@@ -19,7 +19,7 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ notifications, onClick }: NotificationBellProps) {
-  const unseenCount = notifications.length;
+  const unseenCount = notifications.filter(n => !n.isSeen).length;
 
   return (
     <Popover>
