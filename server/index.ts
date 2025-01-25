@@ -97,14 +97,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Debug logging middleware
-app.use((req, res, next) => {
-  console.log(`[DEBUG] ${req.method} ${req.url}`);
-  console.log("Headers:", req.headers);
-  console.log("Body:", req.body);
-  console.log("Params:", req.params);
-  next();
-});
+
 
 // Ensure Pusher auth route is handled before static files
 app.use(pusherAuthRouter);
