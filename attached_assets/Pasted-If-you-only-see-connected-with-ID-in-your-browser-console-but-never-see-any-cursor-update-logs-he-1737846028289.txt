@@ -1,0 +1,88 @@
+If you only see connected with ID in your browser console but never see any "cursor-update" logs, here are the most common reasons:
+
+1. The Event Name Doesn’t Match Exactly
+Make sure the event name in your client-side listener is spelled and cased exactly the same as the one the server emits. For example, if the server is doing something like:
+
+js
+Copy
+Edit
+socket.emit("cursor-update", data);
+then on the client, you must do:
+
+js
+Copy
+Edit
+socket.on("cursor-update", (payload) => {
+  console.log("Got cursor-update:", payload);
+});
+Any mismatch (like "CursorUpdate", "cursor_updated", or 'cursorupdate') will mean the event never fires on the client.
+
+2. The Server Is Emitting on Another Namespace (or the Client Is Connected to the Wrong One)
+Socket.IO supports namespaces. If your server code looks like:
+
+js
+Copy
+Edit
+const adminNs = io.of("/admin");
+adminNs.on("connection", (socket) => {
+  // ...
+  socket.emit("cursor-update", { ... });
+});
+but in the client you are calling io() (the default, root namespace), you won’t see events from the "/admin" namespace. You’d have to do:
+
+js
+Copy
+Edit
+const socket = io("/admin");
+socket.on("cursor-update", (payload) => {
+  console.log("Got cursor-update in /admin:", payload);
+});
+3. The Server Emits to a Specific Room or Broadcast Excluding the Sender
+If the server code is something like:
+
+js
+Copy
+Edit
+socket.broadcast.to("someRoom").emit("cursor-update", data);
+then the socket that sent the event might never see it (Socket.IO’s broadcast excludes the sender). Or if your client never joins the correct room, it won’t receive the event. If that’s the case:
+
+Ensure the client has joined that room (if you’re using socket.join("someRoom") on the server side when the client connects).
+Or, if you do want the sender to also see it, don’t use broadcast or also do a separate socket.emit(...) to the sender.
+4. The Code That Emits cursor-update Isn’t Actually Running
+Sometimes the server logs might show raw Socket.IO traffic, but your custom .emit() call is never reached. For instance, maybe you intended to do:
+
+js
+Copy
+Edit
+socket.on("some-other-event", () => {
+  socket.emit("cursor-update", data);
+});
+...but that some-other-event is never actually triggered, so no custom event is broadcast. Meanwhile, the logs you see in DevTools might just be standard Socket.IO handshake/ping events, not your custom data.
+
+To verify, add a simple test on the server:
+
+js
+Copy
+Edit
+io.on("connection", (socket) => {
+  console.log("a client connected:", socket.id);
+
+  // try emitting immediately
+  socket.emit("cursor-update", { test: "hello" });
+});
+Then see if your client logs that event.
+
+5. The Client-Side Code Isn’t Actually Running or Has an Error
+Double-check your browser DevTools console for other errors that might prevent your socket.on("cursor-update", ...) code from running. For example, a syntax error earlier in your script can block the rest of the file.
+
+You can debug by adding a console log right next to where you set up the listener:
+
+js
+Copy
+Edit
+console.log("Registering cursor-update listener...");
+socket.on("cursor-update", (payload) => {
+  console.log("Got cursor-update:", payload);
+});
+If you don’t see “Registering cursor-update listener...” at all, that means that code path isn’t being executed.
+
