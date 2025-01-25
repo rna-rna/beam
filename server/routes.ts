@@ -2593,7 +2593,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log('[DEBUG] Fetching notifications for user:', userId);
 
-      const notifications = await db.query.notifications.findMany({
+      const userNotifications = await db.query.notifications.findMany({
         where: and(
           eq(notifications.userId, userId),
           eq(notifications.isSeen, false)
@@ -2601,10 +2601,10 @@ export function registerRoutes(app: Express): Server {
         orderBy: [desc(notifications.createdAt)],
       });
 
-      console.log('[Notifications] Found:', notifications.length);
+      console.log('[Notifications] Found:', userNotifications.length);
 
       // Group notifications by groupId, type and similar data
-      const grouped = notifications.reduce((acc: any[], notification) => {
+      const grouped = userNotifications.reduce((acc: any[], notification) => {
         const existingGroup = acc.find(group => 
           group.groupId === notification.groupId && 
           group.type === notification.type &&
