@@ -1,4 +1,3 @@
-
 import express, { type Express } from "express";
 import fs from "fs";
 import path, { dirname } from "path";
@@ -26,24 +25,7 @@ export async function setupVite(app: Express, server: Server) {
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
-    customLogger: {
-      ...viteLogger,
-      error: (msg, options) => {
-        if (msg.includes("[TypeScript] Found 0 errors. Watching for file changes")) {
-          log("no errors found", "tsc");
-          return;
-        }
-
-        if (msg.includes("[TypeScript] ")) {
-          const [errors, summary] = msg.split("[TypeScript] ", 2);
-          log(`${summary} ${errors}\u001b[0m`, "tsc");
-          return;
-        } else {
-          viteLogger.error(msg, options);
-          process.exit(1);
-        }
-      },
-    },
+    customLogger: viteLogger,
     server: {
       middlewareMode: true,
       hmr: { server },
@@ -51,29 +33,39 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
-  // Early routing check to skip Vite for API routes
+  // IMPORTANT: Handle API routes before Vite middleware
+  app.use('/api', (req, res, next) => {
+    // Log API requests for debugging
+    log(`API Request: ${req.method} ${req.url}`);
+    next();
+  });
+
+  // All other routes go through Vite
   app.use((req, res, next) => {
     if (req.url.startsWith('/api/')) {
       return next();
     }
+
+    log(`Non-API Request: ${req.method} ${req.url}`);
     vite.middlewares(req, res, next);
   });
 
-  // Fallback for client-side routing
+  // Fallback should only handle non-API routes
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
-    try {
-      const clientTemplate = path.resolve(
-        __dirname,
-        "..",
-        "client",
-        "index.html",
-      );
+    // Skip API routes in the fallback handler
+    if (url.startsWith('/api/')) {
+      return next();
+    }
 
-      const template = await fs.promises.readFile(clientTemplate, "utf-8");
-      const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+    try {
+      const template = fs.readFileSync(
+        path.resolve(__dirname, "..", "client", "index.html"),
+        "utf-8"
+      );
+      const html = await vite.transformIndexHtml(url, template);
+      res.status(200).set({ "Content-Type": "text/html" }).end(html);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
@@ -90,9 +82,20 @@ export function serveStatic(app: Express) {
     );
   }
 
+  // Handle API routes first in production too
+  app.use('/api/*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api/')) {
+      return next();
+    }
+    express.static(distPath)(req, res, next);
+  });
+
   app.use(express.static(distPath));
 
-  app.use("*", (_req, res) => {
+  app.use("*", (req, res) => {
+    if (req.originalUrl.startsWith('/api/')) {
+      return res.status(404).json({ error: 'API route not found' });
+    }
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
