@@ -2576,7 +2576,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get grouped notifications
-  protectedRouter.get('/api/notifications', async (req: any, res) => {
+  protectedRouter.get('/notifications', async (req: any, res) => {
     console.log("[DEBUG] /api/notifications endpoint hit!");
     
     try {

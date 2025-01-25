@@ -48,7 +48,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 (async () => {
-  // Set up Vite middleware and get API router
+  // Register API routes first
+  registerRoutes(app);
+
+  // Then set up Vite middleware
   if (app.get("env") === "development") {
     process.env.VITE_CLERK_PUBLISHABLE_KEY = process.env.CLERK_PUBLISHABLE_KEY;
     console.log('Setting VITE_CLERK_PUBLISHABLE_KEY for frontend...');
@@ -56,9 +59,6 @@ app.use(express.urlencoded({ extended: false }));
   } else {
     serveStatic(app);
   }
-
-  // Register routes
-  registerRoutes(app);
 
   // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
