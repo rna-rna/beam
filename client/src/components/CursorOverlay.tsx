@@ -1,6 +1,7 @@
-
 import { motion } from "framer-motion";
 import { useUser } from "@clerk/clerk-react";
+import { io } from "socket.io-client";
+import { useState, useEffect } from "react";
 
 interface UserCursor {
   id: string;
@@ -17,13 +18,42 @@ interface CursorOverlayProps {
 
 export function CursorOverlay({ cursors }: CursorOverlayProps) {
   const { user } = useUser();
+  const [cursorsState, setCursors] = useState<UserCursor[]>(cursors);
+
+  useEffect(() => {
+    console.log("Attempting to connect socket...");
+    const socket = io({
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on("connect", () => {
+      console.log("Socket connected with ID:", socket.id);
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+    });
+
+    socket.on('cursor-update', (data) => {
+      console.log("Received cursor-update:", data);
+      setCursors(prevCursors => ({
+        ...prevCursors,
+        [data.userId]: data
+      }));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
 
   return (
     <div
       className="fixed inset-0 pointer-events-none"
       style={{ zIndex: 99999 }}
     >
-      {cursors
+      {cursorsState
         .filter((cursor) => cursor.id !== user?.id)
         .map((otherUser) => (
           <motion.div
