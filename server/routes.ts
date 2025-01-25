@@ -19,6 +19,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from 'sharp';
 import { pusher } from './pusherConfig';
 import { getGalleryUserRole, canManageGallery, canStar } from './lib/roles';
+import { createOrUpdateNotification } from './lib/notificationService';
 
 // Replace with your actual bucket name and endpoint
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
@@ -777,25 +778,21 @@ export function registerRoutes(app: Express): Server {
             // Get all editor users for notifications
             const editorUserIds = await getEditorUserIds(gallery.id);
 
-            // Create notifications for all editors except the actor
-            await Promise.all(
-              editorUserIds
-                .filter(editorId => editorId !== req.auth?.userId)
-                .map((editorId) =>
-                  db.insert(notifications).values({
-                    userId: editorId,
-                    type: 'image-uploaded',
-                    data: {
-                      imageId: image.id,
-                      url: publicUrl,
-                      actorId: req.auth?.userId,
-                      galleryId: gallery.id
-                    },
-                    isSeen: false,
-                    createdAt: new Date()
-                  })
-                )
-            );
+            // Notify all editors except the actor about the new image
+            for (const editorId of editorUserIds) {
+              if (editorId === req.auth?.userId) continue;
+
+              await createOrUpdateNotification({
+                recipientId: editorId,
+                actorId: req.auth?.userId,
+                galleryId: gallery.id,
+                type: 'image-uploaded',
+                data: {
+                  imageId: image.id,
+                  url: publicUrl,
+                }
+              });
+            }
 
             // Emit real-time event via Pusher
             pusher.trigger(`presence-gallery-${gallery.slug}`, 'image-uploaded', {
@@ -1754,51 +1751,20 @@ export function registerRoutes(app: Express): Server {
       const editorUserIds = await getEditorUserIds(image.gallery.id);
 
       // Create or update notifications for all editors except the actor
-      await Promise.all(
-        editorUserIds
-          .filter(editorId => editorId !== userId)
-          .map(async (editorId) => {
-            const existingNotification = await db.query.notifications.findFirst({
-              where: and(
-                eq(notifications.type, 'image-starred'),
-                eq(notifications.userId, editorId),
-                sql`${notifications.data}->>'imageId' = ${imageId}::text`,
-                sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
-              )
-            });
+      for (const editorId of editorUserIds) {
+        if (editorId === userId) continue;
 
-            if (existingNotification) {
-              // Update timestamp for existing notification
-              await db.update(notifications)
-                .set({ 
-                  createdAt: new Date(),
-                  data: {
-                    imageId,
-                    isStarred: !isStarred,
-                    actorId: userId,
-                    galleryId: image.gallery.id
-                  }
-                })
-                .where(eq(notifications.id, existingNotification.id));
-            } else {
-              // Create a new notification with a new group_id
-              const groupId = nanoid();
-              await db.insert(notifications).values({
-                userId: editorId,
-                type: 'image-starred',
-                data: {
-                  imageId,
-                  isStarred: !isStarred,
-                  actorId: userId,
-                  galleryId: image.gallery.id
-                },
-                groupId,
-                isSeen: false,
-                createdAt: new Date()
-              });
-            }
-          })
-      );
+        await createOrUpdateNotification({
+          recipientId: editorId,
+          actorId: userId,
+          galleryId: image.gallery.id,
+          type: 'image-starred',
+          data: { 
+            imageId,
+            isStarred: !isStarred
+          }
+        });
+      }
 
       // Emit real-time event via Pusher
       pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'image-starred', {
@@ -2006,7 +1972,7 @@ export function registerRoutes(app: Express): Server {
     const userId = req.auth.userId;
 
     try {
-      consolelog('Invite attempt:', {
+      console.log('Invite attempt:', {
         slug,
         email,
         role,
@@ -2588,6 +2554,24 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to move gallery:', error);
       res.status(500).json({ message: 'Failed to move gallery' });
+    }
+  });
+
+  // Mark all notifications as read
+  protectedRouter.post('/api/notifications/mark-all-read', async (req: any, res) => {
+    try {
+      const userId = req.auth.userId;
+      await db.update(notifications)
+        .set({ isSeen: true })
+        .where(and(
+          eq(notifications.userId, userId),
+          eq(notifications.isSeen, false)
+        ));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error marking notifications read:', error);
+      res.status(500).json({ success: false });
     }
   });
 
