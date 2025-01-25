@@ -433,20 +433,31 @@ export function CommentBubble({
                 </div>
               )}
               {replies && replies.length > 0 && (
-                <div className="mt-2 space-y-2">
+                <div className="mt-2 space-y-2 border-l-2 border-muted pl-3">
                   {replies.map((reply) => (
-                    <CommentBubble
-                      key={reply.id}
-                      id={reply.id}
-                      content={reply.content}
-                      author={reply.author}
-                      x={x}
-                      y={y + 10}
-                      parentId={id}
-                      imageId={imageId}
-                      replies={[]}
-                      onSubmit={onSubmit}
-                    />
+                    <div key={reply.id} className="relative">
+                      <div className="flex gap-2 items-start">
+                        <UserAvatar
+                          size="xs"
+                          name={reply.author?.username ?? "Unknown"}
+                          imageUrl={reply.author?.imageUrl}
+                          color={reply.author?.color ?? '#ccc'}
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {reply.author?.username || 'Unknown User'}
+                            </span>
+                            {reply.createdAt && (
+                              <span className="text-xs text-muted-foreground">
+                                {formatRelativeDate(new Date(reply.createdAt))}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{reply.content}</p>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
