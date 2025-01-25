@@ -45,9 +45,9 @@ export async function setupVite(app: Express, server: Server) {
     next();
   });
 
-  // Handle all other routes with Vite
+  // Handle all other routes with Vite, but exclude Socket.IO paths
   app.use((req, res, next) => {
-    if (req.url.startsWith('/api/')) {
+    if (req.url.startsWith('/api/') || req.url.startsWith('/socket.io/')) {
       return next();
     }
     
@@ -59,8 +59,8 @@ export async function setupVite(app: Express, server: Server) {
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
-    // Skip API/Pusher routes
-    if (url.startsWith('/api/') || url.startsWith('/pusher/')) {
+    // Skip API/Pusher/Socket.IO routes
+    if (url.startsWith('/api/') || url.startsWith('/pusher/') || url.startsWith('/socket.io/')) {
       return next();
     }
 
