@@ -106,6 +106,8 @@ export function CommentBubble({
 
   const dragConstraints = useRef(null);
 
+  const [localCommentId, setLocalCommentId] = useState<number | null>(null);
+
   const commentMutation = useMutation({
     mutationFn: async (commentText: string) => {
       if (!user) {
@@ -135,12 +137,14 @@ export function CommentBubble({
         throw new Error('Failed to add comment');
       }
 
-      return response.json();
+      const data = await response.json();
+      return data;
     },
     onSuccess: (data) => {
       setText("");
       setIsEditing(false);
       if (onSubmit) onSubmit();
+      setLocalCommentId(data.data.id);
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
     },
     onError: (error) => {
@@ -431,7 +435,7 @@ export function CommentBubble({
                   {formatRelativeDate(new Date(timestamp))}
                 </span>
               )}
-              {!parentId && (
+              {!parentId && (id || localCommentId) && (
                 <div className="flex items-center gap-2 mt-2">
                   <UserAvatar
                     size="xs"
