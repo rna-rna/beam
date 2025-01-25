@@ -24,7 +24,12 @@ export function CursorOverlay({ cursors = [] }: CursorOverlayProps) {
     console.log("Attempting to connect socket...");
     const socket = io({
       transports: ['websocket', 'polling'],
-      path: '/socket.io'
+      path: '/socket.io',
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000
     });
 
     socket.on("connect", () => {
