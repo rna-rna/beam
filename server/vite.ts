@@ -48,11 +48,24 @@ export async function setupVite(app: Express, server: Server) {
     server: {
       middlewareMode: true,
       hmr: { server },
+      proxy: {
+        '/api': {
+          target: `http://0.0.0.0:${process.env.PORT || 3000}`,
+          changeOrigin: true
+        }
+      }
     },
     appType: "custom",
   });
 
-  app.use(vite.middlewares);
+  // Ensure API routes are handled before Vite middleware
+  app.use((req, res, next) => {
+    if (req.url.startsWith('/api/')) {
+      next();
+    } else {
+      vite.middlewares(req, res, next);
+    }
+  });
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
