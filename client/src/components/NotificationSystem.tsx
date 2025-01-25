@@ -80,19 +80,9 @@ export function NotificationSystem() {
       <NotificationBell 
         notifications={notifications} 
         onClick={() => {
-          const wasOpen = isDropdownOpen;
-          setIsDropdownOpen(!wasOpen);
-          if (!wasOpen) {
-            markAllAsRead();
-          }
+          markAllAsRead();
         }} 
       />
-      {isDropdownOpen && (
-        <NotificationDropdown 
-          notifications={notifications} 
-          onClose={() => setIsDropdownOpen(false)}
-        />
-      )}
     </div>
   );
 }
