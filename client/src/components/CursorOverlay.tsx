@@ -13,12 +13,12 @@ interface UserCursor {
 }
 
 interface CursorOverlayProps {
-  cursors: UserCursor[];
+  cursors?: UserCursor[];
 }
 
-export function CursorOverlay({ cursors }: CursorOverlayProps) {
+export function CursorOverlay({ cursors = [] }: CursorOverlayProps) {
   const { user } = useUser();
-  const [cursorsState, setCursors] = useState<Record<string, UserCursor>>({});
+  const [cursorsState, setCursors] = useState<UserCursor[]>(cursors);
 
   useEffect(() => {
     console.log("Attempting to connect socket...");
@@ -39,20 +39,15 @@ export function CursorOverlay({ cursors }: CursorOverlayProps) {
       console.log("Received cursor-update:", data);
       if (data && data.id) {
         setCursors(prevCursors => {
-          console.log("Updating cursors state:", { prev: prevCursors, new: data });
-          const newState = {
-            ...prevCursors,
-            [data.id]: {
-              id: data.id,
-              name: data.name || 'Anonymous',
-              color: data.color || '#000000',
-              x: data.x || 0,
-              y: data.y || 0,
-              lastActive: Date.now()
-            }
-          };
-          console.log("New cursors state:", newState);
-          return newState;
+          const otherCursors = prevCursors.filter(c => c.id !== data.id);
+          return [...otherCursors, {
+            id: data.id,
+            name: data.name || 'Anonymous',
+            color: data.color || '#000000',
+            x: data.x || 0,
+            y: data.y || 0,
+            lastActive: Date.now()
+          }];
         });
       }
     });
@@ -83,7 +78,7 @@ export function CursorOverlay({ cursors }: CursorOverlayProps) {
       className="fixed inset-0 pointer-events-none"
       style={{ zIndex: 99999 }}
     >
-      {Object.values(cursorsState)
+      {cursorsState
         .filter((cursor) => cursor.id !== user?.id)
         .map((otherUser) => (
           <motion.div
