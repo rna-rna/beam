@@ -50,8 +50,10 @@ export async function setupVite(app: Express, server: Server) {
       hmr: { server },
       proxy: {
         '/api': {
-          target: `http://0.0.0.0:${process.env.PORT || 3000}`,
-          changeOrigin: true
+          target: `http://0.0.0.0:5000`,
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path
         }
       }
     },
