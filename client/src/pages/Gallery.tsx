@@ -853,7 +853,6 @@ export default function Gallery({
       console.error("Failed to fetch comments:", err);
     },
     select: (data) => {
-      console.log("Raw comment data:", data);
       return data.map((comment) => ({
         ...comment,
         author: {
@@ -863,9 +862,6 @@ export default function Gallery({
           color: comment.color || '#ccc'
         },
       }));
-    },
-    onSuccess: (data) => {
-      console.log("Processed comment data:", data);
     },
   });
 
