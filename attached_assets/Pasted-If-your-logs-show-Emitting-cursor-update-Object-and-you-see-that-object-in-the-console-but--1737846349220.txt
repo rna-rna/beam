@@ -1,0 +1,81 @@
+If your logs show Emitting cursor-update: Object { ... }—and you see that object in the console—but nothing updates in your front-end UI, it typically means the server is indeed sending that cursor-update event, but your client code is either:
+
+Not listening for "cursor-update", or
+Listening for "cursor-update" but not using that data to update the DOM/UI.
+1. Verify You Have a Matching Client-Side Listener
+On the client, you must have:
+
+js
+Copy
+Edit
+socket.on("cursor-update", (data) => {
+  console.log("Received cursor-update:", data);
+  // ... update your UI with the x/y, color, etc.
+});
+If you never see “Received cursor-update: …” in the browser console, then either:
+
+The event name is spelled/cased differently between your server and client.
+You’re not actually connecting to the same namespace.
+The server emits to some room or excludes the sender.
+Check for any mismatch
+If the server calls socket.emit("cursor-update", data), your client must use socket.on("cursor-update", ...).
+If you’re broadcasting to everyone except the sender with socket.broadcast.emit("cursor-update", data), then the emitter won’t see it come back unless you also do a direct socket.emit(...).
+2. Make Sure the Front-End Actually Uses the Data
+Even if you do see something like:
+
+yaml
+Copy
+Edit
+Received cursor-update: { x: 1067, y: 152, name: "Jack" ... }
+you won’t see anything on screen unless you modify the DOM or your app’s state. For example, if you’re tracking positions in React:
+
+js
+Copy
+Edit
+socket.on("cursor-update", (data) => {
+  setCursorPositions((positions) => ({
+    ...positions,
+    [data.id]: { x: data.x, y: data.y, color: data.color, name: data.name }
+  }));
+});
+Then you’d render those cursor positions in some component. If you don’t do this step, you’ll see logs but no visible change on the page.
+
+3. Double-Check You’re Using the Same Namespace (If Any)
+If your server code is something like:
+
+js
+Copy
+Edit
+const galleryNs = io.of("/gallery");
+galleryNs.on("connection", (socket) => {
+  socket.on("cursor-update", (data) => {
+    console.log("Emitting cursor-update", data);
+    galleryNs.emit("cursor-update", data);
+  });
+});
+Then on the client:
+
+js
+Copy
+Edit
+// must connect to "/gallery" namespace
+const socket = io("/gallery");
+
+socket.on("cursor-update", (payload) => {
+  // ...
+});
+If your client is just io() (the default namespace), it will never see events from "/gallery".
+
+4. Confirm the Client Code Actually Runs
+Open DevTools → Console and watch for any errors. A JS error might prevent your code from executing the socket.on("cursor-update", ...).
+Add logs around your code:
+js
+Copy
+Edit
+console.log("Registering cursor-update listener...");
+socket.on("cursor-update", (data) => {
+  console.log("Got cursor-update event!", data);
+  // ...
+});
+console.log("Listener registration done.");
+If you don’t see those logs, your code block might not be loading or is behind a syntax error.

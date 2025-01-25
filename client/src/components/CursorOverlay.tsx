@@ -18,12 +18,13 @@ interface CursorOverlayProps {
 
 export function CursorOverlay({ cursors }: CursorOverlayProps) {
   const { user } = useUser();
-  const [cursorsState, setCursors] = useState<UserCursor[]>(cursors);
+  const [cursorsState, setCursors] = useState<Record<string, UserCursor>>({});
 
   useEffect(() => {
     console.log("Attempting to connect socket...");
     const socket = io({
-      transports: ['websocket', 'polling']
+      transports: ['websocket'],
+      path: '/socket.io'
     });
 
     socket.on("connect", () => {
@@ -53,7 +54,7 @@ export function CursorOverlay({ cursors }: CursorOverlayProps) {
       className="fixed inset-0 pointer-events-none"
       style={{ zIndex: 99999 }}
     >
-      {cursorsState
+      {Object.values(cursorsState)
         .filter((cursor) => cursor.id !== user?.id)
         .map((otherUser) => (
           <motion.div
