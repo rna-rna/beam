@@ -2558,7 +2558,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Mark all notifications as read
-  protectedRouter.post('/api/notifications/mark-all-read', async (req: any, res) => {
+  protectedRouter.post('/notifications/mark-all-read', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
       await db.update(notifications)

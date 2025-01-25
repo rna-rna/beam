@@ -40,7 +40,10 @@ export function NotificationBell({ notifications, onClick }: NotificationBellPro
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
-        <NotificationDropdown notifications={notifications} />
+        <NotificationDropdown 
+          notifications={notifications} 
+          onMarkAllAsRead={onClick}
+        />
       </PopoverContent>
     </Popover>
   );
