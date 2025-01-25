@@ -2789,7 +2789,79 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get cached user data for current user
+  // Add reaction to comment
+  app.post('/api/comments/:commentId/reactions', async (req: Request, res) => {
+    try {
+      const commentId = parseInt(req.params.commentId);
+      const { emoji } = req.body;
+
+      if (!req.auth?.userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          requiresAuth: true
+        });
+      }
+
+      // Verify comment exists
+      const comment = await db.query.comments.findFirst({
+        where: eq(comments.id, commentId)
+      });
+
+      if (!comment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Comment not found'
+        });
+      }
+
+      // Check if reaction already exists
+      const existingReaction = await db.query.commentReactions.findFirst({
+        where: and(
+          eq(commentReactions.commentId, commentId),
+          eq(commentReactions.userId, req.auth.userId),
+          eq(commentReactions.emoji, emoji)
+        )
+      });
+
+      if (existingReaction) {
+        // Remove existing reaction
+        await db.delete(commentReactions)
+          .where(eq(commentReactions.id, existingReaction.id));
+        
+        res.json({
+          success: true,
+          message: 'Reaction removed',
+          removed: true
+        });
+      } else {
+        // Add new reaction
+        const [reaction] = await db.insert(commentReactions)
+          .values({
+            commentId,
+            userId: req.auth.userId,
+            emoji,
+            createdAt: new Date()
+          })
+          .returning();
+
+        res.json({
+          success: true,
+          message: 'Reaction added',
+          data: reaction
+        });
+      }
+    } catch (error) {
+      console.error('Error handling reaction:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to handle reaction',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get cached user data for current user  
   app.get('/api/user/me', async (req, res) => {
     try {
       const userId = req.auth?.userId;
