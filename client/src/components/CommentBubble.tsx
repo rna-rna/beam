@@ -127,14 +127,12 @@ export function CommentBubble({
         body: JSON.stringify({
           content: commentText,
           xPosition: x,
-          yPosition: y,
-          parentId: parentId || null
+          yPosition: y
         })
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || 'Failed to add comment');
+        throw new Error('Failed to add comment');
       }
 
       return response.json();
@@ -433,7 +431,7 @@ export function CommentBubble({
                   {formatRelativeDate(new Date(timestamp))}
                 </span>
               )}
-              {!parentId && id && (
+              {!parentId && (
                 <div className="flex items-center gap-2 mt-2">
                   <UserAvatar
                     size="xs"
@@ -447,10 +445,9 @@ export function CommentBubble({
                     placeholder="Write a reply..."
                     className="flex-1"
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey && replyContent.trim()) {
+                      if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        commentMutation.mutate(replyContent);
-                        setReplyContent('');
+                        replyMutation.mutate();
                       }
                     }}
                   />
