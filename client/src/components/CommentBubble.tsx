@@ -204,9 +204,8 @@ export function CommentBubble({
       });
     },
     onSuccess: () => {
-      // Invalidate both comments and reactions queries
+      // Invalidate comments query to refresh reactions
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
-      queryClient.invalidateQueries([`/api/comments/${id}/reactions`]);
     }
   });
 
