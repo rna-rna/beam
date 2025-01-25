@@ -777,25 +777,44 @@ export function registerRoutes(app: Express): Server {
             // Get all editor users for notifications
             const editorUserIds = await getEditorUserIds(gallery.id);
 
-            // Create notifications for all editors except the actor
-            await Promise.all(
-              editorUserIds
-                .filter(editorId => editorId !== req.auth?.userId)
-                .map((editorId) =>
-                  db.insert(notifications).values({
-                    userId: editorId,
-                    type: 'image-uploaded',
-                    data: {
-                      imageId: image.id,
-                      url: publicUrl,
-                      actorId: req.auth?.userId,
-                      galleryId: gallery.id
-                    },
-                    isSeen: false,
-                    createdAt: new Date()
-                  })
-                )
-            );
+            // Notify all editors except the actor
+            for (const editorId of editorUserIds) {
+              if (editorId === req.auth?.userId) continue;
+
+              await createOrUpdateNotification({
+                recipientId: editorId,
+                actorId: req.auth?.userId,
+                galleryId: gallery.id,
+                type: 'comment-added',
+                data: {
+                  commentId: comment.id,
+                  excerpt: content.slice(0, 50),
+                  imageId: imageId
+                }
+              });
+            }
+
+            // If this is a reply, notify the parent comment's author
+            if (parentId) {
+              const parentComment = await db.query.comments.findFirst({
+                where: eq(comments.id, parentId)
+              });
+
+              if (parentComment && parentComment.userId !== req.auth?.userId) {
+                await createOrUpdateNotification({
+                  recipientId: parentComment.userId,
+                  actorId: req.auth?.userId,
+                  galleryId: gallery.id,
+                  type: 'comment-reply',
+                  data: {
+                    commentId: comment.id,
+                    parentId,
+                    excerpt: content.slice(0, 50),
+                    imageId: imageId
+                  }
+                });
+              }
+            }
 
             // Emit real-time event via Pusher
             pusher.trigger(`presence-gallery-${gallery.slug}`, 'image-uploaded', {
@@ -1754,51 +1773,20 @@ export function registerRoutes(app: Express): Server {
       const editorUserIds = await getEditorUserIds(image.gallery.id);
 
       // Create or update notifications for all editors except the actor
-      await Promise.all(
-        editorUserIds
-          .filter(editorId => editorId !== userId)
-          .map(async (editorId) => {
-            const existingNotification = await db.query.notifications.findFirst({
-              where: and(
-                eq(notifications.type, 'image-starred'),
-                eq(notifications.userId, editorId),
-                sql`${notifications.data}->>'imageId' = ${imageId}::text`,
-                sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
-              )
-            });
+      for (const editorId of editorUserIds) {
+        if (editorId === userId) continue;
 
-            if (existingNotification) {
-              // Update timestamp for existing notification
-              await db.update(notifications)
-                .set({ 
-                  createdAt: new Date(),
-                  data: {
-                    imageId,
-                    isStarred: !isStarred,
-                    actorId: userId,
-                    galleryId: image.gallery.id
-                  }
-                })
-                .where(eq(notifications.id, existingNotification.id));
-            } else {
-              // Create a new notification with a new group_id
-              const groupId = nanoid();
-              await db.insert(notifications).values({
-                userId: editorId,
-                type: 'image-starred',
-                data: {
-                  imageId,
-                  isStarred: !isStarred,
-                  actorId: userId,
-                  galleryId: image.gallery.id
-                },
-                groupId,
-                isSeen: false,
-                createdAt: new Date()
-              });
-            }
-          })
-      );
+        await createOrUpdateNotification({
+          recipientId: editorId,
+          actorId: userId,
+          galleryId: image.gallery.id,
+          type: 'image-starred',
+          data: { 
+            imageId,
+            isStarred: !isStarred
+          }
+        });
+      }
 
       // Emit real-time event via Pusher
       pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'image-starred', {
