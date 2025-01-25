@@ -65,13 +65,7 @@ export function CommentBubble({
   timestamp,
   replies = []
 }: CommentBubbleProps) {
-  console.log("[DEBUG] CommentBubble initialized:", {
-    imageId,
-    id,
-    parentId,
-    isNew,
-    hasContent: !!content
-  });
+  
   const { user } = useUser();
   const isAuthor = user?.id === author?.id;
   const [isEditing, setIsEditing] = useState(isNew);
@@ -235,14 +229,7 @@ export function CommentBubble({
         throw new Error(`Invalid imageId: Expected a number, got ${typeof imageId}`);
       }
       
-      console.log("[DEBUG] Starting reply mutation with:", {
-        component: 'CommentBubble',
-        props: { imageId: numericImageId, id, parentId },
-        imageId: numericImageId,
-        parentId: id || parentId,
-        content: replyContent,
-        position: { x, y }
-      });
+      
 
       // Validate all required fields upfront
       if (!user?.id) {
@@ -252,12 +239,7 @@ export function CommentBubble({
         throw new Error('Reply content is empty');
       }
       if (!numericImageId || typeof numericImageId !== 'number' || isNaN(numericImageId)) {
-        console.error("[DEBUG] Invalid imageId in replyMutation:", {
-          imageId,
-          numericImageId,
-          type: typeof imageId,
-          parentId: id || parentId
-        });
+        
         throw new Error('Valid image ID is required');
       }
       if (!id && !parentId) {
@@ -267,12 +249,7 @@ export function CommentBubble({
       const token = await getToken();
       const endpoint = `/api/images/${imageId}/comments`;
       
-      console.log("[DEBUG] Preparing request:", {
-        endpoint,
-        parentId: id || parentId,
-        position: { x, y },
-        contentPreview: replyContent.trim().substring(0, 50) + '...'
-      });
+      
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -291,24 +268,16 @@ export function CommentBubble({
 
       if (!response.ok) {
         const error = await response.text();
-        console.error("[DEBUG] Reply mutation failed:", {
-          status: response.status,
-          error,
-          endpoint: `/api/images/${imageId}/comments`
-        });
+        
         throw new Error(error);
       }
 
       const data = await response.json();
-      console.log("[DEBUG] Reply mutation succeeded:", {
-        commentId: data.id,
-        imageId,
-        parentId: id || parentId
-      });
+      
       return data;
     },
     onError: (error) => {
-      console.error("[DEBUG] Reply mutation error:", error);
+      console.error("Reply mutation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to post reply",
