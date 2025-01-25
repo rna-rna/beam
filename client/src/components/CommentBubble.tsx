@@ -431,7 +431,7 @@ export function CommentBubble({
                   {formatRelativeDate(new Date(timestamp))}
                 </span>
               )}
-              {!parentId && (
+              {!parentId && id && !isNew && (
                 <div className="flex items-center gap-2 mt-2">
                   <UserAvatar
                     size="xs"
