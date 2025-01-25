@@ -97,9 +97,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Ensure API routes are handled before Vite middleware
-app.use('/api', [pusherAuthRouter, protectedRouter]);
-
 (async () => {
   const server = registerRoutes(app);
 
