@@ -52,8 +52,12 @@ export function NotificationSystem() {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       
-      const data = await res.json();
-      setNotifications(Array.isArray(data) ? data : []);
+      const response = await res.json();
+      if (response.success && response.data) {
+        setNotifications(Array.isArray(response.data) ? response.data : []);
+      } else {
+        setNotifications([]);
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
       setNotifications([]);
