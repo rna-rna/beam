@@ -404,34 +404,6 @@ export function CommentBubble({
                   {formatRelativeDate(new Date(timestamp))}
                 </span>
               )}
-              {!parentId && (id || localCommentId) && (
-                <div className="flex items-center gap-2 mt-2">
-                  <UserAvatar
-                    size="xs"
-                    name={user?.firstName || "Guest"}
-                    imageUrl={user?.imageUrl}
-                    color={user?.publicMetadata?.color as string}
-                  />
-                  <Input
-                    value={replyContent}
-                    onChange={(e) => setReplyContent(e.target.value)}
-                    placeholder="Write a reply..."
-                    className="flex-1"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        replyMutation.mutate();
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => setShowEmojiPicker(true)}
-                    className="text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-muted/80"
-                  >
-                    <SmilePlus className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
               {replies && replies.length > 0 && (
                 <div className="mt-2 space-y-2 border-l-2 border-muted pl-3">
                   {replies.map((reply) => (
@@ -459,6 +431,34 @@ export function CommentBubble({
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              {!parentId && (id || localCommentId) && (
+                <div className="flex items-center gap-2 mt-2">
+                  <UserAvatar
+                    size="xs"
+                    name={user?.firstName || "Guest"}
+                    imageUrl={user?.imageUrl}
+                    color={user?.publicMetadata?.color as string}
+                  />
+                  <Input
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    placeholder="Write a reply..."
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        replyMutation.mutate();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => setShowEmojiPicker(true)}
+                    className="text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-muted/80"
+                  >
+                    <SmilePlus className="w-4 h-4" />
+                  </button>
                 </div>
               )}
               {children}
