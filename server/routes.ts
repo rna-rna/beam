@@ -2578,7 +2578,15 @@ export function registerRoutes(app: Express): Server {
   // Get grouped notifications
   protectedRouter.get('/api/notifications', async (req: any, res) => {
     try {
-      const userId = req.auth.userId;
+      const userId = req.auth?.userId;
+      if (!userId) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+
+      console.log('[Notifications] Fetching for user:', userId);
 
       const notifications = await db.query.notifications.findMany({
         where: and(
@@ -2587,6 +2595,8 @@ export function registerRoutes(app: Express): Server {
         ),
         orderBy: [desc(notifications.createdAt)],
       });
+
+      console.log('[Notifications] Found:', notifications.length);
 
       // Group notifications by groupId, type and similar data
       const grouped = notifications.reduce((acc: any[], notification) => {
@@ -2607,7 +2617,8 @@ export function registerRoutes(app: Express): Server {
             type: notification.type,
             data: notification.data,
             count: 1,
-            latestTime: notification.createdAt
+            latestTime: notification.createdAt,
+            isSeen: notification.isSeen
           });
         }
         return acc;
@@ -2616,7 +2627,11 @@ export function registerRoutes(app: Express): Server {
       // Sort by latest time
       grouped.sort((a, b) => b.latestTime.getTime() - a.latestTime.getTime());
 
-      res.json(grouped);
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.json({
+        success: true,
+        data: grouped
+      });
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
       res.status(500).json({
