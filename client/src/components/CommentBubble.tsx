@@ -431,6 +431,24 @@ export function CommentBubble({
                             )}
                           </div>
                           <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{reply.content}</p>
+                          {reply.reactions && reply.reactions.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {reply.reactions.map((reaction, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => addReactionMutation.mutate(reaction.emoji)}
+                                  className={cn(
+                                    "inline-flex items-center gap-1 text-xs rounded-full px-2 py-0.5",
+                                    "bg-muted hover:bg-muted/80 transition-colors",
+                                    reaction.userIds.includes(user?.id || '') && "bg-primary/20"
+                                  )}
+                                >
+                                  <span>{reaction.emoji}</span>
+                                  <span>{reaction.count}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
