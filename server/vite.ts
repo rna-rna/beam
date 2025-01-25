@@ -34,15 +34,16 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
-  // Handle API and Pusher routes first
-  app.use(['/api/', '/pusher/'], (req, res, next) => {
-    log(`API/Pusher Request: ${req.method} ${req.url}`);
-    
-    // Ensure content-type for Pusher auth
-    if (req.url.startsWith('/pusher/auth')) {
-      req.headers['content-type'] = 'application/json';
-    }
-    
+  // Handle Pusher auth route first
+  app.use('/pusher/auth', (req, res, next) => {
+    log(`Pusher Auth Request: ${req.method} ${req.url}`);
+    req.headers['content-type'] = 'application/json';
+    next();
+  });
+
+  // Handle API routes next
+  app.use('/api', (req, res, next) => {
+    log(`API Request: ${req.method} ${req.url}`);
     next();
   });
 
