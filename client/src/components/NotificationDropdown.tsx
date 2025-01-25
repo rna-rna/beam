@@ -16,21 +16,29 @@ interface NotificationGroup {
 
 interface NotificationDropdownProps {
   notifications: NotificationGroup[];
+  onMarkAllAsRead: () => void;
 }
 
-export function NotificationDropdown({ notifications }: NotificationDropdownProps) {
-  if (notifications.length === 0) {
-    return (
-      <div className="absolute right-0 mt-2 w-72 bg-background border rounded-lg shadow-lg">
+export function NotificationDropdown({ notifications, onMarkAllAsRead }: NotificationDropdownProps) {
+  return (
+    <div className="absolute right-0 mt-2 w-72 bg-background border rounded-lg shadow-lg max-h-[80vh] overflow-y-auto">
+      <div className="flex items-center justify-between p-3 border-b">
+        <span className="font-semibold">Notifications</span>
+        {notifications.length > 0 && (
+          <button
+            onClick={onMarkAllAsRead}
+            className="text-sm text-primary hover:underline"
+          >
+            Mark all as read
+          </button>
+        )}
+      </div>
+      
+      {notifications.length === 0 && (
         <div className="p-4 text-center text-muted-foreground">
           No new notifications
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="absolute right-0 mt-2 w-72 bg-background border rounded-lg shadow-lg max-h-[80vh] overflow-y-auto">
+      )}
       {notifications.map((group, index) => (
         <div
   key={group.groupId || `notification-${index}`}
