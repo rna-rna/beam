@@ -16,14 +16,19 @@ export interface Notification {
   count: number;
   latestTime: string;
   isSeen: boolean;
+  id: string;
 }
 
 export function NotificationSystem() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchNotifications = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
     try {
       const res = await fetch("/api/notifications", {
         credentials: 'include',
@@ -44,8 +49,14 @@ export function NotificationSystem() {
       }
 
       const response = await res.json();
-      if (response.success && response.data) {
-        setNotifications(Array.isArray(response.data) ? response.data : []);
+      if (response.success && Array.isArray(response.data)) {
+        // Ensure all notifications have required fields
+        const validNotifications = response.data.filter((notification: Partial<Notification>) => 
+          notification.id && 
+          notification.type && 
+          typeof notification.isSeen === 'boolean'
+        );
+        setNotifications(validNotifications);
         setError(null);
       } else {
         setNotifications([]);
@@ -55,6 +66,8 @@ export function NotificationSystem() {
       console.error('Error fetching notifications:', error);
       setNotifications([]);
       setError(error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
