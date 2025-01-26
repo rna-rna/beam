@@ -9,14 +9,15 @@ import { NotificationDropdown } from './NotificationDropdown';
 import { useUser } from '@clerk/clerk-react';
 
 // Initialize socket
-const socket = io("/", {
+const socket = io(window.location.origin, {
   path: "/socket.io",
-  transports: ["websocket"],
+  transports: ["websocket", "polling"],
   withCredentials: true,
-  reconnectionAttempts: 5,
+  reconnectionAttempts: Infinity,
   reconnectionDelay: 1000,
-  timeout: 10000,
-  autoConnect: false
+  timeout: 20000,
+  autoConnect: false,
+  forceNew: true
 });
 
 export function NotificationSystem() {
