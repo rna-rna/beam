@@ -6,7 +6,6 @@ import { SquarePlus, Home } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { LoginButton } from "@/components/LoginButton";
-import { NotificationSystem } from "@/components/NotificationSystem";
 import { InlineEdit } from "@/components/InlineEdit";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserNav } from "@/components/UserNav";
@@ -80,7 +79,6 @@ export function Layout({
             </Button>
             <ThemeToggle />
             <SignedIn>
-              <NotificationSystem />
               <UserNav />
             </SignedIn>
             <SignedOut>

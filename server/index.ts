@@ -47,13 +47,6 @@ io.on('connection', (socket) => {
     time: new Date().toISOString()
   });
 
-  // Join user-specific room for notifications
-  const userId = socket.handshake.auth.userId;
-  if (userId) {
-    socket.join(`user:${userId}`);
-    console.log(`Socket ${socket.id} joined user room: user:${userId}`);
-  }
-
   socket.on('join-gallery', (gallerySlug) => {
     socket.join(gallerySlug);
     console.log(`Socket ${socket.id} joined gallery: ${gallerySlug}`);

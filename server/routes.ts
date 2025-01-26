@@ -19,7 +19,6 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from 'sharp';
 import { pusher } from './pusherConfig';
 import { getGalleryUserRole, canManageGallery, canStar } from './lib/roles';
-import { Server as SocketIOServer } from 'socket.io'; // Import Socket.IO
 
 // Replace with your actual bucket name and endpoint
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
@@ -782,31 +781,20 @@ export function registerRoutes(app: Express): Server {
             await Promise.all(
               editorUserIds
                 .filter(editorId => editorId !== req.auth?.userId)
-                .map(async (editorId) => {
-                  const [notification] = await db.insert(notifications)
-                    .values({
-                      userId: editorId,
-                      type: 'image-uploaded',
-                      data: {
-                        imageId: image.id,
-                        url: publicUrl,
-                        actorId: req.auth?.userId,
-                        galleryId: gallery.id
-                      },
-                      isSeen: false,
-                      createdAt: new Date()
-                    })
-                    .returning();
-
-                  // Emit notification to specific user
-                  io.to(`user:${editorId}`).emit('notification', {
-                    type: notification.type,
-                    data: notification.data,
-                    createdAt: notification.createdAt,
-                    isSeen: false
-                  });
-                  return notification;
-                })
+                .map((editorId) =>
+                  db.insert(notifications).values({
+                    userId: editorId,
+                    type: 'image-uploaded',
+                    data: {
+                      imageId: image.id,
+                      url: publicUrl,
+                      actorId: req.auth?.userId,
+                      galleryId: gallery.id
+                    },
+                    isSeen: false,
+                    createdAt: new Date()
+                  })
+                )
             );
 
             // Emit real-time event via Pusher
@@ -985,7 +973,7 @@ export function registerRoutes(app: Express): Server {
   // Delete images (protected)
   protectedRouter.post('/galleries/:slug/images/delete', async (req: any, res) => {
     try {
-      const { imageIds }= req.body;
+      const { imageIds } = req.body;
       const userId = req.auth.userId;
 
       if (!Array.isArray(imageIds)) {
@@ -1598,7 +1586,7 @@ export function registerRoutes(app: Express): Server {
             .filter(reply => reply.parentId === parent.id)
             .map(async reply => {
               const enrichedReply = enrichCommentWithUser(reply);
-
+              
               // Get reactions for this reply
               const replyReactions = await db.query.commentReactions.findMany({
                 where: eq(commentReactions.commentId, reply.id)
@@ -1770,60 +1758,45 @@ export function registerRoutes(app: Express): Server {
         editorUserIds
           .filter(editorId => editorId !== userId)
           .map(async (editorId) => {
-            // Find recent similar notification
             const existingNotification = await db.query.notifications.findFirst({
               where: and(
-                eq(notifications.userId, editorId),
                 eq(notifications.type, 'image-starred'),
-                eq(notifications.isSeen, false),
-                sql`${notifications.data}->>'actorId' = ${userId}::text`,
-                sql`${notifications.data}->>'galleryId' = ${image.gallery.id}::text`,
-                sql`${notifications.createdAt} >= NOW() - INTERVAL '10 seconds'`
+                eq(notifications.userId, editorId),
+                sql`${notifications.data}->>'imageId' = ${imageId}::text`,
+                sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
               )
             });
 
-            let notification;
             if (existingNotification) {
-              // Update existing notification
-              const data = existingNotification.data as any;
-              data.count = (data.count || 1) + 1;
-              data.isStarred = !isStarred;
-              data.updatedAt = new Date().toISOString();
-
-              [notification] = await db.update(notifications)
+              // Update timestamp for existing notification
+              await db.update(notifications)
                 .set({ 
-                  data,
-                  createdAt: new Date() // Update timestamp to keep it recent
-                })
-                .where(eq(notifications.id, existingNotification.id))
-                .returning();
-            } else {
-              // Create new notification
-              [notification] = await db.insert(notifications)
-                .values({
-                  userId: editorId,
-                  type: 'image-starred',
+                  createdAt: new Date(),
                   data: {
                     imageId,
                     isStarred: !isStarred,
                     actorId: userId,
-                    galleryId: image.gallery.id,
-                    count: 1,
-                    createdAt: new Date().toISOString()
-                  },
-                  isSeen: false,
-                  createdAt: new Date()
+                    galleryId: image.gallery.id
+                  }
                 })
-                .returning();
+                .where(eq(notifications.id, existingNotification.id));
+            } else {
+              // Create a new notification with a new group_id
+              const groupId = nanoid();
+              await db.insert(notifications).values({
+                userId: editorId,
+                type: 'image-starred',
+                data: {
+                  imageId,
+                  isStarred: !isStarred,
+                  actorId: userId,
+                  galleryId: image.gallery.id
+                },
+                groupId,
+                isSeen: false,
+                createdAt: new Date()
+              });
             }
-
-            // Emit notification to specific user
-            io.to(`user:${editorId}`).emit('notification', {
-              type: notification.type,
-              data: notification.data,
-              createdAt: notification.createdAt,
-              isSeen: false
-            });
           })
       );
 
@@ -1986,7 +1959,8 @@ export function registerRoutes(app: Express): Server {
             role: invite.role,
             avatarUrl: null
           };
-        })      );
+        })
+      );
 
       // Add owner with Editor role if not already in permissions
       if (gallery.userId !== 'guest') {
@@ -2032,7 +2006,7 @@ export function registerRoutes(app: Express): Server {
     const userId = req.auth.userId;
 
     try {
-      console.log('Invite attempt:', {
+      consolelog('Invite attempt:', {
         slug,
         email,
         role,
@@ -2081,7 +2055,7 @@ export function registerRoutes(app: Express): Server {
           (e) => e.id === matchingUser.primaryEmailAddressId
         )?.emailAddress,
         allEmails: matchingUser?.emailAddresses.map((e) => e.emailAddress)
-      });
+});
 
       const user = matchingUser;
 
@@ -2617,7 +2591,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
+  
 
   // Track gallery views
   protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
@@ -2908,19 +2882,6 @@ export function registerRoutes(app: Express): Server {
   app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);
-  const io = new SocketIOServer(httpServer, {
-    cors: {
-      origin: process.env.VITE_APP_URL,
-      methods: ["GET", "POST"],
-    },
-  });
-
-  io.on("connection", (socket) => {
-    // Attach userId if you're doing auth
-    // e.g. socket.join(userId) so we can emit specifically to them
-    console.log('Socket.IO connection established:', socket.id);
-  });
-
   return httpServer;
 }
 

@@ -1,0 +1,94 @@
+Server-Side - Inserting & Grouping Notifications
+Overview
+We need a server-side function to handle new events (stars, comments, invites, replies). This function:
+
+Finds or creates a notification row in the database.
+Groups repeated events (like multiple star actions from the same actor on the same gallery within 10 minutes).
+Triggers a Pusher event to inform the user in real time.
+Implementation
+Create a file lib/notifications.ts (or .js) that exports helper functions. Example:
+
+ts
+Copy
+Edit
+// lib/notifications.ts
+import { db } from "@db";
+import { notifications } from "@db/schema";
+import { eq, and, gt, sql } from "drizzle-orm";
+import { pusher } from "./pusherConfig"; // Your Pusher client
+
+// example for star notifications
+export async function addStarNotification({
+  recipientUserId,
+  actorId,
+  actorName,
+  actorAvatar,
+  galleryId,
+}: {
+  recipientUserId: string;
+  actorId: string;
+  actorName: string;
+  actorAvatar?: string;
+  galleryId: number;
+}) {
+  const groupId = `star-${actorId}-${galleryId}`;
+
+  const existing = await db.query.notifications.findFirst({
+    where: and(
+      eq(notifications.userId, recipientUserId),
+      eq(notifications.type, "star"),
+      eq(notifications.groupId, groupId),
+      eq(notifications.isSeen, false),
+      gt(notifications.createdAt, sql`NOW() - INTERVAL '10 minutes'`)
+    ),
+  });
+
+  if (existing) {
+    const data = existing.data as any;
+    data.count = (data.count || 1) + 1;
+
+    const [updated] = await db
+      .update(notifications)
+      .set({ data, createdAt: new Date() })
+      .where(eq(notifications.id, existing.id))
+      .returning();
+    
+    pusher.trigger(`private-user-${recipientUserId}`, "notification", updated);
+    return updated;
+  } else {
+    const [inserted] = await db.insert(notifications).values({
+      userId: recipientUserId,
+      type: "star",
+      data: {
+        actorId,
+        actorName,
+        actorAvatar,
+        galleryId,
+        count: 1,
+      },
+      groupId,
+    }).returning();
+
+    pusher.trigger(`private-user-${recipientUserId}`, "notification", inserted);
+    return inserted;
+  }
+}
+Repeat for other event types (e.g. comment, invite, reply). If you want separate logic, create separate functions or pass a “type” parameter.
+
+Call these functions from wherever you handle star/comment logic. For example, when a user stars an image:
+
+ts
+Copy
+Edit
+// in your star route
+const role = ... // verify user is editor/owner
+if (role === 'owner' || role === 'editor') {
+  await addStarNotification({
+    recipientUserId: editorOrOwnerId,
+    actorId: currentUserId,
+    actorName,
+    actorAvatar,
+    galleryId,
+  });
+}
+(Ensure you’re only calling it for the correct roles: owners/editors get star/comment notifications, all get invites, etc.)
