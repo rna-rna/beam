@@ -1976,8 +1976,7 @@ export function registerRoutes(app: Express): Server {
             role: invite.role,
             avatarUrl: null
           };
-        })
-      );
+        })      );
 
       // Add owner with Editor role if not already in permissions
       if (gallery.userId !== 'guest') {
@@ -2919,5 +2918,4 @@ function generateSlug(): string {
   // Generate a URL-friendly unique identifier
   // Using a shorter length (10) for more readable URLs while maintaining uniqueness
   return nanoid(10);
-}
 }
