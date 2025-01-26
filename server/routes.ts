@@ -1586,7 +1586,7 @@ export function registerRoutes(app: Express): Server {
             .filter(reply => reply.parentId === parent.id)
             .map(async reply => {
               const enrichedReply = enrichCommentWithUser(reply);
-              
+
               // Get reactions for this reply
               const replyReactions = await db.query.commentReactions.findMany({
                 where: eq(commentReactions.commentId, reply.id)
@@ -1753,48 +1753,24 @@ export function registerRoutes(app: Express): Server {
       // Get all editor users for notifications
       const editorUserIds = await getEditorUserIds(image.gallery.id);
 
-      // Create or update notifications for all editors except the actor
+      // Get user data for notifications
+      const [actorData] = await fetchCachedUserData([userId]);
+      const actorName = actorData ? `${actorData.firstName || ''} ${actorData.lastName || ''}`.trim() : 'Unknown User';
+
+      // Create notifications for editors and owners
       await Promise.all(
         editorUserIds
           .filter(editorId => editorId !== userId)
           .map(async (editorId) => {
-            const existingNotification = await db.query.notifications.findFirst({
-              where: and(
-                eq(notifications.type, 'image-starred'),
-                eq(notifications.userId, editorId),
-                sql`${notifications.data}->>'imageId' = ${imageId}::text`,
-                sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
-              )
-            });
-
-            if (existingNotification) {
-              // Update timestamp for existing notification
-              await db.update(notifications)
-                .set({ 
-                  createdAt: new Date(),
-                  data: {
-                    imageId,
-                    isStarred: !isStarred,
-                    actorId: userId,
-                    galleryId: image.gallery.id
-                  }
-                })
-                .where(eq(notifications.id, existingNotification.id));
-            } else {
-              // Create a new notification with a new group_id
-              const groupId = nanoid();
-              await db.insert(notifications).values({
-                userId: editorId,
-                type: 'image-starred',
-                data: {
-                  imageId,
-                  isStarred: !isStarred,
-                  actorId: userId,
-                  galleryId: image.gallery.id
-                },
-                groupId,
-                isSeen: false,
-                createdAt: new Date()
+            const recipientRole = await getGalleryUserRole(image.gallery.id, editorId);
+            if (recipientRole === 'owner' || recipientRole === 'Edit') {
+              await addStarNotification({
+                recipientUserId: editorId,
+                actorId: userId,
+                actorName,
+                actorAvatar: actorData?.imageUrl,
+                imageId,
+                galleryId: image.gallery.id,
               });
             }
           })
@@ -1995,7 +1971,7 @@ export function registerRoutes(app: Express): Server {
         success: false,
         message: 'Failed to fetch permissions'
       });
-    }
+        }
   });
 
   // Invite users to a gallery
@@ -2591,7 +2567,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  
+
 
   // Track gallery views
   protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
@@ -2879,6 +2855,36 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get notifications endpoint
+  protectedRouter.get("/notifications", async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+      const rows = await db.query.notifications.findMany({
+        where: eq(notifications.userId, userId),
+        orderBy: (notifications, { desc }) => [desc(notifications.createdAt)],
+        limit: 10,
+      });
+      res.json(rows);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  // Mark all notifications as read endpoint
+  protectedRouter.post("/notifications/mark-all-read", async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+      await db.update(notifications)
+        .set({ isSeen: true })
+        .where(eq(notifications.userId, userId));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+      res.status(500).json({ error: "Failed to mark notifications as read" });
+    }
+  });
+
   app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);
@@ -2889,4 +2895,52 @@ function generateSlug(): string {
   // Generate a URL-friendly unique identifier
   // Using a shorter length (10) for more readable URLs while maintaining uniqueness
   return nanoid(10);
+}
+async function addStarNotification(data: {
+  recipientUserId: string;
+  actorId: string;
+  actorName: string;
+  actorAvatar: string | null;
+  imageId: number;
+  galleryId: number;
+}) {
+  const existingNotification = await db.query.notifications.findFirst({
+    where: and(
+      eq(notifications.type, 'image-starred'),
+      eq(notifications.userId, data.recipientUserId),
+      sql`${notifications.data}->>'imageId' = ${data.imageId}::text`,
+      sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
+    )
+  });
+
+  if (existingNotification) {
+    await db.update(notifications)
+      .set({
+        createdAt: new Date(),
+        data: {
+          imageId: data.imageId,
+          isStarred: true,
+          actorId: data.actorId,
+          galleryId: data.galleryId
+        }
+      })
+      .where(eq(notifications.id, existingNotification.id));
+  } else {
+    const groupId = nanoid();
+    await db.insert(notifications).values({
+      userId: data.recipientUserId,
+      type: 'image-starred',
+      data: {
+        imageId: data.imageId,
+        isStarred: true,
+        actorId: data.actorId,
+        galleryId: data.galleryId,
+        actorName: data.actorName,
+        actorAvatar: data.actorAvatar
+      },
+      groupId,
+      isSeen: false,
+      createdAt: new Date()
+    });
+  }
 }

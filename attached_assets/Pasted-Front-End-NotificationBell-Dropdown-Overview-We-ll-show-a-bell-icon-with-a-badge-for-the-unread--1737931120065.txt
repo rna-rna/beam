@@ -1,0 +1,62 @@
+Front-End - NotificationBell & Dropdown
+Overview
+We’ll show a bell icon with a badge for the unread count, plus a dropdown listing 10 notifications (the same ones from state). Clicking “Mark all read” calls the server endpoint and locally updates isSeen.
+
+Implementation
+jsx
+Copy
+Edit
+function NotificationBell({ notifications, onOpenDropdown }) {
+  const unseenCount = notifications.filter(n => !n.isSeen).length;
+  return (
+    <button onClick={onOpenDropdown} className="notification-bell">
+      <BellIcon />
+      {unseenCount > 0 && <span className="badge">{unseenCount}</span>}
+    </button>
+  );
+}
+
+function NotificationDropdown({ notifications, onMarkAllRead }) {
+  return (
+    <div className="notif-dropdown">
+      <div className="header">
+        <span>Notifications</span>
+        <button onClick={onMarkAllRead}>Mark all as read</button>
+      </div>
+      <div className="list">
+        {notifications.map((n) => (
+          <NotificationItem key={n.id} notif={n} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NotificationItem({ notif }) {
+  const { type, data, isSeen, createdAt } = notif;
+  const isStar = type === "star";
+  // parse data: actorName, count, etc.
+  return (
+    <div className={`notif-item ${isSeen ? "read" : "unread"}`}>
+      <img src={data.actorAvatar ?? "/default-avatar.png"} alt="avatar" className="avatar" />
+      {isStar && <div>{data.actorName} starred {data.count} images in Gallery {data.galleryId}</div>}
+      {/* handle other types similarly */}
+      <span className="time">{formatDistanceToNow(new Date(createdAt))} ago</span>
+    </div>
+  );
+}
+(Adjust text for comment/reply/invite types. For invite, link to “View Gallery.” For a reply, “X replied to your comment: ‘...’.”)
+
+Mark All as Read Implementation
+js
+Copy
+Edit
+async function onMarkAllRead() {
+  await fetch("/api/notifications/mark-all-read", {
+    method: "POST",
+    credentials: "include"
+  });
+  setNotifications(prev => prev.map(n => ({ ...n, isSeen: true })));
+}
+(If you want to mark them as read automatically upon opening, call the endpoint in onOpenDropdown instead.)
+
