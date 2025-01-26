@@ -980,7 +980,7 @@ export function registerRoutes(app: Express): Server {
   // Delete images (protected)
   protectedRouter.post('/galleries/:slug/images/delete', async (req: any, res) => {
     try {
-      const { imageIds } = req.body;
+      const { imageIds }= req.body;
       const userId = req.auth.userId;
 
       if (!Array.isArray(imageIds)) {
@@ -1765,48 +1765,55 @@ export function registerRoutes(app: Express): Server {
         editorUserIds
           .filter(editorId => editorId !== userId)
           .map(async (editorId) => {
+            // Find recent similar notification
             const existingNotification = await db.query.notifications.findFirst({
               where: and(
-                eq(notifications.type, 'image-starred'),
                 eq(notifications.userId, editorId),
-                sql`${notifications.data}->>'imageId' = ${imageId}::text`,
-                sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
+                eq(notifications.type, 'image-starred'),
+                eq(notifications.isSeen, false),
+                sql`${notifications.data}->>'actorId' = ${userId}::text`,
+                sql`${notifications.data}->>'galleryId' = ${image.gallery.id}::text`,
+                sql`${notifications.createdAt} >= NOW() - INTERVAL '10 seconds'`
               )
             });
 
+            let notification;
             if (existingNotification) {
-              // Update timestamp for existing notification
-              await db.update(notifications)
+              // Update existing notification
+              const data = existingNotification.data as any;
+              data.count = (data.count || 1) + 1;
+              data.isStarred = !isStarred;
+              data.updatedAt = new Date().toISOString();
+
+              [notification] = await db.update(notifications)
                 .set({ 
-                  createdAt: new Date(),
+                  data,
+                  createdAt: new Date() // Update timestamp to keep it recent
+                })
+                .where(eq(notifications.id, existingNotification.id))
+                .returning();
+            } else {
+              // Create new notification
+              [notification] = await db.insert(notifications)
+                .values({
+                  userId: editorId,
+                  type: 'image-starred',
                   data: {
                     imageId,
                     isStarred: !isStarred,
                     actorId: userId,
-                    galleryId: image.gallery.id
-                  }
+                    galleryId: image.gallery.id,
+                    count: 1,
+                    createdAt: new Date().toISOString()
+                  },
+                  isSeen: false,
+                  createdAt: new Date()
                 })
-                .where(eq(notifications.id, existingNotification.id));
-            } else {
-              // Create a new notification with a new group_id
-              const groupId = nanoid();
-              const [notification] = await db.insert(notifications).values({
-                userId: editorId,
-                type: 'image-starred',
-                data: {
-                  imageId,
-                  isStarred: !isStarred,
-                  actorId: userId,
-                  galleryId: image.gallery.id
-                },
-                groupId,
-                isSeen: false,
-                createdAt: new Date()
-              }).returning();
-
-              // Emit notification to specific user
-              io.to(`user:${editorId}`).emit('notification', notification);
+                .returning();
             }
+
+            // Emit notification to specific user
+            io.to(`user:${editorId}`).emit('notification', notification);
           })
       );
 
@@ -2016,7 +2023,7 @@ export function registerRoutes(app: Express): Server {
     const userId = req.auth.userId;
 
     try {
-      consolelog('Invite attempt:', {
+      console.log('Invite attempt:', {
         slug,
         email,
         role,
@@ -2037,119 +2044,6 @@ export function registerRoutes(app: Express): Server {
       const [inviterData] = await fetchCachedUserData([req.auth.userId]);
       if (!inviterData) {
         return res.status(404).json({ message: 'Inviter details not found' });
-
-
-  // Get user notifications
-  app.get('/api/notifications', async (req, res) => {
-    try {
-      if (!req.auth?.userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required'
-        });
-      }
-
-      const userNotifications = await db.query.notifications.findMany({
-        where: eq(notifications.userId, req.auth.userId),
-        orderBy: [desc(notifications.createdAt)],
-        limit: 50
-      });
-
-      // Group notifications by group_id if present
-      const groupedNotifications = userNotifications.reduce((acc, notification) => {
-        if (notification.groupId) {
-          if (!acc[notification.groupId]) {
-            acc[notification.groupId] = [];
-          }
-          acc[notification.groupId].push(notification);
-        } else {
-          acc[notification.id.toString()] = [notification];
-        }
-        return acc;
-      }, {});
-
-      // Get latest notification from each group
-      const processedNotifications = Object.values(groupedNotifications).map(group => {
-        const latest = group[0];
-        return {
-          ...latest,
-          count: group.length
-        };
-      });
-
-      res.json({
-        success: true,
-        notifications: processedNotifications
-      });
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch notifications'
-      });
-    }
-  });
-
-  // Mark all notifications as read
-  app.post('/api/notifications/mark-all-read', async (req, res) => {
-    try {
-      if (!req.auth?.userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required'
-        });
-      }
-
-      await db.update(notifications)
-        .set({ isSeen: true })
-        .where(eq(notifications.userId, req.auth.userId));
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Failed to mark notifications as read:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update notifications'
-      });
-    }
-  });
-
-  // Mark single notification as read
-  app.post('/api/notifications/:id/mark-read', async (req, res) => {
-    try {
-      if (!req.auth?.userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required'
-        });
-      }
-
-      const notificationId = parseInt(req.params.id);
-      if (isNaN(notificationId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid notification ID'
-        });
-      }
-
-      await db.update(notifications)
-        .set({ isSeen: true })
-        .where(and(
-          eq(notifications.id, notificationId),
-          eq(notifications.userId, req.auth.userId)
-        ));
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update notification'
-      });
-    }
-  });
-
-
       }
 
       const inviterName = `${inviterData.firstName || ''} ${inviterData.lastName || ''}`.trim() || 'A Beam User';
@@ -2178,7 +2072,7 @@ export function registerRoutes(app: Express): Server {
           (e) => e.id === matchingUser.primaryEmailAddressId
         )?.emailAddress,
         allEmails: matchingUser?.emailAddresses.map((e) => e.emailAddress)
-});
+      });
 
       const user = matchingUser;
 
@@ -3025,4 +2919,5 @@ function generateSlug(): string {
   // Generate a URL-friendly unique identifier
   // Using a shorter length (10) for more readable URLs while maintaining uniqueness
   return nanoid(10);
+}
 }
