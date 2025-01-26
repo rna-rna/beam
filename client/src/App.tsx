@@ -296,6 +296,8 @@ export default function App() {
     );
   }
 
+  import { NotificationProvider } from "@/context/NotificationContext";
+
   return (
     <DndProvider backend={HTML5Backend}>
       <UploadProvider>
