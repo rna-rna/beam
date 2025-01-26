@@ -2027,6 +2027,119 @@ export function registerRoutes(app: Express): Server {
       const [inviterData] = await fetchCachedUserData([req.auth.userId]);
       if (!inviterData) {
         return res.status(404).json({ message: 'Inviter details not found' });
+
+
+  // Get user notifications
+  app.get('/api/notifications', async (req, res) => {
+    try {
+      if (!req.auth?.userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+
+      const userNotifications = await db.query.notifications.findMany({
+        where: eq(notifications.userId, req.auth.userId),
+        orderBy: [desc(notifications.createdAt)],
+        limit: 50
+      });
+
+      // Group notifications by group_id if present
+      const groupedNotifications = userNotifications.reduce((acc, notification) => {
+        if (notification.groupId) {
+          if (!acc[notification.groupId]) {
+            acc[notification.groupId] = [];
+          }
+          acc[notification.groupId].push(notification);
+        } else {
+          acc[notification.id.toString()] = [notification];
+        }
+        return acc;
+      }, {});
+
+      // Get latest notification from each group
+      const processedNotifications = Object.values(groupedNotifications).map(group => {
+        const latest = group[0];
+        return {
+          ...latest,
+          count: group.length
+        };
+      });
+
+      res.json({
+        success: true,
+        notifications: processedNotifications
+      });
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch notifications'
+      });
+    }
+  });
+
+  // Mark all notifications as read
+  app.post('/api/notifications/mark-all-read', async (req, res) => {
+    try {
+      if (!req.auth?.userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+
+      await db.update(notifications)
+        .set({ isSeen: true })
+        .where(eq(notifications.userId, req.auth.userId));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update notifications'
+      });
+    }
+  });
+
+  // Mark single notification as read
+  app.post('/api/notifications/:id/mark-read', async (req, res) => {
+    try {
+      if (!req.auth?.userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+
+      const notificationId = parseInt(req.params.id);
+      if (isNaN(notificationId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid notification ID'
+        });
+      }
+
+      await db.update(notifications)
+        .set({ isSeen: true })
+        .where(and(
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, req.auth.userId)
+        ));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update notification'
+      });
+    }
+  });
+
+
       }
 
       const inviterName = `${inviterData.firstName || ''} ${inviterData.lastName || ''}`.trim() || 'A Beam User';
