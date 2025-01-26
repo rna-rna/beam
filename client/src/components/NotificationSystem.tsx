@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { DropdownMenu, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { io } from "socket.io-client";
 import { useToast } from '@/hooks/use-toast';
@@ -74,12 +75,16 @@ export function NotificationSystem() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <NotificationBell unseenCount={unseenCount} />
+        <div>
+          <NotificationBell unseenCount={unseenCount} />
+        </div>
       </DropdownMenuTrigger>
-      <NotificationDropdown 
-        notifications={notifications} 
-        onMarkAllRead={() => markAllReadMutation.mutate()}
-      />
+      <DropdownMenuContent align="end">
+        <NotificationDropdown 
+          notifications={notifications} 
+          onMarkAllRead={() => markAllReadMutation.mutate()}
+        />
+      </DropdownMenuContent>
     </DropdownMenu>
   );
 }

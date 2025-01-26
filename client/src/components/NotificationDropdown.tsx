@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { DropdownMenuContent, DropdownMenuItem } from './ui/dropdown-menu';
+import { DropdownMenuItem } from './ui/dropdown-menu';
 import { Button } from './ui/button';
 import type { Notification } from '@/types/gallery';
 
@@ -23,7 +23,7 @@ export function NotificationDropdown({ notifications, onMarkAllRead }: Notificat
   }
 
   return (
-    <DropdownMenuContent align="end" className="w-80">
+    <div className="w-80 py-2">
       {notifications.length === 0 ? (
         <DropdownMenuItem disabled>No notifications</DropdownMenuItem>
       ) : (
@@ -46,6 +46,6 @@ export function NotificationDropdown({ notifications, onMarkAllRead }: Notificat
           </DropdownMenuItem>
         </>
       )}
-    </DropdownMenuContent>
+    </div>
   );
 }
