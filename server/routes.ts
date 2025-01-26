@@ -2591,57 +2591,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get grouped notifications
-  protectedRouter.get('/api/notifications', async (req: any, res) => {
-    try {
-      const userId = req.auth.userId;
-
-      const notifications = await db.query.notifications.findMany({
-        where: and(
-          eq(notifications.userId, userId),
-          eq(notifications.isSeen, false)
-        ),
-        orderBy: [desc(notifications.createdAt)],
-      });
-
-      // Group notifications by groupId, type and similar data
-      const grouped = notifications.reduce((acc: any[], notification) => {
-        const existingGroup = acc.find(group => 
-          group.groupId === notification.groupId && 
-          group.type === notification.type &&
-          JSON.stringify(group.data) === JSON.stringify(notification.data)
-        );
-
-        if (existingGroup) {
-          existingGroup.count++;
-          if (notification.createdAt > existingGroup.latestTime) {
-            existingGroup.latestTime = notification.createdAt;
-          }
-        } else {
-          acc.push({
-            groupId: notification.groupId,
-            type: notification.type,
-            data: notification.data,
-            count: 1,
-            latestTime: notification.createdAt
-          });
-        }
-        return acc;
-      }, []);
-
-      // Sort by latest time
-      grouped.sort((a, b) => b.latestTime.getTime() - a.latestTime.getTime());
-
-      res.json(grouped);
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch notifications',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
+  
 
   // Track gallery views
   protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
