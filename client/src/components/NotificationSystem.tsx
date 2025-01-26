@@ -1,17 +1,10 @@
-
-import React, { useEffect, useState } from 'react';
-import { Bell } from 'lucide-react';
-import { Button } from './ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+import React from 'react';
+import { DropdownMenu, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Badge } from './ui/badge';
 import { io } from "socket.io-client";
 import { useToast } from '@/hooks/use-toast';
+import { NotificationBell } from './NotificationBell';
+import { NotificationDropdown } from './NotificationDropdown';
 
 // Initialize socket
 const socket = io("/", {
@@ -23,20 +16,11 @@ const socket = io("/", {
   timeout: 10000
 });
 
-interface Notification {
-  id: number;
-  type: string;
-  data: any;
-  isSeen: boolean;
-  createdAt: string;
-}
-
 export function NotificationSystem() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isConnected, setIsConnected] = useState(socket.connected);
 
-  const { data: notifications = [] } = useQuery<Notification[]>({
+  const { data: notifications = [] } = useQuery({
     queryKey: ['/api/notifications'],
     queryFn: async () => {
       const res = await fetch('/api/notifications');
@@ -60,18 +44,8 @@ export function NotificationSystem() {
     }
   });
 
-  useEffect(() => {
-    socket.on('connect', () => {
-      setIsConnected(true);
-      console.log('Connected to notification system');
-    });
-
-    socket.on('disconnect', () => {
-      setIsConnected(false);
-      console.log('Disconnected from notification system');
-    });
-
-    socket.on('notification', (newNotification: Notification) => {
+  React.useEffect(() => {
+    socket.on('notification', (newNotification) => {
       queryClient.invalidateQueries(['/api/notifications']);
       toast({
         title: 'New Notification',
@@ -80,15 +54,13 @@ export function NotificationSystem() {
     });
 
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
       socket.off('notification');
     };
   }, [queryClient, toast]);
 
   const unseenCount = notifications.filter(n => !n.isSeen).length;
 
-  function getNotificationMessage(notification: Notification) {
+  function getNotificationMessage(notification) {
     switch (notification.type) {
       case 'image-starred':
         return 'Someone starred your image';
@@ -102,37 +74,12 @@ export function NotificationSystem() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          {unseenCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]"
-            >
-              {unseenCount}
-            </Badge>
-          )}
-        </Button>
+        <NotificationBell unseenCount={unseenCount} />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        {notifications.length === 0 ? (
-          <DropdownMenuItem disabled>No notifications</DropdownMenuItem>
-        ) : (
-          <>
-            {notifications.map((notification) => (
-              <DropdownMenuItem key={notification.id}>
-                {getNotificationMessage(notification)}
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuItem 
-              className="justify-center text-sm"
-              onClick={() => markAllReadMutation.mutate()}
-            >
-              Mark all as read
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
+      <NotificationDropdown 
+        notifications={notifications} 
+        onMarkAllRead={() => markAllReadMutation.mutate()}
+      />
     </DropdownMenu>
   );
 }
