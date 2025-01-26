@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-// Placeholder for NotificationBell component
+import { NotificationBell } from "./NotificationBell";
 const NotificationBell = () => <div>Notification Bell</div>;
 
 
