@@ -185,21 +185,8 @@ export default function Gallery({
       gallerySlug: slug
     };
 
-    if (socket.connected) {
-      console.log("Emitting cursor-update:", cursorData);
-      socket.emit('cursor-update', { ...cursorData, room: slug });
-    }
+    socket.emit('cursor-update', cursorData);
   }, [user, myColor, socket, slug]);
-
-  // Join gallery room on connection
-  useEffect(() => {
-    if (!slug || !socket) return;
-    
-    socket.on('connect', () => {
-      console.log('Joining gallery room:', slug);
-      socket.emit('join-gallery', slug);
-    });
-  }, [slug, socket]);
 
   // Fetch user color when component mounts
   useEffect(() => {

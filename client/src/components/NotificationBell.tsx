@@ -19,7 +19,7 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ notifications, onClick }: NotificationBellProps) {
-  const unseenCount = notifications.filter(n => !n.isSeen).length;
+  const unseenCount = notifications.length;
 
   return (
     <Popover>
@@ -40,10 +40,7 @@ export function NotificationBell({ notifications, onClick }: NotificationBellPro
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
-        <NotificationDropdown 
-          notifications={notifications} 
-          onMarkAllAsRead={onClick}
-        />
+        <NotificationDropdown notifications={notifications} />
       </PopoverContent>
     </Popover>
   );
