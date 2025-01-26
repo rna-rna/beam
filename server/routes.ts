@@ -19,6 +19,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from 'sharp';
 import { pusher } from './pusherConfig';
 import { getGalleryUserRole, canManageGallery, canStar } from './lib/roles';
+import { Server as SocketIOServer } from 'socket.io'; // Import Socket.IO
 
 // Replace with your actual bucket name and endpoint
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
@@ -781,20 +782,26 @@ export function registerRoutes(app: Express): Server {
             await Promise.all(
               editorUserIds
                 .filter(editorId => editorId !== req.auth?.userId)
-                .map((editorId) =>
-                  db.insert(notifications).values({
-                    userId: editorId,
-                    type: 'image-uploaded',
-                    data: {
-                      imageId: image.id,
-                      url: publicUrl,
-                      actorId: req.auth?.userId,
-                      galleryId: gallery.id
-                    },
-                    isSeen: false,
-                    createdAt: new Date()
-                  })
-                )
+                .map(async (editorId) => {
+                  const [notification] = await db.insert(notifications)
+                    .values({
+                      userId: editorId,
+                      type: 'image-uploaded',
+                      data: {
+                        imageId: image.id,
+                        url: publicUrl,
+                        actorId: req.auth?.userId,
+                        galleryId: gallery.id
+                      },
+                      isSeen: false,
+                      createdAt: new Date()
+                    })
+                    .returning();
+
+                  // Emit notification to specific user
+                  io.to(`user:${editorId}`).emit('notification', notification);
+                  return notification;
+                })
             );
 
             // Emit real-time event via Pusher
@@ -1586,7 +1593,7 @@ export function registerRoutes(app: Express): Server {
             .filter(reply => reply.parentId === parent.id)
             .map(async reply => {
               const enrichedReply = enrichCommentWithUser(reply);
-              
+
               // Get reactions for this reply
               const replyReactions = await db.query.commentReactions.findMany({
                 where: eq(commentReactions.commentId, reply.id)
@@ -1783,7 +1790,7 @@ export function registerRoutes(app: Express): Server {
             } else {
               // Create a new notification with a new group_id
               const groupId = nanoid();
-              await db.insert(notifications).values({
+              const [notification] = await db.insert(notifications).values({
                 userId: editorId,
                 type: 'image-starred',
                 data: {
@@ -1795,7 +1802,10 @@ export function registerRoutes(app: Express): Server {
                 groupId,
                 isSeen: false,
                 createdAt: new Date()
-              });
+              }).returning();
+
+              // Emit notification to specific user
+              io.to(`user:${editorId}`).emit('notification', notification);
             }
           })
       );
@@ -2704,7 +2714,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  
+
 
   // Track gallery views
   protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
@@ -2995,6 +3005,19 @@ export function registerRoutes(app: Express): Server {
   app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);
+  const io = new SocketIOServer(httpServer, {
+    cors: {
+      origin: process.env.VITE_APP_URL,
+      methods: ["GET", "POST"],
+    },
+  });
+
+  io.on("connection", (socket) => {
+    // Attach userId if you're doing auth
+    // e.g. socket.join(userId) so we can emit specifically to them
+    console.log('Socket.IO connection established:', socket.id);
+  });
+
   return httpServer;
 }
 
