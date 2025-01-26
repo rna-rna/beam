@@ -2855,6 +2855,36 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get notifications endpoint
+  protectedRouter.get("/notifications", async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+      const rows = await db.query.notifications.findMany({
+        where: eq(notifications.userId, userId),
+        orderBy: (notifications, { desc }) => [desc(notifications.createdAt)],
+        limit: 10,
+      });
+      res.json(rows);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  // Mark all notifications as read endpoint
+  protectedRouter.post("/notifications/mark-all-read", async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+      await db.update(notifications)
+        .set({ isSeen: true })
+        .where(eq(notifications.userId, userId));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+      res.status(500).json({ error: "Failed to mark notifications as read" });
+    }
+  });
+
   app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);
