@@ -21,6 +21,7 @@ import {
 import { motion } from "framer-motion";
 
 import { NotificationBell } from "./NotificationBell";
+const NotificationBell = () => <div>Notification Bell</div>;
 
 
 export function UserNav() {
