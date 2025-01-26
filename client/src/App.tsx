@@ -285,6 +285,8 @@ function AppContent() {
   );
 }
 
+import { NotificationProvider } from "@/context/NotificationContext";
+
 export default function App() {
   const { isLoaded } = useUser();
 
@@ -295,8 +297,6 @@ export default function App() {
       </div>
     );
   }
-
-  import { NotificationProvider } from "@/context/NotificationContext";
 
   return (
     <DndProvider backend={HTML5Backend}>
