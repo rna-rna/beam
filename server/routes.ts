@@ -19,7 +19,6 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from 'sharp';
 import { pusher } from './pusherConfig';
 import { getGalleryUserRole, canManageGallery, canStar } from './lib/roles';
-import { createOrUpdateNotification } from './lib/notificationService';
 
 // Replace with your actual bucket name and endpoint
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
@@ -778,21 +777,25 @@ export function registerRoutes(app: Express): Server {
             // Get all editor users for notifications
             const editorUserIds = await getEditorUserIds(gallery.id);
 
-            // Notify all editors except the actor about the new image
-            for (const editorId of editorUserIds) {
-              if (editorId === req.auth?.userId) continue;
-
-              await createOrUpdateNotification({
-                recipientId: editorId,
-                actorId: req.auth?.userId,
-                galleryId: gallery.id,
-                type: 'image-uploaded',
-                data: {
-                  imageId: image.id,
-                  url: publicUrl,
-                }
-              });
-            }
+            // Create notifications for all editors except the actor
+            await Promise.all(
+              editorUserIds
+                .filter(editorId => editorId !== req.auth?.userId)
+                .map((editorId) =>
+                  db.insert(notifications).values({
+                    userId: editorId,
+                    type: 'image-uploaded',
+                    data: {
+                      imageId: image.id,
+                      url: publicUrl,
+                      actorId: req.auth?.userId,
+                      galleryId: gallery.id
+                    },
+                    isSeen: false,
+                    createdAt: new Date()
+                  })
+                )
+            );
 
             // Emit real-time event via Pusher
             pusher.trigger(`presence-gallery-${gallery.slug}`, 'image-uploaded', {
@@ -1751,20 +1754,51 @@ export function registerRoutes(app: Express): Server {
       const editorUserIds = await getEditorUserIds(image.gallery.id);
 
       // Create or update notifications for all editors except the actor
-      for (const editorId of editorUserIds) {
-        if (editorId === userId) continue;
+      await Promise.all(
+        editorUserIds
+          .filter(editorId => editorId !== userId)
+          .map(async (editorId) => {
+            const existingNotification = await db.query.notifications.findFirst({
+              where: and(
+                eq(notifications.type, 'image-starred'),
+                eq(notifications.userId, editorId),
+                sql`${notifications.data}->>'imageId' = ${imageId}::text`,
+                sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
+              )
+            });
 
-        await createOrUpdateNotification({
-          recipientId: editorId,
-          actorId: userId,
-          galleryId: image.gallery.id,
-          type: 'image-starred',
-          data: { 
-            imageId,
-            isStarred: !isStarred
-          }
-        });
-      }
+            if (existingNotification) {
+              // Update timestamp for existing notification
+              await db.update(notifications)
+                .set({ 
+                  createdAt: new Date(),
+                  data: {
+                    imageId,
+                    isStarred: !isStarred,
+                    actorId: userId,
+                    galleryId: image.gallery.id
+                  }
+                })
+                .where(eq(notifications.id, existingNotification.id));
+            } else {
+              // Create a new notification with a new group_id
+              const groupId = nanoid();
+              await db.insert(notifications).values({
+                userId: editorId,
+                type: 'image-starred',
+                data: {
+                  imageId,
+                  isStarred: !isStarred,
+                  actorId: userId,
+                  galleryId: image.gallery.id
+                },
+                groupId,
+                isSeen: false,
+                createdAt: new Date()
+              });
+            }
+          })
+      );
 
       // Emit real-time event via Pusher
       pusher.trigger(`presence-gallery-${image.gallery.slug}`, 'image-starred', {
@@ -1972,7 +2006,7 @@ export function registerRoutes(app: Express): Server {
     const userId = req.auth.userId;
 
     try {
-      console.log('Invite attempt:', {
+      consolelog('Invite attempt:', {
         slug,
         email,
         role,
@@ -2557,43 +2591,12 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Mark all notifications as read
-  protectedRouter.post('/notifications/mark-all-read', async (req: any, res) => {
+  // Get grouped notifications
+  protectedRouter.get('/api/notifications', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
-      await db.update(notifications)
-        .set({ isSeen: true })
-        .where(and(
-          eq(notifications.userId, userId),
-          eq(notifications.isSeen, false)
-        ));
 
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error marking notifications read:', error);
-      res.status(500).json({ success: false });
-    }
-  });
-
-  // Get grouped notifications
-  protectedRouter.get('/notifications', async (req: any, res) => {
-    console.log("[DEBUG] /api/notifications endpoint hit!");
-    
-    try {
-      const userId = req.auth?.userId;
-      console.log("[DEBUG] userId in /api/notifications:", userId);
-
-      if (!userId) {
-        console.log("[DEBUG] No userId - returning 401");
-        return res.status(401).json({ 
-          success: false,
-          message: 'Authentication required'
-        });
-      }
-
-      console.log('[DEBUG] Fetching notifications for user:', userId);
-
-      const userNotifications = await db.query.notifications.findMany({
+      const notifications = await db.query.notifications.findMany({
         where: and(
           eq(notifications.userId, userId),
           eq(notifications.isSeen, false)
@@ -2601,10 +2604,8 @@ export function registerRoutes(app: Express): Server {
         orderBy: [desc(notifications.createdAt)],
       });
 
-      console.log('[Notifications] Found:', userNotifications.length);
-
       // Group notifications by groupId, type and similar data
-      const grouped = userNotifications.reduce((acc: any[], notification) => {
+      const grouped = notifications.reduce((acc: any[], notification) => {
         const existingGroup = acc.find(group => 
           group.groupId === notification.groupId && 
           group.type === notification.type &&
@@ -2622,8 +2623,7 @@ export function registerRoutes(app: Express): Server {
             type: notification.type,
             data: notification.data,
             count: 1,
-            latestTime: notification.createdAt,
-            isSeen: notification.isSeen
+            latestTime: notification.createdAt
           });
         }
         return acc;
@@ -2632,17 +2632,7 @@ export function registerRoutes(app: Express): Server {
       // Sort by latest time
       grouped.sort((a, b) => b.latestTime.getTime() - a.latestTime.getTime());
 
-      console.log("[DEBUG] Found and grouped notifications:", {
-        total: notifications.length,
-        groupedCount: grouped.length,
-        sample: grouped[0]
-      });
-
-      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.json({
-        success: true,
-        data: grouped
-      });
+      res.json(grouped);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
       res.status(500).json({

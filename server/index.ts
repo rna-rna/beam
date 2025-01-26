@@ -17,6 +17,12 @@ if (!process.env.CLERK_PUBLISHABLE_KEY) {
   throw new Error('CLERK_PUBLISHABLE_KEY is required. Please add it to your environment variables.');
 }
 
+// Log R2 environment variables
+console.log('Environment Variables:', {
+  VITE_R2_PUBLIC_URL: process.env.VITE_R2_PUBLIC_URL,
+  R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
+});
+
 const app = express();
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
@@ -26,13 +32,57 @@ const io = new Server(httpServer, {
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
   },
-  transports: ['websocket', 'polling'],
-  pingTimeout: 30000,
+  transports: ['websocket'],
+  pingTimeout: 60000,
   pingInterval: 25000,
   path: '/socket.io'
 });
 
-// Enable CORS
+io.on('connection', (socket) => {
+  console.log('User connected:', {
+    socketId: socket.id,
+    headers: socket.handshake.headers,
+    origin: socket.handshake.headers.origin,
+    address: socket.handshake.address,
+    time: new Date().toISOString()
+  });
+
+  socket.on('join-gallery', (gallerySlug) => {
+    socket.join(gallerySlug);
+    console.log(`Socket ${socket.id} joined gallery: ${gallerySlug}`);
+  });
+
+  socket.on('leave-gallery', (gallerySlug) => {
+    socket.leave(gallerySlug);
+    console.log(`Socket ${socket.id} left gallery: ${gallerySlug}`);
+  });
+
+  socket.on('cursor-update', (cursorData) => {
+    const { gallerySlug, ...cursorInfo } = cursorData;
+    if (!gallerySlug) return;
+
+    console.log('Cursor update:', {
+      socketId: socket.id,
+      userId: cursorInfo.id,
+      position: { x: cursorInfo.x, y: cursorInfo.y },
+      color: cursorInfo.color,
+      gallery: gallerySlug
+    });
+    
+    // Relay only to others in the same gallery
+    socket.to(gallerySlug).emit('cursor-update', cursorInfo);
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log('User disconnected:', {
+      socketId: socket.id,
+      reason,
+      time: new Date().toISOString()
+    });
+  });
+});
+
+// Enable CORS with comprehensive options
 app.use(cors({
   origin: process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
@@ -47,18 +97,51 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-(async () => {
-  // Register API routes first
-  registerRoutes(app);
+// Debug logging middleware
+app.use((req, res, next) => {
+  console.log(`[DEBUG] ${req.method} ${req.url}`);
+  console.log("Headers:", req.headers);
+  console.log("Body:", req.body);
+  console.log("Params:", req.params);
+  next();
+});
 
-  // Then set up Vite middleware
-  if (app.get("env") === "development") {
-    process.env.VITE_CLERK_PUBLISHABLE_KEY = process.env.CLERK_PUBLISHABLE_KEY;
-    console.log('Setting VITE_CLERK_PUBLISHABLE_KEY for frontend...');
-    await setupVite(app, httpServer);
-  } else {
-    serveStatic(app);
-  }
+// Ensure Pusher auth route is handled before static files
+app.use(pusherAuthRouter);
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
+      log(logLine);
+    }
+  });
+
+  next();
+});
+
+(async () => {
+  const server = registerRoutes(app);
 
   // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -75,6 +158,18 @@ app.use(express.urlencoded({ extended: false }));
 
     res.status(status).json({ message, details: err.details });
   });
+
+  // Setup Vite or serve static files
+  if (app.get("env") === "development") {
+    // Pass environment variables to the frontend
+    process.env.VITE_CLERK_PUBLISHABLE_KEY = process.env.CLERK_PUBLISHABLE_KEY;
+
+    // Log the environment variable to verify it's set
+    console.log('Setting VITE_CLERK_PUBLISHABLE_KEY for frontend...');
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
 
   const PORT = 5000;
   httpServer.listen(PORT, "0.0.0.0", () => {

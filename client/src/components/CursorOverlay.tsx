@@ -1,7 +1,6 @@
+
 import { motion } from "framer-motion";
 import { useUser } from "@clerk/clerk-react";
-import { io } from "socket.io-client";
-import { useState, useEffect } from "react";
 
 interface UserCursor {
   id: string;
@@ -13,76 +12,18 @@ interface UserCursor {
 }
 
 interface CursorOverlayProps {
-  cursors?: UserCursor[];
+  cursors: UserCursor[];
 }
 
-export function CursorOverlay({ cursors = [] }: CursorOverlayProps) {
+export function CursorOverlay({ cursors }: CursorOverlayProps) {
   const { user } = useUser();
-  const [cursorsState, setCursors] = useState<UserCursor[]>(cursors);
-
-  useEffect(() => {
-    console.log("Attempting to connect socket...");
-    const socket = io({
-      transports: ['websocket', 'polling'],
-      path: '/socket.io',
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      timeout: 20000
-    });
-
-    socket.on("connect", () => {
-      console.log("Socket connected with ID:", socket.id);
-    });
-
-    socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
-    });
-
-    socket.on('cursor-update', (data) => {
-      console.log("Received cursor-update:", data);
-      if (data && data.id && data.id !== user?.id) {
-        setCursors(prevCursors => {
-          // Filter out stale cursors and the current user's cursor
-          const otherCursors = prevCursors.filter(c => 
-            c.id !== data.id && 
-            c.id !== user?.id && 
-            Date.now() - c.lastActive < 5000
-          );
-          return [...otherCursors, {
-            id: data.id,
-            name: data.name || 'Anonymous',
-            color: data.color || '#000000',
-            x: data.x || 0,
-            y: data.y || 0,
-            lastActive: Date.now()
-          }];
-        });
-      }
-    });
-
-    // Cleanup stale cursors every 5 seconds
-    const cleanup = setInterval(() => {
-      setCursors(prev => {
-        const now = Date.now();
-        return prev.filter(cursor => now - cursor.lastActive < 5000);
-      });
-    }, 5000);
-
-    return () => {
-      clearInterval(cleanup);
-      socket.disconnect();
-    };
-  }, []);
-
 
   return (
     <div
       className="fixed inset-0 pointer-events-none"
       style={{ zIndex: 99999 }}
     >
-      {cursorsState
+      {cursors
         .filter((cursor) => cursor.id !== user?.id)
         .map((otherUser) => (
           <motion.div
