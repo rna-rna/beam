@@ -6,6 +6,7 @@ import { io } from "socket.io-client";
 import { useToast } from '@/hooks/use-toast';
 import { NotificationBell } from './NotificationBell';
 import { NotificationDropdown } from './NotificationDropdown';
+import { useUser } from '@clerk/clerk-react';
 
 // Initialize socket
 const socket = io("/", {
@@ -20,6 +21,7 @@ const socket = io("/", {
 export function NotificationSystem() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useUser();
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['/api/notifications'],
@@ -46,18 +48,36 @@ export function NotificationSystem() {
   });
 
   React.useEffect(() => {
-    socket.on('notification', (newNotification) => {
+    // Connect to socket with auth
+    if (user?.id) {
+      socket.auth = { userId: user.id };
+      socket.connect();
+
+      // Join user-specific room
+      socket.emit('join-user', user.id);
+    }
+
+    function handleNotification(newNotification) {
       queryClient.invalidateQueries(['/api/notifications']);
+      
+      const message = getNotificationMessage(newNotification);
       toast({
         title: 'New Notification',
-        description: getNotificationMessage(newNotification),
+        description: message,
       });
-    });
+    }
+
+    socket.on('notification', handleNotification);
+    socket.on('image-starred', handleNotification);
+    socket.on('comment-added', handleNotification);
 
     return () => {
-      socket.off('notification');
+      socket.off('notification', handleNotification);
+      socket.off('image-starred', handleNotification);
+      socket.off('comment-added', handleNotification);
+      socket.disconnect();
     };
-  }, [queryClient, toast]);
+  }, [queryClient, toast, user?.id]);
 
   const unseenCount = notifications.filter(n => !n.isSeen).length;
 
