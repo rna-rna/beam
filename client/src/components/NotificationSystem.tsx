@@ -15,7 +15,8 @@ const socket = io("/", {
   withCredentials: true,
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
-  timeout: 10000
+  timeout: 10000,
+  autoConnect: false
 });
 
 export function NotificationSystem() {
@@ -84,9 +85,11 @@ export function NotificationSystem() {
   function getNotificationMessage(notification) {
     switch (notification.type) {
       case 'image-starred':
-        return 'Someone starred your image';
+        return `${notification.data?.actorId ? 'Someone' : 'A user'} starred an image`;
       case 'comment-added':
-        return 'New comment on your image';
+        return `New comment added to your image`;
+      case 'image-uploaded':
+        return `New image uploaded to gallery`;
       default:
         return 'New notification';
     }

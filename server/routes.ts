@@ -799,7 +799,12 @@ export function registerRoutes(app: Express): Server {
                     .returning();
 
                   // Emit notification to specific user
-                  io.to(`user:${editorId}`).emit('notification', notification);
+                  io.to(`user:${editorId}`).emit('notification', {
+                    type: notification.type,
+                    data: notification.data,
+                    createdAt: notification.createdAt,
+                    isSeen: false
+                  });
                   return notification;
                 })
             );
@@ -1813,7 +1818,12 @@ export function registerRoutes(app: Express): Server {
             }
 
             // Emit notification to specific user
-            io.to(`user:${editorId}`).emit('notification', notification);
+            io.to(`user:${editorId}`).emit('notification', {
+              type: notification.type,
+              data: notification.data,
+              createdAt: notification.createdAt,
+              isSeen: false
+            });
           })
       );
 
