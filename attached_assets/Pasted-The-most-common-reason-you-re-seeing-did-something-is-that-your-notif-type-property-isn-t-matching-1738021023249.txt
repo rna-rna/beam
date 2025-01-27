@@ -1,0 +1,89 @@
+The most common reason you’re seeing "did something" is that your notif.type property isn’t matching any of your if (notif.type === 'star') ... checks. In other words, the data arriving in the front end might have a type like "image-starred" or "comment-added", while your front-end code is only looking for "star", "comment", or "reply". Since it never matches, it falls into the else branch of notificationText.
+
+Below are tips to fix it:
+
+1. Check What Your Server Actually Stores for type
+Look at the code that inserts notifications in your server logic. For example:
+
+ts
+Copy
+Edit
+// Possibly in addStarNotification
+db.insert(notifications).values({
+  userId: editorId,
+  type: "image-starred",  // <-- might be "image-starred" here
+  data: {
+    actorName,
+    // ...
+  },
+});
+If that is the case, then on the client side you have:
+
+ts
+Copy
+Edit
+if (notif.type === "star") {
+  // ...
+} else {
+  notificationText = `${actorName} did something`;
+}
+So obviously, it won’t match "star" if your server sets "image-starred" or "starred". Either rename the server-side "type" to "star" or add a front-end check for "image-starred".
+
+2. Log the Incoming notif
+To confirm the mismatch, do a quick console log in your front-end:
+
+js
+Copy
+Edit
+{notifications.map((notif) => {
+  console.log("debug notification:", notif); // log the entire object
+  // ...
+})}
+Check your browser console. You’ll see something like:
+
+js
+Copy
+Edit
+{
+  type: "image-starred", 
+  data: { actorName: "Luke Georgeson", ... },
+  ...
+}
+This will confirm the actual type string. Then you can update your if statements or your server data to align.
+
+3. Align Type Names
+You can do either approach:
+
+Approach A: Keep the server code as is, and add a front-end check:
+
+ts
+Copy
+Edit
+} else if (notif.type === "image-starred") {
+  notificationText = count
+    ? `${actorName} starred ${count} images`
+    : `${actorName} starred your gallery`;
+}
+// ...
+Approach B: Change your server inserts from "image-starred" to a simpler "star".
+
+Either approach fixes the mismatch so your UI shows the correct label.
+
+4. Confirm count or snippet Data, If Needed
+If your notification is a star event but your code tries to display count (like 5 images), make sure your server is actually storing that count in the notifications.data. Same with snippet for comments. For instance:
+
+ts
+Copy
+Edit
+// For a comment notification:
+db.insert(notifications).values({
+  userId: ...,
+  type: "comment",
+  data: {
+    actorName,
+    snippet: "Some short excerpt of the comment",
+    // ...
+  }
+})
+Then the UI’s notif.data.snippet will be "Some short excerpt of the comment".
+
