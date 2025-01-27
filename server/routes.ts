@@ -1444,6 +1444,7 @@ export function registerRoutes(app: Express): Server {
         }
 
         // Create the comment
+        // Get cached user data for color
         const [cachedUser] = await fetchCachedUserData([userId]);
 
         const [comment] = await db.insert(comments)
@@ -1468,47 +1469,6 @@ export function registerRoutes(app: Express): Server {
             commentCount: sql`COALESCE(${images.commentCount}, 0) + 1`
           })
           .where(eq(images.id, imageId));
-
-        // Send notifications based on comment type and roles
-        if (parentId) {
-          // For replies, notify the original comment author
-          const parentComment = await db.query.comments.findFirst({
-            where: eq(comments.id, parentId)
-          });
-
-          if (parentComment && parentComment.userId !== userId) {
-            await addReplyNotification({
-              recipientUserId: parentComment.userId,
-              actorId: userId,
-              actorName: userName,
-              actorAvatar: userImageUrl,
-              imageId,
-              commentId: comment.id,
-              parentCommentId: parentId
-            });
-          }
-        }
-
-        // Notify editors and owners
-        const editorUserIds = await getEditorUserIds(image.gallery.id);
-        await Promise.all(
-          editorUserIds
-            .filter(editorId => editorId !== userId)
-            .map(async (editorId) => {
-              const recipientRole = await getGalleryUserRole(image.gallery.id, editorId);
-              if (recipientRole === 'owner' || recipientRole === 'Edit') {
-                await addCommentNotification({
-                  recipientUserId: editorId,
-                  actorId: userId,
-                  actorName: userName,
-                  actorAvatar: userImageUrl,
-                  imageId,
-                  galleryId: image.gallery.id,
-                  commentId: comment.id
-                });
-              }
-            })
-        );
 
         // Add user color to response
         const commentWithColor = {
@@ -1790,15 +1750,17 @@ export function registerRoutes(app: Express): Server {
           .values({ userId, imageId });
       }
 
-      // Only notify editors/owners of stars
+      // Get all editor users for notifications
       const editorUserIds = await getEditorUserIds(image.gallery.id);
+
+      // Get user data for notifications
       const [actorData] = await fetchCachedUserData([userId]);
       const actorName = actorData ? `${actorData.firstName || ''} ${actorData.lastName || ''}`.trim() : 'Unknown User';
 
-      // Only send notifications to editors and owners
+      // Create notifications for editors and owners
       await Promise.all(
         editorUserIds
-          .filter(editorId => editorId !== userId) // Don't notify self
+          .filter(editorId => editorId !== userId)
           .map(async (editorId) => {
             const recipientRole = await getGalleryUserRole(image.gallery.id, editorId);
             if (recipientRole === 'owner' || recipientRole === 'Edit') {
@@ -2103,25 +2065,12 @@ export function registerRoutes(app: Express): Server {
           clerkUserId: user?.id
         });
 
-        // Create invite
-        const [invite] = await db.insert(invites).values({
+        await db.insert(invites).values({
           galleryId: gallery.id,
           email,
           userId: user?.id,
           role
-        }).returning();
-
-        // If the invited user exists, send them a notification
-        if (user?.id) {
-          await addInviteNotification({
-            recipientUserId: user.id,
-            actorId: req.auth.userId,
-            actorName: inviterName,
-            actorAvatar: inviterData.imageUrl,
-            galleryId: gallery.id,
-            role
-          });
-        }
+        });
       }
 
       try {
