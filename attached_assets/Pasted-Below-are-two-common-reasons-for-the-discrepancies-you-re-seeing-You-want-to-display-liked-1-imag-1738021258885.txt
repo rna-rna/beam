@@ -1,0 +1,186 @@
+Below are two common reasons for the discrepancies you’re seeing:
+
+You want to display “liked 1 image in [Gallery name]” but the notification data only has "starred your gallery" (no reference to the gallery name or count).
+No notifications for comments because the server-side code isn’t calling your notification-insertion logic for comment events.
+Below is how to fix both issues:
+
+1. Include the Gallery Name (or Slug) in Your Notification Data
+Server-Side
+When you insert a “star” notification, fetch the gallery’s name or title from the DB, then pass it to the notification’s data.galleryTitle field. For example:
+
+ts
+Copy
+Edit
+// Suppose you have a star route or function:
+import { db } from "@db";
+import { galleries } from "@db/schema";
+import { eq } from "drizzle-orm";
+
+export async function addStarNotification({
+  recipientUserId,
+  actorId,
+  actorName,
+  actorAvatar,
+  galleryId,
+  count,
+}: {
+  recipientUserId: string;
+  actorId: string;
+  actorName: string;
+  actorAvatar?: string;
+  galleryId: number;
+  count?: number; // if you have a grouping logic
+}) {
+  // 1) fetch the gallery's title
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.id, galleryId),
+  });
+
+  if (!gallery) {
+    console.error("Gallery not found for ID:", galleryId);
+    return; // or handle error
+  }
+
+  const galleryTitle = gallery.title;
+
+  // 2) Insert or update the notification, storing the gallery title:
+  const groupId = `star-${actorId}-${galleryId}`;
+  // Possibly check if you have an existing star notification (within 10 minutes)
+  // ...
+  // If not found, insert:
+  const [inserted] = await db.insert(notifications).values({
+    userId: recipientUserId,
+    type: "star",
+    data: {
+      actorName,
+      actorAvatar,
+      // store both galleryId and galleryTitle
+      galleryId,
+      galleryTitle,
+      count: count ?? 1,
+    },
+    groupId,
+  }).returning();
+
+  // ...
+  // trigger pusher
+}
+This ensures the notif.data.galleryTitle is always present. Then, in the front end, you can say:
+
+ts
+Copy
+Edit
+if (notif.type === "star") {
+  notificationText = count
+    ? `${actorName} liked ${count} image${count > 1 ? "s" : ""} in ${galleryTitle}`
+    : `${actorName} liked your gallery`;
+}
+(Use “liked” or “starred” – whichever suits your copy style. Also note count if you’re grouping multiple stars, or fallback to 1 if it’s just a single star event.)
+
+2. Ensure Comment Notifications are Created
+Server-Side
+If you’re not receiving notifications for new comments, it’s typically because your “comment” route does not call your addCommentNotification(...). You must do something like:
+
+ts
+Copy
+Edit
+// in your /api/images/:imageId/comments route
+import { db } from "@db";
+import { images } from "@db/schema";
+// ...
+import { addCommentNotification } from "./lib/notifications"; // hypothetical
+
+app.post("/api/images/:imageId/comments", async (req, res) => {
+  // 1) Insert the comment
+  const { content, ... } = req.body;
+  const imageId = parseInt(req.params.imageId);
+  const [comment] = await db.insert(comments).values({
+    imageId,
+    content,
+    // ...
+  }).returning();
+
+  // 2) Find who should get a comment notification
+  //   Typically the gallery's editor(s)/owner(s)
+  const image = await db.query.images.findFirst({
+    where: eq(images.id, imageId),
+    with: { gallery: true },
+  });
+  if (!image || !image.gallery) {
+    return res.status(404).json({ message: "Image/gallery not found" });
+  }
+  const gallery = image.gallery;
+
+  // get the owner's userId or the array of editor user IDs
+  const editorIds = await getEditorUserIds(gallery.id);
+
+  // 3) For each editor/owner, call addCommentNotification
+  for (const editorId of editorIds) {
+    // if (editorId === the one who commented?), skip self-notification
+    await addCommentNotification({
+      recipientUserId: editorId,
+      actorId: req.auth.userId,
+      actorName: userName,
+      actorAvatar: userImageUrl,
+      galleryId: gallery.id,
+      snippet: content.slice(0, 50), // or however you want to store snippet
+    });
+  }
+
+  // done
+  res.json({ success: true, comment });
+});
+Then in your lib/notifications.ts:
+
+ts
+Copy
+Edit
+export async function addCommentNotification({
+  recipientUserId,
+  actorId,
+  actorName,
+  actorAvatar,
+  galleryId,
+  snippet,
+}: {
+  recipientUserId: string;
+  actorId: string;
+  actorName: string;
+  actorAvatar?: string;
+  galleryId: number;
+  snippet: string;
+}) {
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.id, galleryId),
+  });
+  // ...
+  const galleryTitle = gallery?.title || "your gallery";
+
+  // Insert the notification
+  await db.insert(notifications).values({
+    userId: recipientUserId,
+    type: "comment",
+    data: {
+      actorName,
+      actorAvatar,
+      actorColor, // optional
+      galleryId,
+      galleryTitle,
+      snippet,
+    },
+  });
+  // Also trigger pusher
+  // ...
+}
+Front-End Display
+With notif.type === "comment", you’d do:
+
+ts
+Copy
+Edit
+else if (notif.type === "comment") {
+  notificationText = snippet
+    ? `${actorName} commented: "${snippet}" in ${galleryTitle}`
+    : `${actorName} commented on ${galleryTitle}`;
+}
+That way, each new comment calls your function, and the front-end sees it in real time.
