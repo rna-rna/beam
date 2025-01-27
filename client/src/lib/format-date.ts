@@ -1,5 +1,6 @@
+
 import {
-  formatDistanceToNow,
+  formatDistanceToNow as fnsFormatDistanceToNow,
   differenceInSeconds,
   differenceInMinutes,
   differenceInHours,
@@ -9,6 +10,8 @@ import {
   isFuture,
   differenceInYears
 } from 'date-fns';
+
+export { fnsFormatDistanceToNow as formatDistanceToNow };
 
 export function formatRelativeDate(date: Date | string | number) {
   const parsedDate = new Date(date);

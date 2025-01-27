@@ -19,9 +19,7 @@ import {
   User as UserIcon
 } from "lucide-react";
 import { motion } from "framer-motion";
-
-// Placeholder for NotificationBell component
-const NotificationBell = () => <div>Notification Bell</div>;
+import { NotificationBellDropdown } from "@/components/NotificationBellDropdown";
 
 
 export function UserNav() {
@@ -38,7 +36,7 @@ export function UserNav() {
 
   return (
     <div className="flex items-center gap-2">
-      <NotificationBell /> {/* Added NotificationBell here */}
+      <NotificationBellDropdown />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button 
