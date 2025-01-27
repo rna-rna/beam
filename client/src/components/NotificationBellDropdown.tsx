@@ -37,22 +37,23 @@ export function NotificationBellDropdown() {
             const { actorName, actorAvatar, actorColor, count, snippet, galleryTitle } = notif.data;
 
             let notificationText: JSX.Element | string = "";
-            if (notif.type === "star") {
+            if (notif.type === "star" || notif.type === "image-starred") {
               notificationText = count
                 ? `${actorName} starred ${count} image${count > 1 ? "s" : ""}`
                 : `${actorName} starred your gallery`;
-            } else if (notif.type === "comment") {
+            } else if (notif.type === "comment" || notif.type === "comment-added") {
               notificationText = snippet
                 ? `${actorName} commented: "${snippet}"`
                 : `${actorName} commented on your gallery`;
-            } else if (notif.type === "reply") {
+            } else if (notif.type === "reply" || notif.type === "comment-replied") {
               notificationText = snippet
                 ? `${actorName} replied: "${snippet}"`
                 : `${actorName} replied to your comment`;
-            } else if (notif.type === "invite") {
+            } else if (notif.type === "invite" || notif.type === "gallery-invite") {
               notificationText = `${actorName} invited you to ${galleryTitle || "a gallery"}`;
             } else {
-              notificationText = `${actorName} did something`;
+              console.log("Unhandled notification type:", notif.type);
+              notificationText = `${actorName} interacted with your gallery`;
             }
 
             return (
