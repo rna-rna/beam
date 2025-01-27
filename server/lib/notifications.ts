@@ -158,31 +158,3 @@ export async function addReplyNotification({
     groupId: `reply-${actorId}-${parentCommentId}`
   });
 }
-export async function addInviteNotification({
-  recipientUserId,
-  actorId,
-  actorName,
-  actorAvatar,
-  galleryId,
-  role,
-}: {
-  recipientUserId: string;
-  actorId: string;
-  actorName: string;
-  actorAvatar?: string;
-  galleryId: number;
-  role: string;
-}) {
-  return addNotification({
-    recipientUserId,
-    type: 'gallery-invite',
-    data: {
-      actorName,
-      actorAvatar,
-      galleryId,
-      role
-    },
-    actorId,
-    groupId: `invite-${actorId}-${galleryId}`
-  });
-}
