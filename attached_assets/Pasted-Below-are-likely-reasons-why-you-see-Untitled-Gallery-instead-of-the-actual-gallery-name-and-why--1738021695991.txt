@@ -1,0 +1,158 @@
+Below are likely reasons why you see "Untitled Gallery" instead of the actual gallery name, and why new comment notifications don’t arrive. Follow these steps to fix it.
+
+1. Gallery Name Isn’t Being Inserted into notif.data
+Symptom: The fallback text ("Untitled Gallery") is shown because notif.data.galleryTitle is undefined (or absent), causing the front-end to use "Untitled Gallery".
+
+Fix: In the server code that inserts each notification, you must ensure you’re fetching the galleries.title (the real name) and storing it in notif.data.galleryTitle. Example snippet:
+
+ts
+Copy
+Edit
+// Some server logic for star notifications
+// e.g. addStarNotification or your route for /api/images/:imageId/star
+
+import { db } from "@db";
+import { galleries } from "@db/schema";
+import { eq } from "drizzle-orm";
+
+export async function addStarNotification({
+  recipientUserId,
+  actorName,
+  actorAvatar,
+  actorColor,
+  galleryId,
+  count
+}) {
+  // 1) fetch the gallery
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.id, galleryId)
+  });
+  if (!gallery) return;
+
+  // 2) insert the notification with the actual gallery title
+  await db.insert(notifications).values({
+    userId: recipientUserId,
+    type: "image-starred",    // or "star"
+    data: {
+      actorName,
+      actorAvatar,
+      actorColor,
+      // the crucial part:
+      galleryTitle: gallery.title,
+      count // if you're grouping or passing a single star
+    }
+  });
+  // Trigger real-time event (via Pusher) as well
+}
+Key: The front-end references notif.data.galleryTitle, so the server must store that property in the data object. If you log notif in the browser console, you’ll probably see { galleryTitle: null } or no galleryTitle at all. Once it’s included server-side, your front-end code:
+
+ts
+Copy
+Edit
+// star or image-starred
+notificationText = count
+  ? `${actorName} liked ${count} images in "${galleryTitle}"`
+  : `${actorName} liked "${galleryTitle}"`;
+will properly display the real name.
+
+2. Comment Notifications Not Arriving
+Symptom: You do not see notifications for new comments in the dropdown.
+
+Fix: Possibly your comment route or logic never calls the code that inserts a "comment" or "comment-added" notification. Make sure, after you insert a new comment into DB, you also insert a corresponding notification. For example:
+
+ts
+Copy
+Edit
+// /api/images/:imageId/comments
+app.post("/api/images/:imageId/comments", async (req, res) => {
+  // 1) Insert the new comment
+  const imageId = parseInt(req.params.imageId, 10);
+  const content = req.body.content;
+  // etc. ...
+  const [newComment] = await db.insert(comments).values({
+    imageId,
+    content,
+    userId: req.auth.userId,
+    userName: actorName,
+    // ...
+  }).returning();
+
+  // 2) Find the gallery info so we can store its title in the notification
+  const imageWithGallery = await db.query.images.findFirst({
+    where: eq(images.id, imageId),
+    with: { gallery: true }
+  });
+
+  if (!imageWithGallery || !imageWithGallery.gallery) {
+    return res.status(404).json({ message: "No matching gallery" });
+  }
+
+  const { gallery } = imageWithGallery;
+
+  // 3) Determine who should receive the notification
+  // For example, all editors + owner
+  const editorIds = await getEditorUserIds(gallery.id);
+  // skip sending a notification to the user who made the comment themselves, if desired
+
+  // 4) Insert the notification for each editor
+  for (const userId of editorIds) {
+    await db.insert(notifications).values({
+      userId,
+      type: "comment",
+      data: {
+        actorName,
+        actorAvatar,
+        actorColor,
+        snippet: content.slice(0, 50),  // short preview
+        galleryTitle: gallery.title
+      }
+    });
+    // Also pusher trigger -> e.g. channel.trigger('notification', ...)
+  }
+
+  return res.json({ success: true, comment: newComment });
+});
+Then your front-end code sees notif.type === "comment" with notif.data.galleryTitle and notif.data.snippet. Thus the dropdown can show “Luke Georgeson commented: "Nice shot" in Wedding Photos”.
+
+3. Double-Check Notification Type Name
+Your dropdown code checks:
+
+ts
+Copy
+Edit
+if (notif.type === "star" || notif.type === "image-starred") { ... }
+else if (notif.type === "comment" || notif.type === "comment-added") { ... }
+else if (notif.type === "reply" || notif.type === "comment-replied") { ... }
+else if (notif.type === "invite" || notif.type === "gallery-invite") { ... }
+...
+Make sure your server sets notif.type to either "star" or "image-starred" (and similarly for comment) so it matches. If you set "comment-added" in the server, the client must check "comment-added". If you set just "comment", the client must check that. If there’s a mismatch, the code will always skip to the fallback text.
+
+4. Confirm You’re Triggering the Right Pusher Channel
+In NotificationContext, you do:
+
+js
+Copy
+Edit
+const channel = pusher.subscribe(`private-user-${user.id}`);
+channel.bind("notification", (notif: Notification) => {
+  // ...
+});
+Ensure your server triggers that same channel name:
+
+ts
+Copy
+Edit
+import Pusher from "pusher";
+// ...
+pusher.trigger(`private-user-${recipientUserId}`, "notification", {
+  id: ...,
+  type: "comment",
+  data: { ... }
+});
+If you accidentally trigger a different channel name or event name, you won’t see the new notifications.
+
+Conclusion
+Gallery Title: On the server, fetch gallery.title and store it as notif.data.galleryTitle in the DB and in your Pusher event payload. The front end will then display e.g. "Luke Georgeson liked 1 image in Wedding Photos".
+Comment Notifications: In your comment creation logic, insert a new "comment"-type notification. Also trigger a Pusher “notification” event so the front end picks it up.
+Match the front-end checks with the server’s notif.type and confirm Pusher triggers.
+If you’re still seeing the fallback text, console.log the entire notif object in your front-end to confirm that notif.data.galleryTitle is indeed set and that notif.type matches your if/else logic. Then your system will properly show "Luke Georgeson liked 1 image in [Gallery Name]" and “Luke Georgeson commented on [Gallery Name]” for new comments.
