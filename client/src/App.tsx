@@ -24,6 +24,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { FolderPage } from "./pages/FolderPage"; // Added import for FolderPage
 import RecentsPage from "@/pages/RecentsPage"; //Added import for RecentsPage
+import { NotificationProvider } from "@/context/NotificationContext"; // Added import for NotificationProvider
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
