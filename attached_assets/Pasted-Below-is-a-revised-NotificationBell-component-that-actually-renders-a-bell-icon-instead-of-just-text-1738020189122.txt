@@ -1,0 +1,66 @@
+Below is a revised NotificationBell component that actually renders a bell icon instead of just text. You can replace your placeholder component with the code below, and it will show a Lucide Bell icon. Then your <NotificationBell /> invocation inside UserNav will display the icon.
+
+tsx
+Copy
+Edit
+// NotificationBell.tsx
+import { Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+
+interface NotificationBellProps {
+  onClick?: () => void;
+}
+
+// Simple example that shows a bell icon with an optional unread badge
+export function NotificationBell({ onClick }: NotificationBellProps) {
+  // Replace this with your actual notification count logic
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  useEffect(() => {
+    // For example, fetch /api/notifications or subscribe to real-time events
+    // setUnreadCount(notifications.filter(n => !n.isSeen).length);
+    // This is just a placeholder
+  }, []);
+
+  return (
+    <Button 
+      variant="ghost" 
+      size="icon"
+      onClick={onClick}
+      className="relative"
+      aria-label={`${unreadCount} unread notifications`}
+    >
+      <Bell className="h-5 w-5" />
+      {unreadCount > 0 && (
+        <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
+    </Button>
+  );
+}
+Explanation:
+Imports the Bell icon from lucide-react.
+Wraps the icon in a <Button> from your UI library. The size="icon" variant typically makes it a square icon button.
+Uses a badge overlay if unreadCount > 0. Adjust or remove if you want simpler UI.
+Use the onClick prop if you want to open a dropdown when the user clicks on the bell.
+After creating this file, import it into UserNav.tsx (or wherever your nav is):
+
+tsx
+Copy
+Edit
+// UserNav.tsx
+import { NotificationBell } from "@/components/NotificationBell";
+
+// ...
+export function UserNav() {
+  // ...
+  return (
+    <div className="flex items-center gap-2">
+      <NotificationBell />
+      {/* ... rest of your user dropdown ... */}
+    </div>
+  );
+}
+Now, instead of showing the text "Notification Bell", it will display the Lucide Bell icon with an optional numeric badge if you wire up the unread count. You can later populate the unreadCount state from your notifications array (fetched from your real-time system).
