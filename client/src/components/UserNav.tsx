@@ -19,9 +19,7 @@ import {
   User as UserIcon
 } from "lucide-react";
 import { motion } from "framer-motion";
-
-// Placeholder for NotificationBell component
-const NotificationBell = () => <div>Notification Bell</div>;
+import { NotificationBell } from "@/components/NotificationBell";
 
 
 export function UserNav() {
