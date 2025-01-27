@@ -27,40 +27,59 @@ export function NotificationBellDropdown() {
           </button>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        
+
         {notifications.length === 0 ? (
           <div className="p-4 text-center text-sm text-muted-foreground">
             No notifications
           </div>
         ) : (
-          notifications.map((notif) => (
-            <DropdownMenuItem key={notif.id} className="px-4 py-3 focus:bg-accent">
-              <div className={`flex gap-3 ${!notif.isSeen ? 'font-medium' : ''}`}>
-                <UserAvatar
-                  size="sm"
-                  name={notif.data.actorName || "Unknown"}
-                  imageUrl={notif.data.actorAvatar}
-                  color={notif.data.actorColor || "#ccc"}
-                />
-                <div className="flex flex-col gap-1">
-                  <div className="text-sm">
-                    {notif.type === "star" && (
-                      <>{notif.data.actorName} starred your gallery</>
-                    )}
-                    {notif.type === "comment" && (
-                      <>{notif.data.actorName} commented on your gallery</>
-                    )}
-                    {notif.type === "reply" && (
-                      <>{notif.data.actorName} replied to your comment</>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(notif.createdAt))} ago
+          notifications.map((notif) => {
+            const { actorName, actorAvatar, actorColor, count, snippet, galleryTitle } = notif.data;
+
+            let notificationText: JSX.Element | string = "";
+            if (notif.type === "star") {
+              notificationText = count
+                ? `${actorName} starred ${count} image${count > 1 ? "s" : ""}`
+                : `${actorName} starred your gallery`;
+            } else if (notif.type === "comment") {
+              notificationText = snippet
+                ? `${actorName} commented: "${snippet}"`
+                : `${actorName} commented on your gallery`;
+            } else if (notif.type === "reply") {
+              notificationText = snippet
+                ? `${actorName} replied: "${snippet}"`
+                : `${actorName} replied to your comment`;
+            } else if (notif.type === "invite") {
+              notificationText = `${actorName} invited you to ${galleryTitle || "a gallery"}`;
+            } else {
+              notificationText = `${actorName} did something`;
+            }
+
+            return (
+              <DropdownMenuItem
+                key={notif.id}
+                className={`px-4 py-3 focus:bg-accent/50 ${!notif.isSeen ? "bg-accent/10" : ""}`}
+              >
+                <div className="flex gap-3">
+                  <UserAvatar
+                    size="sm"
+                    name={actorName || "Unknown"}
+                    imageUrl={actorAvatar}
+                    color={actorColor || "#ccc"}
+                    className="h-8 w-8"
+                  />
+                  <div className="flex flex-col gap-1">
+                    <div className={`text-sm ${!notif.isSeen ? "font-medium" : ""}`}>
+                      {notificationText}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(notif.createdAt))} ago
+                    </div>
                   </div>
                 </div>
-              </div>
-            </DropdownMenuItem>
-          ))
+              </DropdownMenuItem>
+            );
+          })
         )}
       </DropdownMenuContent>
     </DropdownMenu>
