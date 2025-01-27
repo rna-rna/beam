@@ -1,0 +1,118 @@
+Below is an updated <NotificationBellDropdown> component that displays:
+
+The actor’s avatar properly (falling back to initials or a default color if none).
+Notification text for each type (star, comment, reply, invite, etc.).
+Count for star notifications if available (e.g. “Luke starred 5 images”).
+A timestamp using formatDistanceToNow.
+Use this revised version to replace your current code in NotificationBellDropdown.tsx. It references fields like notif.data.count, notif.data.snippet, etc., which you’ll fill in on the server side so it can display dynamic info.
+
+tsx
+Copy
+Edit
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { NotificationBell } from "./NotificationBell";
+import { useNotifications } from "@/context/NotificationContext";
+import { UserAvatar } from "./UserAvatar";
+import { formatDistanceToNow } from "@/lib/format-date";
+
+export function NotificationBellDropdown() {
+  const { notifications, markAllAsRead } = useNotifications();
+
+  return (
+    <DropdownMenu>
+      {/* The bell as the dropdown trigger */}
+      <DropdownMenuTrigger asChild>
+        <div>
+          <NotificationBell />
+        </div>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent className="w-80" align="end">
+        <DropdownMenuLabel className="flex items-center justify-between px-4 py-2">
+          <span className="font-medium">Notifications</span>
+          <button
+            onClick={markAllAsRead}
+            className="text-sm hover:underline"
+          >
+            Mark all as read
+          </button>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+
+        {/* If no notifications */}
+        {notifications.length === 0 ? (
+          <div className="p-4 text-center text-sm text-muted-foreground">
+            No notifications
+          </div>
+        ) : (
+          notifications.map((notif) => {
+            const { actorName, actorAvatar, actorColor, count, snippet, galleryTitle } = notif.data;
+            // For the "star" type, we might show "actorName starred [count] images"
+            // For the "comment" type, we might show "actorName commented: 'snippet'"
+            // For the "invite" type, "actorName invited you to galleryTitle", etc.
+
+            let notificationText: JSX.Element | string = "";
+            if (notif.type === "star") {
+              notificationText = count
+                ? `${actorName} starred ${count} image${count > 1 ? "s" : ""}`
+                : `${actorName} starred your gallery`;
+            } else if (notif.type === "comment") {
+              notificationText = snippet
+                ? `${actorName} commented: “${snippet}”`
+                : `${actorName} commented on your gallery`;
+            } else if (notif.type === "reply") {
+              // Possibly show snippet of the reply if stored
+              notificationText = snippet
+                ? `${actorName} replied: “${snippet}”`
+                : `${actorName} replied to your comment`;
+            } else if (notif.type === "invite") {
+              notificationText = `${actorName} invited you to ${galleryTitle || "a gallery"}`;
+            } else {
+              notificationText = `${actorName} did something`; 
+              // fallback if type is unrecognized
+            }
+
+            return (
+              <DropdownMenuItem
+                key={notif.id}
+                className={`px-4 py-3 focus:bg-accent/50 ${!notif.isSeen ? "bg-accent/10" : ""}`}
+              >
+                <div className="flex gap-3">
+                  <UserAvatar
+                    size="sm"
+                    name={actorName || "Unknown"}
+                    imageUrl={actorAvatar}
+                    color={actorColor || "#ccc"}
+                    className="h-8 w-8"
+                  />
+                  <div className="flex flex-col gap-1">
+                    <div className={`text-sm ${!notif.isSeen ? "font-medium" : ""}`}>
+                      {notificationText}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(notif.createdAt))} ago
+                    </div>
+                  </div>
+                </div>
+              </DropdownMenuItem>
+            );
+          })
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+Key Points:
+notificationText is constructed based on notif.type.
+notif.data is assumed to contain keys like:
+actorName (the user who triggered it)
+actorAvatar (the user’s profile image, if any)
+actorColor (a color code for fallback avatar background)
+count (for star notifications grouping)
+snippet (short excerpt for comments or replies)
+galleryTitle (for invites, if relevant)
+UserAvatar is given actorName and actorAvatar. If the actorAvatar is missing or invalid, you’ll see the fallback letter.
+Unread notifications get a slightly tinted background (bg-accent/10) and font-medium.
+We call formatDistanceToNow(new Date(notif.createdAt)) + "ago" for timestamps.
+If you want to link to a specific gallery, you can parse e.g. notif.data.gallerySlug to create an <a> link.
+Result: The dropdown now shows each notification’s avatar, type, snippet, and timestamp exactly as your original brief specified, with real-time updates if your server is populating notif.data with the correct fields.
