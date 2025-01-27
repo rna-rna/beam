@@ -39,16 +39,16 @@ export function NotificationBellDropdown() {
             let notificationText: JSX.Element | string = "";
             if (notif.type === "star" || notif.type === "image-starred") {
               notificationText = count
-                ? `${actorName} starred ${count} image${count > 1 ? "s" : ""}`
-                : `${actorName} starred your gallery`;
+                ? `${actorName} liked ${count} image${count > 1 ? "s" : ""} in ${galleryTitle || "your gallery"}`
+                : `${actorName} liked ${galleryTitle || "your gallery"}`;
             } else if (notif.type === "comment" || notif.type === "comment-added") {
               notificationText = snippet
-                ? `${actorName} commented: "${snippet}"`
-                : `${actorName} commented on your gallery`;
+                ? `${actorName} commented: "${snippet}" in ${galleryTitle || "your gallery"}`
+                : `${actorName} commented on ${galleryTitle || "your gallery"}`;
             } else if (notif.type === "reply" || notif.type === "comment-replied") {
               notificationText = snippet
-                ? `${actorName} replied: "${snippet}"`
-                : `${actorName} replied to your comment`;
+                ? `${actorName} replied: "${snippet}" in ${galleryTitle || "your gallery"}`
+                : `${actorName} replied to your comment in ${galleryTitle || "your gallery"}`;
             } else if (notif.type === "invite" || notif.type === "gallery-invite") {
               notificationText = `${actorName} invited you to ${galleryTitle || "a gallery"}`;
             } else {
