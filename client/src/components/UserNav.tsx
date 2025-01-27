@@ -20,8 +20,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-import { NotificationBell } from "@/components/NotificationBell";
-
+import { NotificationBell } from "./NotificationBell";
 
 export function UserNav() {
   const { user } = useUser();

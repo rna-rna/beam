@@ -1,10 +1,10 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useUser } from "@clerk/clerk-react";
-import PusherClient from "pusher-js"; //Added back for Pusher functionality
-import { useToast } from "@/hooks/use-toast"; //Added back for toast notifications
+import { useToast } from "@/hooks/use-toast";
+import PusherClient from "pusher-js";
 
-
-interface Notification {
+export interface Notification {
   id: number;
   type: string;
   data: any;
@@ -14,9 +14,7 @@ interface Notification {
 
 interface NotificationContextType {
   notifications: Notification[];
-  unreadCount: number;
-  markAsSeen: (notificationId: number) => void;
-  markAllAsSeen: () => void;
+  markAllAsRead: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -24,26 +22,27 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const { user } = useUser();
-  const { toast } = useToast(); //Added back for toast notifications
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!user) return;
 
-    // Fetch notifications
-    const fetchNotifications = async () => {
+    async function fetchNotifications() {
       try {
-        const res = await fetch("/api/notifications", { credentials: "include" });
+        const res = await fetch("/api/notifications", {
+          credentials: "include"
+        });
         if (!res.ok) throw new Error("Failed to fetch notifications");
         const data = await res.json();
         setNotifications(data);
       } catch (error) {
         console.error("Error fetching notifications:", error);
       }
-    };
+    }
+
     fetchNotifications();
 
-
-    // Initialize Pusher (restored from original code)
+    // Initialize Pusher
     const pusher = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
       cluster: import.meta.env.VITE_PUSHER_CLUSTER,
       authEndpoint: "/pusher/auth",
@@ -72,15 +71,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         return [notif, ...prev];
       });
 
-      // Show toast notification (restored from original code)
+      // Show toast notification
       toast({
-        title: notif.type === "star" ? "New Star" :
-          notif.type === "comment" ? "New Comment" :
-            "New Notification",
-        description: notif.data.actorName +
-          (notif.type === "star" ? " starred your gallery" :
-            notif.type === "comment" ? " commented on your gallery" :
-              " interacted with your gallery"),
+        title: notif.type === "star" ? "New Star" : 
+               notif.type === "comment" ? "New Comment" : 
+               "New Notification",
+        description: notif.data.actorName + 
+                    (notif.type === "star" ? " starred your gallery" : 
+                     notif.type === "comment" ? " commented on your gallery" : 
+                     " interacted with your gallery"),
       });
     });
 
@@ -90,29 +89,29 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
   }, [user, toast]);
 
-  const unreadCount = notifications.filter(n => !n.isSeen).length;
-
-  const markAsSeen = async (notificationId: number) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === notificationId ? { ...n, isSeen: true } : n)
-    );
-  };
-
-  const markAllAsSeen = async () => {
-    setNotifications(prev => prev.map(n => ({ ...n, isSeen: true })));
+  const markAllAsRead = async () => {
+    try {
+      await fetch("/api/notifications/mark-all-read", {
+        method: "POST",
+        credentials: "include"
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, isSeen: true })));
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+    }
   };
 
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, markAsSeen, markAllAsSeen }}>
+    <NotificationContext.Provider value={{ notifications, markAllAsRead }}>
       {children}
     </NotificationContext.Provider>
   );
 }
 
-export const useNotifications = () => {
+export function useNotifications() {
   const context = useContext(NotificationContext);
   if (context === undefined) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
+    throw new Error("useNotifications must be used within a NotificationProvider");
   }
   return context;
 }
