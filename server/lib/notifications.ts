@@ -1,6 +1,5 @@
-
 import { db } from "@db";
-import { notifications } from "@db/schema";
+import { notifications, galleries } from "@db/schema";
 import { eq, and, gt, sql } from "drizzle-orm";
 import { pusher } from "../pusherConfig";
 
@@ -43,7 +42,7 @@ export async function addNotification({
       })
       .where(eq(notifications.id, existing.id))
       .returning();
-    
+
     pusher.trigger(`private-user-${recipientUserId}`, "notification", updated);
     return updated;
   }
@@ -71,28 +70,39 @@ export async function addStarNotification({
   actorId,
   actorName,
   actorAvatar,
-  imageId,
+  actorColor,
   galleryId,
+  count = 1
 }: {
   recipientUserId: string;
   actorId: string;
   actorName: string;
   actorAvatar?: string;
-  imageId: number;
+  actorColor?: string;
   galleryId: number;
+  count?: number;
 }) {
-  return addNotification({
-    recipientUserId,
-    type: 'image-starred',
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.id, galleryId),
+  });
+
+  const galleryTitle = gallery?.title;
+  const groupId = `star-${actorId}-${galleryId}`;
+
+  const [notification] = await db.insert(notifications).values({
+    userId: recipientUserId,
+    type: "star",
     data: {
       actorName,
       actorAvatar,
-      imageId,
-      galleryId
+      actorColor,
+      galleryId,
+      galleryTitle,
+      count
     },
-    actorId,
-    groupId: `star-${actorId}-${galleryId}`
-  });
+    groupId
+  }).returning();
+  return notification;
 }
 
 export async function addCommentNotification({
@@ -100,31 +110,37 @@ export async function addCommentNotification({
   actorId,
   actorName,
   actorAvatar,
-  imageId,
+  actorColor,
   galleryId,
-  commentId,
+  snippet,
 }: {
   recipientUserId: string;
   actorId: string;
   actorName: string;
   actorAvatar?: string;
-  imageId: number;
+  actorColor?: string;
   galleryId: number;
-  commentId: number;
+  snippet?: string;
 }) {
-  return addNotification({
-    recipientUserId,
-    type: 'comment-added',
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.id, galleryId),
+  });
+
+  const galleryTitle = gallery?.title;
+
+  const [notification] = await db.insert(notifications).values({
+    userId: recipientUserId,
+    type: "comment",
     data: {
       actorName,
       actorAvatar,
-      imageId,
+      actorColor,
       galleryId,
-      commentId
-    },
-    actorId,
-    groupId: `comment-${actorId}-${imageId}`
-  });
+      galleryTitle,
+      snippet
+    }
+  }).returning();
+  return notification;
 }
 
 export async function addReplyNotification({

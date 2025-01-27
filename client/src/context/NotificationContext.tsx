@@ -77,9 +77,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                notif.type === "comment" ? "New Comment" : 
                "New Notification",
         description: notif.data.actorName + 
-                    (notif.type === "star" ? " starred your gallery" : 
-                     notif.type === "comment" ? " commented on your gallery" : 
-                     " interacted with your gallery"),
+                    (notif.type === "star" ? ` starred "${notif.data.galleryTitle || 'Untitled Gallery'}"` : 
+                     notif.type === "comment" ? ` commented on "${notif.data.galleryTitle || 'Untitled Gallery'}"` : 
+                     ` interacted with "${notif.data.galleryTitle || 'Untitled Gallery'}"`),
       });
     });
 
