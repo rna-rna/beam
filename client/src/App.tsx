@@ -285,6 +285,8 @@ function AppContent() {
   );
 }
 
+import { NotificationProvider } from "@/context/NotificationContext";
+
 export default function App() {
   const { isLoaded } = useUser();
 
