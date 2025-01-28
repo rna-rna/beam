@@ -1982,7 +1982,7 @@ export function registerRoutes(app: Express): Server {
     const userId = req.auth.userId;
 
     try {
-      consolelog('Invite attempt:', {
+      console.log('Invite attempt:', {
         slug,
         email,
         role,
