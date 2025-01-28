@@ -131,21 +131,57 @@ export async function addCommentNotification({
     where: eq(galleries.id, galleryId),
   });
 
-  const galleryTitle = gallery?.title;
-
-  const [notification] = await db.insert(notifications).values({
-    userId: recipientUserId,
-    type: "comment",
+  return addNotification({
+    recipientUserId,
+    type: 'comment',
     data: {
       actorName,
       actorAvatar,
       actorColor,
       galleryId,
-      galleryTitle,
+      galleryTitle: gallery?.title,
       snippet
-    }
-  }).returning();
-  return notification;
+    },
+    actorId,
+    groupId: `comment-${actorId}-${galleryId}`
+  });
+}
+
+export async function addInviteNotification({
+  recipientUserId,
+  actorId,
+  actorName,
+  actorAvatar,
+  actorColor,
+  galleryId,
+  role,
+}: {
+  recipientUserId: string;
+  actorId: string;
+  actorName: string;
+  actorAvatar?: string;
+  actorColor?: string;
+  galleryId: number;
+  role: string;
+}) {
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.id, galleryId),
+  });
+
+  return addNotification({
+    recipientUserId,
+    type: 'gallery-invite',
+    data: {
+      actorName,
+      actorAvatar,
+      actorColor,
+      galleryId,
+      galleryTitle: gallery?.title,
+      role
+    },
+    actorId,
+    groupId: `invite-${actorId}-${galleryId}`
+  });
 }
 
 export async function addReplyNotification({
