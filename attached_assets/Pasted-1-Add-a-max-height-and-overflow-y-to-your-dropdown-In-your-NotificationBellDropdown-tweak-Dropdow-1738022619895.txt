@@ -1,0 +1,66 @@
+1) Add a max height and overflow-y to your dropdown
+In your NotificationBellDropdown, tweak <DropdownMenuContent> so that it has a maximum height (for example max-h-60) and sets overflow-y-auto. That ensures a scrollbar appears when you have too many notifications:
+
+tsx
+Copy
+Edit
+<DropdownMenuContent 
+  className="w-80 max-h-60 overflow-y-auto custom-scrollbar" 
+  align="end"
+>
+  {/* ...notification items... */}
+</DropdownMenuContent>
+Note: we added custom-scrollbar here, which we'll style in step #2.
+
+2) Create a custom scrollbar class
+In your global CSS (for instance globals.css or app.css) define something like:
+
+css
+Copy
+Edit
+/* You can name this class anything */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;            /* make scrollbar thinner */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;   /* track color */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #999;
+  border-radius: 999px;  /* fully rounded */
+  border: 2px solid transparent; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #666;
+}
+
+/* For Firefox, you can use scrollbar-width */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #999 #f1f1f1;
+}
+Explanation:
+
+::-webkit-scrollbar is for Chrome/Safari/Edge, etc.
+scrollbar-width: thin; scrollbar-color: #999 #f1f1f1; helps on Firefox.
+The border-radius: 999px ensures a “pill-shaped” thumb.
+border: 2px solid transparent can create a bit of spacing around the thumb.
+3) Ensure your framework doesn’t override it
+Some UI frameworks or Tailwind resets might try to override scrollbars. Just confirm your .custom-scrollbar styles are loaded after any resets so the scrollbar remains thin.
+
+4) Done!
+Now, when your list of notifications exceeds 60 units of height, you’ll get a compact, thin scrollbar. With the custom-scrollbar approach, it won’t look like the standard wide system scrollbar:
+
+tsx
+Copy
+Edit
+<DropdownMenuContent 
+  className="w-80 max-h-60 overflow-y-auto custom-scrollbar" 
+  align="end"
+>
+  {notifications.map(...)}
+</DropdownMenuContent>
+That’s all—no heavy extra libraries needed. This makes your notification dropdown look slick and only show a thin custom scrollbar when there are enough items to scroll.

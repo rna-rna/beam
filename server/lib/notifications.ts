@@ -82,11 +82,16 @@ export async function addStarNotification({
   galleryId: number;
   count?: number;
 }) {
+  // Fetch gallery title
   const gallery = await db.query.galleries.findFirst({
     where: eq(galleries.id, galleryId),
   });
 
-  const galleryTitle = gallery?.title;
+  if (!gallery) {
+    console.error("Gallery not found:", galleryId);
+    return;
+  }
+
   const groupId = `star-${actorId}-${galleryId}`;
 
   const [notification] = await db.insert(notifications).values({
@@ -97,7 +102,7 @@ export async function addStarNotification({
       actorAvatar,
       actorColor,
       galleryId,
-      galleryTitle,
+      galleryTitle: gallery.title,
       count
     },
     groupId
