@@ -3007,6 +3007,7 @@ async function addInviteNotification(data: {
     });
   }
 }
+
 async function addCommentNotification(data: {
   recipientUserId: string;
   actorId: string;
@@ -3060,6 +3061,6 @@ async function addCommentNotification(data: {
       createdAt: new Date()
     });
   }
-}
+};
 
 The changes are incomplete and don't fully address the user's request. Additional changes are needed to fully implement comment notifications.
