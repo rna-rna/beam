@@ -71,34 +71,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         return [notif, ...prev];
       });
 
-      let title = "New Notification";
-      let description = "";
-
-      switch (notif.type) {
-        case "star":
-          title = "New Star";
-          description = `${notif.data.actorName} starred "${notif.data.galleryTitle || 'Untitled Gallery'}"`;
-          break;
-        case "comment":
-        case "comment-added":
-          title = "New Comment";
-          description = `${notif.data.actorName} commented: "${notif.data.snippet}" in "${notif.data.galleryTitle || 'Untitled Gallery'}"`;
-          break;
-        case "gallery-invite":
-          title = "New Gallery Invite";
-          description = `${notif.data.actorName} invited you to "${notif.data.galleryTitle || 'Untitled Gallery'}" with ${notif.data.role} access`;
-          break;
-        case "comment-reply":
-          title = "New Reply";
-          description = `${notif.data.actorName} replied to your comment`;
-          break;
-        default:
-          description = `${notif.data.actorName} interacted with "${notif.data.galleryTitle || 'Untitled Gallery'}"`;
-      }
-
+      // Show toast notification
       toast({
-        title,
-        description,
+        title: notif.type === "star" ? "New Star" : 
+               notif.type === "comment" ? "New Comment" : 
+               "New Notification",
+        description: notif.data.actorName + 
+                    (notif.type === "star" ? ` starred "${notif.data.galleryTitle || 'Untitled Gallery'}"` : 
+                     notif.type === "comment" ? ` commented on "${notif.data.galleryTitle || 'Untitled Gallery'}"` : 
+                     ` interacted with "${notif.data.galleryTitle || 'Untitled Gallery'}"`),
       });
     });
 
