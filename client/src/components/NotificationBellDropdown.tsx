@@ -16,7 +16,7 @@ export function NotificationBellDropdown() {
         </div>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-80 max-h-60 overflow-y-auto custom-scrollbar" align="end">
+      <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto custom-scrollbar" align="end">
         <DropdownMenuLabel className="flex items-center justify-between px-4 py-2">
           <span className="font-medium">Notifications</span>
           <button
