@@ -110,6 +110,11 @@ export async function addStarNotification({
   return notification;
 }
 
+// Add debug logging
+function logNotification(type: string, data: any) {
+  console.log(`Creating ${type} notification:`, data);
+}
+
 export async function addCommentNotification({
   recipientUserId,
   actorId,
