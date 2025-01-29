@@ -8,6 +8,10 @@ import { formatDistanceToNow } from "@/lib/format-date";
 export function NotificationBellDropdown() {
   const { notifications, markAllAsRead } = useNotifications();
 
+  useEffect(() => {
+    console.log('All notifications:', notifications);
+  }, [notifications]);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
