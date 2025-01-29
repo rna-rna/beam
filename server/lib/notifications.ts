@@ -177,13 +177,13 @@ export async function addInviteNotification({
     recipientUserId,
     type: 'gallery-invite',
     data: {
-      actorName,
-      actorAvatar,
-      actorColor,
+      actorName: actorName || 'Someone',
+      actorAvatar: actorAvatar || null,
+      actorColor: actorColor || '#ccc',
       galleryId,
-      galleryTitle: gallery?.title,
-      gallerySlug: gallery?.slug,
-      role
+      galleryTitle: gallery?.title || 'Untitled Gallery',
+      gallerySlug: gallery?.slug || '',
+      role: role || 'View'
     },
     actorId,
     groupId: `invite-${actorId}-${galleryId}`
