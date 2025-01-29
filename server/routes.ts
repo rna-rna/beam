@@ -2154,6 +2154,19 @@ export function registerRoutes(app: Express): Server {
           galleryThumbnail: thumbnail?.url || null
         });
 
+        // Create notification for invited user if they exist
+        if (user?.id) {
+          await addInviteNotification({
+            recipientUserId: user.id,
+            actorId: req.auth.userId,
+            actorName: inviterName,
+            actorAvatar: inviterData?.imageUrl,
+            actorColor: inviterData?.color,
+            galleryId: gallery.id,
+            role
+          });
+        }
+
         console.log('Invite email sent successfully:', {
           email,
           gallerySlug: gallery.slug,
