@@ -95,22 +95,20 @@ export async function addStarNotification({
 
   const groupId = `star-${actorId}-${galleryId}`;
 
-  const [notification] = await db.insert(notifications).values({
-    userId: recipientUserId,
-    type: "star",
+  return addNotification({
+    recipientUserId,
+    type: 'star',
     data: {
       actorName,
       actorAvatar,
       actorColor,
       galleryId,
-      galleryTitle: gallery.title || "Untitled Gallery", // Ensure fallback if title is null
+      galleryTitle: gallery?.title || "Untitled Gallery",
       count
     },
-    groupId,
-    isSeen: false,
-    createdAt: new Date()
-  }).returning();
-  return notification;
+    actorId,
+    groupId
+  });
 }
 
 export async function addCommentNotification({
