@@ -85,22 +85,22 @@ export function NotificationBellDropdown() {
               <DropdownMenuItem
                 key={notif.id}
                 onSelect={() => {
-                  console.log("[DropdownItem Selected]", notif);
+                  const { type, data } = notif;
 
-                  if (notif.type === "comment" && notif.data?.imageId) {
-                    const url = `/g/${notif.data.gallerySlug}?imageId=${notif.data.imageId}#comment-${notif.data.commentId}`;
-                    console.log("[Navigating to comment route]", url);
+                  if ((type === 'comment' || type === 'comment-added') && data?.imageId) {
+                    const url = `/g/${data.gallerySlug}?imageId=${data.imageId}#comment-${data.commentId}`;
                     window.location.href = url;
-                  } else if (notif.type === "star" && notif.data?.imageId) {
-                    const url = `/g/${notif.data.gallerySlug}?imageId=${notif.data.imageId}`;
-                    console.log("[Navigating to star route]", url);
+                  } else if ((type === 'star' || type === 'image-starred') && data?.imageId) {
+                    const url = `/g/${data.gallerySlug}?imageId=${data.imageId}`;
                     window.location.href = url;
-                  } else if (notif.data?.gallerySlug) {
-                    const url = `/g/${notif.data.gallerySlug}`;
-                    console.log("[Navigating to gallery route]", url);
+                  } else if (type === 'invite' || type === 'gallery-invite') {
+                    const url = `/g/${data.gallerySlug}`;
+                    window.location.href = url;
+                  } else if (type === 'image-uploaded' && data?.gallerySlug) {
+                    const url = `/g/${data.gallerySlug}`;
                     window.location.href = url;
                   } else {
-                    console.warn("[No route found for notification]", notif);
+                    console.warn("[No route found for notification]", { type, data });
                   }
                 }}
                 className={`px-4 py-3 cursor-pointer focus:bg-accent/50 ${!notif.isSeen ? "bg-accent/10" : ""}`}
