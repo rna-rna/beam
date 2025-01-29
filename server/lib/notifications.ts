@@ -104,7 +104,7 @@ export async function addStarNotification({
       actorColor: actorColor || '#ccc',
       galleryId,
       galleryTitle: gallery?.title || "Untitled Gallery",
-      gallerySlug: gallery?.slug || '',
+      gallerySlug: gallery?.slug,
       count
     },
     actorId,
@@ -148,7 +148,7 @@ export async function addCommentNotification({
       actorColor: actorColor || '#ccc',
       galleryId,
       galleryTitle: gallery?.title || "Untitled Gallery",
-      gallerySlug: gallery?.slug || '',
+      gallerySlug: gallery?.slug,
       snippet: snippet || ''
     },
     actorId,
@@ -192,7 +192,7 @@ export async function addInviteNotification({
       actorColor: actorColor || '#ccc',
       galleryId,
       galleryTitle: gallery?.title || 'Untitled Gallery',
-      gallerySlug: gallery?.slug || '',
+      gallerySlug: gallery?.slug,
       role: role || 'View'
     },
     actorId,
@@ -242,7 +242,7 @@ export async function addReplyNotification({
       actorColor: actorColor || '#ccc',
       galleryId,
       galleryTitle: gallery?.title || 'Untitled Gallery',
-      gallerySlug: gallery?.slug || '',
+      gallerySlug: gallery?.slug,
       imageId,
       commentId,
       parentCommentId,
