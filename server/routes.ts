@@ -1470,6 +1470,31 @@ export function registerRoutes(app: Express): Server {
           })
           .where(eq(images.id, imageId));
 
+        // Get all editor users for notifications
+        const editorUserIds = await getEditorUserIds(image.gallery.id);
+
+        // Create notifications for all editors except the commenter
+        await Promise.all(
+          editorUserIds
+            .filter(editorId => editorId !== userId)
+            .map((editorId) => 
+              db.insert(notifications).values({
+                userId: editorId,
+                type: 'comment',
+                data: {
+                  actorName: userName,
+                  actorAvatar: userImageUrl,
+                  actorColor: cachedUser?.color,
+                  galleryId: image.gallery.id,
+                  galleryTitle: image.gallery.title,
+                  snippet: content.slice(0, 100)
+                },
+                isSeen: false,
+                createdAt: new Date()
+              })
+            )
+        );
+
         // Add user color to response
         const commentWithColor = {
           ...comment,
@@ -1982,7 +2007,7 @@ export function registerRoutes(app: Express): Server {
     const userId = req.auth.userId;
 
     try {
-      consolelog('Invite attempt:', {
+      console.log('Invite attempt:', {
         slug,
         email,
         role,
@@ -2128,6 +2153,31 @@ export function registerRoutes(app: Express): Server {
           role,
           galleryThumbnail: thumbnail?.url || null
         });
+
+        // Create notification for invited user if they exist
+        if (user?.id) {
+          await db.insert(notifications).values({
+            userId: user.id,
+            type: "gallery-invite",
+            data: {
+              actorName: inviterName,
+              actorAvatar: inviterData?.imageUrl,
+              actorColor: inviterData?.color,
+              galleryId: gallery.id,
+              galleryTitle: gallery.title,
+              role
+            },
+            isSeen: false,
+            createdAt: new Date()
+          });
+
+          // Emit real-time notification via Pusher
+          pusher.trigger(`private-user-${user.id}`, "notification", {
+            type: "gallery-invite",
+            actorName: inviterName,
+            galleryTitle: gallery.title
+          });
+        }
 
         console.log('Invite email sent successfully:', {
           email,

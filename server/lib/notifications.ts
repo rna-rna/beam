@@ -85,6 +85,7 @@ export async function addStarNotification({
   // Fetch gallery title
   const gallery = await db.query.galleries.findFirst({
     where: eq(galleries.id, galleryId),
+    columns: { title: true }
   });
 
   if (!gallery) {
@@ -94,20 +95,20 @@ export async function addStarNotification({
 
   const groupId = `star-${actorId}-${galleryId}`;
 
-  const [notification] = await db.insert(notifications).values({
-    userId: recipientUserId,
-    type: "star",
+  return addNotification({
+    recipientUserId,
+    type: 'star',
     data: {
       actorName,
       actorAvatar,
       actorColor,
       galleryId,
-      galleryTitle: gallery.title,
+      galleryTitle: gallery?.title || "Untitled Gallery",
       count
     },
+    actorId,
     groupId
-  }).returning();
-  return notification;
+  });
 }
 
 export async function addCommentNotification({
@@ -131,21 +132,62 @@ export async function addCommentNotification({
     where: eq(galleries.id, galleryId),
   });
 
-  const galleryTitle = gallery?.title;
-
-  const [notification] = await db.insert(notifications).values({
-    userId: recipientUserId,
-    type: "comment",
+  return addNotification({
+    recipientUserId,
+    type: 'comment',
     data: {
       actorName,
       actorAvatar,
       actorColor,
       galleryId,
-      galleryTitle,
+      galleryTitle: gallery?.title,
       snippet
+    },
+    actorId,
+    groupId: `comment-${actorId}-${galleryId}`
+  });
+}
+
+export async function addInviteNotification({
+  recipientUserId,
+  actorId,
+  actorName,
+  actorAvatar,
+  actorColor,
+  galleryId,
+  role,
+}: {
+  recipientUserId: string;
+  actorId: string;
+  actorName: string;
+  actorAvatar?: string;
+  actorColor?: string;
+  galleryId: number;
+  role: string;
+}) {
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.id, galleryId),
+    columns: {
+      title: true,
+      slug: true
     }
-  }).returning();
-  return notification;
+  });
+
+  return addNotification({
+    recipientUserId,
+    type: 'gallery-invite',
+    data: {
+      actorName: actorName || 'Someone',
+      actorAvatar: actorAvatar || null,
+      actorColor: actorColor || '#ccc',
+      galleryId,
+      galleryTitle: gallery?.title || 'Untitled Gallery',
+      gallerySlug: gallery?.slug || '',
+      role: role || 'View'
+    },
+    actorId,
+    groupId: `invite-${actorId}-${galleryId}`
+  });
 }
 
 export async function addReplyNotification({

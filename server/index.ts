@@ -60,14 +60,6 @@ io.on('connection', (socket) => {
   socket.on('cursor-update', (cursorData) => {
     const { gallerySlug, ...cursorInfo } = cursorData;
     if (!gallerySlug) return;
-
-    console.log('Cursor update:', {
-      socketId: socket.id,
-      userId: cursorInfo.id,
-      position: { x: cursorInfo.x, y: cursorInfo.y },
-      color: cursorInfo.color,
-      gallery: gallerySlug
-    });
     
     // Relay only to others in the same gallery
     socket.to(gallerySlug).emit('cursor-update', cursorInfo);
@@ -97,12 +89,11 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Debug logging middleware
+// Request logging middleware with minimal output
 app.use((req, res, next) => {
-  console.log(`[DEBUG] ${req.method} ${req.url}`);
-  console.log("Headers:", req.headers);
-  console.log("Body:", req.body);
-  console.log("Params:", req.params);
+  if (req.path.startsWith("/api")) {
+    console.log(`${req.method} ${req.path}`);
+  }
   next();
 });
 

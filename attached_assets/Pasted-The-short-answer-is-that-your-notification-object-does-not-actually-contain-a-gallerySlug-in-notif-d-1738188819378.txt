@@ -1,0 +1,85 @@
+The short answer is that your notification object does not actually contain a gallerySlug in notif.data, so the <a> tag condition (notif.data?.gallerySlug) is never satisfied and never renders. Even in earlier versions, it ended up showing undefined because you were trying to read a property that was never set on the server side.
+
+Why the button doesn’t render
+Inside your notification rendering code:
+
+tsx
+Copy
+Edit
+{notif.data?.gallerySlug && (
+  <a 
+    href={`/g/${notif.data.gallerySlug}`}
+    className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md hover:opacity-90 w-fit"
+    onClick={(e) => e.stopPropagation()}
+  >
+    View Project
+  </a>
+)}
+You only show the button if notif.data.gallerySlug exists. Since your notifications are not saving gallerySlug at all (they only contain galleryId, galleryTitle, etc.), notif.data?.gallerySlug is undefined. Hence, the condition fails and your button is never rendered.
+
+Why the link shows /undefined in older versions
+When you did see a button in some earlier version, it was likely due to code referencing gallerySlug when you never actually stored it in the notification data. For example, you might have had something like:
+
+js
+Copy
+Edit
+href={`/g/${notif.data?.gallerySlug}`}
+but since gallerySlug was never set on the server, notif.data.gallerySlug was undefined, resulting in a final link of /g/undefined.
+
+How to fix it
+Update your server-side notification insert to include the actual gallery slug in the data. For example, in your invite logic, you currently have something like:
+
+ts
+Copy
+Edit
+await db.insert(notifications).values({
+  userId: user.id,
+  type: "gallery-invite",
+  data: {
+    actorName: inviterName,
+    actorAvatar: inviterData?.imageUrl,
+    actorColor: inviterData?.color,
+    galleryId: gallery.id,
+    galleryTitle: gallery.title,
+    role
+    // missing gallerySlug here!
+  },
+  isSeen: false,
+  createdAt: new Date()
+});
+You need to add gallerySlug: gallery.slug to that data object:
+
+ts
+Copy
+Edit
+await db.insert(notifications).values({
+  userId: user.id,
+  type: "gallery-invite",
+  data: {
+    actorName: inviterName,
+    actorAvatar: inviterData?.imageUrl,
+    actorColor: inviterData?.color,
+    galleryId: gallery.id,
+    galleryTitle: gallery.title,
+    gallerySlug: gallery.slug,   // <-- Add this
+    role
+  },
+  isSeen: false,
+  createdAt: new Date()
+});
+Confirm your notification data indeed has gallerySlug on the client. If you fetch notifications from GET /notifications, you should see something like:
+
+json
+Copy
+Edit
+{
+  "type": "gallery-invite",
+  "data": {
+    "gallerySlug": "abc123",
+    "galleryTitle": "My Gallery",
+    ...other fields...
+  },
+  ...
+}
+Use notif.data.gallerySlug as you are doing in your <a> tag. Now that the server sends a valid slug, the <a> condition (notif.data?.gallerySlug && (...)) will be true and the link will correctly point to /g/whatever-the-slug-is.
+

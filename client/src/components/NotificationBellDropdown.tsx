@@ -16,7 +16,7 @@ export function NotificationBellDropdown() {
         </div>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-80" align="end">
+      <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto custom-scrollbar" align="end">
         <DropdownMenuLabel className="flex items-center justify-between px-4 py-2">
           <span className="font-medium">Notifications</span>
           <button
@@ -34,7 +34,7 @@ export function NotificationBellDropdown() {
           </div>
         ) : (
           notifications.map((notif) => {
-            const { actorName, actorAvatar, actorColor, count, snippet, galleryTitle } = notif.data;
+            const { actorName = "Someone", actorAvatar = null, actorColor = "#ccc", count = 0, snippet = "", galleryTitle = "Untitled Gallery" } = notif.data || {};
 
             let notificationText: JSX.Element | string = "";
             if (notif.type === "star" || notif.type === "image-starred") {
@@ -50,7 +50,23 @@ export function NotificationBellDropdown() {
                 ? `${actorName} replied: "${snippet}" in ${galleryTitle || "your gallery"}`
                 : `${actorName} replied to your comment in ${galleryTitle || "your gallery"}`;
             } else if (notif.type === "invite" || notif.type === "gallery-invite") {
-              notificationText = `${actorName} invited you to ${galleryTitle || "a gallery"}`;
+              const gallerySlug = notif.data?.gallerySlug;
+              notificationText = (
+                <div className="flex flex-col gap-2">
+                  <span>{`${actorName} invited you to "${galleryTitle || "Untitled Gallery"}"`}</span>
+                  {notif.data?.gallerySlug && (
+                    <a 
+                      href={`/g/${notif.data.gallerySlug}`}
+                      className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md hover:opacity-90 w-fit"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      View Project
+                    </a>
+                  )}
+                </div>
+              );
+            } else if (notif.type === "image-uploaded") {
+              notificationText = `${actorName} uploaded a new image to "${galleryTitle || "Untitled Gallery"}"`;
             } else {
               console.log("Unhandled notification type:", notif.type);
               notificationText = `${actorName} interacted with your gallery`;
@@ -74,7 +90,7 @@ export function NotificationBellDropdown() {
                       {notificationText}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(notif.createdAt))} ago
+                      {notif.createdAt ? formatDistanceToNow(new Date(notif.createdAt)) + ' ago' : 'Just now'}
                     </div>
                   </div>
                 </div>
