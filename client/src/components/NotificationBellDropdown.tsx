@@ -54,12 +54,14 @@ export function NotificationBellDropdown() {
               notificationText = (
                 <div className="flex flex-col gap-2">
                   <span>{`${actorName} invited you to "${galleryTitle || "Untitled Gallery"}"`}</span>
-                  <a 
-                    href={`/g/${notif.data?.gallerySlug}`}
-                    className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md hover:opacity-90 w-fit"
-                  >
-                    View Project
-                  </a>
+                  {notif.data?.gallerySlug && (
+                    <a 
+                      href={`/g/${notif.data.gallerySlug}`}
+                      className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md hover:opacity-90 w-fit"
+                    >
+                      View Project
+                    </a>
+                  )}
                 </div>
               );
             } else if (notif.type === "image-uploaded") {
