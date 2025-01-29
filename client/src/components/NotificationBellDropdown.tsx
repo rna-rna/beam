@@ -5,6 +5,8 @@ import { useNotifications } from "@/context/NotificationContext";
 import { UserAvatar } from "./UserAvatar";
 import { formatDistanceToNow } from "@/lib/format-date";
 
+import { useEffect } from "react";
+
 export function NotificationBellDropdown() {
   const { notifications, markAllAsRead } = useNotifications();
 
