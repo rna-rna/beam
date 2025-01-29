@@ -169,9 +169,9 @@ export async function addInviteNotification({
     where: eq(galleries.id, galleryId),
   });
 
-  await db.insert(notifications).values({
-    userId: recipientUserId,
-    type: "gallery-invite",
+  return addNotification({
+    recipientUserId,
+    type: 'gallery-invite',
     data: {
       actorName,
       actorAvatar,
@@ -180,8 +180,8 @@ export async function addInviteNotification({
       galleryTitle: gallery?.title,
       role
     },
-    isSeen: false,
-    createdAt: new Date()
+    actorId,
+    groupId: `invite-${actorId}-${galleryId}`
   });
 }
 
