@@ -48,8 +48,8 @@ export function NotificationBellDropdown() {
             let notificationText: JSX.Element | string = "";
             if (notif.type === "star" || notif.type === "image-starred") {
               notificationText = count
-                ? `${actorName} liked ${count} image${count > 1 ? "s" : ""} in "${galleryTitle || "Untitled Gallery"}"`
-                : `${actorName} liked "${galleryTitle || "Untitled Gallery"}"`;
+                ? `${actorName} starred ${count} image${count > 1 ? "s" : ""} in "${galleryTitle || "Untitled Gallery"}"`
+                : `${actorName} starred an image in "${galleryTitle || "Untitled Gallery"}"`;
             } else if (notif.type === "comment" || notif.type === "comment-added") {
               notificationText = snippet
                 ? `${actorName} commented: "${snippet}" in ${galleryTitle || "your gallery"}`
