@@ -64,6 +64,8 @@ export function NotificationBellDropdown() {
                   )}
                 </div>
               );
+            } else if (notif.type === "image-uploaded") {
+              notificationText = `${actorName} uploaded a new image to "${galleryTitle || "Untitled Gallery"}"`;
             } else {
               console.log("Unhandled notification type:", notif.type);
               notificationText = `${actorName} interacted with your gallery`;
