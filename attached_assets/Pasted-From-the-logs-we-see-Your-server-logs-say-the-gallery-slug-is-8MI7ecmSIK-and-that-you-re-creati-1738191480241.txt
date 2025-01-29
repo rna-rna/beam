@@ -1,0 +1,71 @@
+From the logs, we see:
+
+Your server logs say the gallery slug is "8MI7ecmSIK" and that you’re creating a new invite with "gallerySlug": "8MI7ecmSIK".
+The front-end log shows a final notification object without gallerySlug. You see galleryTitle: "Social" but no gallerySlug field at all.
+This confirms that somewhere in your flow, the slug is not making it into the final notif.data that the front end receives. Here are the most common reasons:
+
+1. You’re Overwriting or Not Merging the Fresh gallerySlug in addNotification
+If you have logic similar to:
+
+ts
+Copy
+Edit
+if (existing) {
+  const updatedData = {
+    ...existing.data,
+    // BUT forgetting to merge the new data from the latest call
+    count: ((existing.data as any).count || 1) + 1,
+    lastUpdated: new Date().toISOString()
+  }
+  ...
+}
+You are discarding any new fields (like gallerySlug) that were part of the latest notification payload. You must merge the new data:
+
+diff
+Copy
+Edit
+const updatedData = {
+  ...existing.data,
++ ...data, // This ensures new fields like gallerySlug are merged in
+  count: ((existing.data as any).count || 1) + 1,
+  lastUpdated: new Date().toISOString()
+};
+Otherwise, your old notification row stays in place with no gallerySlug.
+
+2. The Old Notification Row Is Being Re-Used
+Because you’re likely re-inviting the same user and using the same groupId within a certain time window, the server code sees an “existing” notification, updates only parts of its data, and never sets gallerySlug.
+
+Easy fix:
+
+Delete or mark as isSeen: true the old notification row so that the server is forced to create a brand-new row with the correct data (including gallerySlug).
+Or make sure you do the ...data merge above.
+3. The gallery?.slug is Actually Null or Empty
+In your code:
+
+ts
+Copy
+Edit
+gallerySlug: gallery?.slug || ''
+If your DB column for that gallery is null or never set, you end up with "". Since an empty string is falsy, React’s condition
+
+tsx
+Copy
+Edit
+{notif.data?.gallerySlug && (
+  <a href={`/g/${notif.data.gallerySlug}`}>
+    View Project
+  </a>
+)}
+never shows. Worse, if you’re reusing an existing row, it might be locked into that empty value forever unless you do the merge fix from #1.
+
+4. Double-Check the Notification Type
+You are correctly checking:
+
+tsx
+Copy
+Edit
+if (notif.type === "gallery-invite") {
+  /* show the link */
+}
+If the server is somehow setting a different type, it would skip that block. But your logs show type: "gallery-invite", so likely this part is correct.
+
