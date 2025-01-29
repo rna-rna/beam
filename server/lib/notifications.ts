@@ -179,10 +179,10 @@ export async function addInviteNotification({
     data: {
       actorName: actorName || 'Someone',
       actorAvatar: actorAvatar || null,
-      actorColor: actorColor || '#ccc',
+      actorColor: actorColor || '#ccc', 
       galleryId,
       galleryTitle: gallery?.title || 'Untitled Gallery',
-      gallerySlug: gallery?.slug || '',
+      gallerySlug: gallery?.slug,
       role: role || 'View'
     },
     actorId,
