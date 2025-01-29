@@ -183,6 +183,16 @@ export async function addInviteNotification({
     return;
   }
 
+  console.log("addInviteNotification final data:", {
+      actorName: actorName || 'Someone',
+      actorAvatar: actorAvatar || null,
+      actorColor: actorColor || '#ccc',
+      galleryId,
+      galleryTitle: gallery?.title || 'Untitled Gallery',
+      gallerySlug: gallery?.slug,
+      role: role || 'View'
+    });
+
   return addNotification({
     recipientUserId,
     type: 'gallery-invite',
