@@ -97,12 +97,11 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Debug logging middleware
+// Request logging middleware with minimal output
 app.use((req, res, next) => {
-  console.log(`[DEBUG] ${req.method} ${req.url}`);
-  console.log("Headers:", req.headers);
-  console.log("Body:", req.body);
-  console.log("Params:", req.params);
+  if (req.path.startsWith("/api")) {
+    console.log(`${req.method} ${req.path}`);
+  }
   next();
 });
 
