@@ -774,30 +774,7 @@ export function registerRoutes(app: Express): Server {
             })
             .returning();
 
-            // Get all editor users for notifications
-            const editorUserIds = await getEditorUserIds(gallery.id);
-
-            // Create notifications for all editors except the actor
-            await Promise.all(
-              editorUserIds
-                .filter(editorId => editorId !== req.auth?.userId)
-                .map((editorId) =>
-                  db.insert(notifications).values({
-                    userId: editorId,
-                    type: 'image-uploaded',
-                    data: {
-                      imageId: image.id,
-                      url: publicUrl,
-                      actorId: req.auth?.userId,
-                      galleryId: gallery.id
-                    },
-                    isSeen: false,
-                    createdAt: new Date()
-                  })
-                )
-            );
-
-            // Emit real-time event via Pusher
+            // Emit real-time event via Pusher only
             pusher.trigger(`presence-gallery-${gallery.slug}`, 'image-uploaded', {
               imageId: image.id,
               url: publicUrl,
