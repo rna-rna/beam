@@ -30,7 +30,8 @@ export async function addNotification({
   if (existing) {
     const updatedData = {
       ...existing.data,   // keep old keys
-      ...data,            // bring in new keys (including gallerySlug)
+      ...data,            // bring in new fields
+      gallerySlug: data.gallerySlug, // explicitly preserve gallerySlug
       count: ((existing.data as any).count || 1) + 1,
       lastUpdated: new Date().toISOString()
     };
