@@ -74,6 +74,7 @@ export async function addStarNotification({
   actorAvatar,
   actorColor,
   galleryId,
+  imageId,
   count = 1
 }: {
   recipientUserId: string;
@@ -82,6 +83,7 @@ export async function addStarNotification({
   actorAvatar?: string;
   actorColor?: string;
   galleryId: number;
+  imageId?: number;
   count?: number;
 }) {
   const gallery = await db.query.galleries.findFirst({
@@ -100,13 +102,14 @@ export async function addStarNotification({
     recipientUserId,
     type: 'star',
     data: {
-      actorName: actorName || 'Someone',
+      actorName: actorName || 'Someone',  
       actorAvatar: actorAvatar || null,
       actorColor: actorColor || '#ccc',
       galleryId,
-      galleryTitle: gallery?.title || "Untitled Gallery",
+      galleryTitle: gallery?.title || 'Untitled Gallery',
       gallerySlug: gallery?.slug,
-      count
+      count,
+      imageId: imageId || null
     },
     actorId,
     groupId
@@ -120,6 +123,8 @@ export async function addCommentNotification({
   actorAvatar,
   actorColor,
   galleryId,
+  imageId,
+  comment,
   snippet,
 }: {
   recipientUserId: string;
@@ -128,6 +133,8 @@ export async function addCommentNotification({
   actorAvatar?: string;
   actorColor?: string;
   galleryId: number;
+  imageId?: number;
+  comment?: {id:number};
   snippet?: string;
 }) {
   const gallery = await db.query.galleries.findFirst({
@@ -150,6 +157,8 @@ export async function addCommentNotification({
       galleryId,
       galleryTitle: gallery?.title || "Untitled Gallery",
       gallerySlug: gallery?.slug,
+      imageId,
+      commentId: comment?.id,
       snippet: snippet || ''
     },
     actorId,
@@ -183,16 +192,6 @@ export async function addInviteNotification({
     console.error("Gallery not found:", galleryId);
     return;
   }
-
-  console.log("addInviteNotification final data:", {
-      actorName: actorName || 'Someone',
-      actorAvatar: actorAvatar || null,
-      actorColor: actorColor || '#ccc',
-      galleryId,
-      galleryTitle: gallery?.title || 'Untitled Gallery',
-      gallerySlug: gallery?.slug,
-      role: role || 'View'
-    });
 
   return addNotification({
     recipientUserId,
