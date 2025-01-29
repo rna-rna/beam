@@ -2156,14 +2156,26 @@ export function registerRoutes(app: Express): Server {
 
         // Create notification for invited user if they exist
         if (user?.id) {
-          await addInviteNotification({
-            recipientUserId: user.id,
-            actorId: req.auth.userId,
+          await db.insert(notifications).values({
+            userId: user.id,
+            type: "gallery-invite",
+            data: {
+              actorName: inviterName,
+              actorAvatar: inviterData?.imageUrl,
+              actorColor: inviterData?.color,
+              galleryId: gallery.id,
+              galleryTitle: gallery.title,
+              role
+            },
+            isSeen: false,
+            createdAt: new Date()
+          });
+
+          // Emit real-time notification via Pusher
+          pusher.trigger(`private-user-${user.id}`, "notification", {
+            type: "gallery-invite",
             actorName: inviterName,
-            actorAvatar: inviterData?.imageUrl,
-            actorColor: inviterData?.color,
-            galleryId: gallery.id,
-            role
+            galleryTitle: gallery.title
           });
         }
 
