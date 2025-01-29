@@ -82,10 +82,10 @@ export async function addStarNotification({
   galleryId: number;
   count?: number;
 }) {
-  // Fetch gallery title
+  // Fetch gallery title and slug
   const gallery = await db.query.galleries.findFirst({
     where: eq(galleries.id, galleryId),
-    columns: { title: true }
+    columns: { title: true, slug: true }
   });
 
   if (!gallery) {
@@ -104,6 +104,7 @@ export async function addStarNotification({
       actorColor,
       galleryId,
       galleryTitle: gallery?.title || "Untitled Gallery",
+      gallerySlug: gallery?.slug,
       count
     },
     actorId,
@@ -130,6 +131,7 @@ export async function addCommentNotification({
 }) {
   const gallery = await db.query.galleries.findFirst({
     where: eq(galleries.id, galleryId),
+    columns: { title: true, slug: true }
   });
 
   return addNotification({
@@ -141,6 +143,7 @@ export async function addCommentNotification({
       actorColor,
       galleryId,
       galleryTitle: gallery?.title,
+      gallerySlug: gallery?.slug,
       snippet
     },
     actorId,
