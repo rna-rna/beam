@@ -167,6 +167,10 @@ export async function addInviteNotification({
 }) {
   const gallery = await db.query.galleries.findFirst({
     where: eq(galleries.id, galleryId),
+    columns: {
+      title: true,
+      slug: true
+    }
   });
 
   return addNotification({
