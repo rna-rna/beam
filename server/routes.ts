@@ -2142,7 +2142,8 @@ export function registerRoutes(app: Express): Server {
               actorColor: inviterData?.color,
               galleryId: gallery.id,
               galleryTitle: gallery.title,
-              role
+              role,
+              gallerySlug: gallery.slug
             },
             isSeen: false,
             createdAt: new Date()
