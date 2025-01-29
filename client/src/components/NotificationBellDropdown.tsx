@@ -87,7 +87,7 @@ export function NotificationBellDropdown() {
                       {notificationText}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(notif.createdAt))} ago
+                      {notif.createdAt ? formatDistanceToNow(new Date(notif.createdAt)) + ' ago' : 'Just now'}
                     </div>
                   </div>
                 </div>
