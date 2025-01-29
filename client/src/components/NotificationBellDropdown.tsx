@@ -50,7 +50,17 @@ export function NotificationBellDropdown() {
                 ? `${actorName} replied: "${snippet}" in ${galleryTitle || "your gallery"}`
                 : `${actorName} replied to your comment in ${galleryTitle || "your gallery"}`;
             } else if (notif.type === "invite" || notif.type === "gallery-invite") {
-              notificationText = `${actorName} invited you to "${galleryTitle || "Untitled Gallery"}" with ${notif.data.role} access`;
+              notificationText = (
+                <div className="flex flex-col gap-2">
+                  <span>{`${actorName} invited you to "${galleryTitle || "Untitled Gallery"}"`}</span>
+                  <a 
+                    href={`/g/${notif.data.gallerySlug}`}
+                    className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md hover:opacity-90 w-fit"
+                  >
+                    View Project
+                  </a>
+                </div>
+              );
             } else {
               console.log("Unhandled notification type:", notif.type);
               notificationText = `${actorName} interacted with your gallery`;

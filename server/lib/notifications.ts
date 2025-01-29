@@ -178,6 +178,7 @@ export async function addInviteNotification({
       actorColor,
       galleryId,
       galleryTitle: gallery?.title,
+      gallerySlug: gallery?.slug,
       role
     },
     actorId,
