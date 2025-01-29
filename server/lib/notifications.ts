@@ -29,8 +29,8 @@ export async function addNotification({
 
   if (existing) {
     const updatedData = {
-      ...existing.data,
-      ...data,
+      ...existing.data,   // keep old keys
+      ...data,            // bring in new keys (including gallerySlug)
       count: ((existing.data as any).count || 1) + 1,
       lastUpdated: new Date().toISOString()
     };
