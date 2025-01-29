@@ -34,7 +34,7 @@ export function NotificationBellDropdown() {
           </div>
         ) : (
           notifications.map((notif) => {
-            const { actorName, actorAvatar, actorColor, count, snippet, galleryTitle } = notif.data;
+            const { actorName = "Someone", actorAvatar = null, actorColor = "#ccc", count = 0, snippet = "", galleryTitle = "Untitled Gallery" } = notif.data || {};
 
             let notificationText: JSX.Element | string = "";
             if (notif.type === "star" || notif.type === "image-starred") {
