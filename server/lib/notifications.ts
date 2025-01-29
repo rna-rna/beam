@@ -102,10 +102,12 @@ export async function addStarNotification({
       actorAvatar,
       actorColor,
       galleryId,
-      galleryTitle: gallery.title,
+      galleryTitle: gallery.title, // Added galleryTitle
       count
     },
-    groupId
+    groupId,
+    isSeen: false,
+    createdAt: new Date()
   }).returning();
   return notification;
 }
@@ -168,9 +170,9 @@ export async function addInviteNotification({
     where: eq(galleries.id, galleryId),
   });
 
-  return addNotification({
-    recipientUserId,
-    type: 'gallery-invite',
+  await db.insert(notifications).values({
+    userId: recipientUserId,
+    type: "gallery-invite",
     data: {
       actorName,
       actorAvatar,
@@ -179,8 +181,8 @@ export async function addInviteNotification({
       galleryTitle: gallery?.title,
       role
     },
-    actorId,
-    groupId: `invite-${actorId}-${galleryId}`
+    isSeen: false,
+    createdAt: new Date()
   });
 }
 
