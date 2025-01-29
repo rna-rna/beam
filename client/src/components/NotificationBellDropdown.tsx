@@ -5,8 +5,18 @@ import { useNotifications } from "@/context/NotificationContext";
 import { UserAvatar } from "./UserAvatar";
 import { formatDistanceToNow } from "@/lib/format-date";
 
+import { useEffect } from "react";
+
 export function NotificationBellDropdown() {
   const { notifications, markAllAsRead } = useNotifications();
+
+  useEffect(() => {
+    console.log('All notifications:', notifications);
+    notifications.forEach(notif => {
+      console.log('Notification type:', notif.type);
+      console.log('Notification data:', notif.data);
+    });
+  }, [notifications]);
 
   return (
     <DropdownMenu>

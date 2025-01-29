@@ -29,7 +29,8 @@ export async function addNotification({
 
   if (existing) {
     const updatedData = {
-      ...existing.data,
+      ...existing.data,   // keep old keys
+      ...data,            // bring in new keys (including gallerySlug)
       count: ((existing.data as any).count || 1) + 1,
       lastUpdated: new Date().toISOString()
     };
@@ -82,10 +83,9 @@ export async function addStarNotification({
   galleryId: number;
   count?: number;
 }) {
-  // Fetch gallery title
   const gallery = await db.query.galleries.findFirst({
     where: eq(galleries.id, galleryId),
-    columns: { title: true }
+    columns: { title: true, slug: true }
   });
 
   if (!gallery) {
@@ -99,11 +99,12 @@ export async function addStarNotification({
     recipientUserId,
     type: 'star',
     data: {
-      actorName,
-      actorAvatar,
-      actorColor,
+      actorName: actorName || 'Someone',
+      actorAvatar: actorAvatar || null,
+      actorColor: actorColor || '#ccc',
       galleryId,
       galleryTitle: gallery?.title || "Untitled Gallery",
+      gallerySlug: gallery?.slug,
       count
     },
     actorId,
@@ -130,18 +131,25 @@ export async function addCommentNotification({
 }) {
   const gallery = await db.query.galleries.findFirst({
     where: eq(galleries.id, galleryId),
+    columns: { title: true, slug: true }
   });
+
+  if (!gallery) {
+    console.error("Gallery not found:", galleryId);
+    return;
+  }
 
   return addNotification({
     recipientUserId,
     type: 'comment',
     data: {
-      actorName,
-      actorAvatar,
-      actorColor,
+      actorName: actorName || 'Someone',
+      actorAvatar: actorAvatar || null,
+      actorColor: actorColor || '#ccc',
       galleryId,
-      galleryTitle: gallery?.title,
-      snippet
+      galleryTitle: gallery?.title || "Untitled Gallery",
+      gallerySlug: gallery?.slug,
+      snippet: snippet || ''
     },
     actorId,
     groupId: `comment-${actorId}-${galleryId}`
@@ -167,11 +175,23 @@ export async function addInviteNotification({
 }) {
   const gallery = await db.query.galleries.findFirst({
     where: eq(galleries.id, galleryId),
-    columns: {
-      title: true,
-      slug: true
-    }
+    columns: { title: true, slug: true }
   });
+
+  if (!gallery) {
+    console.error("Gallery not found:", galleryId);
+    return;
+  }
+
+  console.log("addInviteNotification final data:", {
+      actorName: actorName || 'Someone',
+      actorAvatar: actorAvatar || null,
+      actorColor: actorColor || '#ccc',
+      galleryId,
+      galleryTitle: gallery?.title || 'Untitled Gallery',
+      gallerySlug: gallery?.slug,
+      role: role || 'View'
+    });
 
   return addNotification({
     recipientUserId,
@@ -182,7 +202,7 @@ export async function addInviteNotification({
       actorColor: actorColor || '#ccc',
       galleryId,
       galleryTitle: gallery?.title || 'Untitled Gallery',
-      gallerySlug: gallery?.slug || '',
+      gallerySlug: gallery?.slug,
       role: role || 'View'
     },
     actorId,
@@ -195,27 +215,48 @@ export async function addReplyNotification({
   actorId,
   actorName,
   actorAvatar,
+  actorColor,
+  galleryId,
   imageId,
   commentId,
   parentCommentId,
+  snippet,
 }: {
   recipientUserId: string;
   actorId: string;
   actorName: string;
   actorAvatar?: string;
+  actorColor?: string;
+  galleryId: number;
   imageId: number;
   commentId: number;
   parentCommentId: number;
+  snippet?: string;
 }) {
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.id, galleryId),
+    columns: { title: true, slug: true }
+  });
+
+  if (!gallery) {
+    console.error("Gallery not found:", galleryId);
+    return;
+  }
+
   return addNotification({
     recipientUserId,
     type: 'comment-reply',
     data: {
-      actorName,
-      actorAvatar,
+      actorName: actorName || 'Someone',
+      actorAvatar: actorAvatar || null,
+      actorColor: actorColor || '#ccc',
+      galleryId,
+      galleryTitle: gallery?.title || 'Untitled Gallery',
+      gallerySlug: gallery?.slug,
       imageId,
       commentId,
-      parentCommentId
+      parentCommentId,
+      snippet: snippet || ''
     },
     actorId,
     groupId: `reply-${actorId}-${parentCommentId}`
