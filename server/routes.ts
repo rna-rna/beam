@@ -1470,6 +1470,31 @@ export function registerRoutes(app: Express): Server {
           })
           .where(eq(images.id, imageId));
 
+        // Get all editor users for notifications
+        const editorUserIds = await getEditorUserIds(image.gallery.id);
+
+        // Create notifications for all editors except the commenter
+        await Promise.all(
+          editorUserIds
+            .filter(editorId => editorId !== userId)
+            .map((editorId) => 
+              db.insert(notifications).values({
+                userId: editorId,
+                type: 'comment',
+                data: {
+                  actorName: userName,
+                  actorAvatar: userImageUrl,
+                  actorColor: cachedUser?.color,
+                  galleryId: image.gallery.id,
+                  galleryTitle: image.gallery.title,
+                  snippet: content.slice(0, 100)
+                },
+                isSeen: false,
+                createdAt: new Date()
+              })
+            )
+        );
+
         // Add user color to response
         const commentWithColor = {
           ...comment,
