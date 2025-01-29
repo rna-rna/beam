@@ -82,7 +82,6 @@ export async function addStarNotification({
   galleryId: number;
   count?: number;
 }) {
-  // Fetch gallery title and slug
   const gallery = await db.query.galleries.findFirst({
     where: eq(galleries.id, galleryId),
     columns: { title: true, slug: true }
@@ -99,12 +98,12 @@ export async function addStarNotification({
     recipientUserId,
     type: 'star',
     data: {
-      actorName,
-      actorAvatar,
-      actorColor,
+      actorName: actorName || 'Someone',
+      actorAvatar: actorAvatar || null,
+      actorColor: actorColor || '#ccc',
       galleryId,
       galleryTitle: gallery?.title || "Untitled Gallery",
-      gallerySlug: gallery?.slug,
+      gallerySlug: gallery?.slug || '',
       count
     },
     actorId,
@@ -134,17 +133,22 @@ export async function addCommentNotification({
     columns: { title: true, slug: true }
   });
 
+  if (!gallery) {
+    console.error("Gallery not found:", galleryId);
+    return;
+  }
+
   return addNotification({
     recipientUserId,
     type: 'comment',
     data: {
-      actorName,
-      actorAvatar,
-      actorColor,
+      actorName: actorName || 'Someone',
+      actorAvatar: actorAvatar || null,
+      actorColor: actorColor || '#ccc',
       galleryId,
-      galleryTitle: gallery?.title,
-      gallerySlug: gallery?.slug,
-      snippet
+      galleryTitle: gallery?.title || "Untitled Gallery",
+      gallerySlug: gallery?.slug || '',
+      snippet: snippet || ''
     },
     actorId,
     groupId: `comment-${actorId}-${galleryId}`
@@ -170,11 +174,13 @@ export async function addInviteNotification({
 }) {
   const gallery = await db.query.galleries.findFirst({
     where: eq(galleries.id, galleryId),
-    columns: {
-      title: true,
-      slug: true
-    }
+    columns: { title: true, slug: true }
   });
+
+  if (!gallery) {
+    console.error("Gallery not found:", galleryId);
+    return;
+  }
 
   return addNotification({
     recipientUserId,
@@ -182,10 +188,10 @@ export async function addInviteNotification({
     data: {
       actorName: actorName || 'Someone',
       actorAvatar: actorAvatar || null,
-      actorColor: actorColor || '#ccc', 
+      actorColor: actorColor || '#ccc',
       galleryId,
       galleryTitle: gallery?.title || 'Untitled Gallery',
-      gallerySlug: gallery?.slug,
+      gallerySlug: gallery?.slug || '',
       role: role || 'View'
     },
     actorId,
@@ -198,27 +204,48 @@ export async function addReplyNotification({
   actorId,
   actorName,
   actorAvatar,
+  actorColor,
+  galleryId,
   imageId,
   commentId,
   parentCommentId,
+  snippet,
 }: {
   recipientUserId: string;
   actorId: string;
   actorName: string;
   actorAvatar?: string;
+  actorColor?: string;
+  galleryId: number;
   imageId: number;
   commentId: number;
   parentCommentId: number;
+  snippet?: string;
 }) {
+  const gallery = await db.query.galleries.findFirst({
+    where: eq(galleries.id, galleryId),
+    columns: { title: true, slug: true }
+  });
+
+  if (!gallery) {
+    console.error("Gallery not found:", galleryId);
+    return;
+  }
+
   return addNotification({
     recipientUserId,
     type: 'comment-reply',
     data: {
-      actorName,
-      actorAvatar,
+      actorName: actorName || 'Someone',
+      actorAvatar: actorAvatar || null,
+      actorColor: actorColor || '#ccc',
+      galleryId,
+      galleryTitle: gallery?.title || 'Untitled Gallery',
+      gallerySlug: gallery?.slug || '',
       imageId,
       commentId,
-      parentCommentId
+      parentCommentId,
+      snippet: snippet || ''
     },
     actorId,
     groupId: `reply-${actorId}-${parentCommentId}`
