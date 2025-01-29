@@ -30,6 +30,7 @@ export async function addNotification({
   if (existing) {
     const updatedData = {
       ...existing.data,
+      ...data,
       count: ((existing.data as any).count || 1) + 1,
       lastUpdated: new Date().toISOString()
     };
