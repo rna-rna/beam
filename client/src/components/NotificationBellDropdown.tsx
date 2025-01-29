@@ -85,7 +85,16 @@ export function NotificationBellDropdown() {
             return (
               <DropdownMenuItem
                 key={notif.id}
-                className={`px-4 py-3 focus:bg-accent/50 ${!notif.isSeen ? "bg-accent/10" : ""}`}
+                onClick={() => {
+                  if (notif.type === "comment" && notif.data?.imageId) {
+                    window.location.href = `/g/${notif.data.gallerySlug}?imageId=${notif.data.imageId}#comment-${notif.data.commentId}`;
+                  } else if (notif.type === "star" && notif.data?.imageId) {
+                    window.location.href = `/g/${notif.data.gallerySlug}?imageId=${notif.data.imageId}`;
+                  } else if (notif.data?.gallerySlug) {
+                    window.location.href = `/g/${notif.data.gallerySlug}`;
+                  }
+                }}
+                className={`px-4 py-3 cursor-pointer focus:bg-accent/50 ${!notif.isSeen ? "bg-accent/10" : ""}`}
               >
                 <div className="flex gap-3">
                   <UserAvatar
