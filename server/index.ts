@@ -60,14 +60,6 @@ io.on('connection', (socket) => {
   socket.on('cursor-update', (cursorData) => {
     const { gallerySlug, ...cursorInfo } = cursorData;
     if (!gallerySlug) return;
-
-    console.log('Cursor update:', {
-      socketId: socket.id,
-      userId: cursorInfo.id,
-      position: { x: cursorInfo.x, y: cursorInfo.y },
-      color: cursorInfo.color,
-      gallery: gallerySlug
-    });
     
     // Relay only to others in the same gallery
     socket.to(gallerySlug).emit('cursor-update', cursorInfo);
