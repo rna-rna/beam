@@ -12,6 +12,10 @@ export function NotificationBellDropdown() {
 
   useEffect(() => {
     console.log('All notifications:', notifications);
+    notifications.forEach(notif => {
+      console.log('Notification type:', notif.type);
+      console.log('Notification data:', notif.data);
+    });
   }, [notifications]);
 
   return (
