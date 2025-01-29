@@ -58,6 +58,7 @@ export function NotificationBellDropdown() {
                     <a 
                       href={`/g/${notif.data.gallerySlug}`}
                       className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md hover:opacity-90 w-fit"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       View Project
                     </a>
