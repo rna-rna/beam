@@ -85,7 +85,7 @@ export function NotificationBellDropdown() {
             return (
               <DropdownMenuItem
                 key={notif.id}
-                onClick={() => {
+                onSelect={() => {
                   if (notif.type === "comment" && notif.data?.imageId) {
                     window.location.href = `/g/${notif.data.gallerySlug}?imageId=${notif.data.imageId}#comment-${notif.data.commentId}`;
                   } else if (notif.type === "star" && notif.data?.imageId) {
