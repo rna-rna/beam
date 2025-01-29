@@ -85,6 +85,7 @@ export async function addStarNotification({
   // Fetch gallery title
   const gallery = await db.query.galleries.findFirst({
     where: eq(galleries.id, galleryId),
+    columns: { title: true }
   });
 
   if (!gallery) {
@@ -102,7 +103,7 @@ export async function addStarNotification({
       actorAvatar,
       actorColor,
       galleryId,
-      galleryTitle: gallery.title, // Added galleryTitle
+      galleryTitle: gallery.title || "Untitled Gallery", // Ensure fallback if title is null
       count
     },
     groupId,
