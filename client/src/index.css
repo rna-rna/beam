@@ -1,4 +1,7 @@
 
+@import '@fontsource/geist-sans';
+@import '@fontsource/geist-mono';
+
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
@@ -32,10 +35,6 @@
 [data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb {
   background: hsl(var(--muted-foreground)/0.5);
 }
-
-
-@import '@fontsource/geist-sans';
-@import '@fontsource/geist-mono';
 
 @tailwind base;
 @tailwind components;
