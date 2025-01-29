@@ -1,4 +1,3 @@
-
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "./NotificationBell";
 import { useNotifications } from "@/context/NotificationContext";
@@ -86,12 +85,22 @@ export function NotificationBellDropdown() {
               <DropdownMenuItem
                 key={notif.id}
                 onSelect={() => {
+                  console.log("[DropdownItem Selected]", notif);
+
                   if (notif.type === "comment" && notif.data?.imageId) {
-                    window.location.href = `/g/${notif.data.gallerySlug}?imageId=${notif.data.imageId}#comment-${notif.data.commentId}`;
+                    const url = `/g/${notif.data.gallerySlug}?imageId=${notif.data.imageId}#comment-${notif.data.commentId}`;
+                    console.log("[Navigating to comment route]", url);
+                    window.location.href = url;
                   } else if (notif.type === "star" && notif.data?.imageId) {
-                    window.location.href = `/g/${notif.data.gallerySlug}?imageId=${notif.data.imageId}`;
+                    const url = `/g/${notif.data.gallerySlug}?imageId=${notif.data.imageId}`;
+                    console.log("[Navigating to star route]", url);
+                    window.location.href = url;
                   } else if (notif.data?.gallerySlug) {
-                    window.location.href = `/g/${notif.data.gallerySlug}`;
+                    const url = `/g/${notif.data.gallerySlug}`;
+                    console.log("[Navigating to gallery route]", url);
+                    window.location.href = url;
+                  } else {
+                    console.warn("[No route found for notification]", notif);
                   }
                 }}
                 className={`px-4 py-3 cursor-pointer focus:bg-accent/50 ${!notif.isSeen ? "bg-accent/10" : ""}`}
