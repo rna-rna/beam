@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 interface CommentBubbleProps {
   x: number;
   y: number;
+  containerRef: React.RefObject<HTMLDivElement>;
   content?: string;
   author?: {
     id: string;
@@ -226,9 +227,14 @@ export function CommentBubble({
   });
 
   const handleDragEnd = (_e: any, info: { point: { x: number; y: number } }) => {
-    if (isAuthor && onPositionChange) {
-      const newX = (info.point.x / window.innerWidth) * 100;
-      const newY = (info.point.y / window.innerHeight) * 100;
+    if (isAuthor && onPositionChange && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const containerX = info.point.x - rect.left;
+      const containerY = info.point.y - rect.top;
+      
+      const newX = Math.max(0, Math.min(100, (containerX / rect.width) * 100));
+      const newY = Math.max(0, Math.min(100, (containerY / rect.height) * 100));
+      
       onPositionChange(newX, newY);
       updatePositionMutation.mutate({ newX, newY });
     }
