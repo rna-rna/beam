@@ -321,8 +321,10 @@ export function CommentBubble({
   return (
     <motion.div
       ref={bubbleRef}
-      drag={isAuthor}
-      dragConstraints={dragConstraints}
+      drag={isAuthor || isNew}
+      dragConstraints={containerRef}
+      dragElastic={0}
+      dragMomentum={false}
       onDragStart={() => setIsDragging(true)}  
       onDragEnd={handleDragEnd}
       className="absolute"
