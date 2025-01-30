@@ -22,6 +22,7 @@ function Gallery({gallery, userRole = 'View', ...props}: any) {
   const queryClient = useQueryClient(); // Hook for react-query
 
   const [draftComment, setDraftComment] = useState<{ x: number; y: number; visible: boolean } | null>(null);
+  const [selectedImage, setSelectedImage] = useState(null); // Assuming you have selectedImage state
 
   useEffect(() => {
     if (!user) return;
@@ -70,9 +71,6 @@ function Gallery({gallery, userRole = 'View', ...props}: any) {
           containerRef={containerRef}
           imageId={Number(selectedImage.id)}
           replies={[]}
-          onPositionChange={(nx, ny) => {
-            setDraftComment(prev => prev && { ...prev, x: nx, y: ny });
-          }}
           onSubmit={() => {
             setDraftComment(null);
             queryClient.invalidateQueries({ queryKey: ["/api/galleries"] });
