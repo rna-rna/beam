@@ -82,6 +82,7 @@ export function CommentBubble({
     if (isEditing) {
       requestAnimationFrame(() => {
         inputRef.current?.focus();
+        console.log('Focusing the inputRef, activeElement=', document.activeElement);
       });
     }
   }, [isEditing]);
