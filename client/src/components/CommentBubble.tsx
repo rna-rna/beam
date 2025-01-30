@@ -154,7 +154,24 @@ export function CommentBubble({
       setIsEditing(false);
       if (onSubmit) onSubmit();
       setLocalCommentId(data.data.id);
-      queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+      // Only invalidate the specific comment query
+      queryClient.invalidateQueries({
+        queryKey: [`/api/images/${imageId}/comments`],
+        exact: true
+      });
+
+      // Update the comment count in the gallery data without refetching
+      queryClient.setQueryData([`/api/galleries/${data.gallerySlug}`], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          images: old.images.map((img: any) =>
+            img.id === imageId
+              ? { ...img, commentCount: (img.commentCount || 0) + 1 }
+              : img
+          ),
+        };
+      });
     },
     onError: (error) => {
       if (!user) {
