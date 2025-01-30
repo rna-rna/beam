@@ -227,15 +227,18 @@ export function CommentBubble({
   });
 
   const handleDragEnd = (_e: any, info: { point: { x: number; y: number } }) => {
-    if (isAuthor && onPositionChange && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const containerX = info.point.x - rect.left;
-      const containerY = info.point.y - rect.top;
-      
-      const newX = Math.max(0, Math.min(100, (containerX / rect.width) * 100));
-      const newY = Math.max(0, Math.min(100, (containerY / rect.height) * 100));
-      
-      onPositionChange(newX, newY);
+    if ((!isAuthor && !isNew) || !containerRef.current) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const containerX = info.point.x - rect.left;
+    const containerY = info.point.y - rect.top;
+    
+    const newX = Math.max(0, Math.min(100, (containerX / rect.width) * 100));
+    const newY = Math.max(0, Math.min(100, (containerY / rect.height) * 100));
+    
+    if (isNew) {
+      onPositionChange?.(newX, newY);
+    } else {
       updatePositionMutation.mutate({ newX, newY });
     }
     setIsDragging(false);
