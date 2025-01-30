@@ -313,17 +313,19 @@ export function CommentBubble({
       ref={bubbleRef}
       drag={isAuthor}
       dragConstraints={dragConstraints}
-      onDragStart={() => setIsDragging(true)}
+      onDragStart={() => setIsDragging(true)}  
       onDragEnd={handleDragEnd}
       className="absolute"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => !isExpanded && setIsHovered(false)}
       onClick={() => setIsExpanded(true)}
       style={{
+        position: 'absolute',
         left: `${x}%`,
         top: `${y}%`,
         transform: 'translate(-50%, -50%)',
-        zIndex: isDragging ? 1000 : 1
+        zIndex: isDragging ? 1000 : 1,
+        pointerEvents: 'auto'
       }}
     >
       <div className="relative">

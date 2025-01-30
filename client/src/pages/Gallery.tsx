@@ -2703,6 +2703,7 @@ export default function Gallery({
                     }}
                   >
                     <div
+                      ref={containerRef}
                       className="w-full h-full flex items-center justify-center"
                       style={{
                         position: "relative",
@@ -2712,6 +2713,7 @@ export default function Gallery({
                             ? `${selectedImage.width}/${selectedImage.height}`
                             : "16/9",
                         overflow: "hidden",
+                        pointerEvents: isCommentPlacementMode ? 'all' : 'none'
                       }}
                     >
                       {isLowResLoading && (
