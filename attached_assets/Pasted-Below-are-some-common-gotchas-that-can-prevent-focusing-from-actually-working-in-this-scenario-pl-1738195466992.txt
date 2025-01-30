@@ -1,0 +1,165 @@
+Below are some common “gotchas” that can prevent focusing from actually working in this scenario, plus a few alternative approaches to fix it. Even though you have the useEffect + requestAnimationFrame approach (which usually works), there are a couple of ways it can still fail:
+
+Outside-click Handler Immediately Closes the Bubble
+
+If your new-comment pin is created by clicking on the image (outside the bubble), you might be triggering your "click outside" listener at the same time.
+In your code, handleClickOutside sets isExpanded(false) and isHovered(false)—even for new comments—unless you explicitly skip that for new comments.
+If the bubble is hidden (via (!isHovered && !isExpanded) && "hidden"), the input is either unmounted or has display: none, so inputRef.current?.focus() won’t visibly focus it.
+Timing / Renders
+
+Sometimes the bubble gets mounted, focus is called, and then a re-render (or an outside click) toggles it back hidden before you see the focus.
+Below are three approaches that reliably make a “new” comment automatically stay expanded/focused until the user either posts or clicks away.
+
+1) Skip the Outside-click Handler for New Comments
+Right now, your outside-click handler does:
+
+ts
+Copy
+Edit
+useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
+      setIsExpanded(false);
+      setIsHovered(false);
+      if (!isNew) {
+        setIsEditing(false);
+      }
+    }
+  };
+
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, [isNew]);
+Notice that it always sets isExpanded(false) and isHovered(false), then conditionally sets isEditing(false) only if !isNew.
+
+For a newly dropped pin (isNew = true), you actually do want it to remain open, so the user can start typing right away, even if they technically “clicked outside” to drop it.
+Fix: Only attach that listener if !isNew (i.e., if it’s an existing comment). For new comments, skip it entirely so the bubble never closes automatically. For example:
+
+diff
+Copy
+Edit
+useEffect(() => {
+-  document.addEventListener("mousedown", handleClickOutside);
+-  return () => {
+-    document.removeEventListener("mousedown", handleClickOutside);
+-  };
++  if (!isNew) {
++    document.addEventListener("mousedown", handleClickOutside);
++    return () => {
++      document.removeEventListener("mousedown", handleClickOutside);
++    };
++  }
+}, [isNew]);
+With that change, new pins stay open until you click away again after posting. Then your existing code that calls inputRef.current?.focus() will finally work, because the bubble is never being hidden.
+
+2) Pass autoFocus Directly to the Shadcn <Input>
+If you want to do it more simply, you can rely on the native autoFocus prop instead of your useEffect approach. Since Shadcn’s <Input> comp just wraps a normal <input>, setting autoFocus works:
+
+tsx
+Copy
+Edit
+{isEditing ? (
+  <form onSubmit={/* ... */}>
+    <div className="flex items-center gap-2">
+      <UserAvatar /*...*/ />
+      <Input
+        autoFocus={true}
+        type="text"
+        ref={inputRef}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Add a comment"
+        // etc.
+      />
+    </div>
+  </form>
+) : (
+  /* existing display */
+)}
+That alone can fix a lot of the timing issues—as long as your bubble remains rendered (i.e., not hidden by the outside-click logic).
+
+3) Ensure isExpanded Stays true on a New Comment
+You already do const [isExpanded, setIsExpanded] = useState(isNew). But if dropping a new pin triggers an outside click or something else that sets isExpanded(false), then the <Card> is hidden (className={cn((!isHovered && !isExpanded) && "hidden")}). The fix is to make sure we don’t forcibly set isExpanded(false) until the user is truly done. That might mean ignoring outside clicks until the user posts or cancels the new comment.
+
+For example, we can check:
+
+ts
+Copy
+Edit
+if (isNew) {
+  // For a brand-new bubble, skip closing
+  return;
+} else {
+  // close the bubble for existing comments
+  setIsExpanded(false);
+  setIsHovered(false);
+  setIsEditing(false);
+}
+Putting It All Together
+Most often, skipping outside-click logic for new comments + autoFocus on your <Input> is the easiest solution. For instance:
+
+diff
+Copy
+Edit
+function CommentBubble({ isNew = false, ... }) {
+  // ...
+  const [isEditing, setIsEditing] = useState(isNew);
+  const [isExpanded, setIsExpanded] = useState(isNew);
+
+  useEffect(() => {
+    if (!isNew) {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
+          setIsExpanded(false);
+          setIsHovered(false);
+          setIsEditing(false);
+        }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [isNew]);
+
+  return (
+    <motion.div /*...*/>
+      <Card className={cn(..., (!isHovered && !isExpanded) && "hidden")}>
+        {isEditing ? (
+          <form /*...*/>
+            <div className="flex items-center gap-2">
+              <UserAvatar /*...*/ />
+              <Input
++                autoFocus
+                ref={inputRef}
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Add a comment"
+                /* ... */
+              />
+            </div>
+          </form>
+        ) : (
+          // ...
+        )}
+      </Card>
+    </motion.div>
+  );
+}
+With that combination:
+
+New bubble always starts expanded (isExpanded = true).
+No outside-click logic closes it while it’s new.
+The input uses autoFocus, so it’s focused as soon as it appears in the DOM.
+Conclusion
+If your focus call “doesn’t work,” it’s almost always because the input is unmounted or hidden by the time .focus() is called, often due to that outside-click code. Stopping that behavior for new pins (by skipping the event listener or conditionally ignoring the click) or using autoFocus in conjunction with ensuring the card is visible will fix things consistently.
+
+
+
+
+
+
+

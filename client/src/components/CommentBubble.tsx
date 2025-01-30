@@ -76,6 +76,15 @@ export function CommentBubble({
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(isNew);
   const bubbleRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+    }
+  }, [isEditing]);
 
   // Handle clicks outside the comment bubble
   useEffect(() => {
@@ -342,6 +351,7 @@ export function CommentBubble({
                   color={user?.publicMetadata?.color as string}
                 />
                 <Input
+                  ref={inputRef}
                   type="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
@@ -350,14 +360,6 @@ export function CommentBubble({
                   readOnly={!user}
                   onClick={() => {
                     if (!user) setShowAuthModal(true);
-                  }}
-                  ref={(input) => {
-                    if (input && isNew) {
-                      // Use RAF for more reliable focus
-                      requestAnimationFrame(() => {
-                        input.focus();
-                      });
-                    }
                   }}
                 />
               </div>
