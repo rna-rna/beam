@@ -505,6 +505,7 @@ export default function Gallery({
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const { isDark } = useTheme();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const toggleGridView = () => {
     setIsMasonry(!isMasonry);
