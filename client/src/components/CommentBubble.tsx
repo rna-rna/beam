@@ -88,15 +88,18 @@ export function CommentBubble({
 
   // Handle clicks outside the comment bubble
   useEffect(() => {
-    if (!isNew) {
-      const handleClickOutside = (event: MouseEvent) => {
-        if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
-          setIsExpanded(false);
-          setIsHovered(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+        setIsHovered(false);
+        // Only close editing if it's NOT a new pin
+        if (!isNew) {
           setIsEditing(false);
         }
-      };
+      }
+    };
 
+    if (!isNew) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
