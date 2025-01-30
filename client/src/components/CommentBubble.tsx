@@ -88,20 +88,20 @@ export function CommentBubble({
 
   // Handle clicks outside the comment bubble
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
-        setIsExpanded(false);
-        setIsHovered(false);
-        if (!isNew) {
+    if (!isNew) {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
+          setIsExpanded(false);
+          setIsHovered(false);
           setIsEditing(false);
         }
-      }
-    };
+      };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
   }, [isNew]);
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
@@ -352,6 +352,7 @@ export function CommentBubble({
                 />
                 <Input
                   ref={inputRef}
+                  autoFocus={isNew}
                   type="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
