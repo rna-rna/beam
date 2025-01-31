@@ -2,7 +2,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
-  name: string;
+  name?: string | null;
   imageUrl?: string | null;
   color?: string | null;
   isActive?: boolean;
@@ -17,7 +17,8 @@ const sizeVariants = {
   lg: 'w-12 h-12 text-base',
 };
 
-function getInitials(fullName: string): string {
+function getInitials(fullName: string | null | undefined): string {
+  if (!fullName) return "?";
   return (
     fullName
       .split(" ")
