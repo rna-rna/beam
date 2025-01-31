@@ -2113,13 +2113,11 @@ export function registerRoutes(app: Express): Server {
         // Unregistered user flow - send magic link
         const signUpMagicLink = `${baseUrl}/sign-up?email=${encodeURIComponent(email)}&inviteToken=${inviteToken}&gallery=${slug}`;
 
-        await sendInviteEmail({
+        await sendMagicLinkEmail({
           toEmail: email,
           galleryTitle: gallery.title || 'Untitled Gallery',
-          inviteUrl: signUpMagicLink,
+          signUpUrl: signUpMagicLink,
           photographerName: inviterName,
-          recipientName: email.split('@')[0],
-          isRegistered: false,
           role,
           galleryThumbnail: thumbnail?.url || null
         });
