@@ -2879,6 +2879,22 @@ export function registerRoutes(app: Express): Server {
   app.post("/auth/verify-magic-link", setupClerkAuth, async (req, res) => {
     const { inviteToken, email } = req.body;
     const userId = req.auth.userId;
+    
+    console.log("Magic link verification - Auth details:", {
+      userId,
+      hasAuth: !!req.auth,
+      email,
+      inviteToken: inviteToken?.substring(0, 8) + '...',
+      timestamp: new Date().toISOString()
+    });
+
+    if (!userId) {
+      console.error("Magic link verification failed - No userId in auth context");
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required"
+      });
+    }
 
     try {
       // Find invite using token
