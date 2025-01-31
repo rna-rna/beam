@@ -1,0 +1,113 @@
+The fix ended up being in your magic‐link verification endpoint. When a user signs up via the magic link, the invite record should be “claimed” by updating its user_id column. In your current code you expect the caller to send the new user’s ID in the request body:
+
+ts
+Copy
+const { inviteToken, email, userId } = req.body;
+However, if the client isn’t supplying that value (or if it isn’t reliable), then the update ends up leaving user_id as null. The recommended fix is to require that the user is authenticated when verifying the magic link so that you can reliably grab the new user’s Clerk ID from the request’s auth context.
+
+What to Do
+Protect the Magic Link Endpoint:
+Use your existing Clerk auth middleware (e.g. via setupClerkAuth) so that req.auth.userId is set when the user clicks the magic link after registration.
+
+Extract the User ID from the Auth Context:
+Instead of reading userId from the request body, get it from req.auth.userId.
+
+For example, change your /auth/verify-magic-link route from this:
+
+ts
+Copy
+// Old: not protected and taking userId from the body
+app.post("/auth/verify-magic-link", async (req, res) => {
+  const { inviteToken, email, userId } = req.body;
+
+  try {
+    const invite = await db.query.invites.findFirst({
+      where: eq(invites.token, inviteToken),
+      with: { gallery: true }
+    });
+
+    if (!invite) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid or expired magic link" 
+      });
+    }
+
+    console.log("Magic link verified:", { inviteToken, email, userId, invite });
+
+    // Update the invite with the provided userId (which might be missing)
+    await db.update(invites)
+      .set({ 
+        userId,
+        email: email.toLowerCase(),
+        token: null // Remove token after use
+      })
+      .where(eq(invites.id, invite.id));
+
+    res.json({ 
+      success: true,
+      message: "Magic link verified successfully",
+      gallerySlug: invite.gallery?.slug || null,
+      role: invite.role
+    });
+  } catch (error) {
+    console.error("Failed to verify magic link:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to verify magic link",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+to something like this:
+
+ts
+Copy
+// New: protected route and extract userId from req.auth
+app.post("/auth/verify-magic-link", setupClerkAuth, async (req, res) => {
+  const { inviteToken, email } = req.body;
+  const userId = req.auth.userId; // reliably provided by Clerk
+
+  try {
+    const invite = await db.query.invites.findFirst({
+      where: eq(invites.token, inviteToken),
+      with: { gallery: true }
+    });
+
+    if (!invite) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid or expired magic link" 
+      });
+    }
+
+    console.log("Magic link verified:", { inviteToken, email, userId, invite });
+
+    // Update the invite record with the new user id and clear the token.
+    await db.update(invites)
+      .set({ 
+        userId, // now comes reliably from req.auth.userId
+        email: email.toLowerCase(),
+        token: null // Remove token after use
+      })
+      .where(eq(invites.id, invite.id));
+
+    res.json({ 
+      success: true,
+      message: "Magic link verified successfully",
+      gallerySlug: invite.gallery?.slug || null,
+      role: invite.role
+    });
+  } catch (error) {
+    console.error("Failed to verify magic link:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to verify magic link",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+How This Fix Helps
+Reliable User Identification: By using the authentication middleware, you’re sure to have a valid Clerk user ID in req.auth.userId when the user clicks the magic link.
+Correct Invite Update: The invite row will now be updated with the correct user_id so that later, when your permission functions (like getGalleryUserRole) query the invites table using eq(invites.userId, userId), they’ll correctly find the invite and assign the proper role.
+Improved Security: It prevents relying on client-supplied user IDs and uses the secure Clerk context instead.

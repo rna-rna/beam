@@ -971,7 +971,7 @@ export function registerRoutes(app: Express): Server {
       const galleryImages = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),      });
 
-      const validImageIds = new Set(galleryImages.map(img => img.id));
+      const validImageIds = newSet(galleryImages.map(img => img.id));
       const invalidIds = imageIds.filter(id => !validImageIds.has(id));
 
       if (invalidIds.length > 0) {
@@ -1724,7 +1724,7 @@ export function registerRoutes(app: Express): Server {
         role,
         canStar: canStar(role)
       });
-      
+
       // Allow starring if user has explicit invite or gallery is public
       if (!canStar(role) && !image.gallery.isPublic) {
         return res.status(403).json({ message: 'Forbidden - cannot star' });
@@ -1966,7 +1966,7 @@ export function registerRoutes(app: Express): Server {
               });
             }
           } catch (error) {
-            console.error('Failed to fetch owner details:', error);
+            consoleerror('Failed to fetch owner details:', error);
           }
         }
 
@@ -2876,49 +2876,49 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Magic link verification endpoint
-app.post("/auth/verify-magic-link", async (req, res) => {
-  const { inviteToken, email, userId } = req.body;
+  app.post("/auth/verify-magic-link", async (req, res) => {
+    const { inviteToken, email, userId } = req.body;
 
-  try {
-    // Look up the invite using the token
-    const invite = await db.query.invites.findFirst({
-      where: eq(invites.token, inviteToken),
-      with: {
-        gallery: true
+    try {
+      // Find invite using token
+      const invite = await db.query.invites.findFirst({
+        where: eq(invites.token, inviteToken),
+        with: { gallery: true }
+      });
+
+      if (!invite) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Invalid or expired magic link" 
+        });
       }
-    });
 
-    if (!invite) {
-      return res.status(400).json({ 
+      console.log("Magic link verified:", { inviteToken, email, userId, invite });
+
+      // Ensure the invite record has a user_id
+      await db.update(invites)
+        .set({ 
+          userId,
+          email: email.toLowerCase(),
+          token: null // Remove token after use
+        })
+        .where(eq(invites.id, invite.id));
+
+      res.json({ 
+        success: true,
+        message: "Magic link verified successfully",
+        gallerySlug: invite.gallery?.slug || null,
+        role: invite.role
+      });
+    } catch (error) {
+      console.error("Failed to verify magic link:", error);
+      res.status(500).json({ 
         success: false,
-        message: "Invalid or expired magic link" 
+        message: "Failed to verify magic link",
+        details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-
-    // Update invite record with userId
-    await db.update(invites)
-      .set({ 
-        userId,
-        token: null // Clear token after use
-      })
-      .where(eq(invites.token, inviteToken));
-
-    res.json({ 
-      success: true,
-      message: "Magic link verified successfully",
-      gallerySlug: invite.gallery?.slug || null,
-      role: invite.role
-    });
-
-  } catch (error) {
-    console.error("Failed to verify magic link:", error);
-    res.status(500).json({ 
-      success: false,
-      message: "Failed to verify magic link",
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
+  });
 
   app.use('/api', protectedRouter);
 
@@ -2979,3 +2979,5 @@ async function addStarNotification(data: {
     });
   }
 }
+
+export default registerRoutes;
