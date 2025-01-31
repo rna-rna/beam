@@ -102,6 +102,7 @@ export async function sendMagicLinkEmail(opts: SendMagicLinkEmailOptions) {
       recipientName: toEmail.split('@')[0],
       galleryName: galleryTitle,
       signUpUrl,
+      galleryUrl: signUpUrl, // Add this to set the View Gallery button URL
       role,
       photographerName,
       galleryThumbnail: galleryThumbnail || "https://cdn.beam.ms/placeholder.jpg",
