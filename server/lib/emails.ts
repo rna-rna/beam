@@ -87,7 +87,8 @@ export async function sendMagicLinkEmail(opts: SendMagicLinkEmailOptions) {
   const templateId = SendGridTemplates.magicLinkInvite;
 
   if (!templateId) {
-    throw new Error("Magic link email template ID not configured");
+    console.error("Magic link template not found, using invite template as fallback");
+    throw new Error("Email template not configured");
   }
 
   const msg = {
