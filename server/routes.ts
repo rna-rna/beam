@@ -2964,7 +2964,6 @@ async function addStarNotification(data: {
     const groupId = nanoid();
     await db.insert(notifications).values({
       userId: data.recipientUserId,
-      <previous_generation>
       type: 'image-starred',
       data: {
         imageId: data.imageId,
