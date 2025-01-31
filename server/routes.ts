@@ -2980,3 +2980,5 @@ async function addStarNotification(data: {
     });
   }
 }
+
+export default registerRoutes;
