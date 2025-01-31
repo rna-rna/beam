@@ -157,6 +157,7 @@ export const invites = pgTable('invites', {
   email: text('email').notNull(),
   userId: text('user_id'), // Nullable for external invitees
   role: text('role', { enum: ['Edit', 'Comment', 'View'] }).notNull(),
+  token: text('token'),
   createdAt: timestamp('created_at').defaultNow().notNull()
 }, (table) => ({
   galleryEmailIdx: index('invites_gallery_email_idx', {
