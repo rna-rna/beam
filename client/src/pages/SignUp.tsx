@@ -13,21 +13,27 @@ export default function SignUpPage() {
     const gallerySlug = params.get("gallery");
     const email = params.get("email");
 
-    if (inviteToken && email) {
+    if (inviteToken && email && gallerySlug) {
       try {
         const response = await fetch("/auth/verify-magic-link", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${sessionStorage.getItem("clerk-db-jwt")}`
+          },
           body: JSON.stringify({ 
             inviteToken, 
             email,
-            userId: sessionStorage.getItem("userId") 
+            userId: sessionStorage.getItem("clerk-db-jwt") 
           }),
         });
 
         if (response.ok) {
-          setLocation(`/g/${gallerySlug}`);
-          return;
+          const data = await response.json();
+          if (data.success) {
+            setLocation(`/g/${gallerySlug}`);
+            return;
+          }
         }
       } catch (error) {
         console.error("Failed to verify magic link:", error);
