@@ -1718,7 +1718,15 @@ export function registerRoutes(app: Express): Server {
       }
 
       const role = await getGalleryUserRole(image.gallery.id, userId);
-      if (!canStar(role)) {
+      console.log('Star request role check:', {
+        userId,
+        galleryId: image.gallery.id,
+        role,
+        canStar: canStar(role)
+      });
+      
+      // Allow starring if user has explicit invite or gallery is public
+      if (!canStar(role) && !image.gallery.isPublic) {
         return res.status(403).json({ message: 'Forbidden - cannot star' });
       }
 
