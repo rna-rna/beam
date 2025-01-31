@@ -1,0 +1,68 @@
+The Replit-proposed fix is partially correct, but it doesn’t fully solve the issue because:
+
+Using invite.id instead of inviteToken in the update query → ✅ Correct
+
+Using invite.id ensures we're updating the right record.
+Storing email in lowercase for consistency → ✅ Correct
+
+Prevents mismatches due to case sensitivity.
+Adding debug logging → ✅ Helpful
+
+Makes debugging easier but doesn’t solve the user_id issue.
+Using invite.gallery?.slug instead of invite.galleryId → ✅ Correct
+
+Ensures the correct gallerySlug is returned.
+What the Replit Fix Doesn't Address Properly
+It does not ensure that user_id is always set for magic link users.
+The main problem is magic link users register without user_id being stored in invites, making getGalleryUserRole() return null.
+🔹 The Correct Fix
+Instead of just making small optimizations, we need to explicitly store user_id when verifying magic links.
+
+Updated /auth/verify-magic-link Endpoint
+typescript
+Copy
+Edit
+app.post("/auth/verify-magic-link", async (req, res) => {
+  const { inviteToken, email, userId } = req.body;
+
+  try {
+    // Find the invite using the token
+    const invite = await db.query.invites.findFirst({
+      where: eq(invites.token, inviteToken),
+      with: { gallery: true } // Ensures gallery info is included
+    });
+
+    if (!invite) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid or expired magic link" 
+      });
+    }
+
+    console.log("Magic link verified:", { inviteToken, email, userId, invite });
+
+    // Ensure the invite record has a user_id
+    await db.update(invites)
+      .set({ 
+        userId,  // ✅ Explicitly store userId so getGalleryUserRole() works
+        email: email.toLowerCase(), // ✅ Ensure email consistency
+        token: null // ✅ Remove token after use for security
+      })
+      .where(eq(invites.id, invite.id));
+
+    res.json({ 
+      success: true,
+      message: "Magic link verified successfully",
+      gallerySlug: invite.gallery?.slug || null, // ✅ Ensures proper slug resolution
+      role: invite.role
+    });
+
+  } catch (error) {
+    console.error("Failed to verify magic link:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to verify magic link",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});

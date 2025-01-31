@@ -12,7 +12,7 @@ import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { invites } from '@db/schema';
-import { sendInviteEmail } from './lib/emails';
+import { sendInviteEmail, sendMagicLinkEmail } from './lib/emails';
 import { nanoid } from 'nanoid';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -969,8 +969,7 @@ export function registerRoutes(app: Express): Server {
 
       // Validate image ownership
       const galleryImages = await db.query.images.findMany({
-        where: eq(images.galleryId, gallery.id),
-      });
+        where: eq(images.galleryId, gallery.id),      });
 
       const validImageIds = new Set(galleryImages.map(img => img.id));
       const invalidIds = imageIds.filter(id => !validImageIds.has(id));
@@ -1719,7 +1718,15 @@ export function registerRoutes(app: Express): Server {
       }
 
       const role = await getGalleryUserRole(image.gallery.id, userId);
-      if (!canStar(role)) {
+      console.log('Star request role check:', {
+        userId,
+        galleryId: image.gallery.id,
+        role,
+        canStar: canStar(role)
+      });
+      
+      // Allow starring if user has explicit invite or gallery is public
+      if (!canStar(role) && !image.gallery.isPublic) {
         return res.status(403).json({ message: 'Forbidden - cannot star' });
       }
 
@@ -1984,17 +1991,10 @@ export function registerRoutes(app: Express): Server {
     const userId = req.auth.userId;
 
     try {
-      console.log('Invite attempt:', {
-        slug,
-        email,
-        role,
-        userId,
-        timestamp: new Date().toISOString()
-      });
+      console.log('Invite attempt:', { slug, email, role, userId });
 
-      // Fetch the gallery first
       const gallery = await db.query.galleries.findFirst({
-        where: eq(galleries.slug, req.params.slug)
+        where: eq(galleries.slug, slug),
       });
 
       if (!gallery) {
@@ -2008,36 +2008,20 @@ export function registerRoutes(app: Express): Server {
       }
 
       const inviterName = `${inviterData.firstName || ''} ${inviterData.lastName || ''}`.trim() || 'A Beam User';
-      const inviterEmail = (await clerkClient.users.getUser(req.auth.userId)).emailAddresses[0]?.emailAddress;
 
-      // We still need to use Clerk directly for email lookup since our cache is ID-based
+      // Check if email is registered in Clerk
       const usersResponse = await clerkClient.users.getUserList({
-        email_address_query: email
+        email_address_query: email,
       });
-      const users = usersResponse?.data || [];
-      const matchingUser = users.find((u) =>
-        u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email.toLowerCase())
+
+      const matchingUser = usersResponse?.data?.find((u) =>
+        u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email)
       );
 
-      // If we found a user, fetch their cached data
-      let cachedUserData;
-      if (matchingUser) {
-        [cachedUserData] = await fetchCachedUserData([matchingUser.id]);
-      }
+      // Generate invite token for unregistered users
+      const inviteToken = nanoid(32);
 
-      console.log('Clerk user lookup:', {
-        email,
-        found: !!matchingUser,
-        userId: matchingUser?.id,
-        primaryEmail: matchingUser?.emailAddresses.find(
-          (e) => e.id === matchingUser.primaryEmailAddressId
-        )?.emailAddress,
-        allEmails: matchingUser?.emailAddresses.map((e) => e.emailAddress)
-});
-
-      const user = matchingUser;
-
-      // Check for existing invite
+      // Handle existing invite
       const existingInvite = await db.query.invites.findFirst({
         where: and(
           eq(invites.galleryId, gallery.id),
@@ -2046,13 +2030,6 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (existingInvite) {
-        console.log('Updating existing invite:', {
-          inviteId: existingInvite.id,
-          email,
-          oldRole: existingInvite.role,
-          newRole: role
-        });
-
         await db.update(invites)
           .set({ role })
           .where(and(
@@ -2060,115 +2037,100 @@ export function registerRoutes(app: Express): Server {
             eq(invites.email, email)
           ));
       } else {
-        console.log('Creating new invite:', {
-          galleryId: gallery.id,
-          email,
-          role,
-          clerkUserId: user?.id
-        });
-
+        const inviteToken = nanoid(32);
         await db.insert(invites).values({
           galleryId: gallery.id,
           email,
-          userId: user?.id,
-          role
+          userId: matchingUser?.id || null,
+          role,
+          token: !matchingUser ? inviteToken : null
         });
       }
 
-      try {
-        const galleryTitle = gallery.title || 'Untitled Gallery';
-        const baseUrl = process.env.VITE_APP_URL || `https://${req.headers.host}`;
-        const inviteUrl = `${baseUrl}/g/${gallery.slug}`;
-        const signUpUrl = `${baseUrl}/sign-up?email=${encodeURIComponent(email)}`;
-        const isRegistered = !!user;
+      // Upsert contact record
+      const existingContact = await db.query.contacts.findFirst({
+        where: and(
+          eq(contacts.ownerUserId, req.auth.userId),
+          eq(contacts.contactEmail, email)
+        )
+      });
 
-        // Upsert contact record
-        const existingContact = await db.query.contacts.findFirst({
-          where: and(
-            eq(contacts.ownerUserId, req.auth.userId),
-            eq(contacts.contactEmail, email)
-          )
+      if (existingContact) {
+        await db.update(contacts)
+          .set({
+            inviteCount: existingContact.inviteCount + 1,
+            lastInvitedAt: new Date(),
+            contactUserId: matchingUser?.id || null
+          })
+          .where(eq(contacts.id, existingContact.id));
+      } else {
+        await db.insert(contacts).values({
+          ownerUserId: req.auth.userId,
+          contactUserId: matchingUser?.id || null,
+          contactEmail: email,
+          inviteCount: 1,
+          lastInvitedAt: new Date()
         });
+      }
 
-        if (existingContact) {
-          await db.update(contacts)
-            .set({
-              inviteCount: existingContact.inviteCount + 1,
-              lastInvitedAt: new Date(),
-              contactUserId: user?.id || null
-            })
-            .where(eq(contacts.id, existingContact.id));
-        } else {
-          await db.insert(contacts).values({
-            ownerUserId: req.auth.userId,
-            contactUserId: user?.id || null,
-            contactEmail: email,
-            inviteCount: 1,
-            lastInvitedAt: new Date()
-          });
-        }
+      // Fetch thumbnail
+      const thumbnail = await db.query.images.findFirst({
+        where: eq(images.galleryId, gallery.id),
+        orderBy: (images, { asc }) => [asc(images.position)]
+      });
 
-        // Fetch the thumbnail image
-        const thumbnail = await db.query.images.findFirst({
-          where: eq(images.galleryId, gallery.id),
-          orderBy: (images, { asc }) => [asc(images.position)]
-        });
+      const baseUrl = process.env.VITE_APP_URL || `https://${req.headers.host}`;
 
-        console.log('Gallery thumbnail URL:', {
-          thumbnailUrl: thumbnail?.url || null,
-          galleryId: gallery.id,
-          imageId: thumbnail?.id
-        });
-
+      if (matchingUser) {
+        // Registered user flow
         await sendInviteEmail({
           toEmail: email,
-          galleryTitle,
-          inviteUrl,
+          galleryTitle: gallery.title || 'Untitled Gallery',
+          inviteUrl: `${baseUrl}/g/${gallery.slug}`,
           photographerName: inviterName,
           recipientName: email.split('@')[0],
-          isRegistered,
+          isRegistered: true,
           role,
           galleryThumbnail: thumbnail?.url || null
         });
 
-        // Create notification for invited user if they exist
-        if (user?.id) {
-          await db.insert(notifications).values({
-            userId: user.id,
-            type: "gallery-invite",
-            data: {
-              actorName: inviterName,
-              actorAvatar: inviterData?.imageUrl,
-              actorColor: inviterData?.color,
-              galleryId: gallery.id,
-              galleryTitle: gallery.title,
-              role,
-              gallerySlug: gallery.slug
-            },
-            isSeen: false,
-            createdAt: new Date()
-          });
-
-          // Emit real-time notification via Pusher
-          pusher.trigger(`private-user-${user.id}`, "notification", {
-            type: "gallery-invite",
+        // Create notification
+        await db.insert(notifications).values({
+          userId: matchingUser.id,
+          type: "gallery-invite",
+          data: {
             actorName: inviterName,
-            galleryTitle: gallery.title
-          });
-        }
-
-        console.log('Invite email sent successfully:', {
-          email,
-          gallerySlug: gallery.slug,
-          role,
-          isRegistered
+            actorAvatar: inviterData?.imageUrl,
+            actorColor: inviterData?.color,
+            galleryId: gallery.id,
+            galleryTitle: gallery.title,
+            role,
+            gallerySlug: gallery.slug
+          },
+          isSeen: false,
+          createdAt: new Date()
         });
-      } catch (error) {
-        console.error('Failed to send invite email:', error);
-        // Continue even if email fails - the DB invite is still created
+
+        // Real-time notification
+        pusher.trigger(`private-user-${matchingUser.id}`, "notification", {
+          type: "gallery-invite",
+          actorName: inviterName,
+          galleryTitle: gallery.title
+        });
+      } else {
+        // Unregistered user flow - send magic link
+        const signUpMagicLink = `${baseUrl}/sign-up?email=${encodeURIComponent(email)}&inviteToken=${inviteToken}&gallery=${slug}`;
+
+        await sendMagicLinkEmail({
+          toEmail: email,
+          galleryTitle: gallery.title || 'Untitled Gallery',
+          signUpUrl: signUpMagicLink,
+          photographerName: inviterName,
+          role,
+          galleryThumbnail: thumbnail?.url || null
+        });
       }
 
-      console.log('Invite operation successful');
       res.json({ message: 'Invite sent successfully' });
     } catch (error) {
       console.error('Failed to invite user:', {
@@ -2286,7 +2248,7 @@ export function registerRoutes(app: Express): Server {
             emailAddress: [email]
           });
 
-          const exactUser = clerkUsers.find(user => 
+          const exactUser = (clerkUsers.data || []).find(user => 
             user.emailAddresses.some(e => 
               e.emailAddress.toLowerCase() === email
             )
@@ -2912,6 +2874,51 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: "Failed to mark notifications as read" });
     }
   });
+
+  // Magic link verification endpoint
+app.post("/auth/verify-magic-link", async (req, res) => {
+  const { inviteToken, email, userId } = req.body;
+
+  try {
+    // Look up the invite using the token
+    const invite = await db.query.invites.findFirst({
+      where: eq(invites.token, inviteToken),
+      with: {
+        gallery: true
+      }
+    });
+
+    if (!invite) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid or expired magic link" 
+      });
+    }
+
+    // Update invite record with userId
+    await db.update(invites)
+      .set({ 
+        userId,
+        token: null // Clear token after use
+      })
+      .where(eq(invites.token, inviteToken));
+
+    res.json({ 
+      success: true,
+      message: "Magic link verified successfully",
+      gallerySlug: invite.gallery?.slug || null,
+      role: invite.role
+    });
+
+  } catch (error) {
+    console.error("Failed to verify magic link:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to verify magic link",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
 
   app.use('/api', protectedRouter);
 

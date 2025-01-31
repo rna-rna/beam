@@ -60,3 +60,66 @@ export async function sendInviteEmail(opts: SendInviteEmailOptions) {
     throw error;
   }
 }
+import sgMail from "@sendgrid/mail";
+import { SendGridTemplates } from "./sendgridTemplates";
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
+
+interface SendMagicLinkEmailOptions {
+  toEmail: string;
+  galleryTitle: string;
+  signUpUrl: string;
+  role: string;
+  photographerName: string;
+  galleryThumbnail: string | null;
+}
+
+export async function sendMagicLinkEmail(opts: SendMagicLinkEmailOptions) {
+  const {
+    toEmail,
+    galleryTitle,
+    signUpUrl,
+    role,
+    photographerName,
+    galleryThumbnail,
+  } = opts;
+
+  const templateId = SendGridTemplates.magicLinkInvite;
+
+  if (!templateId) {
+    console.error("Magic link template not found, using invite template as fallback");
+    throw new Error("Email template not configured");
+  }
+
+  const msg = {
+    to: toEmail,
+    from: {
+      email: "hello@beam.ms",
+      name: "Beam"
+    },
+    templateId,
+    dynamic_template_data: {
+      recipientName: toEmail.split('@')[0],
+      galleryName: galleryTitle,
+      signUpUrl,
+      galleryUrl: signUpUrl, // Add this to set the View Gallery button URL
+      role,
+      photographerName,
+      galleryThumbnail: galleryThumbnail || "https://cdn.beam.ms/placeholder.jpg",
+      isRegistered: false
+    },
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`Magic link email sent to ${toEmail}`);
+  } catch (error) {
+    console.error("Error sending magic link email:", error);
+    
+    if (error.response) {
+      console.error("SendGrid Response:", JSON.stringify(error.response.body, null, 2));
+    }
+    
+    throw error;
+  }
+}
