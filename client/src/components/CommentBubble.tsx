@@ -76,32 +76,23 @@ export function CommentBubble({
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(isNew);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditing) {
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-      });
-    }
-  }, [isEditing]);
 
   // Handle clicks outside the comment bubble
   useEffect(() => {
-    if (!isNew) {
-      const handleClickOutside = (event: MouseEvent) => {
-        if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
-          setIsExpanded(false);
-          setIsHovered(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+        setIsHovered(false);
+        if (!isNew) {
           setIsEditing(false);
         }
-      };
+      }
+    };
 
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isNew]);
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
@@ -351,8 +342,6 @@ export function CommentBubble({
                   color={user?.publicMetadata?.color as string}
                 />
                 <Input
-                  ref={inputRef}
-                  autoFocus={isNew}
                   type="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
@@ -361,6 +350,14 @@ export function CommentBubble({
                   readOnly={!user}
                   onClick={() => {
                     if (!user) setShowAuthModal(true);
+                  }}
+                  ref={(input) => {
+                    if (input && isNew) {
+                      // Use RAF for more reliable focus
+                      requestAnimationFrame(() => {
+                        input.focus();
+                      });
+                    }
                   }}
                 />
               </div>

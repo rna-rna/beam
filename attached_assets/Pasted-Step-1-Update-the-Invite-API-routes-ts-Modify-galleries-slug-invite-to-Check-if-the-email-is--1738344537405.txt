@@ -1,0 +1,88 @@
+Step 1: Update the Invite API (routes.ts)
+Modify /galleries/:slug/invite to:
+
+Check if the email is already registered.
+If registered, send the standard invite email.
+If not registered, generate a magic link invite.
+Updated /galleries/:slug/invite
+typescript
+Copy
+Edit
+protectedRouter.post('/galleries/:slug/invite', async (req, res) => {
+  const { role } = req.body;
+  const email = req.body.email.toLowerCase();
+  const { slug } = req.params;
+  const userId = req.auth.userId;
+
+  try {
+    console.log('Invite attempt:', { slug, email, role, userId });
+
+    // Fetch gallery
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, slug),
+    });
+
+    if (!gallery) {
+      return res.status(404).json({ message: 'Gallery not found' });
+    }
+
+    // Check if email is already registered in Clerk
+    const usersResponse = await clerkClient.users.getUserList({
+      email_address_query: email,
+    });
+
+    const matchingUser = usersResponse?.data?.find((u) =>
+      u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email)
+    );
+
+    if (matchingUser) {
+      // If user exists, send a standard invite email
+      await db.insert(invites).values({
+        galleryId: gallery.id,
+        email,
+        userId: matchingUser.id,
+        role,
+      });
+
+      await sendInviteEmail({
+        toEmail: email,
+        galleryTitle: gallery.title,
+        inviteUrl: `${process.env.VITE_APP_URL}/g/${slug}`,
+        photographerName: "A Beam User",
+        role,
+        isRegistered: true,
+        galleryThumbnail: null,
+      });
+
+      return res.json({ message: 'Invite sent successfully' });
+    }
+
+    // If user is NOT registered, generate a magic link
+    const inviteToken = nanoid(32);
+    const signUpMagicLink = `${process.env.VITE_APP_URL}/sign-up?email=${encodeURIComponent(
+      email
+    )}&inviteToken=${inviteToken}&gallery=${slug}`;
+
+    await db.insert(invites).values({
+      galleryId: gallery.id,
+      email,
+      role,
+      token: inviteToken, // Store token to verify later
+    });
+
+    await sendMagicLinkEmail({
+      toEmail: email,
+      galleryTitle: gallery.title,
+      signUpUrl: signUpMagicLink,
+      role,
+      photographerName: "A Beam User",
+      galleryThumbnail: null,
+    });
+
+    res.json({ message: 'Magic link invite sent' });
+
+  } catch (error) {
+    console.error('Failed to invite user:', error);
+    res.status(500).json({ message: 'Failed to invite user' });
+  }
+});
