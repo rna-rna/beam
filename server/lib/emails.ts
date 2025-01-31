@@ -114,6 +114,11 @@ export async function sendMagicLinkEmail(opts: SendMagicLinkEmailOptions) {
     console.log(`Magic link email sent to ${toEmail}`);
   } catch (error) {
     console.error("Error sending magic link email:", error);
+    
+    if (error.response) {
+      console.error("SendGrid Response:", JSON.stringify(error.response.body, null, 2));
+    }
+    
     throw error;
   }
 }
