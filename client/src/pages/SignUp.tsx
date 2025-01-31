@@ -2,10 +2,10 @@
 import { SignUp } from "@clerk/clerk-react";
 import { Card } from "@/components/ui/card";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 
 export default function SignUpPage() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   const handleSignUpComplete = async () => {
     const params = new URLSearchParams(window.location.search);
@@ -26,7 +26,7 @@ export default function SignUpPage() {
         });
 
         if (response.ok) {
-          navigate(`/g/${gallerySlug}`);
+          setLocation(`/g/${gallerySlug}`);
           return;
         }
       } catch (error) {
@@ -34,7 +34,7 @@ export default function SignUpPage() {
       }
     }
     
-    navigate("/dashboard");
+    setLocation("/dashboard");
   };
 
   return (
