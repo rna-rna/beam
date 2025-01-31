@@ -115,7 +115,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
 
   const handleSendInvite = async () => {
     const emailToInvite = selectedUser ? selectedUser.email : email.toLowerCase();
-    if (!emailToInvite) return;
+    if (!isValidEmail(emailToInvite)) return;
 
     if (invitedUsers.some(user => user.email.toLowerCase() === emailToInvite)) {
       toast({
@@ -156,10 +156,19 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
         throw new Error(error.message || "Failed to send invite");
       }
 
-      toast({
-        title: "Success",
-        description: `Invite sent to ${emailToInvite}`
-      });
+      const data = await res.json();
+      
+      if (data.isRegistered) {
+        toast({
+          title: "Invite Sent",
+          description: `An invite was sent to ${emailToInvite}`,
+        });
+      } else {
+        toast({
+          title: "Magic Link Sent",
+          description: `A sign up link was sent to ${emailToInvite}`,
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
