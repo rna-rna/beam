@@ -93,14 +93,19 @@ export async function sendMagicLinkEmail(opts: SendMagicLinkEmailOptions) {
 
   const msg = {
     to: toEmail,
-    from: "hello@beam.ms",
+    from: {
+      email: "hello@beam.ms",
+      name: "Beam"
+    },
     templateId,
     dynamic_template_data: {
+      recipientName: toEmail.split('@')[0],
       galleryName: galleryTitle,
       signUpUrl,
       role,
       photographerName,
       galleryThumbnail: galleryThumbnail || "https://cdn.beam.ms/placeholder.jpg",
+      isRegistered: false
     },
   };
 
