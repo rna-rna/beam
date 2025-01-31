@@ -969,8 +969,7 @@ export function registerRoutes(app: Express): Server {
 
       // Validate image ownership
       const galleryImages = await db.query.images.findMany({
-        where: eq(images.galleryId, gallery.id),
-      });
+        where: eq(images.galleryId, gallery.id),      });
 
       const validImageIds = new Set(galleryImages.map(img => img.id));
       const invalidIds = imageIds.filter(id => !validImageIds.has(id));
@@ -1968,7 +1967,7 @@ export function registerRoutes(app: Express): Server {
         users: usersWithDetails
       });
     } catch (error) {
-      console.error('Failed to fetch permissions:', error);
+      console.error('Failed to fetch permissions:</error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch permissions'
@@ -2070,7 +2069,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       const baseUrl = process.env.VITE_APP_URL || `https://${req.headers.host}`;
-      
+
       if (matchingUser) {
         // Registered user flow
         await sendInviteEmail({
@@ -2110,7 +2109,7 @@ export function registerRoutes(app: Express): Server {
       } else {
         // Unregistered user flow - send magic link
         const signUpMagicLink = `${baseUrl}/sign-up?email=${encodeURIComponent(email)}&inviteToken=${inviteToken}&gallery=${slug}`;
-        
+
         await sendInviteEmail({
           toEmail: email,
           galleryTitle: gallery.title || 'Untitled Gallery',
@@ -2867,6 +2866,51 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Magic link verification endpoint
+app.post("/auth/verify-magic-link", async (req, res) => {
+  const { inviteToken, email, userId } = req.body;
+
+  try {
+    // Look up the invite using the token
+    const invite = await db.query.invites.findFirst({
+      where: eq(invites.token, inviteToken),
+      with: {
+        gallery: true
+      }
+    });
+
+    if (!invite) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid or expired magic link" 
+      });
+    }
+
+    // Update invite record with userId
+    await db.update(invites)
+      .set({ 
+        userId,
+        token: null // Clear token after use
+      })
+      .where(eq(invites.token, inviteToken));
+
+    res.json({ 
+      success: true,
+      message: "Magic link verified successfully",
+      gallerySlug: invite.gallery?.slug || null,
+      role: invite.role
+    });
+
+  } catch (error) {
+    console.error("Failed to verify magic link:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to verify magic link",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
   app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);
@@ -2924,5 +2968,4 @@ async function addStarNotification(data: {
       isSeen: false,
       createdAt: new Date()
     });
-  }
 }
