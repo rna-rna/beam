@@ -2970,4 +2970,3 @@ async function addStarNotification(data: {
     });
   }
 }
-}
