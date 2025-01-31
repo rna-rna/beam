@@ -1967,7 +1967,7 @@ export function registerRoutes(app: Express): Server {
         users: usersWithDetails
       });
     } catch (error) {
-      console.error('Failed to fetch permissions:</error);
+      console.error('Failed to fetch permissions:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch permissions'
