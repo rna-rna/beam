@@ -2968,4 +2968,6 @@ async function addStarNotification(data: {
       isSeen: false,
       createdAt: new Date()
     });
+  }
+}
 }
