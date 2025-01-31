@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 interface CommentBubbleProps {
   x: number;
   y: number;
-  containerRef: React.RefObject<HTMLDivElement>;
   content?: string;
   author?: {
     id: string;
@@ -53,7 +52,6 @@ import { Button } from "@/components/ui/button";
 export function CommentBubble({ 
   x, 
   y, 
-  containerRef,
   content, 
   author, 
   onSubmit, 
@@ -78,16 +76,6 @@ export function CommentBubble({
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(isNew);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditing) {
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-        console.log('Focusing the inputRef, activeElement=', document.activeElement);
-      });
-    }
-  }, [isEditing]);
 
   // Handle clicks outside the comment bubble
   useEffect(() => {
@@ -95,19 +83,16 @@ export function CommentBubble({
       if (bubbleRef.current && !bubbleRef.current.contains(event.target as Node)) {
         setIsExpanded(false);
         setIsHovered(false);
-        // Only close editing if it's NOT a new pin
         if (!isNew) {
           setIsEditing(false);
         }
       }
     };
 
-    if (!isNew) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isNew]);
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
@@ -154,24 +139,7 @@ export function CommentBubble({
       setIsEditing(false);
       if (onSubmit) onSubmit();
       setLocalCommentId(data.data.id);
-      // Only invalidate the specific comment query
-      queryClient.invalidateQueries({
-        queryKey: [`/api/images/${imageId}/comments`],
-        exact: true
-      });
-
-      // Update the comment count in the gallery data without refetching
-      queryClient.setQueryData([`/api/galleries/${data.gallerySlug}`], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          images: old.images.map((img: any) =>
-            img.id === imageId
-              ? { ...img, commentCount: (img.commentCount || 0) + 1 }
-              : img
-          ),
-        };
-      });
+      queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
     },
     onError: (error) => {
       if (!user) {
@@ -245,18 +213,10 @@ export function CommentBubble({
   });
 
   const handleDragEnd = (_e: any, info: { point: { x: number; y: number } }) => {
-    if ((!isAuthor && !isNew) || !containerRef.current) return;
-
-    const rect = containerRef.current.getBoundingClientRect();
-    const containerX = info.point.x - rect.left;
-    const containerY = info.point.y - rect.top;
-
-    const newX = Math.max(0, Math.min(100, (containerX / rect.width) * 100));
-    const newY = Math.max(0, Math.min(100, (containerY / rect.height) * 100));
-
-    if (isNew) {
-      onPositionChange?.(newX, newY);
-    } else {
+    if (isAuthor && onPositionChange) {
+      const newX = (info.point.x / window.innerWidth) * 100;
+      const newY = (info.point.y / window.innerHeight) * 100;
+      onPositionChange(newX, newY);
       updatePositionMutation.mutate({ newX, newY });
     }
     setIsDragging(false);
@@ -338,23 +298,19 @@ export function CommentBubble({
   return (
     <motion.div
       ref={bubbleRef}
-      drag={isAuthor || isNew}
-      dragConstraints={containerRef}
-      dragElastic={0}
-      dragMomentum={false}
-      onDragStart={() => setIsDragging(true)}  
+      drag={isAuthor}
+      dragConstraints={dragConstraints}
+      onDragStart={() => setIsDragging(true)}
       onDragEnd={handleDragEnd}
       className="absolute"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => !isExpanded && setIsHovered(false)}
       onClick={() => setIsExpanded(true)}
       style={{
-        position: 'absolute',
         left: `${x}%`,
         top: `${y}%`,
         transform: 'translate(-50%, -50%)',
-        zIndex: isDragging ? 1000 : 1,
-        pointerEvents: 'auto'
+        zIndex: isDragging ? 1000 : 1
       }}
     >
       <div className="relative">
@@ -386,8 +342,6 @@ export function CommentBubble({
                   color={user?.publicMetadata?.color as string}
                 />
                 <Input
-                  ref={inputRef}
-                  autoFocus={isNew}
                   type="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
@@ -396,6 +350,14 @@ export function CommentBubble({
                   readOnly={!user}
                   onClick={() => {
                     if (!user) setShowAuthModal(true);
+                  }}
+                  ref={(input) => {
+                    if (input && isNew) {
+                      // Use RAF for more reliable focus
+                      requestAnimationFrame(() => {
+                        input.focus();
+                      });
+                    }
                   }}
                 />
               </div>
