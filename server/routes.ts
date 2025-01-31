@@ -2876,8 +2876,9 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Magic link verification endpoint
-  app.post("/auth/verify-magic-link", async (req, res) => {
-    const { inviteToken, email, userId } = req.body;
+  app.post("/auth/verify-magic-link", setupClerkAuth, async (req, res) => {
+    const { inviteToken, email } = req.body;
+    const userId = req.auth.userId;
 
     try {
       // Find invite using token
@@ -2895,7 +2896,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log("Magic link verified:", { inviteToken, email, userId, invite });
 
-      // Ensure the invite record has a user_id
+      // Ensure the invite record has a user_id from auth context
       await db.update(invites)
         .set({ 
           userId,
