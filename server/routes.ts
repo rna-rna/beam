@@ -12,7 +12,7 @@ import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { invites } from '@db/schema';
-import { sendInviteEmail } from './lib/emails';
+import { sendInviteEmail, sendMagicLinkEmail } from './lib/emails';
 import { nanoid } from 'nanoid';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
