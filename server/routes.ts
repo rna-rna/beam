@@ -2010,6 +2010,9 @@ export function registerRoutes(app: Express): Server {
         u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email)
       );
 
+      // Generate invite token for unregistered users
+      const inviteToken = nanoid(32);
+
       // Handle existing invite
       const existingInvite = await db.query.invites.findFirst({
         where: and(
@@ -2239,7 +2242,7 @@ export function registerRoutes(app: Express): Server {
             emailAddress: [email]
           });
 
-          const exactUser = clerkUsers.find(user => 
+          const exactUser = (clerkUsers.data || []).find(user => 
             user.emailAddresses.some(e => 
               e.emailAddress.toLowerCase() === email
             )
