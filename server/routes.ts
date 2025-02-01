@@ -2009,13 +2009,23 @@ export function registerRoutes(app: Express): Server {
 
       const inviterName = `${inviterData.firstName || ''} ${inviterData.lastName || ''}`.trim() || 'A Beam User';
 
+      // Get current user's email
+      const currentUser = await clerkClient.users.getUser(req.auth.userId);
+      const currentEmail = currentUser.emailAddresses[0].emailAddress.toLowerCase();
+
+      let matchingUser = null;
+      if (email === currentEmail) {
+        return res.status(400).json({ message: 'Cannot invite yourself' });
+      }
+
       // Check if email is registered in Clerk
       const usersResponse = await clerkClient.users.getUserList({
         email_address_query: email,
       });
 
-      const matchingUser = usersResponse?.data?.find((u) =>
-        u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email)
+      // Enforce exact email match
+      matchingUser = usersResponse?.data?.find((u) =>
+        u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email.toLowerCase())
       );
 
       // Generate invite token for unregistered users

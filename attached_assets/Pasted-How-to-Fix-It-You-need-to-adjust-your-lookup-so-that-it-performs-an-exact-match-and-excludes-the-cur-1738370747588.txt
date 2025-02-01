@@ -1,0 +1,45 @@
+How to Fix It
+You need to adjust your lookup so that it performs an exact match and excludes the current user. One effective way is to use Clerk’s email_address parameter (instead of email_address_query), which is designed for exact matching.
+
+For example, try this:
+
+ts
+Copy
+// Get current user's email
+const currentUser = await clerkClient.users.getUser(req.auth.userId);
+const currentEmail = currentUser.emailAddresses[0].emailAddress.toLowerCase();
+
+if (email === currentEmail) {
+  return res.status(400).json({ message: 'Cannot invite yourself' });
+}
+
+// Use an exact match by providing an array of emails
+const usersResponse = await clerkClient.users.getUserList({
+  email_address: [email.toLowerCase()],
+});
+
+// matchingUser will be defined only if Clerk finds an exact match
+const matchingUser = usersResponse?.data?.[0] || null;
+Then proceed with your insert:
+
+ts
+Copy
+db.insert(invites).values({
+  galleryId: gallery.id,
+  email,
+  userId: matchingUser ? matchingUser.id : null,  // This will be null for an unregistered email
+  role,
+  token: matchingUser ? null : inviteToken        // Only set a token when no matching user exists
+});
+What This Does
+Exact Matching:
+By using the email_address parameter, you ensure that only an exact match is returned. If beam11@maildrop.cc is truly unregistered, usersResponse.data will be an empty array, and matchingUser will be null.
+
+Excluding the Inviter:
+Even if a user is returned, you can always double‑check that the returned user’s ID isn’t equal to req.auth.userId. In our case, using email_address for exact matching should suffice.
+
+Correct Invite Row:
+With matchingUser falsy, the inserted row will have userId: null and a non‑null token (the invite token). Then, when beam11 signs up using the magic link, your magic link verification endpoint will find the row by token and update it with the new user’s ID.
+
+Summary
+Your code snippet is correct—but your lookup needs to be exact. Change your Clerk API call to use an exact match (for example, using email_address: [email.toLowerCase()] instead of email_address_query), and that should prevent your matching logic from inadvertently matching the inviter’s record. Then, the invite row will be inserted with a null userId and a valid token, and later your magic link verification endpoint will update it with the new user’s ID.
