@@ -971,8 +971,7 @@ export function registerRoutes(app: Express): Server {
       const galleryImages = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),      });
 
-      const validImageIds = newSet(galleryImages.map(img => img.id));
-      const invalidIds = imageIds.filter(id => !validImageIds.has(id));
+      const validImageIds = newSet(galleryImages.map(img => img.id));      const invalidIds = imageIds.filter(id => !validImageIds.has(id));
 
       if (invalidIds.length > 0) {
         return res.status(400).json({
@@ -2013,20 +2012,17 @@ export function registerRoutes(app: Express): Server {
       const currentUser = await clerkClient.users.getUser(req.auth.userId);
       const currentEmail = currentUser.emailAddresses[0].emailAddress.toLowerCase();
 
-      let matchingUser = null;
       if (email === currentEmail) {
         return res.status(400).json({ message: 'Cannot invite yourself' });
       }
 
-      // Check if email is registered in Clerk
+      // Check if email is registered in Clerk using exact match
       const usersResponse = await clerkClient.users.getUserList({
-        email_address_query: email,
+        email_address: [email.toLowerCase()]
       });
 
-      // Enforce exact email match
-      matchingUser = usersResponse?.data?.find((u) =>
-        u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email.toLowerCase())
-      );
+      // Use first matched user if any
+      const matchingUser = usersResponse?.data?.[0] || null;
 
       // Generate invite token for unregistered users
       const inviteToken = nanoid(32);
@@ -2889,7 +2885,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/auth/verify-magic-link", setupClerkAuth, async (req, res) => {
     const { inviteToken, email } = req.body;
     const userId = req.auth.userId;
-    
+
     console.log("Magic link verification - Auth details:", {
       userId,
       hasAuth: !!req.auth,
@@ -2968,7 +2964,7 @@ async function addStarNotification(data: {
 }) {
   const existingNotification = await db.query.notifications.findFirst({
     where: and(
-      eq(notifications.type, 'image-starred'),
+      eq(notifications.type,'image-starred'),
       eq(notifications.userId, data.recipientUserId),
       sql`${notifications.data}->>'imageId' = ${data.imageId}::text`,
       sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
