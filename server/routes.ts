@@ -2045,21 +2045,30 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (existingInvite) {
+        const updatePayload = { role };
+        console.log("Updating existing invite:", {
+          inviteId: existingInvite.id,
+          payload: updatePayload
+        });
+
         await db.update(invites)
-          .set({ role })
+          .set(updatePayload)
           .where(and(
             eq(invites.galleryId, gallery.id),
             eq(invites.email, email)
           ));
       } else {
-        const inviteToken = nanoid(32);
-        await db.insert(invites).values({
+        const insertPayload = {
           galleryId: gallery.id,
           email,
           userId: matchingUser ? matchingUser.id : null,
           role,
           token: matchingUser ? null : inviteToken
-        });
+        };
+        
+        console.log("Inserting new invite with payload:", insertPayload);
+        
+        await db.insert(invites).values(insertPayload);
       }
 
       // Upsert contact record
