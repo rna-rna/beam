@@ -1,0 +1,53 @@
+Why Could This Be Happening?
+When you call Clerk’s API (using something like clerkClient.users.getUserList({ email_address_query: email })) the query may return fuzzy matches that include the current authenticated user—even if the invited email is different from what you expect. For example, if the inviter’s email contains a substring that matches the query (or if the query is not enforcing an exact match), then matchingUser may be set to the inviter’s user record.
+
+How to Fix It
+You need to ensure that the lookup for a matching user returns a match only if the invited email exactly matches an existing Clerk user’s email, and not mistakenly return the current (inviting) user.
+
+For example, you can do something like this:
+
+Retrieve the current authenticated user’s details:
+
+ts
+Copy
+const currentUser = await clerkClient.users.getUser(req.auth.userId);
+const currentEmail = currentUser.emailAddresses[0].emailAddress.toLowerCase();
+If the invited email is the same as the current user’s, you know the inviter is trying to invite themselves.
+(In most cases, you might want to block that or handle it separately.)
+
+If the invited email is different, then query Clerk for an exact match. For example:
+
+ts
+Copy
+let matchingUser = null;
+if (email === currentEmail) {
+  // Optionally, handle the case where a user tries to invite themselves.
+  matchingUser = currentUser;
+} else {
+  const usersResponse = await clerkClient.users.getUserList({
+    email_address_query: email,
+  });
+  // Enforce an exact match (both sides lowercased)
+  matchingUser = usersResponse?.data?.find((u) =>
+    u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email)
+  );
+}
+Then insert the invite using:
+
+ts
+Copy
+db.insert(invites).values({
+  galleryId: gallery.id,
+  email,
+  userId: matchingUser ? matchingUser.id : null,
+  role,
+  token: matchingUser ? null : inviteToken
+});
+This way, if beam10@maildrop.cc is truly unregistered, then matchingUser will be null (because the exact match check won’t return the inviter’s details) and your invite row will be inserted with a null userId and a valid token. Later, when beam10 signs up via the magic link, your verification endpoint (protected by Clerk) will update that invite row with the new user’s ID.
+
+Summary
+Your insert snippet is correct if matchingUser is determined properly. The logs suggest that for beam10@maildrop.cc the lookup is incorrectly returning the inviter’s user record. By enforcing an exact match (and ensuring you don’t mistakenly match the authenticated user when the invited email is different), you’ll fix the issue so that unregistered invites get stored with a null userId and a token.
+
+Try adjusting your matching logic as shown above and verify that after sending an invite for a new email, the invite row in the database has userId: null and a non‑null token. That will let your magic link verification later update it correctly.
+
+Let me know if you need any more help!
