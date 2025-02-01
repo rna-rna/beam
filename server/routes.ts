@@ -2041,9 +2041,9 @@ export function registerRoutes(app: Express): Server {
         await db.insert(invites).values({
           galleryId: gallery.id,
           email,
-          userId: matchingUser?.id || null,
+          userId: matchingUser ? matchingUser.id : null,
           role,
-          token: !matchingUser ? inviteToken : null
+          token: matchingUser ? null : inviteToken
         });
       }
 
