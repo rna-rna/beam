@@ -2024,6 +2024,15 @@ export function registerRoutes(app: Express): Server {
       // Use first matched user if any
       const matchingUser = usersResponse?.data?.[0] || null;
 
+      console.log("Matching user for invite email:", {
+        email,
+        matchingUser: matchingUser ? {
+          id: matchingUser.id,
+          primaryEmail: matchingUser.emailAddresses[0]?.emailAddress,
+          emailsCount: matchingUser.emailAddresses.length
+        } : null
+      });
+
       // Generate invite token for unregistered users
       const inviteToken = nanoid(32);
 
