@@ -1,0 +1,72 @@
+What’s Happening
+At Invite Time:
+Your invite route is using req.auth.userId (the sender’s ID) and then checking for a matching user in Clerk. In the unregistered case (beam9@maildrop.cc), you expect matchingUser to be falsey so that you insert:
+
+ts
+Copy
+userId: matchingUser?.id || null,
+token: !matchingUser ? inviteToken : null
+However, the logs indicate that the printed value for userId is the sender’s ID (user_2s0EN3oUCGiQaoVVatJcAZq83kA) instead of null.
+
+At Magic Link Verification Time:
+Your /auth/verify-magic-link endpoint looks up the invite by token and then does:
+
+ts
+Copy
+await db.update(invites)
+  .set({ 
+    userId, // from req.auth.userId (the new user)
+    email: email.toLowerCase(),
+    token: null
+  })
+  .where(eq(invites.id, invite.id));
+But because the invite row already has a user ID (the sender’s) or perhaps no token (if it wasn’t set properly), the update isn’t “claiming” the invite for the new user.
+
+The Fix
+You need to modify your invite creation logic so that when you invite an email that is not already registered, the invite row is created with:
+
+userId: null (instead of using req.auth.userId)
+token: inviteToken (a non‑null value)
+This ensures that later when the new user clicks the magic link, your verification endpoint can successfully find that invite (by token) and update it with the new user’s ID.
+
+For example, change your invite route code from something like:
+
+ts
+Copy
+// (Current code may be doing this)
+await db.insert(invites).values({
+  galleryId: gallery.id,
+  email,
+  userId: req.auth.userId,
+  role,
+  token: inviteToken
+});
+to:
+
+ts
+Copy
+// Updated code for unregistered invite
+await db.insert(invites).values({
+  galleryId: gallery.id,
+  email,
+  userId: matchingUser?.id || null,  // This will be null if no matching user exists
+  role,
+  token: !matchingUser ? inviteToken : null  // Only set a token if user is not registered
+});
+Make sure that when you look up the user by email with Clerk, if no user is found (for beam9@maildrop.cc) then matchingUser is falsy so that you insert userId: null and a non‑null token.
+
+Verifying
+After Sending the Invite:
+Query your invites table manually or log the inserted row. For beam9@maildrop.cc, the invite row should have:
+
+user_id: null
+token: a valid token (e.g. a 32‑character string)
+When the New User Signs Up:
+When the new user (beam9@maildrop.cc) registers via the magic link, the magic link verification endpoint will use req.auth.userId (which should now be the new user’s ID, e.g. user_2sPrpM1fRQwqtmcbbBkqHFd2d8G) to update that invite row.
+
+Permissions:
+Then, when your permission function (like getGalleryUserRole) looks up an invite for that gallery and for the new user’s ID, it will find the invite and return the correct role.
+
+In Summary
+Your logs show that the invite row was created with the sender’s user ID instead of leaving it null for unregistered users. Adjust your invite creation logic to insert a null userId (and set a token) when inviting an unregistered user. Then, your magic link verification endpoint will update the invite with the new user’s ID, and permissions will work correctly.
+
