@@ -2914,7 +2914,7 @@ export function registerRoutes(app: Express): Server {
 
   // Magic link verification endpoint
   app.post("/auth/verify-magic-link", setupClerkAuth, async (req, res) => {
-    const { inviteToken, email } = req.body;
+    const { inviteToken, email, gallerySlug } = req.body;
     const userId = req.auth.userId;
 
     console.log("Magic link verification - Auth details:", {
@@ -2922,6 +2922,7 @@ export function registerRoutes(app: Express): Server {
       hasAuth: !!req.auth,
       email,
       inviteToken: inviteToken?.substring(0, 8) + '...',
+      gallerySlug,
       timestamp: new Date().toISOString()
     });
 
@@ -2931,6 +2932,27 @@ export function registerRoutes(app: Express): Server {
         success: false,
         message: "Authentication required"
       });
+    }
+
+    if (!inviteToken || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required parameters"
+      });
+    }
+
+    // Validate gallery exists if slug provided
+    if (gallerySlug) {
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, gallerySlug)
+      });
+
+      if (!gallery) {
+        return res.status(404).json({
+          success: false,
+          message: "Gallery not found"
+        });
+      }
     }
 
     try {
