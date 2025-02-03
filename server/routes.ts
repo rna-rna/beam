@@ -2970,7 +2970,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      console.log("Magic link verified:<inviteToken, email, userId, invite });
+      console.log("Magic link verified:", { inviteToken, email, userId, invite });
 
       console.log("Magic link verification: userId from auth =", userId);
       console.log("Updating invite record:", {
