@@ -971,8 +971,7 @@ export function registerRoutes(app: Express): Server {
       const galleryImages = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),      });
 
-      const validImageIds = newSet(galleryImages.map(img => img.id));
-      const invalidIds = imageIds.filter(id => !validImageIds.has(id));
+      const validImageIds = newSet(galleryImages.map(img => img.id));      const invalidIds = imageIds.filter(id => !validImageIds.has(id));
 
       if (invalidIds.length > 0) {
         return res.status(400).json({
@@ -2013,20 +2012,26 @@ export function registerRoutes(app: Express): Server {
       const currentUser = await clerkClient.users.getUser(req.auth.userId);
       const currentEmail = currentUser.emailAddresses[0].emailAddress.toLowerCase();
 
-      let matchingUser = null;
       if (email === currentEmail) {
         return res.status(400).json({ message: 'Cannot invite yourself' });
       }
 
-      // Check if email is registered in Clerk
+      // Check if email is registered in Clerk using exact match
       const usersResponse = await clerkClient.users.getUserList({
-        email_address_query: email,
+        email_address: [email.toLowerCase()]
       });
 
-      // Enforce exact email match
-      matchingUser = usersResponse?.data?.find((u) =>
-        u.emailAddresses.some((e) => e.emailAddress.toLowerCase() === email.toLowerCase())
-      );
+      // Use first matched user if any
+      const matchingUser = usersResponse?.data?.[0] || null;
+
+      console.log("Matching user for invite email:", {
+        email,
+        matchingUser: matchingUser ? {
+          id: matchingUser.id,
+          primaryEmail: matchingUser.emailAddresses[0]?.emailAddress,
+          emailsCount: matchingUser.emailAddresses.length
+        } : null
+      });
 
       // Generate invite token for unregistered users
       const inviteToken = nanoid(32);
@@ -2040,21 +2045,30 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (existingInvite) {
+        const updatePayload = { role };
+        console.log("Updating existing invite:", {
+          inviteId: existingInvite.id,
+          payload: updatePayload
+        });
+
         await db.update(invites)
-          .set({ role })
+          .set(updatePayload)
           .where(and(
             eq(invites.galleryId, gallery.id),
             eq(invites.email, email)
           ));
       } else {
-        const inviteToken = nanoid(32);
-        await db.insert(invites).values({
+        const insertPayload = {
           galleryId: gallery.id,
           email,
           userId: matchingUser ? matchingUser.id : null,
           role,
           token: matchingUser ? null : inviteToken
-        });
+        };
+        
+        console.log("Inserting new invite with payload:", insertPayload);
+        
+        await db.insert(invites).values(insertPayload);
       }
 
       // Upsert contact record
@@ -2889,7 +2903,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/auth/verify-magic-link", setupClerkAuth, async (req, res) => {
     const { inviteToken, email } = req.body;
     const userId = req.auth.userId;
-    
+
     console.log("Magic link verification - Auth details:", {
       userId,
       hasAuth: !!req.auth,
@@ -2922,6 +2936,14 @@ export function registerRoutes(app: Express): Server {
 
       console.log("Magic link verified:", { inviteToken, email, userId, invite });
 
+      console.log("Magic link verification: userId from auth =", userId);
+      console.log("Updating invite record:", {
+        inviteId: invite.id,
+        oldUserId: invite.userId,
+        newUserId: userId,
+        email: email.toLowerCase()
+      });
+
       // Ensure the invite record has a user_id from auth context
       await db.update(invites)
         .set({ 
@@ -2930,6 +2952,13 @@ export function registerRoutes(app: Express): Server {
           token: null // Remove token after use
         })
         .where(eq(invites.id, invite.id));
+
+      // Verify the update worked
+      const updatedInvite = await db.query.invites.findFirst({
+        where: eq(invites.id, invite.id)
+      });
+      
+      console.log("Updated invite record:", updatedInvite);
 
       res.json({ 
         success: true,
@@ -2968,7 +2997,7 @@ async function addStarNotification(data: {
 }) {
   const existingNotification = await db.query.notifications.findFirst({
     where: and(
-      eq(notifications.type, 'image-starred'),
+      eq(notifications.type,'image-starred'),
       eq(notifications.userId, data.recipientUserId),
       sql`${notifications.data}->>'imageId' = ${data.imageId}::text`,
       sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
