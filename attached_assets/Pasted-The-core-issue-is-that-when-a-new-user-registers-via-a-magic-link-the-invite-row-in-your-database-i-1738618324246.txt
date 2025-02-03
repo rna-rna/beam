@@ -1,0 +1,70 @@
+The core issue is that when a new user registers via a magic link, the invite row in your database isn’t having its userId field populated. A reliable solution is to “sweep” the invites table right when the new user is created—using your Clerk webhook—so that any invite whose email matches the new user (and that still has a null userId) is updated with the new user’s id.
+
+You do not need to change your index.ts. Instead, update your Clerk webhook handler (in routes.ts) so that after you cache the new user data you also update the invites table.
+
+For example, after you have inserted the new user into your cache (and set up their color, etc.), add code like this:
+
+ts
+Copy
+// In your Clerk webhook handler (user.created branch) in routes.ts:
+
+if (event.type === "user.created") {
+  const userId = event.data.id;
+
+  // Fetch current user data directly from Clerk
+  const clerkUser = await clerkClient.users.getUser(userId);
+  const existingColor = clerkUser.publicMetadata?.color;
+
+  console.log("New user created via Clerk webhook:", {
+    userId,
+    firstName: clerkUser.firstName,
+    lastName: clerkUser.lastName,
+    existingColor,
+    timestamp: new Date().toISOString()
+  });
+
+  // Only assign a color if none exists
+  let userColor = existingColor;
+  if (!existingColor) {
+    const palette = ["#F44336", "#E91E63", "#9C27B0", "#3AB79C", "#A7DE43", "#F84CCF"];
+    userColor = palette[Math.floor(Math.random() * palette.length)];
+
+    // Set initial color in Clerk
+    await clerkClient.users.updateUserMetadata(userId, {
+      publicMetadata: { color: userColor }
+    });
+  }
+
+  // Cache the user data in your database
+  await db.insert(cachedUsers).values({
+    userId,
+    firstName: clerkUser.firstName || null,
+    lastName: clerkUser.lastName || null,
+    imageUrl: clerkUser.imageUrl || null,
+    color: userColor,
+    updatedAt: new Date()
+  });
+
+  // *** NEW CODE: Update invites with matching email ***
+  // Get the new user's primary email in lowercase
+  const newUserEmail = clerkUser.emailAddresses[0].emailAddress.toLowerCase();
+
+  // Update any invite rows that match this email and have a null userId
+  const updateResult = await db.update(invites)
+    .set({ userId })
+    .where(
+      and(
+        eq(invites.email, newUserEmail),
+        sql`${invites.userId} IS NULL`
+      )
+    );
+  console.log(`Updated invites for ${newUserEmail} with userId ${userId}`, updateResult);
+}
+How This Works
+User Creation: When Clerk sends a user.created webhook, you fetch and cache the user data.
+Email Matching: You extract the new user’s email (in lowercase) from the Clerk user data.
+Invite Sweep: You run an update query on your invites table that sets the userId for any invite row where the email matches the new user’s email and where userId is still NULL.
+This “sweeping” ensures that—even if a user registered via a magic link—the invite row for that email gets updated with the new user’s id. (You can still keep your magic link verification endpoint update as a backup if you wish.)
+
+Do You Need to Update index.ts?
+No—you don’t need to change anything in your index.ts. Your index file is responsible for creating the Express app, setting up middleware, and starting the server. The logic for updating invites belongs in your routes (and specifically in the Clerk webhook handler) because that’s where you process user creation events.
