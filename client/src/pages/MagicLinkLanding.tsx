@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { Card } from "@/components/ui/card";
 import { SignUp } from "@clerk/clerk-react";
+import { Lock } from "lucide-react";
 
 interface GalleryInfo {
   title: string;
@@ -20,12 +21,10 @@ export default function MagicLinkLanding() {
   
   // Log parameters from both hooks and window.location
   console.log("Magic link parameters:", {
-    // From useSearch hook
     email,
     inviteToken,
     gallerySlug,
     fullSearch: search,
-    // From window.location
     windowSearch: {
       email: new URLSearchParams(window.location.search).get("email"),
       inviteToken: new URLSearchParams(window.location.search).get("inviteToken"),
@@ -36,12 +35,6 @@ export default function MagicLinkLanding() {
   const [gallery, setGallery] = useState<GalleryInfo | null>(null);
 
   useEffect(() => {
-    console.log("Magic link parameters:", {
-      email: params.get("email"),
-      inviteToken: params.get("inviteToken"),
-      gallerySlug: params.get("gallery")
-    });
-    
     if (gallerySlug) {
       fetch(`/api/public/galleries/${gallerySlug}`)
         .then(res => res.json())
@@ -79,43 +72,58 @@ export default function MagicLinkLanding() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-md mx-auto mb-4">
-        <div className="p-6 text-center">
-          <h1 className="text-2xl font-bold mb-4">Welcome!</h1>
-          {gallery && (
-            <>
-              <p className="mb-4">
-                Please sign up or log in to access "{gallery.title}"
-              </p>
-              {gallery.thumbnailUrl && (
+    <div className="min-h-screen w-full bg-background">
+      <div className="container mx-auto p-4 grid lg:grid-cols-2 gap-8 items-center min-h-screen">
+        {/* Left Column - Gallery Preview */}
+        <div className="flex flex-col items-center justify-center">
+          <Card className="w-full max-w-md p-6 space-y-4">
+            <div className="relative">
+              {gallery?.thumbnailUrl ? (
                 <img
                   src={gallery.thumbnailUrl}
                   alt={gallery.title}
-                  className="mx-auto mb-4 rounded-lg max-w-[200px] h-auto"
+                  className="w-full aspect-video object-cover rounded-lg"
                 />
+              ) : (
+                <div className="w-full aspect-video bg-secondary rounded-lg flex items-center justify-center">
+                  <Lock className="h-12 w-12 text-muted-foreground" />
+                </div>
               )}
+              <div className="absolute top-4 right-4">
+                <div className="bg-background/80 backdrop-blur-sm p-2 rounded-full">
+                  <Lock className="h-4 w-4" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-bold">{gallery?.title || "Loading Gallery..."}</h1>
               <p className="text-muted-foreground">
-                You have been invited to view this gallery.
+                You have been invited to view this private gallery
               </p>
-            </>
-          )}
+            </div>
+          </Card>
         </div>
-      </Card>
 
-      <Card className="w-full max-w-md mx-auto">
-        <SignUp
-          appearance={{
-            elements: {
-              formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-              card: 'bg-background',
-              headerTitle: 'text-foreground',
-              headerSubtitle: 'text-muted-foreground',
-            }
-          }}
-          afterSignUpComplete={handleSignUpComplete}
-        />
-      </Card>
+        {/* Right Column - Sign Up Form */}
+        <div className="flex flex-col items-center justify-center">
+          <Card className="w-full max-w-md">
+            <SignUp
+              appearance={{
+                elements: {
+                  formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+                  card: 'bg-background',
+                  headerTitle: 'text-foreground',
+                  headerSubtitle: 'text-muted-foreground',
+                }
+              }}
+              afterSignUpUrl={window.location.href}
+              afterSignUpComplete={handleSignUpComplete}
+              redirectUrl={window.location.href}
+            />
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
