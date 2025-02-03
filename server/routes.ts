@@ -109,6 +109,19 @@ export function registerRoutes(app: Express): Server {
           color: userColor,
           updatedAt: new Date()
         });
+
+        // Update any pending invites for this user's email
+        const newUserEmail = clerkUser.emailAddresses[0].emailAddress.toLowerCase();
+        await db.update(invites)
+          .set({ userId })
+          .where(
+            and(
+              eq(invites.email, newUserEmail),
+              sql`${invites.userId} IS NULL`
+            )
+          );
+
+        console.log(`Updated invites for ${newUserEmail} with userId ${userId}`);
       }
 
       res.status(200).json({ success: true });
@@ -1965,7 +1978,7 @@ export function registerRoutes(app: Express): Server {
               });
             }
           } catch (error) {
-            consoleerror('Failed to fetch owner details:', error);
+            console.error('Failed to fetch owner details:', error);
           }
         }
 
@@ -2065,9 +2078,9 @@ export function registerRoutes(app: Express): Server {
           role,
           token: matchingUser ? null : inviteToken
         };
-        
+
         console.log("Inserting new invite with payload:", insertPayload);
-        
+
         await db.insert(invites).values(insertPayload);
       }
 
@@ -2953,11 +2966,11 @@ export function registerRoutes(app: Express): Server {
         })
         .where(eq(invites.id, invite.id));
 
-      // Verify the update worked
+      //// Verify the update worked
       const updatedInvite = await db.query.invites.findFirst({
         where: eq(invites.id, invite.id)
       });
-      
+
       console.log("Updated invite record:", updatedInvite);
 
       res.json({ 
