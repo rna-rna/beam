@@ -19,6 +19,12 @@ export default function MagicLinkLanding() {
   const [gallery, setGallery] = useState<GalleryInfo | null>(null);
 
   useEffect(() => {
+    console.log("Magic link parameters:", {
+      email: params.get("email"),
+      inviteToken: params.get("inviteToken"),
+      gallerySlug: params.get("gallery")
+    });
+    
     if (gallerySlug) {
       fetch(`/api/public/galleries/${gallerySlug}`)
         .then(res => res.json())
