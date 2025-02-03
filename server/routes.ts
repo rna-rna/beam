@@ -2936,6 +2936,14 @@ export function registerRoutes(app: Express): Server {
 
       console.log("Magic link verified:", { inviteToken, email, userId, invite });
 
+      console.log("Magic link verification: userId from auth =", userId);
+      console.log("Updating invite record:", {
+        inviteId: invite.id,
+        oldUserId: invite.userId,
+        newUserId: userId,
+        email: email.toLowerCase()
+      });
+
       // Ensure the invite record has a user_id from auth context
       await db.update(invites)
         .set({ 
@@ -2944,6 +2952,13 @@ export function registerRoutes(app: Express): Server {
           token: null // Remove token after use
         })
         .where(eq(invites.id, invite.id));
+
+      // Verify the update worked
+      const updatedInvite = await db.query.invites.findFirst({
+        where: eq(invites.id, invite.id)
+      });
+      
+      console.log("Updated invite record:", updatedInvite);
 
       res.json({ 
         success: true,
