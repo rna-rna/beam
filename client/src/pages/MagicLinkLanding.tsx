@@ -17,12 +17,19 @@ export default function MagicLinkLanding() {
   const inviteToken = params.get("inviteToken");
   const gallerySlug = params.get("gallery");
   
-  // Log parameters immediately when component renders
+  // Log parameters from both hooks and window.location
   console.log("Magic link parameters:", {
+    // From useSearch hook
     email,
     inviteToken,
     gallerySlug,
-    fullSearch: search
+    fullSearch: search,
+    // From window.location
+    windowSearch: {
+      email: new URLSearchParams(window.location.search).get("email"),
+      inviteToken: new URLSearchParams(window.location.search).get("inviteToken"),
+      gallery: new URLSearchParams(window.location.search).get("gallery")
+    }
   });
   
   const [gallery, setGallery] = useState<GalleryInfo | null>(null);
