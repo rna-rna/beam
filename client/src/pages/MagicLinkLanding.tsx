@@ -10,6 +10,7 @@ interface GalleryInfo {
 }
 
 export default function MagicLinkLanding() {
+  console.log("MagicLinkLanding component rendered");
   const [, setLocation] = useLocation();
   const search = useSearch();
   const params = new URLSearchParams(search);
