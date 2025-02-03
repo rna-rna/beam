@@ -1982,7 +1982,8 @@ export function registerRoutes(app: Express): Server {
                 role: 'Edit',
                 avatarUrl: ownerData.imageUrl,
                 color: ownerData.color
-              });
+              };
+              usersWithDetails.push(ownerDetails);
             }
           } catch (error) {
             console.error('Failed to fetch owner details:', error);
