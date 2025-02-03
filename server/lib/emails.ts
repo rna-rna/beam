@@ -85,6 +85,11 @@ export async function sendMagicLinkEmail(opts: SendMagicLinkEmailOptions) {
   } = opts;
 
   const templateId = SendGridTemplates.magicLinkInvite;
+  const baseUrl = process.env.VITE_APP_URL || signUpUrl.split('?')[0];
+  const inviteToken = new URL(signUpUrl).searchParams.get('inviteToken');
+  const gallery = new URL(signUpUrl).searchParams.get('gallery');
+  
+  const magicLinkUrl = `${baseUrl}/magic-link?email=${encodeURIComponent(toEmail)}&inviteToken=${inviteToken}&gallery=${gallery}`;
 
   if (!templateId) {
     console.error("Magic link template not found, using invite template as fallback");
@@ -101,8 +106,8 @@ export async function sendMagicLinkEmail(opts: SendMagicLinkEmailOptions) {
     dynamic_template_data: {
       recipientName: toEmail.split('@')[0],
       galleryName: galleryTitle,
-      signUpUrl,
-      galleryUrl: signUpUrl, // Add this to set the View Gallery button URL
+      signUpUrl: magicLinkUrl,
+      galleryUrl: magicLinkUrl,
       role,
       photographerName,
       galleryThumbnail: galleryThumbnail || "https://cdn.beam.ms/placeholder.jpg",

@@ -109,6 +109,19 @@ export function registerRoutes(app: Express): Server {
           color: userColor,
           updatedAt: new Date()
         });
+
+        // Update any pending invites for this user's email
+        const newUserEmail = clerkUser.emailAddresses[0].emailAddress.toLowerCase();
+        await db.update(invites)
+          .set({ userId })
+          .where(
+            and(
+              eq(invites.email, newUserEmail),
+              sql`${invites.userId} IS NULL`
+            )
+          );
+
+        console.log(`Updated invites for ${newUserEmail} with userId ${userId}`);
       }
 
       res.status(200).json({ success: true });
@@ -1965,7 +1978,7 @@ export function registerRoutes(app: Express): Server {
               });
             }
           } catch (error) {
-            consoleerror('Failed to fetch owner details:', error);
+            console.error('Failed to fetch owner details:', error);
           }
         }
 
@@ -2065,9 +2078,9 @@ export function registerRoutes(app: Express): Server {
           role,
           token: matchingUser ? null : inviteToken
         };
-        
+
         console.log("Inserting new invite with payload:", insertPayload);
-        
+
         await db.insert(invites).values(insertPayload);
       }
 
@@ -2583,6 +2596,30 @@ export function registerRoutes(app: Express): Server {
 
 
 
+  // Public endpoint for magic link landing page
+  app.get('/api/public/galleries/:slug', async (req, res) => {
+    try {
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, req.params.slug),
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          ogImageUrl: true,
+        }
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      res.json(gallery);
+    } catch (error) {
+      console.error('Public gallery fetch error:', error);
+      res.status(500).json({ message: 'Failed to fetch gallery' });
+    }
+  });
+
   // Track gallery views
   protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
     try {
@@ -2901,7 +2938,7 @@ export function registerRoutes(app: Express): Server {
 
   // Magic link verification endpoint
   app.post("/auth/verify-magic-link", setupClerkAuth, async (req, res) => {
-    const { inviteToken, email } = req.body;
+    const { inviteToken, email, gallerySlug } = req.body;
     const userId = req.auth.userId;
 
     console.log("Magic link verification - Auth details:", {
@@ -2909,6 +2946,7 @@ export function registerRoutes(app: Express): Server {
       hasAuth: !!req.auth,
       email,
       inviteToken: inviteToken?.substring(0, 8) + '...',
+      gallerySlug,
       timestamp: new Date().toISOString()
     });
 
@@ -2918,6 +2956,27 @@ export function registerRoutes(app: Express): Server {
         success: false,
         message: "Authentication required"
       });
+    }
+
+    if (!inviteToken || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required parameters"
+      });
+    }
+
+    // Validate gallery exists if slug provided
+    if (gallerySlug) {
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, gallerySlug)
+      });
+
+      if (!gallery) {
+        return res.status(404).json({
+          success: false,
+          message: "Gallery not found"
+        });
+      }
     }
 
     try {
@@ -2953,11 +3012,11 @@ export function registerRoutes(app: Express): Server {
         })
         .where(eq(invites.id, invite.id));
 
-      // Verify the update worked
+      //// Verify the update worked
       const updatedInvite = await db.query.invites.findFirst({
         where: eq(invites.id, invite.id)
       });
-      
+
       console.log("Updated invite record:", updatedInvite);
 
       res.json({ 
