@@ -976,7 +976,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       const role = await getGalleryUserRole(gallery.id, req.auth.userId);
-      if (!canManageGallery(role)) {
+      if(!canManageGallery(role)) {
         return res.status(403).json({ message: 'Forbidden - cannot delete images' });
       }
 
@@ -1968,7 +1968,8 @@ export function registerRoutes(app: Express): Server {
             const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerEmail);
 
             if (!isOwnerInPermissions && ownerEmail) {
-              usersWithDetails.push({
+              usersWithDetails.push```javascript
+              {
                 id: 'owner', 
                 email: ownerEmail,
                 fullName: `${ownerData.firstName || ''} ${ownerData.lastName || ''}`.trim(),
@@ -2969,7 +2970,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      console.log("Magic link verified:", { inviteToken, email, userId, invite });
+      console.log("Magic link verified:<inviteToken, email, userId, invite });
 
       console.log("Magic link verification: userId from auth =", userId);
       console.log("Updating invite record:", {
