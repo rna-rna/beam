@@ -1,0 +1,40 @@
+Magic Link Landing Page – Modal Overlay Sign Up/Login Redesign Brief
+Objective:
+Redesign the magic link landing page so that instead of displaying the Clerk form directly on the page, a prominent “Sign Up / Login” button triggers a modal overlay that presents the Clerk form. The rest of the page will focus on displaying the gallery preview (with its thumbnail, title, and a padlock indicator) in a visually engaging card. The modal overlay will provide an uncluttered, focused authentication flow.
+
+Design Goals:
+Clean Landing Page Layout:
+
+The landing page should feature a gallery preview card (showing the thumbnail, gallery title, and a padlock icon to indicate private access).
+Replace the embedded sign‑up form with a single call‑to‑action button labeled “Sign Up / Login.”
+Modal Overlay for Authentication:
+
+When the user clicks the “Sign Up / Login” button, a modal overlay appears with the Clerk sign‑up/sign‑in form.
+The modal should feel like part of the app—using the same design tokens (colors, typography, spacing) as the rest of the UI.
+Allow the user to dismiss the modal if they change their mind.
+Seamless Flow:
+
+After successful authentication via the modal, the magic link endpoint should verify the invite (via the /auth/verify-magic-link endpoint) and redirect the user to the target gallery.
+Preserve any query parameters (invite token, email, gallery slug) during the authentication flow.
+Implementation Steps:
+Remove the Embedded Clerk Form:
+
+In your MagicLinkLanding component, remove the embedded <SignUp /> component from the page.
+Instead, add a single button (e.g., “Sign Up / Login”) that is clearly visible on the landing page beneath the gallery preview card.
+Implement a Modal Component:
+
+Create a new reusable modal component (or use an existing UI library’s modal) that overlays the page.
+The modal should have a backdrop that dims the underlying content and a close button (an “X” in the corner) so users can dismiss it.
+Integrate the Clerk Sign‑Up/Sign‑In Form into the Modal:
+
+Inside the modal component, embed the Clerk <SignUp /> (or <SignIn /> if you want a combined widget) component.
+Because the modal is a separate container, the Clerk widget can use its default styling while still looking “in‑place” with your app.
+Configure the widget’s props (such as afterSignUpComplete or afterSignInComplete) to call the same handler that verifies the magic link and redirects the user.
+Wire Up the Button to Open the Modal:
+
+In your MagicLinkLanding component, add an onClick handler to the “Sign Up / Login” button that sets a state variable (e.g., isModalOpen) to true.
+Render the modal conditionally (only when isModalOpen is true).
+Ensure Seamless Redirection Post‑Authentication:
+
+In the modal’s afterSignUpComplete (or afterSignInComplete) handler, call your existing handleSignUpComplete function to verify the magic link via /auth/verify-magic-link and redirect the user to the gallery.
+Use the current URL (or update it with the gallery slug) so that the user is taken directly to the intended gallery after signing up.
