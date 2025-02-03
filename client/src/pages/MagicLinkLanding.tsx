@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
-import { useSearch } from "wouter/use-location";
+import { useLocation, useSearch } from "wouter";
 import { Card } from "@/components/ui/card";
 import { SignUp } from "@clerk/clerk-react";
 
