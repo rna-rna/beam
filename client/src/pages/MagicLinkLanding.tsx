@@ -20,7 +20,7 @@ export default function MagicLinkLanding() {
 
   useEffect(() => {
     if (gallerySlug) {
-      fetch(`/api/galleries/${gallerySlug}`)
+      fetch(`/api/public/galleries/${gallerySlug}`)
         .then(res => res.json())
         .then(data => {
           setGallery({

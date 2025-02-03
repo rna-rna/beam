@@ -2596,6 +2596,30 @@ export function registerRoutes(app: Express): Server {
 
 
 
+  // Public endpoint for magic link landing page
+  app.get('/api/public/galleries/:slug', async (req, res) => {
+    try {
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, req.params.slug),
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          ogImageUrl: true,
+        }
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      res.json(gallery);
+    } catch (error) {
+      console.error('Public gallery fetch error:', error);
+      res.status(500).json({ message: 'Failed to fetch gallery' });
+    }
+  });
+
   // Track gallery views
   protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
     try {
