@@ -244,6 +244,7 @@ function AppContent() {
           <Dashboard />
         </SignedIn>
       </Route>
+      <Route path="/magic-link" component={MagicLinkLanding} /> {/* Added route for magic link */}
 
       <Route path="/settings">
         <ProtectedRoute>
