@@ -971,20 +971,26 @@ export function registerRoutes(app: Express): Server {
 }
 
       // Find the gallery first
-      const gallery= await db.query.query.galleries.findFirst({
+      const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug)
       });
 
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
       const role = await getGalleryUserRole(gallery.id, req.auth.userId);
-      if(!canManageGallery(role)) {
+      if (!canManageGallery(role)) {
         return res.status(403).json({ message: 'Forbidden - cannot delete images' });
       }
 
       // Validate image ownership
       const galleryImages = await db.query.images.findMany({
-        where: eq(images.galleryId, gallery.id),      });
+        where: eq(images.galleryId, gallery.id)
+      });
 
-      const validImageIds = newSet(galleryImages.map(img => img.id));      const invalidIds = imageIds.filter(id => !validImageIds.has(id));
+      const validImageIds = new Set(galleryImages.map(img => img.id));
+      const invalidIds = imageIds.filter(id => !validImageIds.has(id));
 
       if (invalidIds.length > 0) {
         return res.status(400).json({
