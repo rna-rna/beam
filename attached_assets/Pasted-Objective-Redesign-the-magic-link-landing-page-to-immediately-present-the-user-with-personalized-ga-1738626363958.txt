@@ -1,0 +1,39 @@
+Objective:
+Redesign the magic link landing page to immediately present the user with personalized gallery information (including the thumbnail and title from the email invite) and an integrated Clerk sign‑up form. The layout should clearly indicate that the gallery is private (with a padlock symbol) and split the page into two distinct columns for a modern, clean look.
+
+Design Requirements:
+Gallery Invitation Card (Left Column):
+
+Thumbnail Display:
+Show the gallery thumbnail image (the same one used in the invite email).
+Ensure the image is of high quality, scaled appropriately, and centered.
+Prominent Gallery Title:
+Display the gallery title in a large, bold font.
+Enclose the title (and optionally a brief description) in a container or card.
+Padlock Symbol:
+Include a small padlock icon (or similar indicator) within the card to visually communicate that the gallery is private/locked.
+Additional Messaging (Optional):
+Brief text such as “You have been invited to view this private gallery” can be placed underneath the title or near the padlock icon for clarity.
+Sign‑Up Form (Right Column):
+
+Integrated Clerk Sign‑Up Widget:
+Embed the Clerk <SignUp /> component directly on the page.
+Style the sign‑up form so that it visually matches the rest of the design (using your chosen color scheme, fonts, and branding).
+Immediate Call-to‑Action:
+Position the sign‑up form to the right of the gallery invitation card so that the page is split into two columns.
+On mobile or narrow screens, the columns should stack vertically.
+Overall Layout & Styling:
+
+Two‑Column Split Layout:
+Use a responsive flexbox or grid layout that divides the page into two columns:
+Left Column: Gallery invitation card with thumbnail, title, and padlock icon.
+Right Column: Clerk sign‑up form.
+Consistency & Branding:
+Ensure that fonts, colors, and spacing follow your app’s overall design guidelines.
+Include sufficient padding and margin to prevent the layout from feeling crowded.
+Responsive Design:
+The layout should automatically adjust on mobile devices (stacking the two columns vertically).
+User Flow:
+
+When the user clicks the magic link, they immediately see this split‑layout page.
+After successfully signing up via the embedded Clerk form, the user should be automatically redirected to the intended gallery page.
