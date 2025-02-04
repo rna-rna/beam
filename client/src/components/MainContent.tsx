@@ -218,15 +218,15 @@ export function MainContent() {
                         <Card
                           ref={dragRef}
                           onClick={(e) => {
-                            console.log('Card clicked:', {
-                              galleryId: gallery.id,
-                              isShiftKey: e.shiftKey,
-                              currentSelected: selectedGalleries,
-                              target: e.target,
-                              currentTarget: e.currentTarget
-                            });
                             e.preventDefault();
                             e.stopPropagation();
+                            const target = e.target as HTMLElement;
+                            
+                            // Don't handle click if it's on a context menu item
+                            if (target.closest('[role="menuitem"]')) {
+                              return;
+                            }
+
                             if (!e.shiftKey) {
                               if (selectedGalleries.length === 1 && selectedGalleries[0] === gallery.id) {
                                 return;
