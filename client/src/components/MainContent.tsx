@@ -218,17 +218,19 @@ export function MainContent() {
                         <Card
                           ref={dragRef}
                           onClick={(e) => {
+                            if (e.defaultPrevented) return;
                             e.preventDefault();
                             e.stopPropagation();
-                            const target = e.target as HTMLElement;
                             
-                            // Don't handle click if it's on a context menu item
-                            if (target.closest('[role="menuitem"]')) {
+                            const target = e.target as HTMLElement;
+                            if (target.closest('[role="menuitem"]') || target.closest('[role="menu"]')) {
                               return;
                             }
 
+                            const isAlreadySelected = selectedGalleries.length === 1 && selectedGalleries[0] === gallery.id;
+                            
                             if (!e.shiftKey) {
-                              if (selectedGalleries.length === 1 && selectedGalleries[0] === gallery.id) {
+                              if (isAlreadySelected) {
                                 return;
                               }
                               setSelectedGalleries([gallery.id]);
