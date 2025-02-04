@@ -1,0 +1,71 @@
+It’s happening because somewhere in your code, Drizzle is still generating an = NULL check in the SQL, rather than IS NULL. Postgres rejects ... = NULL with a syntax error, which is why it keeps blowing up at "near 'NULL'".
+
+Even if you’ve tried switching to isNull(...) or raw IS NULL in one place, there’s most likely another snippet (maybe in the same file, or a helper function) still using eq(..., null) or = null. That one leftover reference will keep causing the same error.
+
+Below is a systematic approach to finally get rid of this once and for all:
+
+1. Pinpoint the exact line causing it
+Your logs say it fails around routes.ts:2651:31. Go directly to that spot and see exactly what the query or condition looks like. If there is a big where: and(...) or something, check each condition carefully. In particular, watch for:
+
+eq(someColumn, null) anywhere.
+eq(someColumn, undefined) (which Drizzle might turn into = null).
+A raw SQL snippet like sql\`${someColumn} = NULL\`.
+Even a leftover piece of code like ...and(eq(galleries.deletedAt, deleteAt)) where deleteAt is null might do it.
+
+2. Search your entire code base
+Sometimes you think you removed eq(..., null), but there’s an older snippet left behind. Do a global search for:
+
+eq(
+= null (with a space)
+sql\`` (maybe you have raw SQL with = null` in it)
+Check any helper functions that might do dynamic queries, too.
+
+3. Confirm your Drizzle usage
+If you truly need to check “deletedAt is null” (for example), do one of the following:
+
+Use Drizzle’s isNull()
+
+ts
+Copy
+Edit
+import { isNull } from 'drizzle-orm';
+
+where: isNull(galleries.deletedAt)
+That produces valid SQL: deleted_at IS NULL.
+
+Use raw SQL with IS NULL
+
+ts
+Copy
+Edit
+where: sql`${galleries.deletedAt} IS NULL`
+Just don’t do = NULL.
+
+Eliminate the condition if it’s not needed
+If you’re just filtering out non-deleted items, maybe you can do:
+
+ts
+Copy
+Edit
+where: sql`${galleries.deletedAt} IS NULL`
+or
+
+ts
+Copy
+Edit
+where: eq(galleries.userId, userId) 
+// skipping deletedAt check, if it’s not critical
+4. Test with a minimal query
+If you’re stuck, make the query simpler so you can confirm the exact culprit. For example, start with:
+
+js
+Copy
+Edit
+// Just fetch by userId, no null checks
+await db.query.galleries.findMany({
+  where: eq(galleries.userId, userId),
+  orderBy: (g, { desc }) => [desc(g.lastViewedAt)],
+  limit: 10,
+});
+If that works, add back each condition one at a time until it breaks. The moment it breaks, you know which condition is producing the = NULL.
+

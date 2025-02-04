@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts, cachedUsers, commentReactions } from '@db/schema';
-import { eq, and, sql, inArray, or, desc } from 'drizzle-orm';
+import { eq, and, sql, inArray, or, desc, isNull, isNotNull } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
 import { clerkClient } from '@clerk/clerk-sdk-node';
@@ -2450,6 +2450,7 @@ export function registerRoutes(app: Express): Server {
         })
       );
 
+      console.log('[API] Fetched folders for user:', userId);
       res.json(foldersWithCounts);
     } catch (error) {
       console.error('Failed to fetch folders:', error);
@@ -2641,19 +2642,19 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get recent galleries for current user
-  protectedRouter.get('/galleries/recent', async (req: any, res) => {
+  protectedRouter.get('/recent-galleries', async (req: any, res) => {
     try {
       console.log('[API] Fetching recent galleries for user:', req.auth.userId);
       const userId = req.auth.userId;
 
       // Get galleries where user is either owner or has viewed
-      const galleries = await db.query.galleries.findMany({
+      const recentGalleries = await db.query.galleries.findMany({
         where: and(
           or(
             eq(galleries.userId, userId),
             sql`${galleries.lastViewedAt} IS NOT NULL`
           ),
-          sql`${galleries.deleted_at} IS NULL`
+          sql`${galleries.deletedAt} IS NULL`
         ),
         orderBy: (galleries, { desc }) => [desc(galleries.lastViewedAt)],
         limit: 10,
@@ -2670,10 +2671,10 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      console.log('[API] Found galleries:', galleries.length);
+      console.log('[API] Found galleries:', recentGalleries.length);
 
       const galleriesWithDetails = await Promise.all(
-        galleries.map(async (gallery) => {
+        recentGalleries.map(async (gallery) => {
           const imageCount = await db.execute(
             sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
           );
@@ -2693,15 +2694,6 @@ export function registerRoutes(app: Express): Server {
           return result;
         })
       );
-
-      console.log('[API] Returning galleries with details:', {
-        count: galleriesWithDetails.length,
-        sample: galleriesWithDetails[0] ? {
-          id: galleriesWithDetails[0].id,
-          title: galleriesWithDetails[0].title,
-          lastViewedAt: galleriesWithDetails[0].lastViewedAt
-        } : null
-      });
 
       res.json(galleriesWithDetails);
     } catch (error) {
