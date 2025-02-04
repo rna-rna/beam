@@ -21,9 +21,18 @@ import { RenameGalleryModal } from "./RenameGalleryModal";
 import { DeleteGalleryModal } from "./DeleteGalleryModal";
 
 export function MainContent() {
+  console.log('MainContent rendered');
+
   const [location, setLocation] = useLocation();
   const [match, params] = useRoute("/f/:folderSlug");
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
+
+  useEffect(() => {
+    console.log('MainContent mounted');
+    return () => {
+      console.log('MainContent unmounted');
+    };
+  }, []);
   const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState("created");
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -128,7 +137,6 @@ export function MainContent() {
     }
 
     return (
-      <DndProvider backend={HTML5Backend}>
         <div className="flex h-full relative">
           <CustomDragLayer />
           <div className="flex-1 p-6">
@@ -205,24 +213,34 @@ export function MainContent() {
                   }), [selectedGalleries]);
 
                   return (
-                    <ContextMenu>
+                    <ContextMenu key={gallery.id}>
                       <ContextMenuTrigger>
                         <Card
                           ref={dragRef}
-                          key={gallery.id}
                           onClick={(e) => {
+                            if (e.defaultPrevented) return;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            const target = e.target as HTMLElement;
+                            if (target.closest('[role="menuitem"]') || target.closest('[role="menu"]')) {
+                              return;
+                            }
+
+                            const isAlreadySelected = selectedGalleries.length === 1 && selectedGalleries[0] === gallery.id;
+                            
                             if (!e.shiftKey) {
-                              if (selectedGalleries.length === 1 && selectedGalleries[0] === gallery.id) {
+                              if (isAlreadySelected) {
                                 return;
                               }
                               setSelectedGalleries([gallery.id]);
                               setLastSelectedId(gallery.id);
                             } else if (lastSelectedId) {
-                              const galleries = sortedGalleries;
-                              const currentIndex = galleries.findIndex(g => g.id === gallery.id);
-                              const lastIndex = galleries.findIndex(g => g.id === lastSelectedId);
+                              const galleriesArr = sortedGalleries;
+                              const currentIndex = galleriesArr.findIndex(g => g.id === gallery.id);
+                              const lastIndex = galleriesArr.findIndex(g => g.id === lastSelectedId);
                               const [start, end] = [Math.min(currentIndex, lastIndex), Math.max(currentIndex, lastIndex)];
-                              const rangeIds = galleries.slice(start, end + 1).map(g => g.id);
+                              const rangeIds = galleriesArr.slice(start, end + 1).map(g => g.id);
                               setSelectedGalleries(rangeIds);
                             } else {
                               setSelectedGalleries(prev =>
@@ -299,8 +317,7 @@ export function MainContent() {
             )}
           </div>
         </div>
-      </DndProvider>
-    );
+      );
   };
 
   return (
