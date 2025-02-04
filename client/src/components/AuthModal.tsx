@@ -10,7 +10,7 @@ interface AuthModalProps {
   redirectUrl: string;
 }
 
-export function AuthModal({ isOpen, onClose, onComplete, redirectUrl }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, onComplete }: AuthModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -35,9 +35,7 @@ export function AuthModal({ isOpen, onClose, onComplete, redirectUrl }: AuthModa
               dividerText: 'text-muted-foreground'
             }
           }}
-          afterSignUpUrl={redirectUrl}
           afterSignUpComplete={onComplete}
-          redirectUrl={redirectUrl}
         />
       </DialogContent>
     </Dialog>
