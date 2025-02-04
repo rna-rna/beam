@@ -20,9 +20,9 @@ export default function RecentsPage() {
   const [showOnlyShared, setShowOnlyShared] = useState(false);
 
   const { data: galleries = [], isLoading } = useQuery({
-    queryKey: ['/api/galleries/recent'],
+    queryKey: ['/api/recent-galleries'],
     queryFn: async () => {
-      const res = await fetch('/api/galleries/recent');
+      const res = await fetch('/api/recent-galleries');
       if (!res.ok) {
         throw new Error('Failed to fetch recent galleries');
       }

@@ -2641,7 +2641,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get recent galleries for current user
-  protectedRouter.get('/galleries/recent', async (req: any, res) => {
+  protectedRouter.get('/recent-galleries', async (req: any, res) => {
     try {
       console.log('[API] Fetching recent galleries for user:', req.auth.userId);
       const userId = req.auth.userId;
