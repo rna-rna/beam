@@ -216,6 +216,7 @@ export function MainContent() {
                     <ContextMenu key={gallery.id}>
                       <ContextMenuTrigger>
                         <Card
+                          ref={dragRef}
                           onClick={(e) => {
                             if (e.defaultPrevented) return;
                             e.preventDefault();
