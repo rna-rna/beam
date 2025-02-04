@@ -205,11 +205,10 @@ export function MainContent() {
                   }), [selectedGalleries]);
 
                   return (
-                    <ContextMenu>
+                    <ContextMenu key={gallery.id}>
                       <ContextMenuTrigger>
                         <Card
                           ref={dragRef}
-                          key={gallery.id}
                           onClick={(e) => {
                             if (!e.shiftKey) {
                               if (selectedGalleries.length === 1 && selectedGalleries[0] === gallery.id) {
