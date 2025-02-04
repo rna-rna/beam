@@ -384,63 +384,6 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-  // Get recent galleries for current user
-  app.get('/api/galleries/recent', protectRoute, async (req: any, res) => {
-    try {
-      console.log('[API] Fetching recent galleries for user:', req.auth.userId);
-      const userId = req.auth.userId;
-
-      // Get galleries where user is either owner or has viewed
-      const galleries = await db.query.galleries.findMany({
-        where: and(
-          or(
-            eq(galleries.userId, userId),
-            sql`${galleries.lastViewedAt} IS NOT NULL`
-          ),
-          sql`${galleries.deleted_at} IS NULL`
-        ),
-        orderBy: (galleries, { desc }) => [desc(galleries.lastViewedAt)],
-        limit: 10,
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          isPublic: true,
-          userId: true,
-          guestUpload: true,
-          createdAt: true,
-          isDraft: true,
-          lastViewedAt: true
-        }
-      });
-
-      const galleriesWithDetails = await Promise.all(
-        galleries.map(async (gallery) => {
-          const imageCount = await db.execute(
-            sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
-          );
-
-          const thumbnailImage = await db.query.images.findFirst({
-            where: eq(images.galleryId, gallery.id),
-            orderBy: (images, { asc }) => [asc(images.position)]
-          });
-
-          return {
-            ...gallery,
-            thumbnailUrl: thumbnailImage?.url || null,
-            imageCount: parseInt(imageCount.rows[0].count.toString(), 10),
-            isOwner: gallery.userId === userId
-          };
-        })
-      );
-
-      res.json(galleriesWithDetails);
-    } catch (error) {
-      console.error('[API] Error fetching recent galleries:', error);
-      res.status(500).json({ message: 'Failed to fetch recent galleries' });
-    }
-  });
-
   // Get gallery details (with ownership check)
   protectedRouter.get('/galleries/:slug', async (req: any, res) => {
     try {
@@ -2698,12 +2641,13 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get recent galleries for current user
-  app.get('/api/galleries/recent', protectRoute, async (req: any, res) => {
+  protectedRouter.get('/galleries/recent', async (req: any, res) => {
     try {
       console.log('[API] Fetching recent galleries for user:', req.auth.userId);
       const userId = req.auth.userId;
 
-      const recentGalleries = await db.query.galleries.findMany({
+      // Get galleries where user is either owner or has viewed
+      const galleries = await db.query.galleries.findMany({
         where: and(
           or(
             eq(galleries.userId, userId),
@@ -2726,10 +2670,10 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      console.log('[API] Found galleries:', recentGalleries.length);
+      console.log('[API] Found galleries:', galleries.length);
 
       const galleriesWithDetails = await Promise.all(
-        recentGalleries.map(async (gallery) => {
+        galleries.map(async (gallery) => {
           const imageCount = await db.execute(
             sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
           );
@@ -2739,14 +2683,25 @@ export function registerRoutes(app: Express): Server {
             orderBy: (images, { asc }) => [asc(images.position)]
           });
 
-          return {
+          const result = {
             ...gallery,
             thumbnailUrl: thumbnailImage?.url || null,
             imageCount: parseInt(imageCount.rows[0].count.toString(), 10),
             isOwner: gallery.userId === userId
           };
+
+          return result;
         })
       );
+
+      console.log('[API] Returning galleries with details:', {
+        count: galleriesWithDetails.length,
+        sample: galleriesWithDetails[0] ? {
+          id: galleriesWithDetails[0].id,
+          title: galleriesWithDetails[0].title,
+          lastViewedAt: galleriesWithDetails[0].lastViewedAt
+        } : null
+      });
 
       res.json(galleriesWithDetails);
     } catch (error) {
