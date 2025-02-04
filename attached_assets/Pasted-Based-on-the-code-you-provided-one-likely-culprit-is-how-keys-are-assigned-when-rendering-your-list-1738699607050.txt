@@ -1,0 +1,72 @@
+Based on the code you provided, one likely culprit is how keys are assigned when rendering your list of galleries in maincontent.tsx. In your map over displayedGalleries, you’re placing the key prop on the <Card> component, but the top‐level element being returned is actually the <ContextMenu>. This can confuse React’s reconciliation process so that when state changes occur (for example, when you single‐click to select an item), React can’t correctly match the existing elements and ends up unmounting and remounting parts of the tree. This “refresh‐like” behavior can make it seem as if a single click is causing a page refresh.
+
+What’s Happening
+In your code, you have:
+
+tsx
+Copy
+{displayedGalleries.map((gallery) => {
+  const [{ isDragging }, dragRef] = useDrag(/* … */);
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger>
+        <Card
+          ref={dragRef}
+          key={gallery.id} // ← key is here, on the Card
+          onClick={/* selection handler */}
+          onDoubleClick={() => setLocation(`/g/${gallery.slug}`)}
+          className={cn(/* … */)}
+        >
+          {/* … */}
+        </Card>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        {/* … */}
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+})}
+Because the outermost element returned from the map is <ContextMenu> and it doesn’t have a key, React cannot properly track the items between renders. When you change selection on single click, the reconciliation process may decide that the list has changed and re-create those elements. This behavior can feel like the page (or the main content) is “refreshing” or remounting.
+
+How to Fix It
+Move the key prop up to the top-level element returned from the map. For example:
+
+tsx
+Copy
+{displayedGalleries.map((gallery) => {
+  const [{ isDragging }, dragRef] = useDrag(/* … */);
+
+  return (
+    <ContextMenu key={gallery.id}>
+      <ContextMenuTrigger>
+        <Card
+          ref={dragRef}
+          onClick={(e) => {
+            // Your selection logic
+          }}
+          onDoubleClick={() => setLocation(`/g/${gallery.slug}`)}
+          className={cn(
+            "overflow-hidden transition-all duration-200 cursor-pointer",
+            isDragging && "opacity-50",
+            selectedGalleries.includes(gallery.id) && "outline outline-2 outline-blue-500 outline-offset-[-2px]",
+            "hover:shadow-lg"
+          )}
+        >
+          {/* … card content … */}
+        </Card>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        {/* … menu items … */}
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+})}
+This way, React can correctly track each item by its unique gallery.id and won’t unnecessarily remount them when you update the selection state.
+
+Other Observations
+Routing Differences:
+In maincontent.tsx, you’re using setLocation from Wouter (a client-side navigation method) in the double-click handler. In dashboard.tsx, however, the double-click handler uses window.location.href = ..., which causes a full page reload. Although your reported issue is with single clicks, you might want to standardize on client-side routing (using Wouter’s setLocation) to avoid full page reloads.
+
+Nested DndProviders:
+You’re wrapping your entire app with a <DndProvider> in app.tsx and then also wrapping the content of MainContent with another <DndProvider>. Nesting DndProviders can lead to unexpected behaviors. Consider removing the nested one in MainContent since the top-level provider should be sufficient.
