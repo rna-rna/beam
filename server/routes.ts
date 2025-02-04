@@ -2703,8 +2703,7 @@ export function registerRoutes(app: Express): Server {
       console.log('[API] Fetching recent galleries for user:', req.auth.userId);
       const userId = req.auth.userId;
 
-      // Get galleries where user is either owner or has viewed
-      const galleries = await db.query.galleries.findMany({
+      const recentGalleries = await db.query.galleries.findMany({
         where: and(
           or(
             eq(galleries.userId, userId),
@@ -2727,10 +2726,10 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      console.log('[API] Found galleries:', galleries.length);
+      console.log('[API] Found galleries:', recentGalleries.length);
 
       const galleriesWithDetails = await Promise.all(
-        galleries.map(async (gallery) => {
+        recentGalleries.map(async (gallery) => {
           const imageCount = await db.execute(
             sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
           );
@@ -2740,25 +2739,14 @@ export function registerRoutes(app: Express): Server {
             orderBy: (images, { asc }) => [asc(images.position)]
           });
 
-          const result = {
+          return {
             ...gallery,
             thumbnailUrl: thumbnailImage?.url || null,
             imageCount: parseInt(imageCount.rows[0].count.toString(), 10),
             isOwner: gallery.userId === userId
           };
-
-          return result;
         })
       );
-
-      console.log('[API] Returning galleries with details:', {
-        count: galleriesWithDetails.length,
-        sample: galleriesWithDetails[0] ? {
-          id: galleriesWithDetails[0].id,
-          title: galleriesWithDetails[0].title,
-          lastViewedAt: galleriesWithDetails[0].lastViewedAt
-        } : null
-      });
 
       res.json(galleriesWithDetails);
     } catch (error) {
