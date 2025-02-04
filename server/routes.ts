@@ -2648,7 +2648,7 @@ export function registerRoutes(app: Express): Server {
       const userId = req.auth.userId;
 
       // Get galleries where user is either owner or has viewed
-      const galleries = await db.query.galleries.findMany({
+      const recentGalleries = await db.query.galleries.findMany({
         where: and(
           or(
             eq(galleries.userId, userId),
