@@ -21,9 +21,18 @@ import { RenameGalleryModal } from "./RenameGalleryModal";
 import { DeleteGalleryModal } from "./DeleteGalleryModal";
 
 export function MainContent() {
+  console.log('MainContent rendered');
+
   const [location, setLocation] = useLocation();
   const [match, params] = useRoute("/f/:folderSlug");
   const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
+
+  useEffect(() => {
+    console.log('MainContent mounted');
+    return () => {
+      console.log('MainContent unmounted');
+    };
+  }, []);
   const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState("created");
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -209,6 +218,13 @@ export function MainContent() {
                         <Card
                           ref={dragRef}
                           onClick={(e) => {
+                            console.log('Card clicked:', {
+                              galleryId: gallery.id,
+                              isShiftKey: e.shiftKey,
+                              currentSelected: selectedGalleries,
+                              target: e.target,
+                              currentTarget: e.currentTarget
+                            });
                             e.preventDefault();
                             e.stopPropagation();
                             if (!e.shiftKey) {
