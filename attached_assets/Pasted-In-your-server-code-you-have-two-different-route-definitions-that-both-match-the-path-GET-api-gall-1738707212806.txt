@@ -1,0 +1,62 @@
+In your server code, you have two different route definitions that both match the path GET /api/galleries/recent:
+
+A catch-all param route:
+
+ts
+Copy
+Edit
+// This will match /api/galleries/**ANYTHING** 
+app.get('/api/galleries/:slug', async (req, res) => {
+  // ...
+});
+A literal route specifically for recent galleries:
+
+ts
+Copy
+Edit
+protectedRouter.get('/galleries/recent', async (req, res) => {
+  // ...
+});
+// mounted under /api, so its final path is /api/galleries/recent
+Because Express checks routes in the order they are registered, your request for /api/galleries/recent is being caught by the /:slug route before it ever reaches the “recents” route. That is why your logs say:
+
+css
+Copy
+Edit
+Gallery fetch request: { slug: 'recent', ... }
+Gallery not found for slug: recent
+Express is treating "recent" as the :slug parameter and then trying to look up a single gallery whose slug is literally "recent". Since that gallery doesn’t exist, the server logs “Gallery not found.”
+
+How to fix it
+Option 1: Reorder your routes
+If you move the literal /galleries/recent route definition above the /:slug definition (or at least ensure the “recents” route is evaluated first), Express will correctly match /api/galleries/recent before trying the :slug route.
+
+For example, reorder to:
+
+diff
+Copy
+Edit
++ // 1) Your "recent" route
+protectedRouter.get('/galleries/recent', async (req, res) => {
+  // ...
+});
+
++ // Then mount protectedRouter on /api (same as you have now).
+app.use('/api', protectedRouter);
+
+- // 2) The catch-all single-gallery route
+app.get('/api/galleries/:slug', async (req, res) => {
+  // ...
+});
+Now, when the request hits /api/galleries/recent, it will match the literal route first and never fall back to /:slug.
+
+Option 2: Put “recent” behind a different path
+Another approach is to rename the route to something like /api/galleries/recent-list or /api/recent so there is no collision with :slug. For instance:
+
+ts
+Copy
+Edit
+protectedRouter.get('/recent', async (req, res) => {
+  // ...
+});
+and call it with /api/recent from the front end. This avoids the conflict with /api/galleries/:slug.
