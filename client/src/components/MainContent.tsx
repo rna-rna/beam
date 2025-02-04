@@ -218,11 +218,11 @@ export function MainContent() {
                               setSelectedGalleries([gallery.id]);
                               setLastSelectedId(gallery.id);
                             } else if (lastSelectedId) {
-                              const galleries = sortedGalleries;
-                              const currentIndex = galleries.findIndex(g => g.id === gallery.id);
-                              const lastIndex = galleries.findIndex(g => g.id === lastSelectedId);
+                              const galleriesArr = sortedGalleries;
+                              const currentIndex = galleriesArr.findIndex(g => g.id === gallery.id);
+                              const lastIndex = galleriesArr.findIndex(g => g.id === lastSelectedId);
                               const [start, end] = [Math.min(currentIndex, lastIndex), Math.max(currentIndex, lastIndex)];
-                              const rangeIds = galleries.slice(start, end + 1).map(g => g.id);
+                              const rangeIds = galleriesArr.slice(start, end + 1).map(g => g.id);
                               setSelectedGalleries(rangeIds);
                             } else {
                               setSelectedGalleries(prev =>
