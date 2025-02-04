@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts, cachedUsers, commentReactions } from '@db/schema';
-import { eq, and, sql, inArray, or, desc } from 'drizzle-orm';
+import { eq, and, sql, inArray, or, desc, isNotNull } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
 import { clerkClient } from '@clerk/clerk-sdk-node';
