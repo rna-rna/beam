@@ -384,6 +384,63 @@ export function registerRoutes(app: Express): Server {
   });
 
 
+  // Get recent galleries for current user
+  app.get('/api/galleries/recent', protectRoute, async (req: any, res) => {
+    try {
+      console.log('[API] Fetching recent galleries for user:', req.auth.userId);
+      const userId = req.auth.userId;
+
+      // Get galleries where user is either owner or has viewed
+      const galleries = await db.query.galleries.findMany({
+        where: and(
+          or(
+            eq(galleries.userId, userId),
+            sql`${galleries.lastViewedAt} IS NOT NULL`
+          ),
+          sql`${galleries.deleted_at} IS NULL`
+        ),
+        orderBy: (galleries, { desc }) => [desc(galleries.lastViewedAt)],
+        limit: 10,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          isPublic: true,
+          userId: true,
+          guestUpload: true,
+          createdAt: true,
+          isDraft: true,
+          lastViewedAt: true
+        }
+      });
+
+      const galleriesWithDetails = await Promise.all(
+        galleries.map(async (gallery) => {
+          const imageCount = await db.execute(
+            sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
+          );
+
+          const thumbnailImage = await db.query.images.findFirst({
+            where: eq(images.galleryId, gallery.id),
+            orderBy: (images, { asc }) => [asc(images.position)]
+          });
+
+          return {
+            ...gallery,
+            thumbnailUrl: thumbnailImage?.url || null,
+            imageCount: parseInt(imageCount.rows[0].count.toString(), 10),
+            isOwner: gallery.userId === userId
+          };
+        })
+      );
+
+      res.json(galleriesWithDetails);
+    } catch (error) {
+      console.error('[API] Error fetching recent galleries:', error);
+      res.status(500).json({ message: 'Failed to fetch recent galleries' });
+    }
+  });
+
   // Get gallery details (with ownership check)
   protectedRouter.get('/galleries/:slug', async (req: any, res) => {
     try {
