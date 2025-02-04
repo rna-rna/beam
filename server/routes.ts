@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts, cachedUsers, commentReactions } from '@db/schema';
-import { eq, and, sql, inArray, or, desc, isNotNull } from 'drizzle-orm';
+import { eq, and, sql, inArray, or, desc, isNull, isNotNull } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
 import { clerkClient } from '@clerk/clerk-sdk-node';
@@ -2671,10 +2671,10 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      console.log('[API] Found galleries:', galleries.length);
+      console.log('[API] Found galleries:', recentGalleries.length);
 
       const galleriesWithDetails = await Promise.all(
-        galleries.map(async (gallery) => {
+        recentGalleries.map(async (gallery) => {
           const imageCount = await db.execute(
             sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
           );
@@ -2965,7 +2965,7 @@ export function registerRoutes(app: Express): Server {
     });
 
     if (!userId) {
-      console.error("Magic link verificationfailed - No userId in auth context");
+      console.error(""Magic link verificationfailed - No userId in auth context");
       return res.status(401).json({
         success: false,
         message: "Authentication required"
