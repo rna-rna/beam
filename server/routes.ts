@@ -2694,15 +2694,6 @@ export function registerRoutes(app: Express): Server {
         })
       );
 
-      console.log('[API] Returning galleries with details:', {
-        count: galleriesWithDetails.length,
-        sample: galleriesWithDetails[0] ? {
-          id: galleriesWithDetails[0].id,
-          title: galleriesWithDetails[0].title,
-          lastViewedAt: galleriesWithDetails[0].lastViewedAt
-        } : null
-      });
-
       res.json(galleriesWithDetails);
     } catch (error) {
       console.error('[API] Error fetching recent galleries:', error);
@@ -2973,7 +2964,7 @@ export function registerRoutes(app: Express): Server {
     });
 
     if (!userId) {
-      console.error("Magic link verification failed - No userId in auth context");
+      console.error("Magic link verificationfailed - No userId in auth context");
       return res.status(401).json({
         success: false,
         message: "Authentication required"
