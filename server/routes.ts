@@ -2652,9 +2652,9 @@ export function registerRoutes(app: Express): Server {
         where: and(
           or(
             eq(galleries.userId, userId),
-            isNotNull(galleries.lastViewedAt)
+            sql`${galleries.lastViewedAt} IS NOT NULL`
           ),
-          isNull(galleries.deletedAt)
+          sql`${galleries.deletedAt} IS NULL`
         ),
         orderBy: (galleries, { desc }) => [desc(galleries.lastViewedAt)],
         limit: 10,
