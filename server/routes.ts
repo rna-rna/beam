@@ -2657,7 +2657,7 @@ export function registerRoutes(app: Express): Server {
               eq(galleries.userId, userId)
             )
           ),
-          sql`${galleries.deleted_at} IS NULL`
+          eq(galleries.deleted_at, null)
         ),
         orderBy: (galleries, { desc }) => [desc(galleries.lastViewedAt)],
         limit: 10,
