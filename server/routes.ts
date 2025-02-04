@@ -2965,7 +2965,7 @@ export function registerRoutes(app: Express): Server {
     });
 
     if (!userId) {
-      console.error(""Magic link verificationfailed - No userId in auth context");
+      console.error("Magic link verification failed - No userId in auth context");
       return res.status(401).json({
         success: false,
         message: "Authentication required"
