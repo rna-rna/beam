@@ -128,7 +128,6 @@ export function MainContent() {
     }
 
     return (
-      <DndProvider backend={HTML5Backend}>
         <div className="flex h-full relative">
           <CustomDragLayer />
           <div className="flex-1 p-6">
@@ -210,6 +209,8 @@ export function MainContent() {
                         <Card
                           ref={dragRef}
                           onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             if (!e.shiftKey) {
                               if (selectedGalleries.length === 1 && selectedGalleries[0] === gallery.id) {
                                 return;
@@ -298,8 +299,7 @@ export function MainContent() {
             )}
           </div>
         </div>
-      </DndProvider>
-    );
+      );
   };
 
   return (
