@@ -2651,7 +2651,10 @@ export function registerRoutes(app: Express): Server {
         where: and(
           or(
             eq(galleries.userId, userId),
-            sql`${galleries.lastViewedAt} IS NOT NULL`
+            and(
+              sql`${galleries.lastViewedAt} IS NOT NULL`,
+              eq(galleries.userId, userId)
+            )
           ),
           sql`${galleries.deleted_at} IS NULL`
         ),
