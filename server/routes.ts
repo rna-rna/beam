@@ -2450,6 +2450,7 @@ export function registerRoutes(app: Express): Server {
         })
       );
 
+      console.log('[API] Fetched folders for user:', userId);
       res.json(foldersWithCounts);
     } catch (error) {
       console.error('Failed to fetch folders:', error);
