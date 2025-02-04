@@ -1,365 +1,146 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
-import { useRoute, useLocation } from "wouter";
-import { HTML5Backend } from "react-dnd-html5-backend";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+import { useRoute } from "wouter";
+import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FolderOpen, FolderPlus, Clock, Image as ImageIcon, Share, Pencil, Trash2, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { CustomDragLayer } from "./CustomDragLayer";
-import { ShareModal } from "./ShareModal";
-import { RenameGalleryModal } from "./RenameGalleryModal";
-import { DeleteGalleryModal } from "./DeleteGalleryModal";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown, FolderOpen, Image, Loader2 } from "lucide-react";
+
 
 export function MainContent() {
-  console.log('MainContent rendered');
-
-  const [location, setLocation] = useLocation();
   const [match, params] = useRoute("/f/:folderSlug");
-  const [selectedGalleries, setSelectedGalleries] = useState<number[]>([]);
-
-  useEffect(() => {
-    console.log('MainContent mounted');
-    return () => {
-      console.log('MainContent unmounted');
-    };
-  }, []);
-  const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
+  const folderSlug = match ? params.folderSlug : null;
   const [sortOrder, setSortOrder] = useState("created");
-  const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [renameModalOpen, setRenameModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [selectedGallery, setSelectedGallery] = useState<{ id: number; title: string; slug: string } | null>(null);
-  const queryClient = useQueryClient();
 
-  // Fetch current folder if we have a slug
-  const { data: currentFolder } = useQuery({
-    queryKey: ['/api/folders', params?.folderSlug],
+  const { data: folder, isLoading: isFolderLoading } = useQuery({
+    queryKey: ["folder", folderSlug],
     queryFn: async () => {
-      if (!params?.folderSlug) return null;
-      const res = await fetch(`/api/folders/${params.folderSlug}`);
-      if (!res.ok) throw new Error('Failed to fetch folder');
+      const res = await fetch(`/api/folders/${folderSlug}`);
+      if (!res.ok) throw new Error("Failed to fetch folder");
       return res.json();
     },
-    enabled: !!params?.folderSlug
+    enabled: !!folderSlug,
   });
 
-  const { data: folders = [] } = useQuery({
-    queryKey: ['/api/folders'],
+  const { data: galleries = [], isLoading: isGalleriesLoading } = useQuery({
+    queryKey: ["/api/galleries"],
     queryFn: async () => {
-      const res = await fetch('/api/folders');
-      if (!res.ok) throw new Error('Failed to fetch folders');
-      return res.json();
-    }
-  });
-
-  const { data: galleries = [], isLoading } = useQuery({
-    queryKey: ['/api/galleries'],
-    queryFn: async () => {
-      const res = await fetch('/api/galleries');
-      if (!res.ok) throw new Error('Failed to fetch galleries');
+      const res = await fetch("/api/galleries");
+      if (!res.ok) throw new Error("Failed to fetch galleries");
       return res.json();
     },
-    staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
-    cacheTime: 1000 * 60 * 10, // Keep cached data for 10 minutes
-    refetchOnWindowFocus: false,
-    refetchOnMount: false
   });
 
-  const sortedGalleries = [...(galleries || [])].sort((a, b) => {
-    if (sortOrder === "created") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    if (sortOrder === "lastViewed") {
-      const bTime = b.lastViewedAt ? new Date(b.lastViewedAt).getTime() : 0;
-      const aTime = a.lastViewedAt ? new Date(a.lastViewedAt).getTime() : 0;
-      if (bTime === 0 && aTime === 0) {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }
-      return bTime - aTime;
-    }
-    if (sortOrder === "alphabetical") return a.title.localeCompare(b.title);
-    return 0;
-  });
+  const folderGalleries = galleries.filter(
+    (g) => g.folderId === folder?.id && !g.deleted_at
+  );
+  const isLoading = isFolderLoading || isGalleriesLoading;
 
-  const view = location.includes('/trash') ? 'trash' : 'normal';
-
-  const displayedGalleries = view === "trash" 
-    ? sortedGalleries.filter(gallery => gallery.deleted_at)
-    : currentFolder
-      ? sortedGalleries.filter(gallery => gallery.folderId === currentFolder.id && !gallery.deleted_at)
-      : sortedGalleries.filter(gallery => !gallery.deleted_at);
-
-
-  const [{ isOver }, dropRef] = useDrop({
-    accept: "GALLERY",
-    drop: (item: { selectedIds: number[] }) => {
-      if (currentFolder) {
-        handleMoveGallery(item.selectedIds, currentFolder.id);
-      }
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver()
-    })
-  });
-
-  const handleMoveGallery = async (galleryIds: number[], folderId: number) => {
-    try {
-      await Promise.all(galleryIds.map(async (galleryId) => {
-        const res = await fetch(`/api/galleries/${galleryId}/move`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folderId })
-        });
-
-        if (!res.ok) throw new Error('Failed to move gallery');
-      }));
-      await queryClient.invalidateQueries(['/api/galleries']);
-    } catch (error) {
-      console.error('Failed to move gallery:', error);
-    }
-  };
-
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-pulse">Loading galleries...</div>
-        </div>
-      );
-    }
-
+  if (isLoading) {
     return (
-        <div className="flex h-full relative">
-          <CustomDragLayer />
-          <div className="flex-1 p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div className="relative w-72">
-                <input
-                  type="text"
-                  placeholder="Search galleries..."
-                  onChange={(e) => {
-                    const searchTerm = e.target.value.toLowerCase();
-                    if (!searchTerm) {
-                      queryClient.setQueryData(['/api/galleries'], galleries);
-                      return;
-                    }
-                    const filtered = (galleries || []).filter(gallery => 
-                      gallery.title.toLowerCase().includes(searchTerm) ||
-                      gallery.description?.toLowerCase().includes(searchTerm) ||
-                      String(gallery.imageCount).includes(searchTerm)
-                    );
-                    queryClient.setQueryData(['/api/galleries'], filtered);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border rounded-md bg-background hover:bg-accent/30 focus:bg-background transition-colors"
-                />
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"/>
-              </div>
-              <Select value={sortOrder} onValueChange={setSortOrder}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Sort by..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="created">Created Date</SelectItem>
-                  <SelectItem value="lastViewed">Last Viewed</SelectItem>
-                  <SelectItem value="alphabetical">Alphabetical</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-            {displayedGalleries.length === 0 ? (
-              <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+  return (
+    <div className="flex h-[calc(100vh-65px)] bg-background">
+      <aside className="hidden md:block w-64 border-r">
+        <DashboardSidebar />
+      </aside>
+
+      <main className="flex-1 flex flex-col min-h-0">
+        <header className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64">
+                <DashboardSidebar />
+              </SheetContent>
+            </Sheet>
+            <Input
+              type="search"
+              placeholder="Search galleries..."
+              className="ml-2 w-64"
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  Sort by <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onSelect={() => setSortOrder("created")}>
+                  Created Date
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setSortOrder("viewed")}>
+                  Last Viewed
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setSortOrder("alphabetical")}>
+                  Alphabetical
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+
+        <ScrollArea className="flex-1 p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {folderGalleries.length === 0 ? (
+              <div className="col-span-full flex items-center justify-center h-[calc(100vh-200px)]">
                 <div className="text-center text-muted-foreground">
-                  {view === "trash" ? (
-                    <>
-                      <Trash2 className="w-12 h-12 mx-auto mb-4" />
-                      <p>Trash is empty</p>
-                    </>
-                  ) : (
-                    <>
-                      <FolderPlus className="w-12 h-12 mx-auto mb-4" />
-                      <p>This folder is empty</p>
-                    </>
-                  )}
+                  <FolderOpen className="w-12 h-12 mx-auto mb-4" />
+                  <p>This folder is empty</p>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {displayedGalleries.map((gallery) => {
-                  const [{ isDragging }, dragRef] = useDrag(() => ({
-                    type: "GALLERY",
-                    canDrag: () => selectedGalleries.includes(gallery.id) || selectedGalleries.length === 0,
-                    item: () => ({
-                      selectedIds: selectedGalleries.includes(gallery.id) ? selectedGalleries : [gallery.id]
-                    }),
-                    collect: (monitor) => ({
-                      isDragging: monitor.isDragging(),
-                    }),
-                    options: {
-                      dropEffect: 'move',
-                      dragPreviewOptions: { 
-                        captureDraggingState: true,
-                        offsetX: 0,
-                        offsetY: 0
-                      }
-                    }
-                  }), [selectedGalleries]);
-
-                  return (
-                    <ContextMenu key={gallery.id}>
-                      <ContextMenuTrigger>
-                        <Card
-                          ref={dragRef}
-                          onClick={(e) => {
-                            if (e.defaultPrevented) return;
-                            e.preventDefault();
-                            e.stopPropagation();
-                            
-                            const target = e.target as HTMLElement;
-                            if (target.closest('[role="menuitem"]') || target.closest('[role="menu"]')) {
-                              return;
-                            }
-
-                            const isAlreadySelected = selectedGalleries.length === 1 && selectedGalleries[0] === gallery.id;
-                            
-                            if (!e.shiftKey) {
-                              if (isAlreadySelected) {
-                                return;
-                              }
-                              setSelectedGalleries([gallery.id]);
-                              setLastSelectedId(gallery.id);
-                            } else if (lastSelectedId) {
-                              const galleriesArr = sortedGalleries;
-                              const currentIndex = galleriesArr.findIndex(g => g.id === gallery.id);
-                              const lastIndex = galleriesArr.findIndex(g => g.id === lastSelectedId);
-                              const [start, end] = [Math.min(currentIndex, lastIndex), Math.max(currentIndex, lastIndex)];
-                              const rangeIds = galleriesArr.slice(start, end + 1).map(g => g.id);
-                              setSelectedGalleries(rangeIds);
-                            } else {
-                              setSelectedGalleries(prev =>
-                                prev.includes(gallery.id)
-                                  ? prev.filter(id => id !== gallery.id)
-                                  : [...prev, gallery.id]
-                              );
-                              setLastSelectedId(gallery.id);
-                            }
-                          }}
-                          onDoubleClick={() => setLocation(`/g/${gallery.slug}`)}
-                          className={cn(
-                            "overflow-hidden transition-all duration-200 cursor-pointer",
-                            isDragging && "opacity-50",
-                            selectedGalleries.includes(gallery.id) && "outline outline-2 outline-blue-500 outline-offset-[-2px]",
-                            "hover:shadow-lg"
-                          )}
-                        >
-                          <div className="aspect-video relative bg-muted">
-                            {gallery.thumbnailUrl ? (
-                              <img
-                                src={gallery.thumbnailUrl}
-                                alt={gallery.title}
-                                className="object-cover w-full h-full"
-                                draggable={false}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                <ImageIcon className="w-12 h-12" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-4">
-                            <h3 className="font-semibold">{gallery.title}</h3>
-                            <p className="text-sm text-muted-foreground">{gallery.imageCount} images</p>
-                          </div>
-                        </Card>
-                      </ContextMenuTrigger>
-                      <ContextMenuContent>
-                        <ContextMenuItem onSelect={() => setLocation(`/g/${gallery.slug}`)}>
-                          <FolderOpen className="mr-2 h-4 w-4" />
-                          Open
-                        </ContextMenuItem>
-                        <ContextMenuItem onSelect={() => {
-                          setShareModalOpen(true);
-                          setSelectedGallery({ id: gallery.id, title: gallery.title, slug: gallery.slug });
-                        }}>
-                          <Share className="mr-2 h-4 w-4" />
-                          Share
-                        </ContextMenuItem>
-                        <ContextMenuItem onSelect={() => {
-                          setRenameModalOpen(true);
-                          setSelectedGallery({ id: gallery.id, title: gallery.title, slug: gallery.slug });
-                        }}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Rename
-                        </ContextMenuItem>
-                        <ContextMenuSeparator />
-                        <ContextMenuItem
-                          onSelect={() => {
-                            setDeleteModalOpen(true);
-                            setSelectedGallery({ id: gallery.id, title: gallery.title, slug: gallery.slug });
-                          }}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </ContextMenuItem>
-                      </ContextMenuContent>
-                    </ContextMenu>
-                  );
-                })}
-              </div>
+              folderGalleries.map((gallery) => (
+                <Card
+                  key={gallery.id}
+                  className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => (window.location.href = `/g/${gallery.slug}`)}
+                >
+                  <div className="aspect-video relative bg-muted">
+                    {gallery.thumbnailUrl ? (
+                      <img
+                        src={gallery.thumbnailUrl}
+                        alt={gallery.title}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="w-full h-40 bg-muted flex items-center justify-center">
+                        <Image className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold">{gallery.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {gallery.imageCount || 0} images
+                    </p>
+                  </div>
+                </Card>
+              ))
             )}
           </div>
-        </div>
-      );
-  };
-
-  return (
-    <>
-      {renderContent()}
-
-      {selectedGallery && (
-        <>
-          <ShareModal 
-            isOpen={shareModalOpen}
-            onClose={() => {
-              setShareModalOpen(false);
-              setSelectedGallery(null);
-            }}
-            galleryUrl={`${window.location.origin}/g/${selectedGallery.slug}`}
-            slug={selectedGallery.slug}
-            isPublic={false}
-            onVisibilityChange={() => {}}
-          />
-
-          <RenameGalleryModal
-            isOpen={renameModalOpen}
-            onClose={() => {
-              setRenameModalOpen(false);
-              setSelectedGallery(null);
-            }}
-            galleryId={selectedGallery.id}
-            currentTitle={selectedGallery.title}
-            slug={selectedGallery.slug}
-          />
-
-          <DeleteGalleryModal
-            isOpen={deleteModalOpen}
-            onClose={() => {
-              setDeleteModalOpen(false);
-              setSelectedGallery(null);
-            }}
-            gallerySlug={selectedGallery.slug}
-            galleryTitle={selectedGallery.title}
-          />
-        </>
-      )}
-    </>
+        </ScrollArea>
+      </main>
+    </div>
   );
 }
