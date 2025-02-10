@@ -2652,20 +2652,31 @@ export function registerRoutes(app: Express): Server {
   // Get recent galleries for current user
   protectedRouter.get('/recent-galleries', async (req: any, res) => {
     try {
-      console.log('[API] Fetching recent galleries for user:', req.auth.userId);
       const userId = req.auth.userId;
+      console.log('[API] Fetching recent galleries for user:', userId);
 
-      // Get galleries where user is either owner or has viewed
-      const recentGalleries = await db.query.galleries.findMany({
+      // Query the recently_viewed_galleries table for this user
+      const recentViews = await db.query.recentlyViewedGalleries.findMany({
+        where: eq(recentlyViewedGalleries.userId, userId),
+        orderBy: (tbl, { desc }) => [desc(tbl.viewedAt)],
+        limit: 10,
+      });
+      
+      // Extract the gallery IDs from the recent views
+      const galleryIds = recentViews.map(view => view.galleryId);
+      console.log('[API] Found recent gallery IDs:', galleryIds);
+      
+      // If there are no recent views, return an empty list
+      if (galleryIds.length === 0) {
+        return res.json([]);
+      }
+
+      // Query the galleries table to get gallery details for these IDs
+      const galleriesData = await db.query.galleries.findMany({
         where: and(
-          or(
-            eq(galleries.userId, userId),
-            isNotNull(galleries.lastViewedAt)
-          ),
+          inArray(galleries.id, galleryIds),
           isNull(galleries.deletedAt)
         ),
-        orderBy: (galleries, { desc }) => [desc(galleries.lastViewedAt)],
-        limit: 10,
         select: {
           id: true,
           title: true,
@@ -2675,34 +2686,39 @@ export function registerRoutes(app: Express): Server {
           guestUpload: true,
           createdAt: true,
           isDraft: true,
-          lastViewedAt: true
+          lastViewedAt: true,
         }
       });
-
-      console.log('[API] Found galleries:', recentGalleries.length);
-
+      
+      // Reorder the galleries to match the order of recent views
+      const sortedGalleries = galleryIds
+        .map(id => galleriesData.find(gallery => gallery.id === id))
+        .filter(Boolean);
+      
+      // For each gallery, get additional details (thumbnail and image count)
       const galleriesWithDetails = await Promise.all(
-        recentGalleries.map(async (gallery) => {
-          const imageCount = await db.execute(
+        sortedGalleries.map(async (gallery) => {
+          // Query image count for this gallery
+          const imageCountResult = await db.execute(
             sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
           );
+          const imageCount = parseInt(imageCountResult.rows[0].count.toString(), 10);
 
+          // Find the first image (thumbnail) for this gallery
           const thumbnailImage = await db.query.images.findFirst({
             where: eq(images.galleryId, gallery.id),
             orderBy: (images, { asc }) => [asc(images.position)]
           });
 
-          const result = {
+          return {
             ...gallery,
             thumbnailUrl: thumbnailImage?.url || null,
-            imageCount: parseInt(imageCount.rows[0].count.toString(), 10),
+            imageCount,
             isOwner: gallery.userId === userId
           };
-
-          return result;
         })
       );
-
+      
       res.json(galleriesWithDetails);
     } catch (error) {
       console.error('[API] Error fetching recent galleries:', error);
