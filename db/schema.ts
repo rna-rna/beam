@@ -14,6 +14,7 @@ export const galleries = pgTable('galleries', {
   lastViewedAt: timestamp('last_viewed_at'),
   ogImageUrl: text('og_image_url'),
   folderId: integer('folder_id').references(() => folders.id),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (table) => ({
   userIdIdx: index('galleries_user_id_idx').on(table.userId),
   folderIdIdx: index('galleries_folder_id_idx').on(table.folderId)

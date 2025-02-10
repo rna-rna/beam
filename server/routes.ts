@@ -2625,15 +2625,23 @@ export function registerRoutes(app: Express): Server {
   protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
+      console.log("[VIEW ROUTE] Updating lastViewedAt for gallery:", {
+        slug: req.params.slug,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+
       const [updated] = await db.update(galleries)
         .set({ lastViewedAt: new Date() })
         .where(eq(galleries.slug, req.params.slug))
         .returning();
 
       if (!updated) {
+        console.log("[VIEW ROUTE] Gallery not found:", req.params.slug);
         return res.status(404).json({ message: 'Gallery not found' });
       }
 
+      console.log("[VIEW ROUTE] Updated gallery record:", updated);
       res.json(updated);
     } catch (error) {
       console.error('Failed to update view timestamp:', error);
@@ -2652,9 +2660,9 @@ export function registerRoutes(app: Express): Server {
         where: and(
           or(
             eq(galleries.userId, userId),
-            sql`${galleries.lastViewedAt} IS NOT NULL`
+            isNotNull(galleries.lastViewedAt)
           ),
-          sql`${galleries.deletedAt} IS NULL`
+          isNull(galleries.deletedAt)
         ),
         orderBy: (galleries, { desc }) => [desc(galleries.lastViewedAt)],
         limit: 10,

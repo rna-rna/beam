@@ -1,0 +1,119 @@
+Find the “recent galleries” endpoint:
+Look for the endpoint that handles the URL path /recent-galleries. In your code it currently looks similar to this:
+
+ts
+Copy
+protectedRouter.get('/recent-galleries', async (req: any, res) => {
+  try {
+    // Current code querying the galleries table by lastViewedAt…
+  } catch (error) {
+    console.error('[API] Error fetching recent galleries:', error);
+    res.status(500).json({ message: 'Failed to fetch recent galleries' });
+  }
+});
+Step 2. Replace the Existing Query Logic
+Context:
+Right now, the code queries the galleries table and orders by lastViewedAt, which is updated for any user view. Instead, you want to show the galleries the current user has seen. This data is stored in your recently_viewed_galleries table (with fields like userId, galleryId, and viewedAt).
+
+Action:
+Replace the code inside the endpoint with these steps:
+
+Query the recently viewed table:
+Fetch records from recently_viewed_galleries for the current user, order them by viewedAt descending, and limit to 10 results.
+
+Extract the gallery IDs:
+Map the query result to an array of gallery IDs. This gives you the list of galleries the user recently viewed.
+
+Query the galleries table:
+Now, use these gallery IDs (filtering out deleted galleries) to fetch details such as title, slug, and other metadata.
+
+(Optional) Reorder the result:
+Since the query on the galleries table might not return the results in the same order as the recent views, you can re-sort the results to match the order of the gallery IDs.
+
+Add thumbnail and image count:
+For each gallery, perform any extra queries (like finding the thumbnail image and counting the number of images) as you did before.
+
+Below is a sample replacement for the endpoint:
+
+Step 3. Update the Code with the New Logic
+Replace your current /recent-galleries endpoint code with the following:
+
+ts
+Copy
+// New recent galleries endpoint using the recently_viewed_galleries table
+protectedRouter.get('/recent-galleries', async (req: any, res) => {
+  try {
+    const userId = req.auth.userId;
+    console.log('[API] Fetching recent galleries for user:', userId);
+
+    // 1. Query the recently_viewed_galleries table for this user
+    const recentViews = await db.query.recently_viewed_galleries.findMany({
+      where: eq(recently_viewed_galleries.userId, userId),
+      orderBy: (tbl, { desc }) => [desc(tbl.viewedAt)],
+      limit: 10,
+    });
+    
+    // 2. Extract the gallery IDs from the recent views
+    const galleryIds = recentViews.map(view => view.galleryId);
+    console.log('[API] Found recent gallery IDs:', galleryIds);
+    
+    // If there are no recent views, return an empty list
+    if (galleryIds.length === 0) {
+      return res.json([]);
+    }
+
+    // 3. Query the galleries table to get gallery details for these IDs
+    const galleriesData = await db.query.galleries.findMany({
+      where: and(
+        inArray(galleries.id, galleryIds),
+        isNull(galleries.deletedAt)
+      ),
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        isPublic: true,
+        userId: true,
+        guestUpload: true,
+        createdAt: true,
+        isDraft: true,
+        lastViewedAt: true,
+      }
+    });
+    
+    // 4. (Optional) Reorder the galleries to match the order of recent views
+    const sortedGalleries = galleryIds
+      .map(id => galleriesData.find(gallery => gallery.id === id))
+      .filter(Boolean);
+    
+    // 5. For each gallery, get additional details (thumbnail and image count)
+    const galleriesWithDetails = await Promise.all(
+      sortedGalleries.map(async (gallery) => {
+        // Query image count for this gallery
+        const imageCountResult = await db.execute(
+          sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
+        );
+        const imageCount = parseInt(imageCountResult.rows[0].count.toString(), 10);
+
+        // Find the first image (thumbnail) for this gallery
+        const thumbnailImage = await db.query.images.findFirst({
+          where: eq(images.galleryId, gallery.id),
+          orderBy: (images, { asc }) => [asc(images.position)]
+        });
+
+        return {
+          ...gallery,
+          thumbnailUrl: thumbnailImage?.url || null,
+          imageCount,
+          isOwner: gallery.userId === userId
+        };
+      })
+    );
+    
+    // 6. Return the final list of recent galleries
+    res.json(galleriesWithDetails);
+  } catch (error) {
+    console.error('[API] Error fetching recent galleries:', error);
+    res.status(500).json({ message: 'Failed to fetch recent galleries' });
+  }
+});
