@@ -1,0 +1,88 @@
+Step 1. Open Your Backend Code for the Recent Galleries Endpoint
+In your Replit file tree, locate the file where you define your API routes (for example, routes.ts).
+Find the endpoint that serves the recents page (it might be something like:
+ts
+Copy
+protectedRouter.get('/recent-galleries', async (req: any, res) => {
+  // existing code...
+});
+)
+Step 2. Decide Which Timestamps to Use
+You’ll need two timestamps for every gallery:
+
+For Viewed Galleries: Use the viewed_at field (or your existing lastViewedAt).
+For Invited Galleries: Use the invite creation time (e.g. an created_at field in your invites table).
+(If your invites table does not already store when the invite was created, update it so that it does.)
+Also, you’ll want to mark the invited galleries with a flag (for example, invited: true).
+
+Step 3. Write a SQL UNION Query to Merge the Two Lists
+Because your project uses Drizzle ORM, you can write a raw SQL query (or use its query builder if it supports unions) that does the following:
+
+First Part: Select galleries that have been viewed by the user (join your recently_viewed_galleries table with galleries) and output a computed column called, say, display_time set to the viewed timestamp. Also add a flag (e.g. invited set to false).
+
+Second Part: Select galleries for which the user has been invited but that are not already in the recently viewed list. For these, output the invite’s creation timestamp as display_time and set the flag invited to true.
+
+Union the Two and Order by display_time DESC, Limit 10.
+
+For example, your SQL (using Drizzle’s SQL template tag) might look like this:
+
+ts
+Copy
+import { sql } from "drizzle-orm"; // make sure you have imported sql from drizzle-orm
+
+// Assume you have the current user's id and email (for example, from Clerk)
+const userId = req.auth.userId;
+const userEmail = (await clerkClient.users.getUser(userId)).emailAddresses[0].emailAddress.toLowerCase();
+
+// Create a union query that returns all recent galleries (viewed or invited)
+const recentGalleriesQuery = sql`
+  (
+    SELECT 
+      g.id,
+      g.slug,
+      g.title,
+      g.og_image_url as thumbnailUrl,  -- adjust column names as needed
+      g.is_draft as "isDraft",
+      g.is_public as "isPublic",
+      g.user_id as "userId",
+      TRUE as "isOwner", -- if the gallery owner is the same as the viewer; adjust logic as needed
+      rv.viewed_at as display_time,
+      false as invited
+    FROM recently_viewed_galleries rv
+    JOIN galleries g ON g.id = rv.gallery_id
+    WHERE rv.user_id = ${userId}
+  )
+  UNION
+  (
+    SELECT 
+      g.id,
+      g.slug,
+      g.title,
+      g.og_image_url as thumbnailUrl,
+      g.is_draft as "isDraft",
+      g.is_public as "isPublic",
+      g.user_id as "userId",
+      (g.user_id = ${userId}) as "isOwner",
+      i.created_at as display_time,
+      true as invited
+    FROM invites i
+    JOIN galleries g ON g.id = i.gallery_id
+    WHERE (i.user_id = ${userId} OR i.email = ${userEmail})
+      -- Exclude galleries already in the viewed list:
+      AND g.id NOT IN (
+          SELECT gallery_id FROM recently_viewed_galleries WHERE user_id = ${userId}
+      )
+  )
+  ORDER BY display_time DESC
+  LIMIT 10
+`;
+
+// Execute the query
+const recentGalleries = await db.execute(recentGalleriesQuery);
+Notes:
+
+Adjust the column names (for example, if your table columns use camelCase or snake_case) to match your schema.
+If you already have a “recently viewed” endpoint that uses a Drizzle ORM method (e.g. db.query.recentlyViewedGalleries.findMany), replace that code with this raw SQL query.
+The query above assumes that your invites table has a created_at field. If not, add it.
+The flag invited will now be part of each row so that on the front end you can show a pill if invited is true.
+You might also want to include other fields (like image counts, lastViewedAt, etc.) by joining with the images table or by performing additional queries. The sample above is a starting point.
