@@ -2656,8 +2656,8 @@ export function registerRoutes(app: Express): Server {
       console.log('[API] Fetching recent galleries for user:', userId);
 
       // Query the recently_viewed_galleries table for this user
-      const recentViews = await db.query.recentlyViewedGalleries.findMany({
-        where: eq(recentlyViewedGalleries.userId, userId),
+      const recentViews = await db.query.recently_viewed_galleries.findMany({
+        where: eq(recently_viewed_galleries.userId, userId),
         orderBy: (tbl, { desc }) => [desc(tbl.viewedAt)],
         limit: 10,
       });
