@@ -1,6 +1,10 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
@@ -111,7 +115,7 @@ export default function RecentsPage() {
                     </p>
                     <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
-                      {gallery.lastViewedAt ? new Date(gallery.lastViewedAt).toLocaleDateString() : 'Never viewed'}
+                      {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       {gallery.isOwner ? 'Owned by you' : 'Shared with you'}
