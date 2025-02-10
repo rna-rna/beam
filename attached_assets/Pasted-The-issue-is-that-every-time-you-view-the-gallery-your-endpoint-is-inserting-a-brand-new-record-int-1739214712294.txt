@@ -1,0 +1,66 @@
+The issue is that every time you view the gallery, your endpoint is inserting a brand‐new record into your recents table—even if that gallery was viewed before. Instead, you want to update the existing record’s timestamp so that the gallery appears only once in your recents list.
+
+Below are two approaches you can take:
+
+1. Update the View Recording Endpoint
+Modify your POST /api/galleries/:slug/view endpoint so that it checks for an existing record (based on the current user and gallery) before inserting a new record. If a record exists, update its timestamp; otherwise, insert a new record.
+
+For example:
+
+ts
+Copy
+app.post('/galleries/:slug/view', async (req: any, res) => {
+  try {
+    const userId = req.auth.userId;
+    const slug = req.params.slug;
+    console.log("[VIEW ROUTE] Recording view for gallery:", { slug, userId, timestamp: new Date().toISOString() });
+
+    // Find the gallery record first
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, slug),
+    });
+
+    if (!gallery) {
+      console.log("[VIEW ROUTE] Gallery not found:", slug);
+      return res.status(404).json({ message: 'Gallery not found' });
+    }
+
+    // Check if a recent view record already exists for this user and gallery
+    const existingRecord = await db.query.recentlyViewedGalleries.findFirst({
+      where: and(
+        eq(recentlyViewedGalleries.userId, userId),
+        eq(recentlyViewedGalleries.galleryId, gallery.id)
+      )
+    });
+
+    if (existingRecord) {
+      // Update the existing record's viewed_at timestamp
+      const [updated] = await db.update(recentlyViewedGalleries)
+        .set({ viewedAt: new Date() })
+        .where(eq(recentlyViewedGalleries.id, existingRecord.id))
+        .returning();
+      console.log("[VIEW ROUTE] Updated gallery view record:", updated);
+      res.json(updated);
+    } else {
+      // Insert a new record if none exists
+      const [inserted] = await db.insert(recentlyViewedGalleries).values({
+        userId: userId,
+        galleryId: gallery.id,
+        viewedAt: new Date()
+      }).returning();
+      console.log("[VIEW ROUTE] Inserted new gallery view record:", inserted);
+      res.json(inserted);
+    }
+  } catch (error) {
+    console.error('Failed to record view:', error);
+    res.status(500).json({ message: 'Failed to record gallery view' });
+  }
+});
+Explanation:
+
+Find the Gallery: We first find the gallery based on its slug.
+Check for an Existing Record: We query the recentlyViewedGalleries table to see if there is already a record with the current userId and the gallery.id.
+Update or Insert:
+If an existing record is found, we update its viewedAt field with the current timestamp.
+If not, we insert a new record.
+Return the Updated/Inserted Record: This ensures that your recents list always shows each gallery only once (with the most recent view time).
