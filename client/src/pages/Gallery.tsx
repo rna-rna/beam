@@ -139,7 +139,7 @@ export default function Gallery({
     queryFn: async () => {
       // ... existing query logic ...
 
-  },
+    },
     enabled: !!slug,
   });
 
@@ -865,7 +865,30 @@ export default function Gallery({
     },
   });
 
-  // Define all mutations first
+  // Track gallery views
+  useEffect(() => {
+    if (gallery?.slug && user) {
+      fetch(`/api/galleries/${gallery.slug}/view`, {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include"
+      })
+        .then((res) => {
+          if (!res.ok) {
+            console.error("Failed to record gallery view", res.status, res.statusText);
+          } else {
+            console.log("Gallery view recorded for", gallery.slug);
+          }
+        })
+        .catch((err) => {
+          console.error("Error recording gallery view:", err);
+        });
+    }
+  }, [gallery?.slug, user]);
+
+  // Define mutations first
   const toggleStarMutation = useMutation({
     mutationFn: async ({
       imageId,
