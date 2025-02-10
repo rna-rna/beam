@@ -2626,11 +2626,23 @@ export function registerRoutes(app: Express): Server {
     try {
       const userId = req.auth.userId;
       const slug = req.params.slug;
-      console.log("[VIEW ROUTE] Recording view for gallery:", { slug, userId, timestamp: new Date().toISOString() });
+      console.log("[VIEW ROUTE] Recording view for gallery:", { 
+    slug, 
+    userId, 
+    timestamp: new Date().toISOString(),
+    hasAuth: !!req.auth,
+    endpoint: '/galleries/:slug/view'
+  });
 
       // Find the gallery record first
       const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, slug)
+      });
+
+      console.log("[VIEW ROUTE] Found gallery:", {
+        found: !!gallery,
+        galleryId: gallery?.id,
+        timestamp: new Date().toISOString()
       });
 
       if (!gallery) {
