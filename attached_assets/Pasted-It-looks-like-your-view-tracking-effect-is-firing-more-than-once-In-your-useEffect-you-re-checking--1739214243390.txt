@@ -1,0 +1,43 @@
+It looks like your view‑tracking effect is firing more than once. In your useEffect you’re checking for gallery?.slug and user in the dependency array. When the gallery data is fetched or re‑fetched (or when the user becomes available), the effect runs again, causing two separate POST requests to your /api/galleries/:slug/view endpoint. Even though they have different unique IDs (because each POST creates a new record), they’re duplicate view events.
+
+To fix this, you can add a ref (or similar flag) so that you only record the view once per mount (or per gallery load). For example:
+
+1. Use a Ref to Prevent Duplicate View Inserts
+Add a ref to track if you’ve already recorded a view for the current gallery. Then update your effect as follows:
+
+tsx
+Copy
+import { useRef, useEffect } from "react";
+
+// Inside your Gallery component:
+const hasRecordedViewRef = useRef(false);
+
+useEffect(() => {
+  if (gallery?.slug && user && !hasRecordedViewRef.current) {
+    hasRecordedViewRef.current = true; // mark as recorded
+    fetch(`/api/galleries/${gallery.slug}/view`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include"
+    })
+      .then((res) => {
+        if (!res.ok) {
+          console.error("Failed to record gallery view", res.status, res.statusText);
+        } else {
+          console.log("Gallery view recorded for", gallery.slug);
+        }
+      })
+      .catch((err) => {
+        console.error("Error recording gallery view:", err);
+      });
+  }
+}, [gallery?.slug, user]);
+Explanation:
+
+We introduce a hasRecordedViewRef using useRef(false) which persists between renders.
+In the effect, we check that the view hasn’t been recorded yet.
+Once the view is recorded (the POST is sent), we set hasRecordedViewRef.current = true so that subsequent renders (even if the dependencies change) will not fire the POST again.
+2. Alternative Approach
+If the gallery slug is not going to change once the component is mounted, you might also consider placing the effect in a location where it runs only once. For example, if you know the gallery slug is fixed for the life of the component, you could use an empty dependency array and read the slug from a ref. (However, the ref‑solution above is more flexible.)
