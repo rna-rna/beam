@@ -2627,12 +2627,12 @@ export function registerRoutes(app: Express): Server {
       const userId = req.auth.userId;
       const slug = req.params.slug;
       console.log("[VIEW ROUTE] Recording view for gallery:", { 
-    slug, 
-    userId, 
-    timestamp: new Date().toISOString(),
-    hasAuth: !!req.auth,
-    endpoint: '/galleries/:slug/view'
-  });
+        slug, 
+        userId, 
+        timestamp: new Date().toISOString(),
+        hasAuth: !!req.auth,
+        endpoint: '/galleries/:slug/view'
+      });
 
       // Find the gallery record first
       const gallery = await db.query.galleries.findFirst({
@@ -2650,11 +2650,25 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: 'Gallery not found' });
       }
 
-      // Insert a record into recently_viewed_galleries
-      await db.insert(recentlyViewedGalleries).values({
-        userId: userId,
+      // Insert a record into recently_viewed_galleries and capture result
+      console.log("[VIEW ROUTE] Attempting to insert view record:", {
+        userId,
         galleryId: gallery.id,
-        viewedAt: new Date()
+        timestamp: new Date().toISOString()
+      });
+
+      const insertResult = await db.insert(recentlyViewedGalleries)
+        .values({
+          userId: userId,
+          galleryId: gallery.id,
+          viewedAt: new Date()
+        })
+        .returning();
+
+      console.log("[VIEW ROUTE] Insert result:", {
+        success: !!insertResult,
+        result: insertResult,
+        timestamp: new Date().toISOString()
       });
 
       // Also update the gallery's global lastViewedAt field
@@ -2663,7 +2677,11 @@ export function registerRoutes(app: Express): Server {
         .where(eq(galleries.slug, slug))
         .returning();
 
-      console.log("[VIEW ROUTE] Recorded view and updated gallery record:", updated);
+      console.log("[VIEW ROUTE] Recorded view and updated gallery record:", {
+        updated,
+        timestamp: new Date().toISOString()
+      });
+      
       res.json(updated);
     } catch (error) {
       console.error('Failed to record view:', error);
