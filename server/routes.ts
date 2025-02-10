@@ -6,7 +6,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
-import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts, cachedUsers, commentReactions } from '@db/schema';
+import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts, cachedUsers, commentReactions, recentlyViewedGalleries } from '@db/schema';
 import { eq, and, sql, inArray, or, desc, isNull, isNotNull } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
@@ -2656,8 +2656,8 @@ export function registerRoutes(app: Express): Server {
       console.log('[API] Fetching recent galleries for user:', userId);
 
       // Query the recently_viewed_galleries table for this user
-      const recentViews = await db.query.recently_viewed_galleries.findMany({
-        where: eq(recently_viewed_galleries.userId, userId),
+      const recentViews = await db.query.recentlyViewedGalleries.findMany({
+        where: eq(recentlyViewedGalleries.userId, userId),
         orderBy: (tbl, { desc }) => [desc(tbl.viewedAt)],
         limit: 10,
       });
