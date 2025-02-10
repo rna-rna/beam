@@ -2625,27 +2625,37 @@ export function registerRoutes(app: Express): Server {
   protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
-      console.log("[VIEW ROUTE] Updating lastViewedAt for gallery:", {
-        slug: req.params.slug,
-        userId,
-        timestamp: new Date().toISOString()
+      const slug = req.params.slug;
+      console.log("[VIEW ROUTE] Recording view for gallery:", { slug, userId, timestamp: new Date().toISOString() });
+
+      // Find the gallery record first
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, slug)
       });
 
-      const [updated] = await db.update(galleries)
-        .set({ lastViewedAt: new Date() })
-        .where(eq(galleries.slug, req.params.slug))
-        .returning();
-
-      if (!updated) {
-        console.log("[VIEW ROUTE] Gallery not found:", req.params.slug);
+      if (!gallery) {
+        console.log("[VIEW ROUTE] Gallery not found:", slug);
         return res.status(404).json({ message: 'Gallery not found' });
       }
 
-      console.log("[VIEW ROUTE] Updated gallery record:", updated);
+      // Insert a record into recently_viewed_galleries
+      await db.insert(recentlyViewedGalleries).values({
+        userId: userId,
+        galleryId: gallery.id,
+        viewedAt: new Date()
+      });
+
+      // Also update the gallery's global lastViewedAt field
+      const [updated] = await db.update(galleries)
+        .set({ lastViewedAt: new Date() })
+        .where(eq(galleries.slug, slug))
+        .returning();
+
+      console.log("[VIEW ROUTE] Recorded view and updated gallery record:", updated);
       res.json(updated);
     } catch (error) {
-      console.error('Failed to update view timestamp:', error);
-      res.status(500).json({ message: 'Failed to update view timestamp' });
+      console.error('Failed to record view:', error);
+      res.status(500).json({ message: 'Failed to record gallery view' });
     }
   });
 
@@ -2661,11 +2671,11 @@ export function registerRoutes(app: Express): Server {
         orderBy: (tbl, { desc }) => [desc(tbl.viewedAt)],
         limit: 10,
       });
-      
+
       // Extract the gallery IDs from the recent views
       const galleryIds = recentViews.map(view => view.galleryId);
       console.log('[API] Found recent gallery IDs:', galleryIds);
-      
+
       // If there are no recent views, return an empty list
       if (galleryIds.length === 0) {
         return res.json([]);
@@ -2689,12 +2699,12 @@ export function registerRoutes(app: Express): Server {
           lastViewedAt: true,
         }
       });
-      
+
       // Reorder the galleries to match the order of recent views
       const sortedGalleries = galleryIds
         .map(id => galleriesData.find(gallery => gallery.id === id))
         .filter(Boolean);
-      
+
       // For each gallery, get additional details (thumbnail and image count)
       const galleriesWithDetails = await Promise.all(
         sortedGalleries.map(async (gallery) => {
@@ -2718,7 +2728,7 @@ export function registerRoutes(app: Express): Server {
           };
         })
       );
-      
+
       res.json(galleriesWithDetails);
     } catch (error) {
       console.error('[API] Error fetching recent galleries:', error);
