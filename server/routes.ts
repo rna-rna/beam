@@ -2630,8 +2630,7 @@ export function registerRoutes(app: Express): Server {
         slug, 
         userId, 
         timestamp: new Date().toISOString(),
-        hasAuth: !!req.auth,
-        endpoint: '/galleries/:slug/view'
+        hasAuth: !!req.auth
       });
 
       // Find the gallery record first
@@ -2639,49 +2638,46 @@ export function registerRoutes(app: Express): Server {
         where: eq(galleries.slug, slug)
       });
 
-      console.log("[VIEW ROUTE] Found gallery:", {
-        found: !!gallery,
-        galleryId: gallery?.id,
-        timestamp: new Date().toISOString()
-      });
-
       if (!gallery) {
         console.log("[VIEW ROUTE] Gallery not found:", slug);
         return res.status(404).json({ message: 'Gallery not found' });
       }
 
-      // Insert a record into recently_viewed_galleries and capture result
-      console.log("[VIEW ROUTE] Attempting to insert view record:", {
-        userId,
-        galleryId: gallery.id,
-        timestamp: new Date().toISOString()
+      // Check if a recent view record already exists
+      const existingRecord = await db.query.recentlyViewedGalleries.findFirst({
+        where: and(
+          eq(recentlyViewedGalleries.userId, userId),
+          eq(recentlyViewedGalleries.galleryId, gallery.id)
+        )
       });
 
-      const insertResult = await db.insert(recentlyViewedGalleries)
-        .values({
-          userId: userId,
-          galleryId: gallery.id,
-          viewedAt: new Date()
-        })
-        .returning();
+      let viewRecord;
+      if (existingRecord) {
+        // Update existing record's timestamp
+        [viewRecord] = await db.update(recentlyViewedGalleries)
+          .set({ viewedAt: new Date() })
+          .where(eq(recentlyViewedGalleries.id, existingRecord.id))
+          .returning();
+        console.log("[VIEW ROUTE] Updated existing view record:", viewRecord);
+      } else {
+        // Insert new record
+        [viewRecord] = await db.insert(recentlyViewedGalleries)
+          .values({
+            userId: userId,
+            galleryId: gallery.id,
+            viewedAt: new Date()
+          })
+          .returning();
+        console.log("[VIEW ROUTE] Created new view record:", viewRecord);
+      }
 
-      console.log("[VIEW ROUTE] Insert result:", {
-        success: !!insertResult,
-        result: insertResult,
-        timestamp: new Date().toISOString()
-      });
-
-      // Also update the gallery's global lastViewedAt field
+      // Update gallery's global lastViewedAt field
       const [updated] = await db.update(galleries)
         .set({ lastViewedAt: new Date() })
         .where(eq(galleries.slug, slug))
         .returning();
 
-      console.log("[VIEW ROUTE] Recorded view and updated gallery record:", {
-        updated,
-        timestamp: new Date().toISOString()
-      });
-      
+      console.log("[VIEW ROUTE] Updated gallery record:", updated);
       res.json(updated);
     } catch (error) {
       console.error('Failed to record view:', error);
