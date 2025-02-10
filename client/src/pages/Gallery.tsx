@@ -866,8 +866,10 @@ export default function Gallery({
   });
 
   // Track gallery views
+  const hasRecordedViewRef = useRef(false);
   useEffect(() => {
-    if (gallery?.slug && user) {
+    if (gallery?.slug && user && !hasRecordedViewRef.current) {
+      hasRecordedViewRef.current = true;
       fetch(`/api/galleries/${gallery.slug}/view`, {
         method: 'POST',
         headers: {
