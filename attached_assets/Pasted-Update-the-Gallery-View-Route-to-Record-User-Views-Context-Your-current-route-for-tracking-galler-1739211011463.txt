@@ -1,0 +1,76 @@
+Update the Gallery “View” Route to Record User Views
+Context:
+Your current route for tracking gallery views (at /galleries/:slug/view) updates the global lastViewedAt field on the galleries table. Instead, you want to record that a particular user viewed that gallery. This is done by inserting a new record into the recently_viewed_galleries table.
+
+Locate the View Route:
+Find the following route in your file:
+ts
+Copy
+// Track gallery views
+protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
+  try {
+    const userId = req.auth.userId;
+    console.log("[VIEW ROUTE] Updating lastViewedAt for gallery:", {
+      slug: req.params.slug,
+      userId,
+      timestamp: new Date().toISOString()
+    });
+
+    const [updated] = await db.update(galleries)
+      .set({ lastViewedAt: new Date() })
+      .where(eq(galleries.slug, req.params.slug))
+      .returning();
+
+    if (!updated) {
+      console.log("[VIEW ROUTE] Gallery not found:", req.params.slug);
+      return res.status(404).json({ message: 'Gallery not found' });
+    }
+
+    console.log("[VIEW ROUTE] Updated gallery record:", updated);
+    res.json(updated);
+  } catch (error) {
+    console.error('Failed to update view timestamp:', error);
+    res.status(500).json({ message: 'Failed to update view timestamp' });
+  }
+});
+Insert a Record into the Recently Viewed Table:
+Modify this route to also insert a new record into the recently_viewed_galleries table. For example, change it to:
+ts
+Copy
+// Track gallery views
+protectedRouter.post('/galleries/:slug/view', async (req: any, res) => {
+  try {
+    const userId = req.auth.userId;
+    const slug = req.params.slug;
+    console.log("[VIEW ROUTE] Recording view for gallery:", { slug, userId, timestamp: new Date().toISOString() });
+    
+    // Find the gallery record first
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.slug, slug)
+    });
+    
+    if (!gallery) {
+      console.log("[VIEW ROUTE] Gallery not found:", slug);
+      return res.status(404).json({ message: 'Gallery not found' });
+    }
+    
+    // Insert a record into recently_viewed_galleries
+    await db.insert(recentlyViewedGalleries).values({
+      userId: userId,
+      galleryId: gallery.id,
+      viewedAt: new Date()
+    });
+    
+    // (Optional) Also update the gallery's global lastViewedAt field
+    const [updated] = await db.update(galleries)
+      .set({ lastViewedAt: new Date() })
+      .where(eq(galleries.slug, slug))
+      .returning();
+    
+    console.log("[VIEW ROUTE] Recorded view and updated gallery record:", updated);
+    res.json(updated);
+  } catch (error) {
+    console.error('Failed to record view:', error);
+    res.status(500).json({ message: 'Failed to record gallery view' });
+  }
+});
