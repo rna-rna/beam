@@ -119,7 +119,7 @@ export default function RecentsPage() {
                         {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
                       </div>
                       <span>
-                        {gallery.isOwner ? 'Owned by you' : 'Shared with you'}
+                        {gallery.isOwner ? 'Owned by you' : `Shared by ${gallery.sharedBy?.firstName || ''} ${gallery.sharedBy?.lastName || ''}`}
                       </span>
                     </div>
                   </div>
