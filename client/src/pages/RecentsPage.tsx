@@ -240,7 +240,7 @@ export default function RecentsPage() {
                       <Share className="mr-2 h-4 w-4" /> Share
                     </ContextMenuItem>
                     {gallery.isOwner && (
-                      <ContextMenuItem onClick={() => handleRename(gallery)}>
+                      <ContextMenuItem onSelect={() => handleRename(gallery)}>
                         <Pencil className="mr-2 h-4 w-4" /> Rename
                       </ContextMenuItem>
                     )}
@@ -249,7 +249,7 @@ export default function RecentsPage() {
                         <ContextMenuSeparator />
                         <ContextMenuItem
                           className="text-red-600"
-                          onClick={() => handleDelete(gallery)}
+                          onSelect={() => handleDelete(gallery)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" /> Delete
                         </ContextMenuItem>
