@@ -18,7 +18,6 @@ import { ShareModal } from "@/components/ShareModal";
 import { RenameGalleryModal } from "@/components/RenameGalleryModal";
 import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
 import { FolderOpen, Share, Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
