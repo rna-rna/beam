@@ -16,7 +16,7 @@ interface RenameGalleryModalProps {
   slug: string;
 }
 
-export function RenameGalleryModal({ isOpen, onClose, galleryId, currentTitle, slug }: RenameGalleryModalProps) {
+export function RenameGalleryModal({ isOpen, onClose, currentTitle, slug }: RenameGalleryModalProps) {
   const [title, setTitle] = useState(currentTitle);
   const [isRenaming, setIsRenaming] = useState(false);
   const queryClient = useQueryClient();
@@ -33,9 +33,15 @@ export function RenameGalleryModal({ isOpen, onClose, galleryId, currentTitle, s
         body: JSON.stringify({ title: title.trim() }),
       });
 
-      if (!res.ok) throw new Error("Failed to rename gallery");
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to rename gallery");
+      }
 
-      queryClient.invalidateQueries(["/api/galleries"]);
+      await queryClient.invalidateQueries(["/api/galleries"]);
+      await queryClient.invalidateQueries(["/api/recent-galleries"]);
+      await queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+
       toast({
         title: "Success",
         description: "Gallery renamed successfully",
@@ -44,7 +50,7 @@ export function RenameGalleryModal({ isOpen, onClose, galleryId, currentTitle, s
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to rename gallery",
+        description: error instanceof Error ? error.message : "Failed to rename gallery",
         variant: "destructive",
       });
     } finally {

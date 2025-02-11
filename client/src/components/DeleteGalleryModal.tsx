@@ -9,8 +9,8 @@ import { Loader2 } from "lucide-react";
 interface DeleteGalleryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  gallerySlug: string;          // we actually want to delete by slug
-  galleryTitle: string;         // used only for the dialog's text
+  gallerySlug: string;
+  galleryTitle: string;
 }
 
 export function DeleteGalleryModal({ isOpen, onClose, gallerySlug, galleryTitle }: DeleteGalleryModalProps) {
@@ -25,18 +25,23 @@ export function DeleteGalleryModal({ isOpen, onClose, gallerySlug, galleryTitle 
         method: "DELETE",
       });
 
-      if (!res.ok) throw new Error("Failed to delete gallery");
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to delete gallery');
+      }
 
-      queryClient.invalidateQueries(["/api/galleries"]);
+      await queryClient.invalidateQueries(["/api/galleries"]);
+      await queryClient.invalidateQueries(["/api/recent-galleries"]);
+      
       toast({
         title: "Success",
-        description: "Gallery deleted successfully",
+        description: "Gallery moved to trash",
       });
       onClose();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete gallery",
+        description: error instanceof Error ? error.message : "Failed to delete gallery",
         variant: "destructive",
       });
     } finally {
@@ -50,7 +55,7 @@ export function DeleteGalleryModal({ isOpen, onClose, gallerySlug, galleryTitle 
         <DialogHeader>
           <DialogTitle>Delete Gallery</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete "{galleryTitle}"? This action cannot be undone.
+            Are you sure you want to delete "{galleryTitle}"? This action can be undone within 30 days.
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end gap-2">
