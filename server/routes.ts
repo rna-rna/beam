@@ -1965,7 +1965,7 @@ export function registerRoutes(app: Express): Server {
             const [ownerData] = await fetchCachedUserData([gallery.userId]);
             const ownerClerkData = await clerkClient.users.getUser(gallery.userId);
             const ownerEmail = ownerClerkData.emailAddresses[0]?.emailAddress;
-            const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerEmail);
+                        const isOwnerInPermissions = usersWithDetails.some(u => u.email === ownerEmail);
 
             if (!isOwnerInPermissions && ownerEmail) {
               usersWithDetails.push({
@@ -2755,7 +2755,25 @@ export function registerRoutes(app: Express): Server {
         })
       );
 
-      res.json(galleriesWithDetails);
+      // Fetch user data for all galleries
+      const userIds = [...new Set(galleriesWithDetails.map(g => g.userId))];
+      const userData = await fetchCachedUserData(userIds);
+      const userDataMap = new Map(userData.map(user => [user.userId, user]));
+
+      const processedGalleries = galleriesWithDetails.map(gallery => {
+        const ownerData = userDataMap.get(gallery.userId);
+        return {
+          ...gallery,
+          sharedBy: gallery.userId === userId ? null : {
+            firstName: ownerData?.firstName || null,
+            lastName: ownerData?.lastName || null,
+            imageUrl: ownerData?.imageUrl || null,
+            color: ownerData?.color || null
+          }
+        };
+      });
+
+      res.json(processedGalleries);
     } catch (error) {
       console.error('[API] Error fetching recent galleries:', error);
       res.status(500).json({ message: 'Failed to fetch recent galleries' });
