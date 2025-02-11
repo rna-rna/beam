@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -11,9 +10,10 @@ interface DeleteGalleryModalProps {
   onClose: () => void;
   gallerySlug: string;
   galleryTitle: string;
+  onDelete?: () => Promise<void>;
 }
 
-export function DeleteGalleryModal({ isOpen, onClose, gallerySlug, galleryTitle }: DeleteGalleryModalProps) {
+export function DeleteGalleryModal({ isOpen, onClose, onDelete, gallerySlug, galleryTitle }: DeleteGalleryModalProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -21,18 +21,17 @@ export function DeleteGalleryModal({ isOpen, onClose, gallerySlug, galleryTitle 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/galleries/${gallerySlug}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to delete gallery');
+      if (onDelete) {
+        await onDelete();
+      } else {
+        await fetch(`/api/galleries/${gallerySlug}`, {
+          method: "DELETE",
+        });
       }
 
       await queryClient.invalidateQueries(["/api/galleries"]);
       await queryClient.invalidateQueries(["/api/recent-galleries"]);
-      
+
       toast({
         title: "Success",
         description: "Gallery moved to trash",

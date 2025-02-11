@@ -100,16 +100,42 @@ export default function RecentsPage() {
     const modal = document.createElement("div");
     document.body.appendChild(modal);
     const root = ReactDOM.createRoot(modal);
+    
+    const onDelete = async () => {
+      try {
+        const response = await fetch(`/api/galleries/${gallery.slug}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete gallery');
+        }
+        
+        // Refetch the recents list after successful deletion
+        queryClient.invalidateQueries(['/api/recent-galleries']);
+      } catch (error) {
+        console.error('Error deleting gallery:', error);
+      }
+    };
+
     root.render(
-      <DeleteGalleryModal
-        isOpen={true}
-        onClose={() => {
-          root.unmount();
-          modal.remove();
-        }}
-        gallerySlug={gallery.slug}
-        galleryTitle={gallery.title}
-      />
+      <Dialog open onOpenChange={() => {
+        root.unmount();
+        modal.remove();
+      }}>
+        <DialogContent>
+          <DeleteGalleryModal
+            isOpen={true}
+            onClose={() => {
+              root.unmount();
+              modal.remove();
+            }}
+            onDelete={onDelete}
+            gallerySlug={gallery.slug}
+            galleryTitle={gallery.title}
+          />
+        </DialogContent>
+      </Dialog>
     );
   };
 
@@ -165,7 +191,11 @@ export default function RecentsPage() {
                   <ContextMenuTrigger>
                     <Card 
                       className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
-                      onClick={() => setLocation(`/g/${gallery.slug}`)}
+                      onClick={(e) => {
+                        // Don't navigate if right-clicked
+                        if (e.button === 2) return;
+                        setLocation(`/g/${gallery.slug}`);
+                      }}
                     >
                       <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
                         {gallery.thumbnailUrl && (
