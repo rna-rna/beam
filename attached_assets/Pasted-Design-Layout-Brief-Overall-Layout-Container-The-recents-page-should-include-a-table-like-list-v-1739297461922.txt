@@ -1,0 +1,54 @@
+Design & Layout Brief
+Overall Layout
+Container:
+The recents page should include a table-like “list view” that spans the available width. This view replaces (or is toggled from) the current grid/masonry view.
+
+Column Headers:
+At the top of the list view, include a header row with clearly defined column titles. The headers should have a subtle background and be separated from the data rows by a border.
+
+Data Rows:
+Each recent gallery is represented by one row. The rows should have hover states (e.g. a light background color change or subtle shadow) to indicate they are clickable and interactive.
+
+Columns & Their Content
+Include the following columns:
+
+Thumbnail:
+
+Appearance: A small image preview (e.g. 80×80 or 100×100 pixels) that shows the gallery’s thumbnail.
+Behavior: This column is optional if space is tight on smaller screens; you could hide or collapse it responsively.
+Title:
+
+Appearance: The gallery’s title, rendered in a clear, legible font.
+Sorting: Clicking the header should sort the rows alphabetically (A–Z for ascending, Z–A for descending).
+Images:
+
+Content: Display the number of images in the gallery (e.g., “12 images”).
+Sorting: Clicking this header should sort the rows numerically (low-to-high or high-to-low).
+Last Viewed:
+
+Content: Show a friendly, relative timestamp (e.g., “just now”, “1 min ago”, “3 days ago”).
+Details:
+For galleries that have been viewed, this value comes from the gallery’s viewed_at timestamp.
+For galleries you were invited to but haven’t viewed yet, use the invitation’s timestamp.
+Sorting: The header should allow sorting chronologically (newest to oldest and vice versa).
+Status:
+
+Content:
+Display a label (or “pill”) that indicates whether the gallery is “Owned by you” or “Shared with you”.
+For galleries that were added via an invitation (and have not yet been viewed), include an extra “Invited” pill next to the status.
+Sorting (Optional): You might allow sorting by status (e.g. grouping “Owned” versus “Invited/Shared”), though this is less critical than the other columns.
+Interactive Features
+Sortable Columns:
+Each column header should be clickable. On click, it should toggle the sort order for that column (ascending ↔ descending).
+
+Visual Cues:
+Display an arrow icon (up or down) next to the column header text to indicate the current sort direction.
+A simple transition or change in icon color can help signal which column is currently active for sorting.
+Filtering Options:
+While the search input at the top can continue filtering by title, you may also consider adding drop-down filters for individual columns (if desired) for more granular control.
+
+Responsive Design:
+On smaller screens, the table should either become horizontally scrollable or hide less-critical columns (such as the Thumbnail) to maintain legibility.
+
+Row Click Action:
+Clicking anywhere on a row should navigate the user to the gallery’s detail view (using the gallery’s slug). Make sure the hover state and clickable behavior are consistent.
