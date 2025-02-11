@@ -50,7 +50,7 @@ export function DashboardSidebar() {
             variant={selectedSection === 'projects' ? "secondary" : "ghost"}
             className="w-full justify-start"
             onClick={() => {
-              setSelectedSection('projects');
+              setSelectedSection('recents');
               setLocation("/dashboard");
             }}
           >

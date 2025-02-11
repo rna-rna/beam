@@ -255,12 +255,6 @@ function AppContent() {
 
       <Route path="/dashboard">
         <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/dashboard/recents">
-        <ProtectedRoute>
           <RecentsPage />
         </ProtectedRoute>
       </Route>
