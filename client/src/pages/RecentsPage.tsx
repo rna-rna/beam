@@ -171,9 +171,9 @@ export default function RecentsPage() {
                   )}
                 </ContextMenuContent>
               </ContextMenu>
-              ))}
-            </div>
-          ) : (
+            ))}
+          </div>
+        ) : (
             <div className="flex flex-col items-center justify-center h-[50vh] text-center">
               <Clock className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="font-semibold mb-1">No recent galleries found</h3>
