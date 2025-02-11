@@ -13,6 +13,12 @@ import { Layout } from "@/components/Layout";
 import { Input } from "@/components/ui/input";
 import { GallerySkeleton } from "@/components/GallerySkeleton";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { ShareModal } from "@/components/ShareModal";
+import { RenameGalleryModal } from "@/components/RenameGalleryModal";
+import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
+import { FolderOpen, Share, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
@@ -21,6 +27,10 @@ export default function RecentsPage() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [isListView, setIsListView] = useState(false);
+  const [selectedGallery, setSelectedGallery] = useState<any>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { data: galleries = [], isLoading } = useQuery({
     queryKey: ['/api/recent-galleries'],
@@ -86,10 +96,11 @@ export default function RecentsPage() {
           ) : filteredGalleries.length > 0 ? (
             <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
               {filteredGalleries.map(gallery => (
-                <Card 
-                  key={gallery.id} 
-                  className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
-                  onClick={() => setLocation(`/g/${gallery.slug}`)}
+                <ContextMenu key={gallery.id}>
+                  <ContextMenuTrigger>
+                    <Card 
+                      className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
+                      onClick={() => setLocation(`/g/${gallery.slug}`)}
                 >
                   <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
                     {gallery.thumbnailUrl && (
@@ -125,8 +136,89 @@ export default function RecentsPage() {
                     </div>
                   </div>
                 </Card>
+                <ContextMenuContent>
+                  <ContextMenuItem onSelect={() => setLocation(`/g/${gallery.slug}`)}>
+                    <FolderOpen className="mr-2 h-4 w-4" />
+                    Open
+                  </ContextMenuItem>
+                  <ContextMenuItem onSelect={() => {
+                    setSelectedGallery(gallery);
+                    setShowShareModal(true);
+                  }}>
+                    <Share className="mr-2 h-4 w-4" />
+                    Share
+                  </ContextMenuItem>
+                  {gallery.isOwner && (
+                    <>
+                      <ContextMenuItem onSelect={() => {
+                        setSelectedGallery(gallery);
+                        setShowRenameModal(true);
+                      }}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Rename
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem 
+                        className="text-red-600"
+                        onSelect={() => {
+                          setSelectedGallery(gallery);
+                          setShowDeleteModal(true);
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </ContextMenuItem>
+                    </>
+                  )}
+                </ContextMenuContent>
+              </ContextMenu>
               ))}
             </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+              <Clock className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="font-semibold mb-1">No recent galleries found</h3>
+              <p className="text-sm text-muted-foreground">
+                {searchQuery ? 'Try adjusting your search or filters' : "You haven't viewed any galleries yet"}
+              </p>
+            </div>
+          )}
+        </div>
+      </main>
+      {selectedGallery && (
+        <>
+          <ShareModal
+            isOpen={showShareModal}
+            onClose={() => {
+              setShowShareModal(false);
+              setSelectedGallery(null);
+            }}
+            galleryUrl={`${window.location.origin}/g/${selectedGallery.slug}`}
+            slug={selectedGallery.slug}
+            isPublic={selectedGallery.isPublic}
+            onVisibilityChange={() => {}}
+          />
+          <RenameGalleryModal
+            isOpen={showRenameModal}
+            onClose={() => {
+              setShowRenameModal(false);
+              setSelectedGallery(null);
+            }}
+            galleryId={selectedGallery.id}
+            currentTitle={selectedGallery.title}
+            slug={selectedGallery.slug}
+          />
+          <DeleteGalleryModal
+            isOpen={showDeleteModal}
+            onClose={() => {
+              setShowDeleteModal(false);
+              setSelectedGallery(null);
+            }}
+            gallerySlug={selectedGallery.slug}
+            galleryTitle={selectedGallery.title}
+          />
+        </>
+      )}
           ) : (
             <div className="flex flex-col items-center justify-center h-[50vh] text-center">
               <Clock className="h-12 w-12 text-muted-foreground mb-4" />
