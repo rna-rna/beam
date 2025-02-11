@@ -111,8 +111,8 @@ export default function RecentsPage() {
           throw new Error('Failed to delete gallery');
         }
         
-        // Refetch the recents list after successful deletion
         queryClient.invalidateQueries(['/api/recent-galleries']);
+        modal.remove();
       } catch (error) {
         console.error('Error deleting gallery:', error);
       }
@@ -133,6 +133,32 @@ export default function RecentsPage() {
             onDelete={onDelete}
             gallerySlug={gallery.slug}
             galleryTitle={gallery.title}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  const handleRename = (gallery) => {
+    const modal = document.createElement("div");
+    document.body.appendChild(modal);
+    const root = ReactDOM.createRoot(modal);
+    root.render(
+      <Dialog open onOpenChange={() => {
+        root.unmount();
+        modal.remove();
+      }}>
+        <DialogContent>
+          <RenameGalleryModal
+            isOpen={true}
+            onClose={() => {
+              root.unmount();
+              modal.remove();
+              queryClient.invalidateQueries(['/api/recent-galleries']);
+            }}
+            galleryId={gallery.id}
+            currentTitle={gallery.title}
+            slug={gallery.slug}
           />
         </DialogContent>
       </Dialog>
