@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import dayjs from 'dayjs';
@@ -135,45 +134,45 @@ export default function RecentsPage() {
                     </div>
                   </div>
                 </Card>
-                <ContextMenuContent>
-                  <ContextMenuItem onSelect={() => setLocation(`/g/${gallery.slug}`)}>
-                    <FolderOpen className="mr-2 h-4 w-4" />
-                    Open
-                  </ContextMenuItem>
-                  <ContextMenuItem onSelect={() => {
-                    setSelectedGallery(gallery);
-                    setShowShareModal(true);
-                  }}>
-                    <Share className="mr-2 h-4 w-4" />
-                    Share
-                  </ContextMenuItem>
-                  {gallery.isOwner && (
-                    <>
-                      <ContextMenuItem onSelect={() => {
-                        setSelectedGallery(gallery);
-                        setShowRenameModal(true);
-                      }}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Rename
-                      </ContextMenuItem>
-                      <ContextMenuSeparator />
-                      <ContextMenuItem 
-                        className="text-red-600"
-                        onSelect={() => {
+                  <ContextMenuContent>
+                    <ContextMenuItem onSelect={() => setLocation(`/g/${gallery.slug}`)}>
+                      <FolderOpen className="mr-2 h-4 w-4" />
+                      Open
+                    </ContextMenuItem>
+                    <ContextMenuItem onSelect={() => {
+                      setSelectedGallery(gallery);
+                      setShowShareModal(true);
+                    }}>
+                      <Share className="mr-2 h-4 w-4" />
+                      Share
+                    </ContextMenuItem>
+                    {gallery.isOwner && (
+                      <>
+                        <ContextMenuItem onSelect={() => {
                           setSelectedGallery(gallery);
-                          setShowDeleteModal(true);
-                        }}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </ContextMenuItem>
-                    </>
-                  )}
-                </ContextMenuContent>
-              </ContextMenu>
-            ))}
-          </div>
-        ) : (
+                          setShowRenameModal(true);
+                        }}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Rename
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem 
+                          className="text-red-600"
+                          onSelect={() => {
+                            setSelectedGallery(gallery);
+                            setShowDeleteModal(true);
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </ContextMenuItem>
+                      </>
+                    )}
+                  </ContextMenuContent>
+                </ContextMenu>
+              ))}
+            </div>
+          ) : (
             <div className="flex flex-col items-center justify-center h-[50vh] text-center">
               <Clock className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="font-semibold mb-1">No recent galleries found</h3>
@@ -218,17 +217,6 @@ export default function RecentsPage() {
           />
         </>
       )}
-          ) : (
-            <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-              <Clock className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="font-semibold mb-1">No recent galleries found</h3>
-              <p className="text-sm text-muted-foreground">
-                {searchQuery ? 'Try adjusting your search or filters' : "You haven't viewed any galleries yet"}
-              </p>
-            </div>
-          )}
-        </div>
-      </main>
     </div>
   );
 }
