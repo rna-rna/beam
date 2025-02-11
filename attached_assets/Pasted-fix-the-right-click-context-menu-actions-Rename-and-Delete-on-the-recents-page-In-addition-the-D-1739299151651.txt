@@ -1,0 +1,55 @@
+fix the right‑click context menu actions (Rename and Delete) on the recents page. In addition, the Delete action should be changed so that it “soft deletes” (updates a deleted‑at field) rather than permanently removing the gallery.
+
+1. Debugging the Context Menu Actions
+A. Verify Event Handling
+
+Check the onClick Handlers:
+In your recents page component, add temporary console logs in the functions used by the context menu items (e.g. in handleRename and handleDelete) to confirm they are being invoked when you right‑click and select an option.
+
+For example, in handleRename:
+
+js
+Copy
+const handleRename = (gallery) => {
+  console.log("handleRename invoked for gallery:", gallery);
+  // ...existing modal code...
+};
+And similarly for handleDelete.
+
+Prevent Propagation Conflicts:
+Since the entire Card is clickable (navigating on click), sometimes that onClick event might override or conflict with the context menu’s onClick events. Make sure that when the context menu is triggered (via the ContextMenuTrigger), the parent’s onClick isn’t firing.
+One strategy is to attach the context menu on a wrapping container and, inside its trigger, call e.preventDefault() on the right‑click event. (Many context menu libraries already do this internally.)
+
+B. Check the Modal Mounting
+
+Modal Creation via ReactDOM.createRoot:
+Verify that the dynamically created modal container (a newly created div appended to document.body) is visible (for example, by inspecting the DOM in your browser’s dev tools).
+Ensure that the modal component (e.g. <RenameGalleryModal> or <DeleteGalleryModal>) is correctly styled (z‑index, positioning, etc.) so that it appears above the main content.
+Also verify that the onClose callbacks correctly unmount the modal and remove the container element.
+2. Making Delete a “Soft Delete”
+In your backend routes, the delete action on a gallery should not permanently remove the record; instead, it should update a “deletedAt” field. (Your route for deleting a gallery already does this.)
+
+Steps to ensure soft deletion works in recents:
+
+Verify the DELETE Route:
+
+In your routes file, the delete endpoint for a gallery (e.g. at DELETE /api/galleries/:slug) updates the gallery record by setting the deletedAt field to the current date:
+
+js
+Copy
+// Soft delete by setting deletedAt timestamp
+const [updated] = await db.update(galleries)
+  .set({ deletedAt: new Date() })
+  .where(eq(galleries.id, gallery.id))
+  .returning();
+Confirm that this route is being used by your DeleteGalleryModal.
+
+Ensure the Delete Modal Calls This Endpoint:
+
+In your <DeleteGalleryModal> component (the one rendered by your handleDelete function), verify that when the user confirms deletion the modal sends a DELETE request to the correct endpoint (e.g. /api/galleries/${gallery.slug}). It should use the HTTP DELETE method (or if your API expects DELETE on a protected route, ensure that the method is DELETE).
+
+Refresh the Recents List:
+
+After a gallery is “soft deleted,” the recents page should update so that the deleted gallery is no longer visible. (You might filter out any gallery with a non‑null deletedAt in your /api/recent-galleries query.)
+Make sure that your recents page query refetches or invalidates its cache after a delete.
+
