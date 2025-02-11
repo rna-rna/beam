@@ -8,7 +8,7 @@ dayjs.extend(relativeTime);
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { Loader2, Search, Clock } from "lucide-react";
+import { Loader2, Search, Clock, Plus, List } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Input } from "@/components/ui/input";
 import { GallerySkeleton } from "@/components/GallerySkeleton";
@@ -20,8 +20,7 @@ import { Toggle } from "@/components/ui/toggle";
 export default function RecentsPage() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [showOnlyOwned, setShowOnlyOwned] = useState(false);
-  const [showOnlyShared, setShowOnlyShared] = useState(false);
+  const [isListView, setIsListView] = useState(false);
 
   const { data: galleries = [], isLoading } = useQuery({
     queryKey: ['/api/recent-galleries'],
@@ -36,10 +35,7 @@ export default function RecentsPage() {
   });
 
   const filteredGalleries = galleries.filter(gallery => {
-    if (!gallery.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    if (showOnlyOwned && !gallery.isOwner) return false;
-    if (showOnlyShared && gallery.isOwner) return false;
-    return true;
+    return gallery.title.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   return (
@@ -71,19 +67,15 @@ export default function RecentsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button onClick={() => setLocation("/new")}>
+              <Plus className="mr-2 h-4 w-4" /> New Gallery
+            </Button>
             <Toggle
-              pressed={showOnlyOwned}
-              onPressedChange={setShowOnlyOwned}
-              aria-label="Show only my galleries"
+              pressed={isListView}
+              onPressedChange={setIsListView}
+              aria-label="Toggle list view"
             >
-              Owned by Me
-            </Toggle>
-            <Toggle
-              pressed={showOnlyShared}
-              onPressedChange={setShowOnlyShared}
-              aria-label="Show only shared galleries"
-            >
-              Shared with Me
+              <List className="h-4 w-4" />
             </Toggle>
           </div>
         </header>
@@ -92,34 +84,45 @@ export default function RecentsPage() {
           {isLoading ? (
             <GallerySkeleton count={12} />
           ) : filteredGalleries.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
               {filteredGalleries.map(gallery => (
                 <Card 
                   key={gallery.id} 
-                  className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                  className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
                   onClick={() => setLocation(`/g/${gallery.slug}`)}
                 >
-                  <div className="aspect-video relative bg-muted">
+                  <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
                     {gallery.thumbnailUrl && (
                       <img
                         src={gallery.thumbnailUrl}
                         alt={gallery.title}
-                        className="object-cover w-full h-full"
+                        className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
                       />
                     )}
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold">{gallery.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {gallery.imageCount || 0} images
-                    </p>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
+                  <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
+                    <div className="space-y-1">
+                      <h3 className="font-semibold text-lg">{gallery.title}</h3>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm text-muted-foreground">
+                          {gallery.imageCount || 0} images
+                        </p>
+                        {!gallery.lastViewedAt && !gallery.isOwner && (
+                          <span className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">
+                            Invited
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {gallery.isOwner ? 'Owned by you' : 'Shared with you'}
-                    </p>
+                    <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
+                      </div>
+                      <span className="flex items-center gap-1">
+                        {gallery.isOwner ? 'Owned by you' : `Shared by ${gallery.sharedBy?.firstName || ''} ${gallery.sharedBy?.lastName || ''}`}
+                      </span>
+                    </div>
                   </div>
                 </Card>
               ))}
