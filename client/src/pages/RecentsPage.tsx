@@ -113,13 +113,15 @@ export default function RecentsPage() {
                     <p className="text-sm text-muted-foreground">
                       {gallery.imageCount || 0} images
                     </p>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
+                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
+                      </div>
+                      <span>
+                        {gallery.isOwner ? 'Owned by you' : 'Shared with you'}
+                      </span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {gallery.isOwner ? 'Owned by you' : 'Shared with you'}
-                    </p>
                   </div>
                 </Card>
               ))}
