@@ -1,0 +1,98 @@
+ix the issue with the context menu “Rename” and “Delete” options in the recents page. These instructions cover two likely issues:
+
+Inconsistent Event Handler Naming:
+In the recents page file the “Open” and “Share” context menu items use an onClick handler while the “Rename” and “Delete” items use onSelect. In our testing the onSelect event is either not firing or isn’t wired correctly in this custom context menu. Changing those to use onClick (or making them consistent with the others) should fix the issue.
+
+Missing Query Client:
+The rename and delete handlers call queryClient.invalidateQueries(['/api/recent-galleries']) but the RecentsPage component never creates a query client instance. We need to import and initialize the query client from react‑query.
+
+Below is a step‑by‑step brief:
+
+Step 1. Import and Initialize the Query Client
+At the top of recentspage.tsx, add an import for the query client hook from react‑query. For example:
+
+tsx
+Copy
+import { useQueryClient } from "@tanstack/react-query";
+Then inside the component (e.g. near the other hooks), initialize the query client:
+
+tsx
+Copy
+const queryClient = useQueryClient();
+This will allow your rename and delete handlers to properly call queryClient.invalidateQueries.
+
+Step 2. Change onSelect Handlers to onClick for Rename and Delete
+Currently your context menu items for Rename and Delete are defined like this:
+
+jsx
+Copy
+{gallery.isOwner && (
+  <ContextMenuItem onSelect={() => handleRename(gallery)}>
+    <Pencil className="mr-2 h-4 w-4" /> Rename
+  </ContextMenuItem>
+)}
+{gallery.isOwner && (
+  <>
+    <ContextMenuSeparator />
+    <ContextMenuItem className="text-red-600" onSelect={() => handleDelete(gallery)}>
+      <Trash2 className="mr-2 h-4 w-4" /> Delete
+    </ContextMenuItem>
+  </>
+)}
+Change these to use onClick so they work like your other menu items. For example:
+
+jsx
+Copy
+{gallery.isOwner && (
+  <ContextMenuItem onClick={() => handleRename(gallery)}>
+    <Pencil className="mr-2 h-4 w-4" /> Rename
+  </ContextMenuItem>
+)}
+{gallery.isOwner && (
+  <>
+    <ContextMenuSeparator />
+    <ContextMenuItem className="text-red-600" onClick={() => handleDelete(gallery)}>
+      <Trash2 className="mr-2 h-4 w-4" /> Delete
+    </ContextMenuItem>
+  </>
+)}
+Using onClick will ensure that when the user clicks the Rename or Delete item in the context menu, the appropriate handler function is called.
+
+Step 3. Verify the Modal Components
+Ensure that your modal components (RenameGalleryModal and DeleteGalleryModal) are working as expected. In your current implementation you’re mounting them dynamically into a new div using ReactDOM.createRoot. Confirm that:
+
+The modals properly unmount when closed.
+They call the provided onClose callbacks.
+After renaming or deleting, you call queryClient.invalidateQueries(['/api/recent-galleries']) to refresh the recents list.
+For example, in handleRename you already have:
+
+tsx
+Copy
+const handleRename = (gallery) => {
+  const modal = document.createElement("div");
+  document.body.appendChild(modal);
+  const root = ReactDOM.createRoot(modal);
+  root.render(
+    <Dialog open onOpenChange={() => {
+      root.unmount();
+      modal.remove();
+      queryClient.invalidateQueries(['/api/recent-galleries']);
+    }}>
+      <DialogContent>
+        <RenameGalleryModal
+          isOpen={true}
+          onClose={() => {
+            root.unmount();
+            modal.remove();
+            queryClient.invalidateQueries(['/api/recent-galleries']);
+          }}
+          galleryId={gallery.id}
+          currentTitle={gallery.title}
+          slug={gallery.slug}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+};
+Make sure similar adjustments (if needed) are made in handleDelete.
+
