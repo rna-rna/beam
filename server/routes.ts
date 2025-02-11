@@ -1021,23 +1021,27 @@ export function registerRoutes(app: Express): Server {
       const gallery = await db.query.galleries.findFirst({
         where: and(
           eq(galleries.slug, req.params.slug),
-          eq(galleries.userId, userId)        ),
+          eq(galleries.userId, userId),
+          isNull(galleries.deletedAt)
+        ),
       });
 
       if (!gallery) {
         console.error(`Gallery not found for slug: ${req.params.slug}`);
-        return res.status(404).json({message: 'Gallery not found',
+        return res.status(404).json({
+          message: 'Gallery not found',
           error: 'NOT_FOUND',
           details: 'The gallery you are looking for does not exist or has been removed'
         });
       }
 
-      // Soft delete by setting deleted_at timestamp
-      await db.update(galleries)
-        .set({ deleted_at: new Date().toISOString() })
-        .where(eq(galleries.id, gallery.id));
+      // Soft delete by setting deletedAt timestamp
+      const [updated] = await db.update(galleries)
+        .set({ deletedAt: new Date() })
+        .where(eq(galleries.id, gallery.id))
+        .returning();
 
-      res.json({ success: true });
+      res.json({ success: true, gallery: updated });
     } catch (error) {
       console.error('Error deleting gallery:', error);
       res.status(500).json({

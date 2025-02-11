@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import * as ReactDOM from "react-dom/client";
 
 dayjs.extend(relativeTime);
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { Loader2, Search, Clock, Plus, List } from "lucide-react";
+import { Loader2, Search, Clock, Plus, List, FolderOpen, Share, Pencil, Trash2 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Input } from "@/components/ui/input";
 import { GallerySkeleton } from "@/components/GallerySkeleton";
@@ -16,6 +17,17 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
+import { ShareModal } from "@/components/ShareModal";
+import { RenameGalleryModal } from "@/components/RenameGalleryModal";
+import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 export default function RecentsPage() {
   const [, setLocation] = useLocation();
@@ -31,12 +43,75 @@ export default function RecentsPage() {
       }
       return res.json();
     },
-    refetchInterval: 30000 // Refetch every 30 seconds for real-time updates
+    refetchInterval: 30000
   });
 
   const filteredGalleries = galleries.filter(gallery => {
     return gallery.title.toLowerCase().includes(searchQuery.toLowerCase());
   });
+
+  const handleShare = (gallery) => {
+    const url = `${window.location.origin}/g/${gallery.slug}`;
+    const modal = document.createElement("div");
+    modal.id = `share-modal-${gallery.id}`;
+    document.body.appendChild(modal);
+    const root = ReactDOM.createRoot(modal);
+    root.render(
+      <Dialog open onOpenChange={() => {
+        root.unmount();
+        modal.remove();
+      }}>
+        <DialogContent>
+          <ShareModal
+            isOpen={true}
+            onClose={() => {
+              root.unmount();
+              modal.remove();
+            }}
+            galleryUrl={url}
+            slug={gallery.slug}
+            isPublic={gallery.isPublic}
+            onVisibilityChange={() => {}}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  const handleRename = (gallery) => {
+    const modal = document.createElement("div");
+    document.body.appendChild(modal);
+    const root = ReactDOM.createRoot(modal);
+    root.render(
+      <RenameGalleryModal
+        isOpen={true}
+        onClose={() => {
+          root.unmount();
+          modal.remove();
+        }}
+        galleryId={gallery.id}
+        currentTitle={gallery.title}
+        slug={gallery.slug}
+      />
+    );
+  };
+
+  const handleDelete = (gallery) => {
+    const modal = document.createElement("div");
+    document.body.appendChild(modal);
+    const root = ReactDOM.createRoot(modal);
+    root.render(
+      <DeleteGalleryModal
+        isOpen={true}
+        onClose={() => {
+          root.unmount();
+          modal.remove();
+        }}
+        gallerySlug={gallery.slug}
+        galleryTitle={gallery.title}
+      />
+    );
+  };
 
   return (
     <div className="flex h-[calc(100vh-65px)] bg-background">
@@ -86,45 +161,72 @@ export default function RecentsPage() {
           ) : filteredGalleries.length > 0 ? (
             <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
               {filteredGalleries.map(gallery => (
-                <Card 
-                  key={gallery.id} 
-                  className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
-                  onClick={() => setLocation(`/g/${gallery.slug}`)}
-                >
-                  <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
-                    {gallery.thumbnailUrl && (
-                      <img
-                        src={gallery.thumbnailUrl}
-                        alt={gallery.title}
-                        className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
-                      />
-                    )}
-                  </div>
-                  <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
-                    <div className="space-y-1">
-                      <h3 className="font-semibold text-lg">{gallery.title}</h3>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm text-muted-foreground">
-                          {gallery.imageCount || 0} images
-                        </p>
-                        {!gallery.lastViewedAt && !gallery.isOwner && (
-                          <span className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">
-                            Invited
-                          </span>
+                <ContextMenu key={gallery.id}>
+                  <ContextMenuTrigger>
+                    <Card 
+                      className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
+                      onClick={() => setLocation(`/g/${gallery.slug}`)}
+                    >
+                      <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
+                        {gallery.thumbnailUrl && (
+                          <img
+                            src={gallery.thumbnailUrl}
+                            alt={gallery.title}
+                            className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
+                          />
                         )}
                       </div>
-                    </div>
-                    <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
+                      <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
+                        <div className="space-y-1">
+                          <h3 className="font-semibold text-lg">{gallery.title}</h3>
+                          <div className="flex items-center gap-3">
+                            <p className="text-sm text-muted-foreground">
+                              {gallery.imageCount || 0} images
+                            </p>
+                            {!gallery.lastViewedAt && !gallery.isOwner && (
+                              <span className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">
+                                Invited
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
+                          </div>
+                          <span className="flex items-center gap-1">
+                            {gallery.isOwner ? 'Owned by you' : `Shared by ${gallery.sharedBy?.firstName || ''} ${gallery.sharedBy?.lastName || ''}`}
+                          </span>
+                        </div>
                       </div>
-                      <span className="flex items-center gap-1">
-                        {gallery.isOwner ? 'Owned by you' : `Shared by ${gallery.sharedBy?.firstName || ''} ${gallery.sharedBy?.lastName || ''}`}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
+                    </Card>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem onClick={() => setLocation(`/g/${gallery.slug}`)}>
+                      <FolderOpen className="mr-2 h-4 w-4" /> Open
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleShare(gallery)}>
+                      <Share className="mr-2 h-4 w-4" /> Share
+                    </ContextMenuItem>
+                    {gallery.isOwner && (
+                      <ContextMenuItem onClick={() => handleRename(gallery)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Rename
+                      </ContextMenuItem>
+                    )}
+                    {gallery.isOwner && (
+                      <>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                          className="text-red-600"
+                          onClick={() => handleDelete(gallery)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </ContextMenuItem>
+                      </>
+                    )}
+                  </ContextMenuContent>
+                </ContextMenu>
               ))}
             </div>
           ) : (
