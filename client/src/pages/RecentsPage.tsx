@@ -84,35 +84,42 @@ export default function RecentsPage() {
           {isLoading ? (
             <GallerySkeleton count={12} />
           ) : filteredGalleries.length > 0 ? (
-            <div className={isListView ? "flex flex-col gap-4" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
+            <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
               {filteredGalleries.map(gallery => (
                 <Card 
                   key={gallery.id} 
-                  className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                  className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
                   onClick={() => setLocation(`/g/${gallery.slug}`)}
                 >
-                  <div className="aspect-video relative bg-muted">
+                  <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
                     {gallery.thumbnailUrl && (
                       <img
                         src={gallery.thumbnailUrl}
                         alt={gallery.title}
-                        className="object-cover w-full h-full"
+                        className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
                       />
                     )}
                   </div>
-                  <div className={`p-4 ${isListView ? 'flex items-center justify-between w-full' : ''}`}>
-                    <div>
-                      <h3 className="font-semibold">{gallery.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {gallery.imageCount || 0} images
-                      </p>
+                  <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
+                    <div className="space-y-1">
+                      <h3 className="font-semibold text-lg">{gallery.title}</h3>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm text-muted-foreground">
+                          {gallery.imageCount || 0} images
+                        </p>
+                        {!gallery.lastViewedAt && !gallery.isOwner && (
+                          <span className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">
+                            Invited
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
                       <div className="flex items-center gap-2">
                         <Clock className="h-3 w-3" />
                         {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
                       </div>
-                      <span>
+                      <span className="flex items-center gap-1">
                         {gallery.isOwner ? 'Owned by you' : `Shared by ${gallery.sharedBy?.firstName || ''} ${gallery.sharedBy?.lastName || ''}`}
                       </span>
                     </div>
