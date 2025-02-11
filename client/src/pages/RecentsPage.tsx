@@ -83,16 +83,24 @@ export default function RecentsPage() {
     document.body.appendChild(modal);
     const root = ReactDOM.createRoot(modal);
     root.render(
-      <RenameGalleryModal
-        isOpen={true}
-        onClose={() => {
-          root.unmount();
-          modal.remove();
-        }}
-        galleryId={gallery.id}
-        currentTitle={gallery.title}
-        slug={gallery.slug}
-      />
+      <Dialog open onOpenChange={() => {
+        root.unmount();
+        modal.remove();
+      }}>
+        <DialogContent>
+          <RenameGalleryModal
+            isOpen={true}
+            onClose={() => {
+              root.unmount();
+              modal.remove();
+              queryClient.invalidateQueries(['/api/recent-galleries']);
+            }}
+            galleryId={gallery.id}
+            currentTitle={gallery.title}
+            slug={gallery.slug}
+          />
+        </DialogContent>
+      </Dialog>
     );
   };
 
@@ -100,16 +108,42 @@ export default function RecentsPage() {
     const modal = document.createElement("div");
     document.body.appendChild(modal);
     const root = ReactDOM.createRoot(modal);
+    
+    const onDelete = async () => {
+      try {
+        const response = await fetch(`/api/galleries/${gallery.slug}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete gallery');
+        }
+        
+        queryClient.invalidateQueries(['/api/recent-galleries']);
+        modal.remove();
+      } catch (error) {
+        console.error('Error deleting gallery:', error);
+      }
+    };
+
     root.render(
-      <DeleteGalleryModal
-        isOpen={true}
-        onClose={() => {
-          root.unmount();
-          modal.remove();
-        }}
-        gallerySlug={gallery.slug}
-        galleryTitle={gallery.title}
-      />
+      <Dialog open onOpenChange={() => {
+        root.unmount();
+        modal.remove();
+      }}>
+        <DialogContent>
+          <DeleteGalleryModal
+            isOpen={true}
+            onClose={() => {
+              root.unmount();
+              modal.remove();
+            }}
+            onDelete={onDelete}
+            gallerySlug={gallery.slug}
+            galleryTitle={gallery.title}
+          />
+        </DialogContent>
+      </Dialog>
     );
   };
 
@@ -165,7 +199,11 @@ export default function RecentsPage() {
                   <ContextMenuTrigger>
                     <Card 
                       className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
-                      onClick={() => setLocation(`/g/${gallery.slug}`)}
+                      onClick={(e) => {
+                        // Don't navigate if right-clicked
+                        if (e.button === 2) return;
+                        setLocation(`/g/${gallery.slug}`);
+                      }}
                     >
                       <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
                         {gallery.thumbnailUrl && (
@@ -210,7 +248,7 @@ export default function RecentsPage() {
                       <Share className="mr-2 h-4 w-4" /> Share
                     </ContextMenuItem>
                     {gallery.isOwner && (
-                      <ContextMenuItem onClick={() => handleRename(gallery)}>
+                      <ContextMenuItem onSelect={() => handleRename(gallery)}>
                         <Pencil className="mr-2 h-4 w-4" /> Rename
                       </ContextMenuItem>
                     )}
@@ -219,7 +257,7 @@ export default function RecentsPage() {
                         <ContextMenuSeparator />
                         <ContextMenuItem
                           className="text-red-600"
-                          onClick={() => handleDelete(gallery)}
+                          onSelect={() => handleDelete(gallery)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" /> Delete
                         </ContextMenuItem>
