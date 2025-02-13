@@ -147,9 +147,6 @@ export function registerRoutes(app: Express): Server {
   protectedRouter.get('/galleries', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 12;
-      const offset = (page - 1) * limit;
 
       const userGalleries = await db.query.galleries.findMany({
         where: eq(galleries.userId, userId),
@@ -171,9 +168,7 @@ export function registerRoutes(app: Express): Server {
           folderId: true,
           deletedAt: true,
           isDraft: true // Added isDraft field
-        },
-        limit,
-        offset
+        }
       });
 
       // Transform response to include thumbnail URL and image count
@@ -972,7 +967,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const { title } = req.body;
 
-      if (!title || typeof title !== 'string') {        return res.status(400).json({ message: 'Invalid title' });
+      if (!title || typeof title !== 'string') {
+        return res.status(400).json({ message: 'Invalid title' });
       }
 
       // Find the gallery by slug

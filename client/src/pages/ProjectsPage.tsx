@@ -7,6 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Clock, FolderOpen, Image, Menu, Pencil, Plus, Share, Trash2 } from "lucide-react";
+import { getR2Image } from "@/lib/r2";
+import { Toggle } from "@/components/ui/toggle";
+import { List } from "lucide-react";
+import { useState } from "react";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ShareModal } from "@/components/ShareModal";
+import { RenameGalleryModal } from "@/components/RenameGalleryModal";
+import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -14,21 +25,9 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Clock, FolderOpen, Image, Menu, Pencil, Plus, Share, Trash2, List, Loader2 } from "lucide-react";
-import { getR2Image } from "@/lib/r2";
-import { Toggle } from "@/components/ui/toggle";
-import { useState, useEffect, useRef } from "react";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ShareModal } from "@/components/ShareModal";
-import { RenameGalleryModal } from "@/components/RenameGalleryModal";
-import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
 import * as ReactDOM from "react-dom/client";
 
 dayjs.extend(relativeTime);
-
-const ITEMS_PER_PAGE = 12;
 
 export default function ProjectsPage() {
   const { getToken } = useAuth();
@@ -36,15 +35,13 @@ export default function ProjectsPage() {
   const [isListView, setIsListView] = useState(false);
   const [renameGallery, setRenameGallery] = useState(null);
   const [deleteGallery, setDeleteGallery] = useState(null);
-  const [page, setPage] = useState(1);
-  const loadMoreRef = useRef(null);
   const queryClient = useQueryClient();
 
-  const { data: galleryPages = [], isFetching, hasNextPage, fetchNextPage } = useQuery({
-    queryKey: ["/api/galleries", page],
-    queryFn: async ({ pageParam = 1 }) => {
+  const { data: galleries = [], isLoading } = useQuery({
+    queryKey: ["/api/galleries"],
+    queryFn: async () => {
       const token = await getToken();
-      const res = await fetch(`/api/galleries?page=${pageParam}&limit=${ITEMS_PER_PAGE}`, {
+      const res = await fetch("/api/galleries", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -52,36 +49,11 @@ export default function ProjectsPage() {
       if (!res.ok) throw new Error("Failed to fetch galleries");
       return res.json();
     },
-    getNextPageParam: (lastPage, pages) => {
-      return lastPage.length === ITEMS_PER_PAGE ? pages.length + 1 : undefined;
-    },
-    keepPreviousData: true,
   });
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetching) {
-          fetchNextPage();
-        }
-      },
-      { 
-        threshold: 0,
-        rootMargin: '100px'
-      }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetching, fetchNextPage]);
-
-  const galleries = galleryPages.flat();
-  const filteredGalleries = galleries.filter(gallery => 
-    gallery.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredGalleries = galleries.filter(gallery => {
+    return gallery.title.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const handleShare = (gallery) => {
     const url = `${window.location.origin}/g/${gallery.slug}`;
@@ -162,7 +134,13 @@ export default function ProjectsPage() {
         </header>
 
         <ScrollArea className="flex-1 p-4">
-          {filteredGalleries.length === 0 && !isFetching ? (
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, i) => (
+                <Card key={i} className="h-64 animate-pulse" />
+              ))}
+            </div>
+          ) : filteredGalleries.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Image className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="font-semibold mb-2">No projects yet</h3>
@@ -172,85 +150,69 @@ export default function ProjectsPage() {
               </Button>
             </div>
           ) : (
-            <>
-              <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
-                {filteredGalleries.map(gallery => (
-                  <ContextMenu key={gallery.id}>
-                    <ContextMenuTrigger>
-                      <Card 
-                        className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
-                        onClick={(e) => {
-                          if (e.button === 2) return;
-                          window.location.href = `/g/${gallery.slug}`;
-                        }}
-                      >
-                        <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
-                          {gallery.thumbnailUrl ? (
-                            <img
-                              src={gallery.images?.[0] ? getR2Image(gallery.images[0], "thumb") : "/fallback-image.jpg"}
-                              alt={gallery.title}
-                              className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-muted flex items-center justify-center">
-                              <Image className="h-12 w-12 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-                        <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
-                          <div className="space-y-1">
-                            <h3 className="font-semibold text-lg">{gallery.title}</h3>
-                            <div className="flex items-center gap-3">
-                              <p className="text-sm text-muted-foreground">
-                                {gallery.imageCount || 0} images
-                              </p>
-                            </div>
+            <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
+              {filteredGalleries.map(gallery => (
+                <ContextMenu key={gallery.id}>
+                  <ContextMenuTrigger>
+                    <Card 
+                      className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
+                      onClick={(e) => {
+                        if (e.button === 2) return;
+                        window.location.href = `/g/${gallery.slug}`;
+                      }}
+                    >
+                      <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
+                        {gallery.thumbnailUrl ? (
+                          <img
+                            src={gallery.images?.[0] ? getR2Image(gallery.images[0], "thumb") : "/fallback-image.jpg"}
+                            alt={gallery.title}
+                            className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <Image className="h-12 w-12 text-muted-foreground" />
                           </div>
-                          <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-3 w-3" />
-                              {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
-                            </div>
+                        )}
+                      </div>
+                      <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
+                        <div className="space-y-1">
+                          <h3 className="font-semibold text-lg">{gallery.title}</h3>
+                          <div className="flex items-center gap-3">
+                            <p className="text-sm text-muted-foreground">
+                              {gallery.imageCount || 0} images
+                            </p>
                           </div>
                         </div>
-                      </Card>
-                    </ContextMenuTrigger>
-                    <ContextMenuContent>
-                      <ContextMenuItem onClick={() => window.location.href = `/g/${gallery.slug}`}>
-                        <FolderOpen className="mr-2 h-4 w-4" /> Open
-                      </ContextMenuItem>
-                      <ContextMenuItem onClick={() => handleShare(gallery)}>
-                        <Share className="mr-2 h-4 w-4" /> Share
-                      </ContextMenuItem>
-                      <ContextMenuItem onClick={() => handleRename(gallery)}>
-                        <Pencil className="mr-2 h-4 w-4" /> Rename
-                      </ContextMenuItem>
-                      <ContextMenuSeparator />
-                      <ContextMenuItem
-                        className="text-red-600"
-                        onClick={() => handleDelete(gallery)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </ContextMenuItem>
-                    </ContextMenuContent>
-                  </ContextMenu>
-                ))}
-              </div>
-              {hasNextPage && (
-                <div 
-                  ref={loadMoreRef} 
-                  className="py-8 flex justify-center"
-                  style={{ minHeight: '100px' }}
-                >
-                  {isFetching ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  ) : (
-                    // Spacer for intersection observer
-                    <div className="h-4" />
-                  )}
-                </div>
-              )}
-            </>
+                        <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem onClick={() => window.location.href = `/g/${gallery.slug}`}>
+                      <FolderOpen className="mr-2 h-4 w-4" /> Open
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleShare(gallery)}>
+                      <Share className="mr-2 h-4 w-4" /> Share
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleRename(gallery)}>
+                      <Pencil className="mr-2 h-4 w-4" /> Rename
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
+                      className="text-red-600"
+                      onClick={() => handleDelete(gallery)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              ))}
+            </div>
           )}
         </ScrollArea>
       </main>
