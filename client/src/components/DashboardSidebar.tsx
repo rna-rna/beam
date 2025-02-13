@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FolderPlus, Clock, FileText, Folder, Trash2 } from 'lucide-react';
+import { FolderPlus, Clock, FileText, Folder, Trash2, MoreVertical } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -71,11 +71,11 @@ export function DashboardSidebar() {
           <Separator />
           <div className="font-semibold px-2">Folders</div>
           {folders.map((folder) => (
-            <Button
-              key={folder.id}
-              variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onDragOver={(e) => {
+            <div key={folder.id} className="group relative flex items-center">
+              <Button
+                variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                onDragOver={(e) => {
                 e.preventDefault();
                 e.currentTarget.classList.add('opacity-50');
               }}
@@ -110,7 +110,39 @@ export function DashboardSidebar() {
             >
               <Folder className="mr-2 h-4 w-4" />
               {folder.name}
-            </Button>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={async () => {
+                      if (confirm('Are you sure you want to delete this folder?')) {
+                        const res = await fetch(`/api/folders/${folder.id}`, {
+                          method: 'DELETE'
+                        });
+                        if (res.ok) {
+                          queryClient.invalidateQueries({ queryKey: ['folders'] });
+                          if (location.pathname === `/f/${folder.slug}`) {
+                            setLocation('/dashboard');
+                          }
+                        }
+                      }
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Folder
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ))}
           <Separator />
           <Button
