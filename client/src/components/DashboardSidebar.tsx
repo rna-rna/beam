@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FolderPlus, Clock, FileText, Folder, Trash2, MoreVertical } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
+import { DeleteFolderModal } from '@/components/DeleteFolderModal';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ export function DashboardSidebar() {
   const [, setLocation] = useLocation();
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
   const [selectedSection, setSelectedSection] = useState<'folders' | 'drafts' | 'recents' | 'trash'>('folders');
+  const [deleteFolder, setDeleteFolder] = useState<{ id: number; name: string } | null>(null);
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders'],
@@ -129,18 +131,8 @@ export function DashboardSidebar() {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
                     className="text-destructive"
-                    onClick={async () => {
-                      if (confirm('Are you sure you want to delete this folder?')) {
-                        const res = await fetch(`/api/folders/${folder.id}`, {
-                          method: 'DELETE'
-                        });
-                        if (res.ok) {
-                          queryClient.invalidateQueries({ queryKey: ['folders'] });
-                          if (location.pathname === `/f/${folder.slug}`) {
-                            setLocation('/dashboard');
-                          }
-                        }
-                      }
+                    onClick={() => {
+                      setDeleteFolder({ id: folder.id, name: folder.name });
                     }}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -188,6 +180,15 @@ export function DashboardSidebar() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {deleteFolder && (
+        <DeleteFolderModal
+          isOpen={true}
+          onClose={() => setDeleteFolder(null)}
+          folderId={deleteFolder.id}
+          folderName={deleteFolder.name}
+        />
+      )}
     </>
   );
 }
