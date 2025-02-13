@@ -14,10 +14,10 @@ export default function ProjectsPage() {
   const { getToken } = useAuth();
 
   const { data: galleries = [], isLoading } = useQuery({
-    queryKey: ["/api/galleries/my"],
+    queryKey: ["/api/galleries"],
     queryFn: async () => {
       const token = await getToken();
-      const res = await fetch("/api/galleries/my", {
+      const res = await fetch("/api/galleries", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -56,35 +56,52 @@ export default function ProjectsPage() {
           </Button>
         </header>
         <ScrollArea className="flex-1 p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {galleries.map((gallery) => (
-              <Card
-                key={gallery.id}
-                className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => (window.location.href = `/g/${gallery.slug}`)}
-              >
-                <div className="aspect-video relative bg-muted">
-                  {gallery.thumbnailUrl ? (
-                    <img
-                      src={gallery.images?.[0] ? getR2Image(gallery.images[0], "thumb") : "/fallback-image.jpg"}
-                      alt={gallery.title}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <div className="w-full h-40 bg-muted flex items-center justify-center">
-                      <Image className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold">{gallery.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {gallery.imageCount || 0} images
-                  </p>
-                </div>
-              </Card>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, i) => (
+                <Card key={i} className="h-64 animate-pulse" />
+              ))}
+            </div>
+          ) : galleries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <Image className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="font-semibold mb-2">No projects yet</h3>
+              <p className="text-muted-foreground mb-4">Create your first project to get started</p>
+              <Button onClick={() => (window.location.href = "/new")}>
+                <Plus className="mr-2 h-4 w-4" /> New Project
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {galleries.map((gallery) => (
+                <Card
+                  key={gallery.id}
+                  className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => (window.location.href = `/g/${gallery.slug}`)}
+                >
+                  <div className="aspect-video relative bg-muted">
+                    {gallery.thumbnailUrl ? (
+                      <img
+                        src={gallery.images?.[0] ? getR2Image(gallery.images[0], "thumb") : "/fallback-image.jpg"}
+                        alt={gallery.title}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="w-full h-40 bg-muted flex items-center justify-center">
+                        <Image className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold">{gallery.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {gallery.imageCount || 0} images
+                    </p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </ScrollArea>
       </main>
     </div>
