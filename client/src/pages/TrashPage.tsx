@@ -1,10 +1,11 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { getR2Image } from "@/lib/r2";
 
 export default function TrashPage() {
   const queryClient = useQueryClient();
@@ -75,6 +76,9 @@ export default function TrashPage() {
 
   return (
     <div className="flex h-[calc(100vh-65px)] bg-background">
+      <aside className="hidden md:block w-64 border-r">
+        <DashboardSidebar />
+      </aside>
       <main className="flex-1 flex flex-col min-h-0 p-4">
         <h2 className="text-xl font-bold mb-4">Trash</h2>
         {trashedGalleries.length === 0 ? (
@@ -83,6 +87,19 @@ export default function TrashPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {trashedGalleries.map((gallery: any) => (
               <Card key={gallery.id} className="p-4 space-y-2">
+                <div className="w-full h-40 bg-muted rounded-md overflow-hidden">
+                  {gallery.images?.[0] ? (
+                    <img
+                      src={getR2Image(gallery.images[0], "thumb")}
+                      alt={gallery.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-muted">
+                      <Trash2 className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
                 <h3 className="font-semibold">{gallery.title}</h3>
                 <p className="text-sm text-muted-foreground">
                   {gallery.imageCount} images
