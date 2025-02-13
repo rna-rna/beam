@@ -24,6 +24,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { FolderPage } from "./pages/FolderPage"; // Added import for FolderPage
 import RecentsPage from "@/pages/RecentsPage"; //Added import for RecentsPage
+import TrashPage from "@/pages/TrashPage"; // Added import for TrashPage
 import { NotificationProvider } from "@/context/NotificationContext"; // Added import for NotificationProvider
 import MagicLinkLanding from "@/pages/MagicLinkLanding"; // Added import for MagicLinkLanding
 
@@ -256,6 +257,12 @@ function AppContent() {
       <Route path="/dashboard">
         <ProtectedRoute>
           <RecentsPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/dashboard/trash">
+        <ProtectedRoute>
+          <TrashPage />
         </ProtectedRoute>
       </Route>
 
