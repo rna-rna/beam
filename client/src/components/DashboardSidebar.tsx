@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FolderPlus, Clock, FileText, Folder, Trash2, MoreVertical } from 'lucide-react';
+import { FolderPlus, Clock, FileText, Folder, Trash2, MoreVertical, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { DeleteFolderModal } from '@/components/DeleteFolderModal';
+import { RenameFolderModal } from '@/components/RenameFolderModal';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ export function DashboardSidebar() {
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
   const [selectedSection, setSelectedSection] = useState<'folders' | 'drafts' | 'recents' | 'trash'>('folders');
   const [deleteFolder, setDeleteFolder] = useState<{ id: number; name: string } | null>(null);
+  const [renameFolder, setRenameFolder] = useState<{ id: number; name: string } | null>(null);
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders'],
@@ -130,6 +132,14 @@ export function DashboardSidebar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
+                    onClick={() => {
+                      setRenameFolder({ id: folder.id, name: folder.name });
+                    }}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
                     className="text-destructive"
                     onClick={() => {
                       setDeleteFolder({ id: folder.id, name: folder.name });
@@ -187,6 +197,14 @@ export function DashboardSidebar() {
           onClose={() => setDeleteFolder(null)}
           folderId={deleteFolder.id}
           folderName={deleteFolder.name}
+        />
+      )}
+      {renameFolder && (
+        <RenameFolderModal
+          isOpen={true}
+          onClose={() => setRenameFolder(null)}
+          folderId={renameFolder.id}
+          currentName={renameFolder.name}
         />
       )}
     </>
