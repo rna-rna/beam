@@ -62,7 +62,7 @@ export function DashboardSidebar() {
             className="w-full justify-start"
             onClick={() => {
               setSelectedSection('recents');
-              setLocation("/dashboard/recents");
+              setLocation("/dashboard");
             }}
           >
             <Clock className="mr-2 h-4 w-4" />
