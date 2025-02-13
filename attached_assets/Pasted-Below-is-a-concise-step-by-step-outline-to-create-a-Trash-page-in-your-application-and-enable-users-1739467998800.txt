@@ -1,0 +1,174 @@
+Below is a concise, step-by-step outline to create a Trash page in your application and enable users to restore items (and optionally permanently delete them). This is geared toward a React + React Query + Replit setup, but the same principles apply to many frameworks.
+
+1. Backend: Add “Trashed” Endpoints
+You need backend endpoints to:
+
+Fetch trashed galleries
+Restore a trashed gallery
+(Optional) Permanently delete a trashed gallery
+Example (Express-like Pseudocode)
+js
+Copy
+Edit
+// GET /api/trash
+// returns all galleries that are marked as "trashed"
+app.get('/api/trash', async (req, res) => {
+  const trashedGalleries = await db.gallery.findMany({ where: { trashed: true } });
+  res.json(trashedGalleries);
+});
+
+// POST /api/trash/:id/restore
+// moves item from "trashed" to "active"
+app.post('/api/trash/:id/restore', async (req, res) => {
+  const { id } = req.params;
+  await db.gallery.update({
+    where: { id },
+    data: { trashed: false },
+  });
+  res.json({ success: true });
+});
+
+// DELETE /api/trash/:id
+// permanently deletes from the database
+app.delete('/api/trash/:id', async (req, res) => {
+  const { id } = req.params;
+  await db.gallery.delete({ where: { id } });
+  res.json({ success: true });
+});
+Note: Adjust this logic to match your existing DB queries or naming conventions.
+You may already have endpoints for “delete” or “un-delete.” The key is ensuring you have at least one dedicated route to fetch all trashed items.
+2. Frontend: Add a “Trash” Page
+2.1 Create a new file TrashPage.tsx
+Inside your src/pages/dashboard/ or wherever you keep your page components, create TrashPage.tsx:
+
+tsx
+Copy
+Edit
+import React from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loader2, RefreshCw, Trash2 } from "lucide-react";
+// (adjust your imports to match your actual component paths)
+
+export default function TrashPage() {
+  const queryClient = useQueryClient();
+  const [location, setLocation] = useLocation();
+
+  // 1. Use React Query to fetch trashed galleries
+  const { data: trashedGalleries = [], isLoading } = useQuery({
+    queryKey: ["/api/trash"],
+    queryFn: async () => {
+      const res = await fetch("/api/trash");
+      if (!res.ok) throw new Error("Failed to fetch trash");
+      return res.json();
+    },
+  });
+
+  // 2. Function to restore a gallery
+  async function handleRestore(id: string) {
+    try {
+      const res = await fetch(`/api/trash/${id}/restore`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to restore");
+      // Re-fetch data so the restored item disappears from the trash list
+      queryClient.invalidateQueries(["/api/trash"]);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // 3. Function to permanently delete a gallery
+  async function handlePermanentDelete(id: string) {
+    try {
+      const res = await fetch(`/api/trash/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to permanently delete");
+      // Re-fetch data so the deleted item disappears from the trash list
+      queryClient.invalidateQueries(["/api/trash"]);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // 4. Render UI
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-32">
+        <Loader2 className="animate-spin w-6 h-6" />
+        <span className="ml-2">Loading Trash...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Trash</h2>
+      {trashedGalleries.length === 0 ? (
+        <div className="text-muted-foreground">No items in trash.</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {trashedGalleries.map((gallery: any) => (
+            <Card key={gallery.id} className="p-4 space-y-2">
+              <h3 className="font-semibold">{gallery.title}</h3>
+              <p className="text-sm text-muted-foreground">
+                {gallery.imageCount} images
+              </p>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handleRestore(gallery.id)}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Restore
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handlePermanentDelete(gallery.id)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Permanently Delete
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+Key points:
+
+We create a new page called TrashPage.
+We use React Query to fetch from /api/trash.
+Each item has two actions:
+Restore (POST /api/trash/:id/restore)
+Permanently Delete (DELETE /api/trash/:id)
+2.2 Add a route to your router
+Wherever you define your routes (like using Wouter or React Router), you need a route for /dashboard/trash:
+
+tsx
+Copy
+Edit
+import { Router, Route } from 'wouter';
+import TrashPage from './TrashPage';
+// ...
+<Router>
+  {/* existing routes */}
+  <Route path="/dashboard/trash" component={TrashPage} />
+</Router>
+If you’re using Next.js or a different routing approach, create a file under pages/dashboard/trash.tsx and export the TrashPage component.
+
+2.3 Link to the new trash page
+Somewhere in your dashboard’s sidebar or header, add a link or button:
+
+tsx
+Copy
+Edit
+import { Link } from "wouter"; // or next/link if Next.js
+// ...
+<Link href="/dashboard/trash" className="flex items-center">
+  <Trash2 className="mr-2 h-4 w-4" />
+  Trash
+</Link>
+Now you have an easy way to navigate to the trash page.
+

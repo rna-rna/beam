@@ -77,73 +77,15 @@ export default function RecentsPage() {
     );
   };
 
+  const [renameGallery, setRenameGallery] = useState(null);
+  const [deleteGallery, setDeleteGallery] = useState(null);
+
   const handleRename = (gallery) => {
-    const modal = document.createElement("div");
-    document.body.appendChild(modal);
-    const root = ReactDOM.createRoot(modal);
-    root.render(
-      <Dialog open onOpenChange={() => {
-        root.unmount();
-        modal.remove();
-      }}>
-        <DialogContent>
-          <RenameGalleryModal
-            isOpen={true}
-            onClose={() => {
-              root.unmount();
-              modal.remove();
-              queryClient.invalidateQueries(['/api/recent-galleries']);
-            }}
-            galleryId={gallery.id}
-            currentTitle={gallery.title}
-            slug={gallery.slug}
-          />
-        </DialogContent>
-      </Dialog>
-    );
+    setRenameGallery(gallery);
   };
 
   const handleDelete = (gallery) => {
-    const modal = document.createElement("div");
-    document.body.appendChild(modal);
-    const root = ReactDOM.createRoot(modal);
-
-    const onDelete = async () => {
-      try {
-        const response = await fetch(`/api/galleries/${gallery.slug}`, {
-          method: 'DELETE'
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to delete gallery');
-        }
-
-        queryClient.invalidateQueries(['/api/recent-galleries']);
-        modal.remove();
-      } catch (error) {
-        console.error('Error deleting gallery:', error);
-      }
-    };
-
-    root.render(
-      <Dialog open onOpenChange={() => {
-        root.unmount();
-        modal.remove();
-      }}>
-        <DialogContent>
-          <DeleteGalleryModal
-            isOpen={true}
-            onClose={() => {
-              root.unmount();
-              modal.remove();
-            }}
-            onDelete={onDelete}
-            gallerySlug={gallery.slug}
-            galleryTitle={gallery.title}
-          />
-        </DialogContent>
-      </Dialog>
-    );
+    setDeleteGallery(gallery);
   };
 
   return (
@@ -277,6 +219,52 @@ export default function RecentsPage() {
           )}
         </div>
       </main>
+
+      {renameGallery && (
+        <Dialog open onOpenChange={() => setRenameGallery(null)}>
+          <DialogContent>
+            <RenameGalleryModal
+              isOpen={true}
+              onClose={() => {
+                setRenameGallery(null);
+                queryClient.invalidateQueries(['/api/recent-galleries']);
+              }}
+              galleryId={renameGallery.id}
+              currentTitle={renameGallery.title}
+              slug={renameGallery.slug}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {deleteGallery && (
+        <Dialog open onOpenChange={() => setDeleteGallery(null)}>
+          <DialogContent>
+            <DeleteGalleryModal
+              isOpen={true}
+              onClose={() => setDeleteGallery(null)}
+              onDelete={async () => {
+                try {
+                  const response = await fetch(`/api/galleries/${deleteGallery.slug}`, {
+                    method: 'DELETE'
+                  });
+
+                  if (!response.ok) {
+                    throw new Error('Failed to delete gallery');
+                  }
+
+                  queryClient.invalidateQueries(['/api/recent-galleries']);
+                  setDeleteGallery(null);
+                } catch (error) {
+                  console.error('Error deleting gallery:', error);
+                }
+              }}
+              gallerySlug={deleteGallery.slug}
+              galleryTitle={deleteGallery.title}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
