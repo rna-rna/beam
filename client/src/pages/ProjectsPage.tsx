@@ -121,7 +121,7 @@ export default function ProjectsPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={() => (window.location.href = "/new")}>
-              <Plus className="mr-2 h-4 w-4" /> New Project
+              <Plus className="mr-2 h-4 w-4" /> New Gallery
             </Button>
             <Toggle
               pressed={isListView}
@@ -146,7 +146,7 @@ export default function ProjectsPage() {
               <h3 className="font-semibold mb-2">No projects yet</h3>
               <p className="text-muted-foreground mb-4">Create your first project to get started</p>
               <Button onClick={() => (window.location.href = "/new")}>
-                <Plus className="mr-2 h-4 w-4" /> New Project
+                <Plus className="mr-2 h-4 w-4" /> New Gallery
               </Button>
             </div>
           ) : (
