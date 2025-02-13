@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ChevronDown, FolderOpen, Image, Loader2, Menu, Search, Plus } from "lucide-react";
 import { useState } from "react";
 import { Layout } from "@/components/Layout";
-import { useLocation, useRoute } from "wouter";
+import { useLocation } from "wouter";
 
 
 export function FolderPage() {
