@@ -245,7 +245,8 @@ export default function ProjectsPage() {
                   {isFetching ? (
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   ) : (
-                    <div className="h-4" /> {/* Spacer for intersection observer */}
+                    // Spacer for intersection observer
+                    <div className="h-4" />
                   )}
                 </div>
               )}
