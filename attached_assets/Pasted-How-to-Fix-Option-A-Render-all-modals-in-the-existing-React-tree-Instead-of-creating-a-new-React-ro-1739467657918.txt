@@ -1,0 +1,67 @@
+How to Fix
+Option A: Render all modals in the existing React tree
+Instead of creating a new React root, place the modal in your existing application tree. For instance:
+
+Keep a local state to track which gallery is being renamed/deleted.
+Show the modal conditionally in your main return block, which is already wrapped by QueryClientProvider at the app level.
+For example:
+
+tsx
+Copy
+Edit
+// Step 1: Add some state
+const [renameGallery, setRenameGallery] = useState(null);
+const [deleteGallery, setDeleteGallery] = useState(null);
+
+// Step 2: Instead of createRoot, just set state
+const handleRename = (gallery) => {
+  setRenameGallery(gallery);
+};
+
+const handleDelete = (gallery) => {
+  setDeleteGallery(gallery);
+};
+
+return (
+  <>
+    {/* ...the rest of your component... */}
+
+    {/* Step 3: Conditionally render a Dialog for rename */}
+    {renameGallery && (
+      <Dialog open onOpenChange={() => setRenameGallery(null)}>
+        <DialogContent>
+          <RenameGalleryModal
+            isOpen
+            onClose={() => {
+              setRenameGallery(null);
+              queryClient.invalidateQueries(["/api/recent-galleries"]);
+            }}
+            galleryId={renameGallery.id}
+            currentTitle={renameGallery.title}
+            slug={renameGallery.slug}
+          />
+        </DialogContent>
+      </Dialog>
+    )}
+
+    {/* Another for delete */}
+    {deleteGallery && (
+      <Dialog open onOpenChange={() => setDeleteGallery(null)}>
+        <DialogContent>
+          <DeleteGalleryModal
+            isOpen
+            onClose={() => setDeleteGallery(null)}
+            onDelete={async () => {
+              // ...do your DELETE fetch
+              queryClient.invalidateQueries(["/api/recent-galleries"]);
+              setDeleteGallery(null);
+            }}
+            gallerySlug={deleteGallery.slug}
+            galleryTitle={deleteGallery.title}
+          />
+        </DialogContent>
+      </Dialog>
+    )}
+  </>
+);
+This approach keeps everything in one React root that is already wrapped by the provider, so React Query context is available.
