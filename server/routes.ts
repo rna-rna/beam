@@ -384,6 +384,97 @@ export function registerRoutes(app: Express): Server {
   });
 
 
+  // Get trashed galleries
+  protectedRouter.get('/trash', async (req: any, res) => {
+    try {
+      const userId = req.auth.userId;
+      
+      const trashedGalleries = await db.query.galleries.findMany({
+        where: and(
+          eq(galleries.userId, userId),
+          isNotNull(galleries.deletedAt)
+        ),
+        orderBy: (galleries, { desc }) => [desc(galleries.deletedAt)]
+      });
+
+      // Get image counts for each gallery
+      const galleriesWithCounts = await Promise.all(
+        trashedGalleries.map(async (gallery) => {
+          const imageCount = await db.execute(
+            sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
+          );
+          return {
+            ...gallery,
+            imageCount: parseInt(imageCount.rows[0].count.toString(), 10)
+          };
+        })
+      );
+
+      res.json(galleriesWithCounts);
+    } catch (error) {
+      console.error('Failed to fetch trash:', error);
+      res.status(500).json({ message: 'Failed to fetch trash' });
+    }
+  });
+
+  // Restore gallery from trash
+  protectedRouter.post('/galleries/:slug/restore', async (req: any, res) => {
+    try {
+      const userId = req.auth.userId;
+
+      const [restored] = await db.update(galleries)
+        .set({ deletedAt: null })
+        .where(and(
+          eq(galleries.slug, req.params.slug),
+          eq(galleries.userId, userId)
+        ))
+        .returning();
+
+      if (!restored) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      res.json({ success: true, gallery: restored });
+    } catch (error) {
+      console.error('Failed to restore gallery:', error);
+      res.status(500).json({ message: 'Failed to restore gallery' });
+    }
+  });
+
+  // Permanently delete gallery
+  protectedRouter.delete('/galleries/:slug/permanent-delete', async (req: any, res) => {
+    try {
+      const userId = req.auth.userId;
+
+      // First verify the gallery is trashed and owned by user
+      const gallery = await db.query.galleries.findFirst({
+        where: and(
+          eq(galleries.slug, req.params.slug),
+          eq(galleries.userId, userId),
+          isNotNull(galleries.deletedAt)
+        )
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      // Delete associated images and gallery
+      await db.transaction(async (tx) => {
+        await tx.delete(images)
+          .where(eq(images.galleryId, gallery.id));
+        
+        await tx.delete(galleries)
+          .where(eq(galleries.id, gallery.id));
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to permanently delete gallery:', error);
+      res.status(500).json({ message: 'Failed to permanently delete gallery' });
+    }
+  });
+
   // Get gallery details (with ownership check)
   protectedRouter.get('/galleries/:slug', async (req: any, res) => {
     try {
