@@ -86,40 +86,40 @@ export function DashboardSidebar() {
                 variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
                 className="w-full justify-start"
                 onDragOver={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.add('opacity-50');
-              }}
-              onDragLeave={(e) => {
-                e.currentTarget.classList.remove('opacity-50');
-              }}
-              onDrop={async (e) => {
-                e.preventDefault();
-                e.currentTarget.classList.remove('opacity-50');
-                const data = e.dataTransfer.getData('application/json');
-                if (!data) return;
+                  e.preventDefault();
+                  e.currentTarget.classList.add('opacity-50');
+                }}
+                onDragLeave={(e) => {
+                  e.currentTarget.classList.remove('opacity-50');
+                }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const data = e.dataTransfer.getData('application/json');
+                  if (!data) return;
 
-                const draggedItem = JSON.parse(data);
-                if (draggedItem.type === 'gallery') {
-                  // Add API call to move gallery to folder
-                  const res = await fetch(`/api/galleries/${draggedItem.id}/move`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ folderId: folder.id })
-                  });
-                  if (res.ok) {
-                    queryClient.invalidateQueries({ queryKey: ['folders'] });
-                    queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+                  const draggedItem = JSON.parse(data);
+                  if (draggedItem.type === 'gallery') {
+                    // Add API call to move gallery to folder
+                    const res = await fetch(`/api/galleries/${draggedItem.id}/move`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ folderId: folder.id })
+                    });
+                    if (res.ok) {
+                      queryClient.invalidateQueries({ queryKey: ['folders'] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
+                    }
                   }
-                }
-              }}
-              onClick={() => {
-                setSelectedFolder(folder.id);
-                setSelectedSection('folders');
-                setLocation(`/f/${folder.slug}`);
-              }}
-            >
-              <Folder className="mr-2 h-4 w-4" />
-              {folder.name}
+                }}
+                onClick={() => {
+                  setSelectedFolder(folder.id);
+                  setSelectedSection('folders');
+                  setLocation(`/f/${folder.slug}`);
+                }}
+              >
+                <Folder className="mr-2 h-4 w-4" />
+                {folder.name}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

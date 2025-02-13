@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
@@ -182,6 +181,14 @@ export default function ProjectsPage() {
                         onClick={(e) => {
                           if (e.button === 2) return;
                           window.location.href = `/g/${gallery.slug}`;
+                        }}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', JSON.stringify({
+                            type: 'gallery',
+                            id: gallery.id,
+                            slug: gallery.slug
+                          }));
                         }}
                       >
                         <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
