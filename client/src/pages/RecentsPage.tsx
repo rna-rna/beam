@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import dayjs from 'dayjs';
@@ -108,17 +107,17 @@ export default function RecentsPage() {
     const modal = document.createElement("div");
     document.body.appendChild(modal);
     const root = ReactDOM.createRoot(modal);
-    
+
     const onDelete = async () => {
       try {
         const response = await fetch(`/api/galleries/${gallery.slug}`, {
           method: 'DELETE'
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to delete gallery');
         }
-        
+
         queryClient.invalidateQueries(['/api/recent-galleries']);
         modal.remove();
       } catch (error) {
@@ -248,7 +247,7 @@ export default function RecentsPage() {
                       <Share className="mr-2 h-4 w-4" /> Share
                     </ContextMenuItem>
                     {gallery.isOwner && (
-                      <ContextMenuItem onSelect={() => handleRename(gallery)}>
+                      <ContextMenuItem onClick={() => handleRename(gallery)}>
                         <Pencil className="mr-2 h-4 w-4" /> Rename
                       </ContextMenuItem>
                     )}
@@ -257,7 +256,7 @@ export default function RecentsPage() {
                         <ContextMenuSeparator />
                         <ContextMenuItem
                           className="text-red-600"
-                          onSelect={() => handleDelete(gallery)}
+                          onClick={() => handleDelete(gallery)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" /> Delete
                         </ContextMenuItem>
