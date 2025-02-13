@@ -388,7 +388,7 @@ export function registerRoutes(app: Express): Server {
   protectedRouter.get('/trash', async (req: any, res) => {
     try {
       const userId = req.auth.userId;
-      
+
       const trashedGalleries = await db.query.galleries.findMany({
         where: and(
           eq(galleries.userId, userId),
@@ -469,7 +469,7 @@ export function registerRoutes(app: Express): Server {
       await db.transaction(async (tx) => {
         await tx.delete(images)
           .where(eq(images.galleryId, gallery.id));
-        
+
         await tx.delete(galleries)
           .where(eq(galleries.id, gallery.id));
       });
@@ -1065,7 +1065,7 @@ export function registerRoutes(app: Express): Server {
 
       if (!Array.isArray(imageIds)) {
         return res.status(400).json({ message: 'Invalid request: imageIds must be an array' });
-}
+      }
 
       // Find the gallery first
       const gallery= await db.query.query.galleries.findFirst({
@@ -2585,30 +2585,20 @@ export function registerRoutes(app: Express): Server {
   });
 
   protectedRouter.delete('/folders/:id', async (req, res) => {
+    const folderId = parseInt(req.params.id);
+
     try {
-      const userId = req.auth.userId;
-      const folderId = parseInt(req.params.id);
+      // First update all galleries to remove the folder reference
+      await db.update(galleries)
+        .set({ folderId: null })
+        .where(eq(galleries.folderId, folderId));
 
-      await db.transaction(async (tx) => {
-        await tx.delete(galleryFolders)
-          .where(eq(galleryFolders.folderId, folderId));
-
-        const [deleted] = await tx.delete(folders)
-          .where(and(
-            eq(folders.id, folderId),
-            eq(folders.userId, userId)
-          ))
-          .returning();
-
-        if (!deleted) {
-          throw new Error('Folder not found');
-        }
-      });
-
+      // Then delete the folder
+      await db.delete(folders).where(eq(folders.id, folderId));
       res.json({ success: true });
     } catch (error) {
       console.error('Failed to delete folder:', error);
-      res.status(500).json({ message: 'Failed to delete folder' });
+      res.status(500).json({ message: "Failed to delete folder" });
     }
   });
 
