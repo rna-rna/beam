@@ -1,3 +1,4 @@
+
 import { useRoute } from "wouter";
 import { InlineEdit } from "@/components/InlineEdit";
 import { useQuery } from "@tanstack/react-query";
@@ -8,17 +9,14 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ChevronDown, FolderOpen, Image, Loader2, Menu, Search, Plus } from "lucide-react";
+import { ChevronDown, FolderOpen, Image, Loader2, Menu, Search } from "lucide-react";
 import { useState } from "react";
 import { Layout } from "@/components/Layout";
-import { useLocation, useNavigate } from "wouter";
-
 
 export function FolderPage() {
   const [match, params] = useRoute("/f/:folderSlug");
   const folderSlug = match ? params.folderSlug : null;
   const [sortOrder, setSortOrder] = useState('created');
-  const navigate = useNavigate();
 
   const { data: folder, isLoading: isFolderLoading } = useQuery({
     queryKey: ["folder", folderSlug],
@@ -75,10 +73,7 @@ export function FolderPage() {
               className="ml-2 w-64"
             />
           </div>
-          <div className="flex items-center gap-2">
-              <Button onClick={() => navigate(`/new?folderId=${folder?.id}`)}>
-                <Plus className="mr-2 h-4 w-4" /> New Gallery
-              </Button>
+          <div className="flex items-center space-x-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">

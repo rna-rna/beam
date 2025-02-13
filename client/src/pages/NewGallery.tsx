@@ -12,9 +12,6 @@ export default function NewGallery() {
   const createGalleryMutation = useMutation({
     mutationFn: async () => {
       const token = await getToken();
-      const searchParams = new URLSearchParams(window.location.search);
-      const folderId = searchParams.get('folderId');
-      
       const res = await fetch('/api/galleries/create', {
         method: 'POST',
         headers: {
@@ -24,8 +21,7 @@ export default function NewGallery() {
           'Pragma': 'no-cache'
         },
         body: JSON.stringify({
-          isDraft: true,
-          folderId: folderId
+          isDraft: true
         })
       });
       if (!res.ok) throw new Error('Failed to create gallery');
