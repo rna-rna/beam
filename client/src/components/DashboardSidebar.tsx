@@ -1,8 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FolderPlus, Clock, FileText, Folder, Trash2 } from 'lucide-react';
+import { FolderPlus, Clock, FileText, Folder, Trash2, MoreVertical } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
+import { DeleteFolderModal } from '@/components/DeleteFolderModal';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -15,6 +22,7 @@ export function DashboardSidebar() {
   const [, setLocation] = useLocation();
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
   const [selectedSection, setSelectedSection] = useState<'folders' | 'drafts' | 'recents' | 'trash'>('folders');
+  const [deleteFolder, setDeleteFolder] = useState<{ id: number; name: string } | null>(null);
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders'],
@@ -47,35 +55,35 @@ export function DashboardSidebar() {
       <ScrollArea className="h-[calc(100vh-130px)]">
         <div className="p-4 space-y-4">
           <Button
-            variant={selectedSection === 'projects' ? "secondary" : "ghost"}
+            variant={selectedSection === 'recents' ? "secondary" : "ghost"}
             className="w-full justify-start"
             onClick={() => {
               setSelectedSection('recents');
               setLocation("/dashboard");
             }}
           >
-            <Folder className="mr-2 h-4 w-4" />
-            My Projects
-          </Button>
-          <Button
-            variant={selectedSection === 'recents' ? "secondary" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => {
-              setSelectedSection('recents');
-              setLocation("/dashboard/recents");
-            }}
-          >
             <Clock className="mr-2 h-4 w-4" />
             Recents
+          </Button>
+          <Button
+            variant={selectedSection === 'projects' ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => {
+              setSelectedSection('projects');
+              setLocation("/dashboard/projects");
+            }}
+          >
+            <Folder className="mr-2 h-4 w-4" />
+            My Projects
           </Button>
           <Separator />
           <div className="font-semibold px-2">Folders</div>
           {folders.map((folder) => (
-            <Button
-              key={folder.id}
-              variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onDragOver={(e) => {
+            <div key={folder.id} className="group relative flex items-center">
+              <Button
+                variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                onDragOver={(e) => {
                 e.preventDefault();
                 e.currentTarget.classList.add('opacity-50');
               }}
@@ -110,7 +118,29 @@ export function DashboardSidebar() {
             >
               <Folder className="mr-2 h-4 w-4" />
               {folder.name}
-            </Button>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => {
+                      setDeleteFolder({ id: folder.id, name: folder.name });
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Folder
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ))}
           <Separator />
           <Button
@@ -150,6 +180,15 @@ export function DashboardSidebar() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {deleteFolder && (
+        <DeleteFolderModal
+          isOpen={true}
+          onClose={() => setDeleteFolder(null)}
+          folderId={deleteFolder.id}
+          folderName={deleteFolder.name}
+        />
+      )}
     </>
   );
 }
