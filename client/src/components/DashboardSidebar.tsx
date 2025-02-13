@@ -47,17 +47,6 @@ export function DashboardSidebar() {
       <ScrollArea className="h-[calc(100vh-130px)]">
         <div className="p-4 space-y-4">
           <Button
-            variant={selectedSection === 'projects' ? "secondary" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => {
-              setSelectedSection('recents');
-              setLocation("/dashboard");
-            }}
-          >
-            <Folder className="mr-2 h-4 w-4" />
-            My Projects
-          </Button>
-          <Button
             variant={selectedSection === 'recents' ? "secondary" : "ghost"}
             className="w-full justify-start"
             onClick={() => {
@@ -67,6 +56,17 @@ export function DashboardSidebar() {
           >
             <Clock className="mr-2 h-4 w-4" />
             Recents
+          </Button>
+          <Button
+            variant={selectedSection === 'projects' ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => {
+              setSelectedSection('projects');
+              setLocation("/dashboard/projects");
+            }}
+          >
+            <Folder className="mr-2 h-4 w-4" />
+            My Projects
           </Button>
           <Separator />
           <div className="font-semibold px-2">Folders</div>
