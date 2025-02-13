@@ -84,7 +84,7 @@ export default function TrashPage() {
         {trashedGalleries.length === 0 ? (
           <div className="text-muted-foreground">No items in trash.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {trashedGalleries.map((gallery: any) => (
               <Card key={gallery.id} className="p-4 space-y-2">
                 <div className="w-full h-40 bg-muted rounded-md overflow-hidden">
