@@ -394,6 +394,12 @@ export function registerRoutes(app: Express): Server {
           eq(galleries.userId, userId),
           isNotNull(galleries.deletedAt)
         ),
+        with: {
+          images: {
+            limit: 1,
+            orderBy: (images, { asc }) => [asc(images.position)]
+          }
+        },
         orderBy: (galleries, { desc }) => [desc(galleries.deletedAt)]
       });
 
