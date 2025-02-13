@@ -72,7 +72,7 @@ export function DashboardSidebar() {
             className="w-full justify-start"
             onClick={() => {
               setSelectedSection('projects');
-              setLocation("/dashboard/projects");
+              setLocation("/dashboard");
             }}
           >
             <Folder className="mr-2 h-4 w-4" />
