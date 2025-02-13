@@ -27,6 +27,7 @@ import RecentsPage from "@/pages/RecentsPage"; //Added import for RecentsPage
 import TrashPage from "@/pages/TrashPage"; // Added import for TrashPage
 import { NotificationProvider } from "@/context/NotificationContext"; // Added import for NotificationProvider
 import MagicLinkLanding from "@/pages/MagicLinkLanding"; // Added import for MagicLinkLanding
+import ProjectsPage from '@/pages/ProjectsPage'; // Added import for ProjectsPage
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
@@ -260,11 +261,9 @@ function AppContent() {
         </ProtectedRoute>
       </Route>
 
-      <Route path="/dashboard/trash">
-        <ProtectedRoute>
-          <TrashPage />
-        </ProtectedRoute>
-      </Route>
+      <Route path="/dashboard/recents" component={RecentsPage} />
+        <Route path="/dashboard/projects" component={ProjectsPage} />
+        <Route path="/dashboard/trash" component={TrashPage} />
 
       <Route path="/g/:slug">
         {(params) => (
