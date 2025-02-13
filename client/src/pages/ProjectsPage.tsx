@@ -65,7 +65,10 @@ export default function ProjectsPage() {
           fetchNextPage();
         }
       },
-      { threshold: 0.1 }
+      { 
+        threshold: 0,
+        rootMargin: '100px'
+      }
     );
 
     if (loadMoreRef.current) {
@@ -233,11 +236,19 @@ export default function ProjectsPage() {
                   </ContextMenu>
                 ))}
               </div>
-              <div ref={loadMoreRef} className="py-4 flex justify-center">
-                {isFetching && (
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                )}
-              </div>
+              {hasNextPage && (
+                <div 
+                  ref={loadMoreRef} 
+                  className="py-8 flex justify-center"
+                  style={{ minHeight: '100px' }}
+                >
+                  {isFetching ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  ) : (
+                    <div className="h-4" /> {/* Spacer for intersection observer */}
+                  )}
+                </div>
+              )}
             </>
           )}
         </ScrollArea>
