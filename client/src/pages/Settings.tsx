@@ -75,7 +75,7 @@ export default function Settings() {
   }
 
   return (
-    <Layout title="Settings">
+    <div className="container py-6">
       <Card className="max-w-2xl mx-auto p-6">
         <div className="space-y-6">
           <div>
@@ -155,6 +155,6 @@ export default function Settings() {
           </div>
         </div>
       </Card>
-    </Layout>
+    </div>
   );
 }
