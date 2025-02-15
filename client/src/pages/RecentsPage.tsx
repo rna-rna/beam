@@ -89,11 +89,11 @@ export default function RecentsPage() {
   };
 
   return (
-    <div className="flex flex-1 bg-background">
-      <aside className="hidden md:block w-64 border-r">
+    <div className="flex flex-1 h-screen bg-background">
+      <aside className="hidden md:block w-64 border-r h-full overflow-hidden">
         <DashboardSidebar />
       </aside>
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <Sheet>
@@ -130,7 +130,7 @@ export default function RecentsPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4">
           {isLoading ? (
             <GallerySkeleton count={12} />
           ) : filteredGalleries.length > 0 ? (
