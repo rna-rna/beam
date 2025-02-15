@@ -29,7 +29,7 @@ import { NotificationProvider } from "@/context/NotificationContext"; // Added i
 import MagicLinkLanding from "@/pages/MagicLinkLanding"; // Added import for MagicLinkLanding
 import ProjectsPage from '@/pages/ProjectsPage'; // Added import for ProjectsPage
 import React from 'react';
-import Intercom from '@intercom/messenger-js-sdk';
+import { IntercomProvider } from './components/IntercomProvider';
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
