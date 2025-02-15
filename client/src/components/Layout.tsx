@@ -36,7 +36,7 @@ export function Layout({
     <div className="flex flex-col h-screen w-full bg-background">
       <header className="shrink-0 border-b bg-background">
         <div className="px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2">
-          {!window.location.pathname.startsWith('/g/') && (
+          <Button variant="ghost" size="icon" onClick={() => window.location.href = "/dashboard"} className="mr-2">
             <svg width="25" height="25" viewBox="0 0 700 700" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
               <g clipPath="url(#clip0_123_74)">
                 <rect width="700" height="700" rx="85.5555" fill="#D9D9D9"/>
@@ -52,7 +52,7 @@ export function Layout({
                 </clipPath>
               </defs>
             </svg>
-          )}
+          </Button>
           {title && onTitleChange ? (
             <InlineEdit
               value={title}
