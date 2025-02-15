@@ -101,7 +101,7 @@ export function UserNav() {
               className="cursor-pointer"
             >
               <LifeBuoy className="mr-2 h-4 w-4" />
-              Support/Help
+              Help
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={handleSignOut}
