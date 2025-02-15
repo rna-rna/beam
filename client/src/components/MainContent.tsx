@@ -54,7 +54,7 @@ export function MainContent() {
   }
 
   return (
-    <div className="flex flex-1 bg-background">
+    <div className="flex flex-1 h-full bg-background">
       <aside className="hidden md:block w-64 border-r">
         <DashboardSidebar />
       </aside>
