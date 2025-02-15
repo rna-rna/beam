@@ -2910,9 +2910,14 @@ export default function Gallery({
             {selectMode && selectedImages.length > 0 && (
               <FloatingToolbar
                 selectedCount={selectedImages.length}
+                totalCount={gallery?.images?.length || 0}
                 onDeselect={() => {
                   setSelectedImages([]);
                   setSelectMode(false);
+                }}
+                onSelectAll={() => {
+                  const allImageIds = gallery?.images?.map(img => img.id) || [];
+                  setSelectedImages(allImageIds);
                 }}
                 onDelete={handleDeleteSelected}
                 onDownload={handleDownloadSelected}

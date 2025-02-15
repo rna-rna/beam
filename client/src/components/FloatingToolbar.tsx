@@ -17,11 +17,13 @@ export function FloatingToolbar({
   onReorder,
 }: {
   selectedCount: number;
+  totalCount: number;
   onDeselect: () => void;
   onDelete: () => void;
   onDownload: (quality: 'original' | 'optimized') => void;
   onEdit: () => void;
   onReorder: () => void;
+  onSelectAll: () => void;
 }) {
   return (
     <motion.div
@@ -61,8 +63,8 @@ export function FloatingToolbar({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="secondary" size="sm" onClick={onDeselect}>
-            Deselect
+          <Button variant="secondary" size="sm" onClick={selectedCount === totalCount ? onDeselect : onSelectAll}>
+            {selectedCount === totalCount ? "Deselect All" : "Select All"}
           </Button>
         </div>
       </div>
