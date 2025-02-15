@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBellDropdown } from "@/components/NotificationBellDropdown";
-import { ThemeToggleButton } from "@/components/ThemeToggleButton"; // Assumed component
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 
 export function UserNav() {
@@ -99,7 +99,7 @@ export function UserNav() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
-              <ThemeToggleButton /> {/* Added Theme Toggle Button */}
+              <ThemeToggle /> {/* Added Theme Toggle */}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
