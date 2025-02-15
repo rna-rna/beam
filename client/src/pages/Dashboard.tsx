@@ -263,7 +263,7 @@ export default function Dashboard() {
       <aside className="hidden md:block w-64 border-r">
         <DashboardSidebar />
       </aside>
-      <main className="flex-1 flex flex-col min-h-0">
+      <main className="flex-1 flex flex-col">
         <header className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center">
             <Sheet>
