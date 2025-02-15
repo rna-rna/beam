@@ -1479,7 +1479,7 @@ export default function Gallery({
     deleteImagesMutation.mutate(selectedImages);
   };
 
-  const handleDownloadSelected = async () => {
+  const handleDownloadSelected = async (quality: 'original' | 'optimized' = 'original') => {
     try {
       toast({
         title: "Preparing Download",
@@ -1491,7 +1491,8 @@ export default function Gallery({
         const image = gallery!.images.find((img) => img.id === imageId);
         if (!image) return;
 
-        const response = await fetch(getR2Image(image)); // Use original unoptimized URL for downloads
+        const imageUrl = quality === 'original' ? getR2Image(image) : getR2Image(image, 'thumb');
+        const response = await fetch(imageUrl);
         const blob = await response.blob();
         const extension = image.url.split(".").pop() || "jpg";
         zip.file(`image-${imageId}.${extension}`, blob);
@@ -1499,11 +1500,11 @@ export default function Gallery({
 
       await Promise.all(imagePromises);
       const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, `selected-images.zip`);
+      saveAs(content, `selected-images-${quality}.zip`);
 
       toast({
         title: "Success",
-        description: "Selected images downloaded successfully",
+        description: `Selected images downloaded successfully (${quality} quality)`,
       });
     } catch (error) {
       console.error("Download error:", error);

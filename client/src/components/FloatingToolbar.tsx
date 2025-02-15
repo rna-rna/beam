@@ -19,7 +19,7 @@ export function FloatingToolbar({
   selectedCount: number;
   onDeselect: () => void;
   onDelete: () => void;
-  onDownload: () => void;
+  onDownload: (quality: 'original' | 'optimized') => void;
   onEdit: () => void;
   onReorder: () => void;
 }) {
