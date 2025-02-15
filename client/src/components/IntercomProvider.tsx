@@ -11,19 +11,25 @@ export function IntercomProvider() {
       Intercom({
         app_id: 'nddy1kg6',
         user_id: user.id,
-        name: `${user.firstName} ${user.lastName}`.trim(),
+        name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
         email: user.primaryEmailAddress?.emailAddress,
         created_at: Math.floor(new Date(user.createdAt).getTime() / 1000),
-        // Additional user data
         custom_attributes: {
           image_url: user.imageUrl,
           username: user.username,
-          last_sign_in: Math.floor(new Date(user.lastSignInAt || user.createdAt).getTime() / 1000)
+          last_sign_in: Math.floor(new Date(user.lastSignInAt || user.createdAt).getTime() / 1000),
+          email_verified: user.primaryEmailAddress?.verification?.status === 'verified'
         }
+      });
+    } else {
+      // Boot Intercom without user data for non-logged-in users
+      Intercom({
+        app_id: 'nddy1kg6'
       });
     }
     
     return () => {
+      // Cleanup on unmount
       if (window.Intercom) {
         window.Intercom('shutdown');
       }
