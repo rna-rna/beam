@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useRoute } from "wouter";
@@ -14,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, FolderOpen, Image, Loader2, Menu } from "lucide-react";
+import { ChevronDown, FolderOpen, Image, Loader2, Menu, Filter } from "lucide-react";
 
 export function MainContent() {
   const [match, params] = useRoute("/f/:folderSlug");

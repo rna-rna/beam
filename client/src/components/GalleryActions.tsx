@@ -6,7 +6,7 @@ import { SignedIn } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { GalleryRole } from '@/types/gallery';
-import { PencilRuler } from 'lucide-react';
+import { PencilRuler, Filter, SquareScissors } from 'lucide-react'; // Added SquareScissors and Filter
 
 interface GalleryActionsProps {
   gallery: any;
@@ -83,13 +83,19 @@ function GalleryActions({ gallery, userRole = 'View', isDark = false }: GalleryA
                   : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent/30 data-[state=on]:text-accent-foreground data-[state=on]:ring-2 data-[state=on]:ring-accent",
               )}
             >
-              <PencilRuler className="h-4 w-4" />
+              <SquareScissors className="h-4 w-4" /> {/* Changed to SquareScissors */}
             </Toggle>
           </TooltipTrigger>
           <TooltipContent>
             {selectMode ? "Done" : "Select Images"}
           </TooltipContent>
         </Tooltip>
+      )}
+      {/* Added Filter Icon */}
+      {canManageGallery(userRole) && (
+        <Button variant="ghost" size="icon" className={cn("h-9 w-9", isDark ? "text-white hover:bg-white/10" : "text-zinc-800 hover:bg-zinc-200")}>
+          <Filter className="h-4 w-4"/>
+        </Button>
       )}
     </div>
   );
