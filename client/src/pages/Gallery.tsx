@@ -97,6 +97,7 @@ import { SignUpModal } from "@/components/SignUpModal";
 import PusherClient from "pusher-js";
 import { nanoid } from "nanoid";
 import { CursorOverlay } from "@/components/CursorOverlay";
+import { useDraggable } from '@dnd-kit/core';
 
 // Initialize Pusher client
 const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
@@ -973,7 +974,7 @@ export default function Gallery({
                 userId: user?.id,
                 imageId,
                 user: {
-                  firstName: user?.firstName,
+                  firstName:user?.firstName,
                   lastName: user?.lastName,
                   imageUrl: user?.imageUrl,
                 },
@@ -1771,38 +1772,29 @@ export default function Gallery({
     setIsOpenShareModal,
   ]);
 
-  const renderImage = (image: ImageOrPending, index: number) => (
-    <div
-      key={image.id === -1 ? `pending-${index}` : image.id}
-      className="mb-4 w-full"
-      style={{ breakInside: "avoid", position: "relative" }}
-    >
-      <motion.div
-        layout={false}
-        className={cn(
-          "image-container transform transition-opacity duration-200 w-full",
-          isReorderMode && "cursor-grab active:cursor-grabbing",
-          draggedItemIndex === index ? "fixed" : "relative",
-          "localUrl" in image && "opacity-80",
-          "block",
-        )}
-        initial={{ opacity: 0 }}
-        animate={{
-          opacity: 1,
-          transition: {
-            duration: 0.2,
-          },
+  function DraggableImage({ image, index, selectMode, selectedImages, isReorderMode, onSelect, onClick, onStar, showStarButton, userRole }: any) {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+      id: image.id,
+    });
+
+    const style = transform
+      ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
+      : undefined;
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...listeners}
+        {...attributes}
+        className="relative image-container"
+        onClick={(e) => {
+          if (isReorderMode) {
+            e.stopPropagation();
+            return;
+          }
+          selectMode ? onSelect(image.id, e) : onClick(index);
         }}
-        drag={isReorderMode}
-        dragMomentum={false}
-        dragElastic={0.1}
-        onDragStart={() => setDraggedItemIndex(index)}
-        onDrag={(_, info) => {
-          setDragPosition({ x: info.point.x, y: info.point.y });
-        }}
-        onDragEnd={(event, info) =>
-          handleDragEnd(event as PointerEvent, index, info)
-        }
       >
         <div
           className={`group relative bg-card rounded-lg transform transition-all ${
@@ -1812,26 +1804,15 @@ export default function Gallery({
               ? "border-2 border-dashed border-gray-200 border-opacity-50"
               : ""
           }`}
-          onClick={(e) => {
-            if (isReorderMode) {
-              e.stopPropagation();
-              return;
-            }
-            selectMode
-              ? handleImageSelect(image.id, e)
-              : handleImageClick(index);
-          }}
         >
           <img
             key={`${image.id}-${image._status || "final"}`}
-            src={
-              "localUrl" in image ? image.localUrl : getR2Image(image, "thumb")
-            }
+            src={"localUrl" in image ? image.localUrl : getR2Image(image, "thumb")}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
               "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
               selectMode && selectedImages.includes(image.id) && "opacity-75",
-              draggedItemIndex === index && "opacity-50",
+              isDragging && "opacity-50",
               "localUrl" in image && "opacity-80",
               image.status === "error" && "opacity-50",
             )}
@@ -1898,7 +1879,7 @@ export default function Gallery({
           )}
 
           {/* Star button in bottom right corner */}
-          {!selectMode && userRole && ['owner', 'Edit', 'Comment'].includes(userRole) && (
+          {showStarButton && userRole && ['owner', 'Edit', 'Comment'].includes(userRole) && (
             <motion.div
               className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
               animate={{ scale: 1 }}
@@ -1908,128 +1889,7 @@ export default function Gallery({
                 variant="secondary"
                 size="icon"
                 className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-
-                  if (!user) {
-                    setShowSignUpModal(true);
-                    return;
-                  }
-
-                  // Use image.userStarred for optimistic updates
-                  const hasUserStarred = image.userStarred;
-
-                  // Optimistic UI update for selected image
-                  setSelectedImageIndex((prevIndex) => {
-                    if (prevIndex >= 0) {
-                      setSelectedImage((prev) =>
-                        prev ? { ...prev, userStarred: !hasUserStarred } : prev,
-                      );
-                    }
-                    return prevIndex;
-                  });
-
-                  // Update gallery data optimistically
-                  queryClient.setQueryData(
-                    [`/api/galleries/${slug}`],
-                    (old: any) => ({
-                      ...old,
-                      images: old.images.map((img: Image) =>
-                        img.id === image.id
-                          ? { ...img, userStarred: !hasUserStarred }
-                          : img,
-                      ),
-                    }),
-                  );
-
-                  // Update star list optimistically
-                  queryClient.setQueryData(
-                    [`/api/images/${image.id}/stars`],
-                    (old: any) => {
-                      if (!old) return { success: true, data: [] };
-
-                      const updatedStars = hasUserStarred
-                        ? old.data.filter(
-                            (star: any) => star.userId !== user?.id,
-                          )
-                        : [
-                            ...old.data,
-                            {
-                              userId: user?.id,
-                              imageId: image.id,
-                              user: {
-                                firstName: user?.firstName,
-                                lastName: user?.lastName,
-                                imageUrl: user?.imageUrl,
-                              },
-                            },
-                          ];
-
-                      return { ...old, data: updatedStars };
-                    },
-                  );
-
-                  // Perform mutation to sync with backend
-                  toggleStarMutation.mutate(
-                    { imageId: image.id, isStarred: hasUserStarred },
-                    {
-                      onError: () => {
-                        // Revert optimistic UI
-                        queryClient.setQueryData(
-                          [`/api/galleries/${slug}`],
-                          (old: any) => ({
-                            ...old,
-                            images: old.images.map((img: Image) =>
-                              img.id === image.id
-                                ? { ...img, starred: hasUserStarred }
-                                : img,
-                            ),
-                          }),
-                        );
-
-                        // Revert star list
-                        queryClient.setQueryData(
-                          [`/api/images/${image.id}/stars`],
-                          (old: any) => {
-                            if (!old) return { success: true, data: [] };
-                            return {
-                              ...old,
-                              data: hasUserStarstarred
-                                ? [
-                                    ...old.data,
-                                    {
-                                      userId: user?.id,
-                                      imageId: image.id,
-                                      user: {
-                                        firstName: user?.firstName,
-                                        lastName: user?.lastName,
-                                        imageUrl: user?.imageUrl,
-                                      },
-                                    },
-                                  ]
-                                : old.data.filter(
-                                    (star: any) => star.userId !== user?.id,
-                                  ),
-                            };
-                          },
-                        );
-
-                        // Revert selected image if in lightbox
-                        if (selectedImage?.id === image.id) {
-                          setSelectedImage((prev) =>
-                            prev ? { ...prev, starred: hasUserStarred } : prev,
-                          );
-                        }
-
-                        toast({
-                          title: "Error",
-                          description:"Failed to update star status. Please try again.",
-                          variant: "destructive",
-                        });
-                      },
-                    },
-                  );
-                }}
+                onClick={onStar}
               >
                 <motion.div
                   animate={{
@@ -2080,13 +1940,39 @@ export default function Gallery({
             </motion.div>
           )}
         </div>
-      </motion.div>
-    </div>
+      </div>
+    );
+  }
+
+  const renderImage = (image: ImageOrPending, index: number) => (
+    <DraggableImage
+      key={image.id === -1 ? `pending-${index}` : image.id}
+      image={image}
+      index={index}
+      selectMode={selectMode}
+      selectedImages={selectedImages}
+      isReorderMode={isReorderMode}
+      onSelect={handleImageSelect}
+      onClick={handleImageClick}
+      onStar={(e) => {
+        e.stopPropagation();
+        if (!user) {
+          setShowSignUpModal(true);
+          return;
+        }
+        toggleStarMutation.mutate({
+          imageId: image.id,
+          isStarred: image.userStarred,
+        });
+      }}
+      showStarButton={true}
+      userRole={userRole}
+    />
   );
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Allow Escape key regardless of focus state
+      //      // Allow Escape key regardless of focus state
       if (e.key === "Escape" && selectMode) {
         e.preventDefault();
         setSelectedImages([]);
@@ -2095,7 +1981,7 @@ export default function Gallery({
       }
 
       // Skip other shortcuts if input/textarea is focused
-      if (document.activeElement instanceof HTMLInputElement || 
+      if (document.activeElement instanceof HTMLInputElement ||
           document.activeElement instanceof HTMLTextAreaElement) {
         return;
       }
@@ -2109,7 +1995,7 @@ export default function Gallery({
     if (selectedImageIndex >= 0) {
       const handleKeyDown = (e: KeyboardEvent) => {
         // Skip keyboard shortcuts if any input/textarea is focused
-        if (document.activeElement instanceof HTMLInputElement || 
+        if (document.activeElement instanceof HTMLInputElement ||
             document.activeElement instanceof HTMLTextAreaElement) {
           return;
         }
@@ -2135,7 +2021,8 @@ export default function Gallery({
       };
 
       window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);    }
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
   }, [
     selectedImageIndex,
     gallery?.images?.length,
@@ -2981,8 +2868,7 @@ export default function Gallery({
             onClose={() => setShowSignUpModal(false)}
           />
         </div>
-      </>
-    </DndContext>
+      </DndContext>
     </UploadProvider>
   );
 }
