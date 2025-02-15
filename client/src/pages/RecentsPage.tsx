@@ -89,13 +89,11 @@ export default function RecentsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <aside className="hidden md:block w-64 border-r">
-        <div className="sticky top-0 h-screen flex flex-col">
-          <DashboardSidebar />
-        </div>
+    <div className="bg-background">
+      <aside className="hidden md:block fixed top-0 left-0 h-screen w-64 border-r bg-background z-50">
+        <DashboardSidebar />
       </aside>
-      <main className="flex-1 flex flex-col min-h-0">
+      <main className="ml-64 flex flex-col min-h-screen">
         <header className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <Sheet>
