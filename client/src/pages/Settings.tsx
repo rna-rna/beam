@@ -1,4 +1,3 @@
-
 import { useState, FormEvent, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { Card } from "@/components/ui/card";
@@ -45,12 +44,12 @@ export default function Settings() {
 
   // Notification settings
   const [notifications, setNotifications] = useState<NotificationSettings>({
-    invitesApp: false,
-    invitesEmail: false,
-    commentsApp: false,
-    commentsEmail: false,
-    starredApp: false,
-    starredEmail: false,
+    invitesApp: true,
+    invitesEmail: true,
+    commentsApp: true,
+    commentsEmail: true,
+    starredApp: true,
+    starredEmail: true,
   });
 
   // Loading states
@@ -254,42 +253,6 @@ export default function Settings() {
                 </Button>
               </form>
             </div>
-
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Security</h2>
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    New Password
-                  </label>
-                  <Input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Confirm Password
-                  </label>
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <Button type="submit" disabled={isChangingPassword} className="w-full md:w-auto">
-                  {isChangingPassword && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Change Password
-                </Button>
-              </form>
-            </div>
           </Card>
         </TabsContent>
 
@@ -311,7 +274,7 @@ export default function Settings() {
                           }))
                         }
                       />
-                      <span className="text-sm">In-App</span>
+                      <span className="text-sm">App</span>
                     </label>
 
                     <label className="flex items-center space-x-2">
@@ -330,7 +293,7 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <h3 className="font-medium mb-4">Comments on Galleries</h3>
+                  <h3 className="font-medium mb-4">New Comments</h3>
                   <div className="flex space-x-6">
                     <label className="flex items-center space-x-2">
                       <Checkbox
@@ -342,7 +305,7 @@ export default function Settings() {
                           }))
                         }
                       />
-                      <span className="text-sm">In-App</span>
+                      <span className="text-sm">App</span>
                     </label>
 
                     <label className="flex items-center space-x-2">
@@ -361,7 +324,7 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <h3 className="font-medium mb-4">Starred Images</h3>
+                  <h3 className="font-medium mb-4">New Starred Images</h3>
                   <div className="flex space-x-6">
                     <label className="flex items-center space-x-2">
                       <Checkbox
@@ -373,7 +336,7 @@ export default function Settings() {
                           }))
                         }
                       />
-                      <span className="text-sm">In-App</span>
+                      <span className="text-sm">App</span>
                     </label>
 
                     <label className="flex items-center space-x-2">
@@ -407,88 +370,126 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="security">
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-6">Session Management</h2>
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-medium mb-4">Active Sessions</h3>
-                <div className="space-y-4">
-                  {!isLoaded ? (
-                    <div className="text-muted-foreground">Loading sessions...</div>
-                  ) : sessions.length === 0 ? (
-                    <div className="text-muted-foreground">No active sessions found</div>
-                  ) : sessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="space-y-1">
-                        <p className="font-medium">
-                          {session.latestActivity?.deviceType || "Unknown Device"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          IP: {session.latestActivity?.ipAddress || "Unknown"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Last active:{" "}
-                          {new Date(session.lastActiveAt).toLocaleString()}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Location: {session.latestActivity?.geolocation?.city && session.latestActivity?.geolocation?.country ? 
-                            `${session.latestActivity.geolocation.city}, ${session.latestActivity.geolocation.country}` : 
-                            (session.latestActivity?.geolocation?.country || "Location not available")}
-                        </p>
-                      </div>
-                      {session.id !== user.primarySessionId && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={async () => {
-                            try {
-                              await session.revoke();
-                              toast({
-                                title: "Session revoked",
-                                description: "The session has been logged out successfully.",
-                              });
-                            } catch (err) {
-                              toast({
-                                title: "Error",
-                                description: "Failed to revoke session. Please try again.",
-                                variant: "destructive",
-                              });
-                            }
-                          }}
-                        >
-                          Revoke
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+          <Card className="p-6 space-y-8">
+            <div>
+              <h2 className="text-xl font-semibold mb-6">Change Password</h2>
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    New Password
+                  </label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                  />
                 </div>
-              </div>
 
-              <div className="pt-4 border-t">
-                <h3 className="font-medium mb-4">Bulk Actions</h3>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      await user?.signOutOfOtherSessions();
-                      toast({
-                        title: "Sessions revoked",
-                        description: "All other sessions have been logged out.",
-                      });
-                    } catch (err) {
-                      toast({
-                        title: "Error",
-                        description: "Failed to revoke sessions. Please try again.",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                >
-                  Sign out of all other sessions
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    Confirm Password
+                  </label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <Button type="submit" disabled={isChangingPassword} className="w-full md:w-auto">
+                  {isChangingPassword && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Change Password
                 </Button>
+              </form>
+            </div>
+
+            <div className="pt-4 border-t">
+              <h2 className="text-xl font-semibold mb-6">Session Management</h2>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-medium mb-4">Active Sessions</h3>
+                  <div className="space-y-4">
+                    {!isLoaded ? (
+                      <div className="text-muted-foreground">Loading sessions...</div>
+                    ) : sessions.length === 0 ? (
+                      <div className="text-muted-foreground">No active sessions found</div>
+                    ) : sessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="space-y-1">
+                          <p className="font-medium">
+                            {session.latestActivity?.deviceType || "Unknown Device"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            IP: {session.latestActivity?.ipAddress || "Unknown"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Last active:{" "}
+                            {new Date(session.lastActiveAt).toLocaleString()}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Location: {session.latestActivity?.geolocation?.city && session.latestActivity?.geolocation?.country ? 
+                              `${session.latestActivity.geolocation.city}, ${session.latestActivity.geolocation.country}` : 
+                              (session.latestActivity?.geolocation?.country || "Location not available")}
+                          </p>
+                        </div>
+                        {session.id !== user.primarySessionId && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                await session.revoke();
+                                toast({
+                                  title: "Session revoked",
+                                  description: "The session has been logged out successfully.",
+                                });
+                              } catch (err) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to revoke session. Please try again.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          >
+                            Revoke
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <h3 className="font-medium mb-4">Bulk Actions</h3>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        await user?.signOutOfOtherSessions();
+                        toast({
+                          title: "Sessions revoked",
+                          description: "All other sessions have been logged out.",
+                        });
+                      } catch (err) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to revoke sessions. Please try again.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  >
+                    Sign out of all other sessions
+                  </Button>
+                </div>
               </div>
             </div>
           </Card>
