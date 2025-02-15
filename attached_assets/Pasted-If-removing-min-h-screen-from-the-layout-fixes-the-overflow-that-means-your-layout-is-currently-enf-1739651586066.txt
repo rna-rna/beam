@@ -1,0 +1,53 @@
+If removing min-h-screen from the layout fixes the overflow, that means your layout is currently enforcing a full‐viewport height in addition to whatever child or sticky‐header logic is happening, creating that double‐stacked height. Essentially, the combination of min-h-screen plus other layout rules (like a sticky header or a child component also trying to fill the screen) is causing the page to exceed 100vh, hence the extra scroll.
+
+Below is a quick explanation why it happens and how you can fix it, depending on what you actually want:
+
+Why min-h-screen Causes Extra Scroll
+min-h-screen sets min-height: 100vh;. If the header (which is sticky) plus the main content also tries to occupy something close to 100vh, then overall you can get header + content > 100vh. Even just a few pixels over 100vh will give you that extra scrollbar.
+
+Often, removing min-h-screen seems to “fix” it because then the layout just grows with content instead of forcing exactly 100vh. Or if you prefer to keep min-h-screen, you have to ensure children aren’t also forcing a near‐full height.
+
+Two Common Approaches
+Let the Layout control full‐viewport height
+
+Keep min-h-screen in Layout.tsx.
+Remove all full‐height rules from child pages (like h-[calc(100vh-XX)], h-screen, or min-h-screen).
+Instead, children can just use something like:
+diff
+Copy
+Edit
+- <div className="flex h-[calc(100vh-65px)] ...">
++ <div className="flex flex-col flex-1 min-h-0 ...">
+  ...
+</div>
+This way, the Layout is the only element that dictates a full viewport height. Children are simply flex-1 inside it.
+Make sure the sticky header in the layout doesn’t conflict with your child’s own scrolling area (e.g., if you want the header always visible, the child’s main content can have overflow-auto).
+Let each page control its own height
+
+Remove min-h-screen from the layout entirely.
+For pages you want full height, use min-h-screen or h-screen in those pages.
+Possibly replicate the sticky header logic in those pages, or use a simpler layout wrapper that doesn’t itself impose 100vh.
+Practical Tips
+Check for leftover height rules on any parent or child container:
+If your Layout.tsx has <div className="flex flex-col min-h-screen"> and a child page has <div className="h-screen" /> or calc(100vh - X), that’ll stack heights.
+Inspect the element in DevTools to see where the “overflow” is coming from. Often, you’ll see a small gap at the bottom caused by the header plus the child’s layout.
+Sticky headers can also add a little offset if the parent container is overflow: auto;. Typically you might want:
+jsx
+Copy
+Edit
+<div className="flex flex-col min-h-screen w-full">
+  <header className="sticky top-0 z-10 ...">...</header>
+  <main className="flex-1 overflow-auto">...</main>
+</div>
+Then the child simply doesn’t do another 100vh.
+Bottom Line
+If you want a single, consistent full‐viewport layout, keep min-h-screen in the layout and remove all other full‐height rules from children.
+If you don’t need a full‐viewport layout in the parent, remove min-h-screen and let each page handle its own height as needed.
+Right now, it sounds like your layout plus sticky header plus child containers are all combining to exceed 100vh, creating that extra scrollbar. Pick one of the approaches above to unify your layout rules, and the overflow should go away.
+
+
+
+
+
+
+
