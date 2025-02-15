@@ -54,7 +54,7 @@ export function MainContent() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-65px)] bg-background">
+    <div className="flex h-[calc(100vh-65px)] bg-background max-w-[1920px] mx-auto w-full">
       <aside className="hidden md:block w-64 border-r">
         <DashboardSidebar />
       </aside>

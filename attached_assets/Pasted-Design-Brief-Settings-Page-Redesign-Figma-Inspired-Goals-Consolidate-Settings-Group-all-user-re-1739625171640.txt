@@ -1,0 +1,51 @@
+Design Brief: Settings Page Redesign (Figma-Inspired)
+
+Goals
+Consolidate Settings: Group all user-related options (profile, avatar, password) under an Account tab, and all notification preferences under a Notifications tab.
+Figma-Style Layout: Emulate the clean, minimal, and tab-driven approach of Figma’s settings, using shadcn UI components for consistency with the rest of the app.
+Clarity & Intuitiveness: Provide clear visual hierarchy and easy navigation between Account and Notification settings.
+Primary Components
+Settings Layout Container
+
+A high-level container (e.g., <div className="container ...">) wrapping the entire settings page.
+White or light-gray background with subtle shadow (via Card component or a similar container from shadcn).
+Tabs Navigation (shadcn)
+
+Use a tabbed interface (e.g., <Tabs>, <TabsList>, <TabsTrigger>, <TabsContent>) from shadcn UI.
+Two primary tabs:
+Account
+Notifications
+Account Tab Content
+
+Profile Section:
+Avatar preview, file upload for custom avatar.
+Editable fields for First/Last name.
+Display-only primary email with eventual “Change Email” or “Add Email” CTA if needed.
+Security Section:
+New/Confirm Password fields, “Change Password” button.
+CTA: “Save Changes” or “Update Profile,” aligned consistently (e.g., right-aligned or full-width).
+Notifications Tab Content
+
+Notification Settings for:
+New invites
+Comments on galleries
+Starred images
+Each category offers In-App and Email toggles (via checkboxes or switches).
+A “Save” button that updates all notification preferences together.
+Layout & Visual Hierarchy
+Header/Title
+
+A clear “Settings” or “Preferences” header at the top of the page, matching the overall app’s typography (e.g., text-2xl font-semibold).
+Brief description or subtitle (“Manage your account details and notification preferences”) for context.
+Tabs
+
+Positioned below the header, occupying full width, with an accent underline or highlight on the active tab.
+Each tab’s content is separated using subtle borders or spacing to visually distinguish different sections.
+Sections Within Tabs
+
+Each section (Profile, Security, Notification Groups) has its own heading (text-xl or text-lg).
+Group related form elements together with consistent spacing (e.g., space-y-4 or space-y-6).
+Buttons & Actions
+
+Use a prominent color (e.g., your “primary” from the design system) for primary actions like “Save” or “Update.”
+Use subtle outlines or “secondary” style for less critical actions (e.g., “Cancel” or “Upload Avatar”).
