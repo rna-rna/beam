@@ -97,7 +97,6 @@ import { SignUpModal } from "@/components/SignUpModal";
 import PusherClient from "pusher-js";
 import { nanoid } from "nanoid";
 import { CursorOverlay } from "@/components/CursorOverlay";
-import { useDraggable } from '@dnd-kit/core';
 
 // Initialize Pusher client
 const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
