@@ -255,7 +255,67 @@ export default function Settings() {
               </form>
             </div>
 
-            
+            <div>
+              <h2 className="text-xl font-semibold mb-6">Session Management</h2>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-medium mb-4">Active Sessions</h3>
+                <div className="space-y-4">
+                  {!isLoaded ? (
+                    <div className="text-muted-foreground">Loading sessions...</div>
+                  ) : sessions.length === 0 ? (
+                    <div className="text-muted-foreground">No active sessions found</div>
+                  ) : sessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="space-y-1">
+                        <p className="font-medium">
+                          {session.latestActivity?.deviceType || "Unknown Device"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          IP: {session.latestActivity?.ipAddress || "Unknown"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Last active:{" "}
+                          {new Date(session.lastActiveAt).toLocaleString()}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Location: {session.latestActivity?.geolocation?.city && session.latestActivity?.geolocation?.country ? 
+                            `${session.latestActivity.geolocation.city}, ${session.latestActivity.geolocation.country}` : 
+                            (session.latestActivity?.geolocation?.country || "Location not available")}
+                        </p>
+                      </div>
+                      {session.id !== user.primarySessionId && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await session.revoke();
+                              toast({
+                                title: "Session revoked",
+                                description: "The session has been logged out successfully.",
+                              });
+                            } catch (err) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to revoke session. Please try again.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          Revoke
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
           </Card>
         </TabsContent>
 
