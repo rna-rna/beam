@@ -75,11 +75,11 @@ export default function TrashPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-65px)] bg-background">
+    <div className="flex flex-1 bg-background">
       <aside className="hidden md:block w-64 border-r">
         <DashboardSidebar />
       </aside>
-      <main className="flex-1 flex flex-col min-h-0 p-4">
+      <main className="flex-1 flex flex-col p-4">
         <h2 className="text-xl font-bold mb-4">Trash</h2>
         {trashedGalleries.length === 0 ? (
           <div className="text-muted-foreground">No items in trash.</div>

@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useRoute } from "wouter";
@@ -13,8 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, FolderOpen, Image, Loader2 } from "lucide-react";
-
+import { ChevronDown, FolderOpen, Image, Loader2, Menu } from "lucide-react";
 
 export function MainContent() {
   const [match, params] = useRoute("/f/:folderSlug");
@@ -47,19 +47,19 @@ export function MainContent() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center flex-1">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-[calc(100vh-65px)] bg-background max-w-[1920px] mx-auto w-full">
+    <div className="flex flex-1 h-full bg-background">
       <aside className="hidden md:block w-64 border-r">
         <DashboardSidebar />
       </aside>
 
-      <main className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0">
         <header className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center">
             <Sheet>
@@ -103,7 +103,7 @@ export function MainContent() {
         <ScrollArea className="flex-1 p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {folderGalleries.length === 0 ? (
-              <div className="col-span-full flex items-center justify-center h-[calc(100vh-200px)]">
+              <div className="col-span-full flex items-center justify-center py-12">
                 <div className="text-center text-muted-foreground">
                   <FolderOpen className="w-12 h-12 mx-auto mb-4" />
                   <p>This folder is empty</p>
@@ -140,7 +140,7 @@ export function MainContent() {
             )}
           </div>
         </ScrollArea>
-      </main>
+      </div>
     </div>
   );
 }
