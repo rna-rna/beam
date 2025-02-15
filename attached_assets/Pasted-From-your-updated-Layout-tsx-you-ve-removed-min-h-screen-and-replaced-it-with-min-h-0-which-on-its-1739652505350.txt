@@ -1,0 +1,53 @@
+From your updated Layout.tsx, you’ve removed min-h-screen and replaced it with min-h-0, which on its own doesn’t enforce a full‐viewport height. So now the layout’s overall height is allowed to grow based on its contents—plus you have a sticky header. Together, if the main content is forced near 100% of the screen as well, you can still get that “one extra scroll” effect.
+
+Below is the most common pattern to avoid the extra scrollbar when you want a sticky header at the top and a single scrollable area underneath:
+
+tsx
+Copy
+Edit
+export function Layout({ children, title, onTitleChange, actions, ...props }: LayoutProps) {
+  return (
+    <div className="flex flex-col h-screen w-full bg-background">
+      {/* Sticky header at the top */}
+      <header className="sticky top-0 z-10 border-b bg-background">
+        {/* your header content */}
+      </header>
+
+      {/* The main area fills the rest and scrolls if needed */}
+      <main className="flex-1 overflow-auto">
+        <AnimatePresence mode="wait">
+          {children}
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+}
+Why This Helps
+h-screen ensures the entire parent is exactly the full viewport height (no more, no less).
+The header is “sticky top-0,” so it stays pinned at the top inside that container.
+The <main className="flex-1 overflow-auto"> means that only the main content can scroll (if it grows taller than the remaining space), rather than pushing the entire page beyond 100vh.
+Removing other “full‐height” rules from child components (like min-h-screen or calc(100vh - something)) is crucial. Children can just use flex-1, min-h-0, etc.
+If You Don’t Want a Strict Full‐Screen Layout
+If you actually prefer that the layout grows with content and only scrolls if it’s taller than the window, then you generally do not use h-screen or min-h-screen at the layout level. Instead, you’d do something like:
+
+tsx
+Copy
+Edit
+export function Layout(...) {
+  return (
+    <div className="flex flex-col w-full bg-background">
+      <header className="sticky top-0 z-10 border-b bg-background">
+        ...
+      </header>
+      <main>
+        <AnimatePresence mode="wait">
+          {children}
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+}
+But then you’d typically see a normal browser scrollbar if the total page content is bigger than the viewport (not an “extra” one, just the regular scroll).
+
+That scenario might also cause a small scroll if your sticky header “pushes” content. Usually, that’s normal behavior: as soon as you have more content than fits on screen, you get a scrollbar. The difference is ensuring you don’t accidentally stack a “full height” container with a sticky header that effectively adds extra height.
+
