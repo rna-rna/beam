@@ -54,7 +54,7 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <ScrollArea className="h-[calc(100vh-6rem)]">
+      <ScrollArea className="h-full">
         <div className="p-4 space-y-4">
           <Button
             variant={selectedSection === 'recents' ? "secondary" : "ghost"}

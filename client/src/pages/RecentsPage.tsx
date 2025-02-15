@@ -89,8 +89,8 @@ export default function RecentsPage() {
   };
 
   return (
-    <div className="flex h-full bg-background">
-      <aside className="hidden md:block w-64 border-r">
+    <div className="flex h-screen bg-background">
+      <aside className="hidden md:block w-64 border-r sticky top-0 h-screen">
         <DashboardSidebar />
       </aside>
       <main className="flex-1 flex flex-col min-h-0">
