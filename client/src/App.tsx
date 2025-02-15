@@ -221,7 +221,7 @@ function AppContent() {
       onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
       actions={headerActions}
     >
-      <div className="min-h-screen w-full">
+      <div className="w-full flex-1">
           <AnimatePresence mode="wait">
             <Switch>
         <Route path="/new">
