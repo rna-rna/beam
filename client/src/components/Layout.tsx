@@ -33,8 +33,8 @@ export function Layout({
   const [, setLocation] = useLocation();
 
   return (
-    <div className={cn("min-h-screen w-full", isDark ? "bg-black" : "bg-white")}>
-      <div className={cn("sticky top-0 z-10 border-b", isDark ? "bg-black" : "bg-white")}>
+    <div className="flex flex-col min-h-screen w-full bg-background">
+      <header className="sticky top-0 z-10 border-b bg-background">
         <div className="px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2">
           {title && onTitleChange ? (
             <InlineEdit
@@ -55,7 +55,7 @@ export function Layout({
               <Button 
                 variant="ghost" 
                 onClick={toggleSelectMode}
-                className={cn("text-sm", isDark ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100")}
+                className="text-sm"
               >
                 {selectMode ? "Deselect" : "Tools"}
               </Button>
@@ -95,8 +95,8 @@ export function Layout({
             </SignedOut>
           </div>
         </div>
-      </div>
-      <main className="relative">
+      </header>
+      <main className="flex-1 flex flex-col min-h-0">
         <AnimatePresence mode="wait">
           {children}
         </AnimatePresence>
