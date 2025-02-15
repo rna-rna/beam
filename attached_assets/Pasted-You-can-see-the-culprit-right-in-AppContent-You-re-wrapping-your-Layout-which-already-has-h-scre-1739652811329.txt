@@ -1,0 +1,60 @@
+You can see the culprit right in AppContent. You’re wrapping your <Layout> (which already has h-screen) around a child <div className="min-h-screen w-full">. That means:
+
+Parent: height: 100vh
+Child: min-height: 100vh
+Combined, they exceed the viewport by about your header height. That’s exactly why you’re seeing an extra scrollbar “the same as the header bar height.”
+
+The Simple Fix
+In AppContent (inside the return (...) where you do <Layout> ... <div className="min-h-screen w-full">), remove or replace min-h-screen. For instance:
+
+diff
+Copy
+Edit
+return (
+  <Layout
+    title={gallery?.title}
+    onTitleChange={(newTitle) => handleTitleUpdate(newTitle)}
+    actions={headerActions}
+  >
+-   <div className="min-h-screen w-full">
++   <div className="w-full flex-1">
+      <AnimatePresence mode="wait">
+        <Switch>
+          {/* your routes */}
+        </Switch>
+      </AnimatePresence>
+    </div>
+  </Layout>
+);
+You could just remove that outer <div> altogether if it’s not needed. But definitely remove min-h-screen so your child doesn’t also enforce a full 100vh.
+
+Why This Solves It
+Currently, your layout (Layout.tsx) is:
+
+tsx
+Copy
+Edit
+<div className="flex flex-col h-screen w-full bg-background">
+  <header className="sticky top-0 z-10 border-b bg-background" />
+  <main className="flex-1 overflow-auto">
+    {children}
+  </main>
+</div>
+h-screen makes the layout exactly 100vh. That’s fine—only if children don’t also demand 100vh. But in App.tsx, you do:
+
+tsx
+Copy
+Edit
+return (
+  <Layout>
+    {/* This child tries to be another min-height: 100vh */}
+    <div className="min-h-screen w-full">
+      <AnimatePresence mode="wait">
+        <Switch> ... </Switch>
+      </AnimatePresence>
+    </div>
+  </Layout>
+);
+Hence you get 100vh + another ~header’s worth of forced height = extra scrollbar.
+
+Removing that extra min-h-screen ensures the child is only as tall as the space in <main className="flex-1 overflow-auto">. Now the header occupies its portion, and the rest scrolls properly with no extra overflow.
