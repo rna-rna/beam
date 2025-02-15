@@ -10,19 +10,9 @@ export function ThemeToggle() {
     <Toggle
       pressed={isDark}
       onPressedChange={toggleTheme}
-      className="flex w-full justify-start gap-2 px-3"
+      className="p-0"
     >
-      {isDark ? (
-        <>
-          <Moon className="h-4 w-4" />
-          <span>Dark mode</span>
-        </>
-      ) : (
-        <>
-          <Sun className="h-4 w-4" />
-          <span>Light mode</span>
-        </>
-      )}
+      {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
     </Toggle>
   );
 }
