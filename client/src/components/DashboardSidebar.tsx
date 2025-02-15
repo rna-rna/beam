@@ -53,8 +53,8 @@ export function DashboardSidebar() {
   });
 
   return (
-    <>
-      <ScrollArea className="h-full">
+    <div className="flex flex-col h-full">
+      <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
           <Button
             variant={selectedSection === 'recents' ? "secondary" : "ghost"}
@@ -166,11 +166,12 @@ export function DashboardSidebar() {
           </Button>
         </div>
       </ScrollArea>
-      <div className="p-4 border-t">
+      <div className="shrink-0 p-4 border-t">
         <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
           <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
         </Button>
       </div>
+    </div>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent>
