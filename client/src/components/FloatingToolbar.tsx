@@ -1,6 +1,12 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Trash2, Download, Paintbrush, ArrowUpDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function FloatingToolbar({
   selectedCount,
@@ -39,10 +45,22 @@ export function FloatingToolbar({
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
           </Button>
-          <Button variant="default" size="sm" onClick={onDownload}>
-            <Download className="h-4 w-4 mr-2" />
-            Download
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="default" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => onDownload('original')}>
+                Original Files
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDownload('optimized')}>
+                Optimized Files
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="secondary" size="sm" onClick={onDeselect}>
             Deselect
           </Button>
