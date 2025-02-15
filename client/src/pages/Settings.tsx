@@ -176,6 +176,7 @@ export default function Settings() {
         <TabsList className="w-full mb-6">
           <TabsTrigger value="account" className="flex-1">Account</TabsTrigger>
           <TabsTrigger value="notifications" className="flex-1">Notifications</TabsTrigger>
+          <TabsTrigger value="security" className="flex-1">Security</TabsTrigger>
         </TabsList>
 
         <TabsContent value="account">
@@ -395,6 +396,85 @@ export default function Settings() {
                 Save Notification Preferences
               </Button>
             </form>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-6">Session Management</h2>
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-medium mb-4">Active Sessions</h3>
+                <div className="space-y-4">
+                  {user?.sessions?.map((session) => (
+                    <div
+                      key={session.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="space-y-1">
+                        <p className="font-medium">
+                          {session.deviceType || "Unknown Device"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          IP: {session.lastActiveIp || "Unknown"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Last active:{" "}
+                          {new Date(session.lastActiveAt).toLocaleString()}
+                        </p>
+                      </div>
+                      {session.id !== user.primarySessionId && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await session.revoke();
+                              toast({
+                                title: "Session revoked",
+                                description: "The session has been logged out successfully.",
+                              });
+                            } catch (err) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to revoke session. Please try again.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          Revoke
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="font-medium mb-4">Bulk Actions</h3>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await user?.signOutOfOtherSessions();
+                      toast({
+                        title: "Sessions revoked",
+                        description: "All other sessions have been logged out.",
+                      });
+                    } catch (err) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to revoke sessions. Please try again.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
+                  Sign out of all other sessions
+                </Button>
+              </div>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>
