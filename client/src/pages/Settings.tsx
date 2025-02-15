@@ -433,6 +433,10 @@ export default function Settings() {
                           Last active:{" "}
                           {new Date(session.lastActiveAt).toLocaleString()}
                         </p>
+                        <p className="text-sm text-muted-foreground">
+                          Location: {session.latestActivity?.geolocation?.country || "Unknown"}
+                          {session.latestActivity?.geolocation?.city && `, ${session.latestActivity.geolocation.city}`}
+                        </p>
                       </div>
                       {session.id !== user.primarySessionId && (
                         <Button
