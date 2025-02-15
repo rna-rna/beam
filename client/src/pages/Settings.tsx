@@ -424,10 +424,10 @@ export default function Settings() {
                     >
                       <div className="space-y-1">
                         <p className="font-medium">
-                          {session.deviceType || "Unknown Device"}
+                          {session.latestActivity?.deviceType || "Unknown Device"}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          IP: {session.lastActiveIp || "Unknown"}
+                          IP: {session.latestActivity?.ipAddress || "Unknown"}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Last active:{" "}
