@@ -84,7 +84,7 @@ export function Layout({
               onClick={() => setLocation("/new")}
               title="Create new gallery"
             >
-              <SquarePlus className="h-4 w-4" />
+              <Filter className="h-4 w-4" />
             </Button>
             <ThemeToggle />
             <SignedIn>
