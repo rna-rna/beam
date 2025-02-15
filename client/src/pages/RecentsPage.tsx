@@ -90,7 +90,7 @@ export default function RecentsPage() {
 
   return (
     <div className="bg-background">
-      <aside className="hidden md:block fixed top-0 left-0 h-screen w-64 border-r bg-background z-50">
+      <aside className="hidden md:block fixed top-[64px] left-0 h-[calc(100vh-64px)] w-64 border-r bg-background z-50">
         <DashboardSidebar />
       </aside>
       <main className="ml-64 flex flex-col min-h-screen">
