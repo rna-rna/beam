@@ -86,14 +86,6 @@ export function Layout({
             >
               <SquarePlus className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setLocation("/dashboard")}
-              title="Go to dashboard"
-            >
-              <Home className="h-4 w-4" />
-            </Button>
             <ThemeToggle />
             <SignedIn>
               <UserNav />
