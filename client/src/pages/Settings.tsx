@@ -44,12 +44,12 @@ export default function Settings() {
 
   // Notification settings
   const [notifications, setNotifications] = useState<NotificationSettings>({
-    invitesApp: false,
-    invitesEmail: false,
-    commentsApp: false,
-    commentsEmail: false,
-    starredApp: false,
-    starredEmail: false,
+    invitesApp: true,
+    invitesEmail: true,
+    commentsApp: true,
+    commentsEmail: true,
+    starredApp: true,
+    starredEmail: true,
   });
 
   // Loading states
@@ -274,7 +274,7 @@ export default function Settings() {
                           }))
                         }
                       />
-                      <span className="text-sm">In-App</span>
+                      <span className="text-sm">App</span>
                     </label>
 
                     <label className="flex items-center space-x-2">
@@ -293,7 +293,7 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <h3 className="font-medium mb-4">Comments on Galleries</h3>
+                  <h3 className="font-medium mb-4">New Comments</h3>
                   <div className="flex space-x-6">
                     <label className="flex items-center space-x-2">
                       <Checkbox
@@ -305,7 +305,7 @@ export default function Settings() {
                           }))
                         }
                       />
-                      <span className="text-sm">In-App</span>
+                      <span className="text-sm">App</span>
                     </label>
 
                     <label className="flex items-center space-x-2">
@@ -324,7 +324,7 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <h3 className="font-medium mb-4">Starred Images</h3>
+                  <h3 className="font-medium mb-4">New Starred Images</h3>
                   <div className="flex space-x-6">
                     <label className="flex items-center space-x-2">
                       <Checkbox
@@ -336,7 +336,7 @@ export default function Settings() {
                           }))
                         }
                       />
-                      <span className="text-sm">In-App</span>
+                      <span className="text-sm">App</span>
                     </label>
 
                     <label className="flex items-center space-x-2">
