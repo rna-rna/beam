@@ -22,6 +22,13 @@ export default function Settings() {
   const { user, isLoaded, isSignedIn } = useUser();
   const clerk = useClerk();
   const { toast } = useToast();
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      user.getSessions().then(setSessions).catch(console.error);
+    }
+  }, [user]);
 
   // Profile info
   const [firstName, setFirstName] = useState(user?.firstName || "");
@@ -406,7 +413,11 @@ export default function Settings() {
               <div>
                 <h3 className="font-medium mb-4">Active Sessions</h3>
                 <div className="space-y-4">
-                  {user?.sessions?.map((session) => (
+                  {!isLoaded ? (
+                    <div className="text-muted-foreground">Loading sessions...</div>
+                  ) : sessions.length === 0 ? (
+                    <div className="text-muted-foreground">No active sessions found</div>
+                  ) : sessions.map((session) => (
                     <div
                       key={session.id}
                       className="flex items-center justify-between p-4 border rounded-lg"
