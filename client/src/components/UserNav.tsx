@@ -16,7 +16,8 @@ import {
   LayoutDashboard,
   Settings,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  LifeBuoy
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBellDropdown } from "@/components/NotificationBellDropdown";
@@ -95,6 +96,13 @@ export function UserNav() {
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => window.open('https://help.beam.ms', '_blank')}
+              className="cursor-pointer"
+            >
+              <LifeBuoy className="mr-2 h-4 w-4" />
+              Support/Help
+            </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={handleSignOut}
               className="cursor-pointer text-red-600 focus:text-red-600"
