@@ -290,23 +290,7 @@ function AppContent() {
   );
 }
 
-function IntercomProvider() {
-  const { isSignedIn, user } = useUser();
 
-  useEffect(() => {
-    if (isSignedIn && user) {
-      Intercom({
-        app_id: 'nddy1kg6',
-        user_id: user.id,
-        name: user.name,
-        email: user.email,
-        created_at: Math.floor(user.createdAt.getTime() / 1000) // Convert Date to Unix timestamp
-      });
-    }
-  }, [isSignedIn, user]);
-
-  return null;
-}
 
 export default function App() {
   const { isLoaded } = useUser();

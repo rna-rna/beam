@@ -8,33 +8,37 @@ export function IntercomProvider() {
 
   useEffect(() => {
     if (isSignedIn && user) {
+      const displayName = user.firstName || user.lastName
+        ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
+        : user.username || user.primaryEmailAddress?.emailAddress || 'Anonymous';
+
       Intercom('boot', {
         app_id: 'nddy1kg6',
         user_id: user.id,
-        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Anonymous',
-        email: user.primaryEmailAddress?.emailAddress || '',
+        name: displayName,
+        email: user.primaryEmailAddress?.emailAddress ?? '',
         created_at: Math.floor(new Date(user.createdAt).getTime() / 1000),
+        avatar: {
+          type: 'avatar',
+          image_url: user.imageUrl || ''
+        },
         custom_attributes: {
-          image_url: user.imageUrl || '',
-          username: user.username || '',
           last_sign_in: Math.floor(new Date(user.lastSignInAt || user.createdAt).getTime() / 1000),
           email_verified: user.primaryEmailAddress?.verification?.status === 'verified'
         }
       });
     } else {
-      // Boot Intercom without user data for non-logged-in users
-      Intercom({
+      Intercom('boot', {
         app_id: 'nddy1kg6'
       });
     }
-    
+
     return () => {
-      // Cleanup on unmount
       if (window.Intercom) {
         window.Intercom('shutdown');
       }
     };
-  }, [user, isSignedIn]);
+  }, [isSignedIn, user]);
 
   return null;
 }
