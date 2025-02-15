@@ -2,7 +2,7 @@
 import { ReactNode } from "react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { AnimatePresence } from "framer-motion";
-import { SquarePlus, Home } from "lucide-react";
+import { SquarePlus, Home, Filter } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { LoginButton } from "@/components/LoginButton";
