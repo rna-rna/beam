@@ -173,6 +173,7 @@ export function DashboardSidebar() {
       </div>
     </div>
 
+    <div>
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent>
           <DialogHeader>
@@ -191,6 +192,7 @@ export function DashboardSidebar() {
           </form>
         </DialogContent>
       </Dialog>
+    </div>
 
       {deleteFolder && (
         <DeleteFolderModal
