@@ -164,7 +164,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="container max-w-4xl py-8">
+    <div className="container max-w-4xl py-8 mx-auto px-4">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold mb-2">Settings</h1>
         <p className="text-muted-foreground">
@@ -238,7 +238,7 @@ export default function Settings() {
                   <Input value={email} disabled className="bg-muted" />
                 </div>
 
-                <Button type="submit" disabled={isUpdatingProfile} className="w-full">
+                <Button type="submit" disabled={isUpdatingProfile} className="w-full md:w-auto">
                   {isUpdatingProfile && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
@@ -274,7 +274,7 @@ export default function Settings() {
                   />
                 </div>
 
-                <Button type="submit" disabled={isChangingPassword} className="w-full">
+                <Button type="submit" disabled={isChangingPassword} className="w-full md:w-auto">
                   {isChangingPassword && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
@@ -387,7 +387,7 @@ export default function Settings() {
               <Button
                 type="submit"
                 disabled={isUpdatingNotifications}
-                className="w-full"
+                className="w-full md:w-auto"
               >
                 {isUpdatingNotifications && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
