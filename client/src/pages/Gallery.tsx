@@ -31,6 +31,7 @@ import {
   Eye,
   EyeOff,
   Lock,
+  SquareScissors,
 } from "lucide-react";
 
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -1733,7 +1734,7 @@ export default function Gallery({
                       : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent/30 data-[state=on]:text-accent-foreground data-[state=on]:ring-2 data-[state=on]:ring-accent",
                   )}
                 >
-                  <PencilRuler className="h-4 w-4" />
+                  <SquareScissors className="h-4 w-4" />
                 </Toggle>
               </TooltipTrigger>
               <TooltipContent>
@@ -1981,7 +1982,7 @@ export default function Gallery({
                             if (!old) return { success: true, data: [] };
                             return {
                               ...old,
-                              data: hasUserStarred
+                              data: hasUserStarstarred
                                 ? [
                                     ...old.data,
                                     {
