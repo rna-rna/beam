@@ -14,11 +14,16 @@ export function IntercomProvider() {
         name: `${user.firstName} ${user.lastName}`.trim(),
         email: user.primaryEmailAddress?.emailAddress,
         created_at: Math.floor(new Date(user.createdAt).getTime() / 1000),
+        // Additional user data
+        custom_attributes: {
+          image_url: user.imageUrl,
+          username: user.username,
+          last_sign_in: Math.floor(new Date(user.lastSignInAt || user.createdAt).getTime() / 1000)
+        }
       });
     }
     
     return () => {
-      // Cleanup Intercom on unmount
       if (window.Intercom) {
         window.Intercom('shutdown');
       }
