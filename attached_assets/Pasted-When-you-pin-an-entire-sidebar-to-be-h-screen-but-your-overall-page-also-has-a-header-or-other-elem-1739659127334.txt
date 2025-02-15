@@ -1,0 +1,98 @@
+When you pin an entire sidebar to be h-screen, but your overall page also has a header or other elements above it, you can easily end up with the sidebar extending beyond the visible viewport. In your code, the Add Folder button is at the bottom of that pinned sidebar—but if the sidebar is literally h-screen plus borders/padding or is “pushed” down by a header, the button can overflow.
+
+Below are a few adjustments that usually solve the issue:
+
+1) Wrap <DashboardSidebar> in a container with sticky top-0 h-screen
+In your RecentsPage.tsx:
+
+diff
+Copy
+Edit
+<aside className="hidden md:block w-64 border-r">
+-  <DashboardSidebar />
++  <div className="sticky top-0 h-screen flex flex-col">
++    <DashboardSidebar />
++  </div>
+</aside>
+This ensures the entire sidebar is pinned from top to bottom, using h-screen. The child <DashboardSidebar> can then fill that space.
+
+2) Remove h-full in the top <div> of DashboardSidebar and just let its parent define the full height
+Inside DashboardSidebar.tsx, remove or change h-full in the topmost <div className="flex flex-col h-full">. Instead, rely on the parent’s h-screen. For example:
+
+diff
+Copy
+Edit
+export function DashboardSidebar() {
+  return (
+-   <div className="flex flex-col h-full">
++   <div className="flex flex-col flex-1">
+      <ScrollArea className="flex-1">
+        {/* folders, buttons, etc. */}
+      </ScrollArea>
+
+      <div className="shrink-0 p-4 border-t">
+        <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
+          <FolderPlus className="mr-2 h-4 w-4" />
+          Add Folder
+        </Button>
+      </div>
+    </div>
+  )
+}
+So now:
+
+The parent is sticky top-0 h-screen flex flex-col.
+The child uses flex-1, meaning it’ll fill that parent's height exactly, no extra.
+3) Verify no extra top header height conflicts
+If your site has a global header of some size (e.g., 64px tall) pinned at the top, you may need to offset the sidebar so it doesn’t appear underneath that header. For instance:
+
+jsx
+Copy
+Edit
+<aside className="hidden md:block w-64 border-r sticky top-[64px] h-[calc(100vh-64px)]">
+  <DashboardSidebar />
+</aside>
+If you see the sidebar pinned behind your main app header, add the top-XX offset accordingly.
+
+4) Confirm you only have one vertical scrollbar for the sidebar
+Because you’re using <ScrollArea>, confirm you do not also have extra overflow-y-auto or overflow-auto on the parent that competes. One container handles the “sticky/h-screen,” and inside it, <ScrollArea className="flex-1"> handles the scroll for the folders. The bottom <div> with “Add Folder” is outside that scrollable region (so it’s always visible if the list is smaller than the screen). If there are more folders than fit on screen, the folder list itself scrolls, but the button remains pinned at the bottom of the sidebar.
+
+Putting It All Together
+In RecentsPage.tsx:
+
+jsx
+Copy
+Edit
+<div className="flex h-screen bg-background">
+  <aside className="hidden md:block w-64 border-r sticky top-0 h-screen flex flex-col">
+    <DashboardSidebar />
+  </aside>
+  <main className="flex-1 flex flex-col min-h-0">
+    {/* ... */}
+  </main>
+</div>
+In DashboardSidebar.tsx:
+
+jsx
+Copy
+Edit
+export function DashboardSidebar() {
+  return (
+    <div className="flex flex-col flex-1">
+      <ScrollArea className="flex-1">
+        {/* ... Folder buttons, etc. ... */}
+      </ScrollArea>
+      <div className="shrink-0 p-4 border-t">
+        <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
+          <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
+        </Button>
+      </div>
+    </div>
+  )
+}
+That ensures:
+
+The aside is pinned top-to-bottom via sticky top-0 h-screen.
+The folder list has its own scroll area (ScrollArea className="flex-1").
+The Add Folder button is in a shrink-0 div at the bottom, so it does not scroll off-screen with the folder list.
+No more overflow, and the button stays pinned in view.
