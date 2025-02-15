@@ -2907,7 +2907,7 @@ export default function Gallery({
           {renderCommentDialog()}
 
           <AnimatePresence>
-            {selectMode && selectedImages.length > 0 && (
+            {selectMode && (
               <FloatingToolbar
                 selectedCount={selectedImages.length}
                 totalCount={gallery?.images?.length || 0}
