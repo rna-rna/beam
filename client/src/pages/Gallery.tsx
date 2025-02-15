@@ -4,6 +4,17 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
 import { default as GalleryActions } from '@/components/GalleryActions';
+import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  DragOverlay,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  rectIntersection,
+} from '@dnd-kit/core';
 
 // Initialize Socket.IO client
 const socket = io("/", {
@@ -2295,9 +2306,44 @@ export default function Gallery({
     );
   };
 
+  const sensors = useSensors(
+    useSensor(MouseSensor),
+    useSensor(TouchSensor)
+  );
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) {
+      setDraggedItemIndex(null);
+      return;
+    }
+
+    const oldIndex = gallery?.images.findIndex((img) => img.id === active.id);
+    const newIndex = gallery?.images.findIndex((img) => img.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const updatedImages = [...gallery.images];
+    const [moved] = updatedImages.splice(oldIndex, 1);
+    updatedImages.splice(newIndex, 0, moved);
+
+    queryClient.setQueryData([`/api/galleries/${slug}`], {
+      ...gallery,
+      images: updatedImages,
+    });
+
+    reorderImageMutation.mutate(updatedImages.map((img) => img.id));
+    setDraggedItemIndex(null);
+  };
+
   return (
     <UploadProvider>
-      <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={rectIntersection}
+        onDragStart={(event) => setDraggedItemIndex(event.active.id)}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setDraggedItemIndex(null)}
+      >
         <CursorOverlay cursors={cursors} />
         {gallery && <GalleryActions gallery={gallery} />}
         {gallery && (
@@ -2936,6 +2982,7 @@ export default function Gallery({
           />
         </div>
       </>
+    </DndContext>
     </UploadProvider>
   );
 }
