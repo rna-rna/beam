@@ -255,41 +255,7 @@ export default function Settings() {
               </form>
             </div>
 
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Security</h2>
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    New Password
-                  </label>
-                  <Input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Confirm Password
-                  </label>
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <Button type="submit" disabled={isChangingPassword} className="w-full md:w-auto">
-                  {isChangingPassword && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Change Password
-                </Button>
-              </form>
-            </div>
+            
           </Card>
         </TabsContent>
 
@@ -407,9 +373,46 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="security">
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-6">Session Management</h2>
-            <div className="space-y-6">
+          <Card className="p-6 space-y-8">
+            <div>
+              <h2 className="text-xl font-semibold mb-6">Change Password</h2>
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    New Password
+                  </label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    Confirm Password
+                  </label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <Button type="submit" disabled={isChangingPassword} className="w-full md:w-auto">
+                  {isChangingPassword && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Change Password
+                </Button>
+              </form>
+            </div>
+
+            <div className="pt-4 border-t">
+              <h2 className="text-xl font-semibold mb-6">Session Management</h2>
+              <div className="space-y-6">
               <div>
                 <h3 className="font-medium mb-4">Active Sessions</h3>
                 <div className="space-y-4">
