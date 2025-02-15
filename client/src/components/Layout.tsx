@@ -7,7 +7,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { LoginButton } from "@/components/LoginButton";
 import { InlineEdit } from "@/components/InlineEdit";
-
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserNav } from "@/components/UserNav";
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
