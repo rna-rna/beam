@@ -78,14 +78,6 @@ export function Layout({
               </Button>
             )}
             {actions}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setLocation("/new")}
-              title="Create new gallery"
-            >
-              <Filter className="h-4 w-4" />
-            </Button>
             <ThemeToggle />
             <SignedIn>
               <UserNav />
