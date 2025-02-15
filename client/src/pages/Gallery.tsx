@@ -2325,7 +2325,7 @@ export default function Gallery({
         )}
         <div
           className={cn(
-            "min-h-screen relative",
+            "relative w-full flex-1",
             isDark ? "bg-black/90" : "bg-background",
           )}
           {...getRootProps()}
