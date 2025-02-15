@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FolderPlus, Clock, FileText, Folder, Trash2, MoreVertical, Pencil } from 'lucide-react';
+import { FolderPlus, Clock, Folder, Trash2, MoreVertical, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { DeleteFolderModal } from '@/components/DeleteFolderModal';
@@ -54,122 +54,97 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <ScrollArea className="h-[calc(100vh-6rem)]">
-        <div className="p-4 space-y-4">
-          <Button
-            variant={selectedSection === 'recents' ? "secondary" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => {
-              setSelectedSection('recents');
-              setLocation("/dashboard");
-            }}
-          >
-            <Clock className="mr-2 h-4 w-4" />
-            Recents
-          </Button>
-          <Button
-            variant={selectedSection === 'projects' ? "secondary" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => {
-              setSelectedSection('projects');
-              setLocation("/dashboard/projects");
-            }}
-          >
-            <Folder className="mr-2 h-4 w-4" />
-            My Projects
-          </Button>
-          <Separator />
-          <div className="font-semibold px-2">Folders</div>
-          {folders.map((folder) => (
-            <div key={folder.id} className="group relative flex items-center">
-              <Button
-                variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onDragOver={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.add('opacity-50');
-              }}
-              onDragLeave={(e) => {
-                e.currentTarget.classList.remove('opacity-50');
-              }}
-              onDrop={async (e) => {
-                e.preventDefault();
-                e.currentTarget.classList.remove('opacity-50');
-                const data = e.dataTransfer.getData('application/json');
-                if (!data) return;
-
-                const draggedItem = JSON.parse(data);
-                if (draggedItem.type === 'gallery') {
-                  // Add API call to move gallery to folder
-                  const res = await fetch(`/api/galleries/${draggedItem.id}/move`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ folderId: folder.id })
-                  });
-                  if (res.ok) {
-                    queryClient.invalidateQueries({ queryKey: ['folders'] });
-                    queryClient.invalidateQueries({ queryKey: ['/api/galleries'] });
-                  }
-                }
-              }}
+      <div className="flex flex-col h-full">
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-4">
+            <Button
+              variant={selectedSection === 'recents' ? "secondary" : "ghost"}
+              className="w-full justify-start"
               onClick={() => {
-                setSelectedFolder(folder.id);
-                setSelectedSection('folders');
-                setLocation(`/f/${folder.slug}`);
+                setSelectedSection('recents');
+                setLocation("/dashboard");
+              }}
+            >
+              <Clock className="mr-2 h-4 w-4" />
+              Recents
+            </Button>
+            <Button
+              variant={selectedSection === 'projects' ? "secondary" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => {
+                setSelectedSection('projects');
+                setLocation("/dashboard/projects");
               }}
             >
               <Folder className="mr-2 h-4 w-4" />
-              {folder.name}
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setRenameFolder({ id: folder.id, name: folder.name });
-                    }}
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Rename
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => {
-                      setDeleteFolder({ id: folder.id, name: folder.name });
-                    }}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Folder
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ))}
-          <Separator />
-          <Button
-            variant={selectedSection === 'trash' ? "secondary" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => {
-              setSelectedSection('trash');
-              setLocation("/dashboard/trash");
-            }}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Trash
+              My Projects
+            </Button>
+            <Separator />
+            <div className="font-semibold px-2">Folders</div>
+            {folders.map((folder) => (
+              <div key={folder.id} className="group relative flex items-center">
+                <Button
+                  variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setSelectedFolder(folder.id);
+                    setSelectedSection('folders');
+                    setLocation(`/f/${folder.slug}`);
+                  }}
+                >
+                  <Folder className="mr-2 h-4 w-4" />
+                  {folder.name}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setRenameFolder({ id: folder.id, name: folder.name });
+                      }}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => {
+                        setDeleteFolder({ id: folder.id, name: folder.name });
+                      }}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Folder
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+            <Separator />
+            <Button
+              variant={selectedSection === 'trash' ? "secondary" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => {
+                setSelectedSection('trash');
+                setLocation("/dashboard/trash");
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Trash
+            </Button>
+          </div>
+        </ScrollArea>
+        <div className="shrink-0 p-4 border-t">
+          <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
+            <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
           </Button>
         </div>
-      </ScrollArea>
-      <div className="p-4 border-t">
-        <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
-          <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
-        </Button>
       </div>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
