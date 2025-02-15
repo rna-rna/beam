@@ -29,7 +29,7 @@ import { NotificationProvider } from "@/context/NotificationContext"; // Added i
 import MagicLinkLanding from "@/pages/MagicLinkLanding"; // Added import for MagicLinkLanding
 import ProjectsPage from '@/pages/ProjectsPage'; // Added import for ProjectsPage
 import React from 'react';
-import { IntercomProvider } from './components/IntercomProvider';
+import Intercom from '@intercom/messenger-js-sdk';
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
@@ -290,7 +290,23 @@ function AppContent() {
   );
 }
 
+function IntercomProvider() {
+  const { isSignedIn, user } = useUser();
 
+  useEffect(() => {
+    if (isSignedIn && user) {
+      Intercom({
+        app_id: 'nddy1kg6',
+        user_id: user.id,
+        name: user.name,
+        email: user.email,
+        created_at: Math.floor(user.createdAt.getTime() / 1000) // Convert Date to Unix timestamp
+      });
+    }
+  }, [isSignedIn, user]);
+
+  return null;
+}
 
 export default function App() {
   const { isLoaded } = useUser();
