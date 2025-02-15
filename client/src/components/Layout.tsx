@@ -36,6 +36,13 @@ export function Layout({
     <div className="flex flex-col h-screen w-full bg-background">
       <header className="sticky top-0 z-10 border-b bg-background">
         <div className="px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2">
+          {!location?.startsWith('/g/') && (
+            <img 
+              src="https://cdn.beam.ms/beam-logo-500.png" 
+              alt="Beam Logo" 
+              className="h-8 w-auto mr-4"
+            />
+          )}
           {title && onTitleChange ? (
             <InlineEdit
               value={title}
