@@ -16,10 +16,13 @@ import {
   LayoutDashboard,
   Settings,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  Sun,
+  Moon
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBellDropdown } from "@/components/NotificationBellDropdown";
+import { ThemeToggleButton } from "@/components/ThemeToggleButton"; // Assumed component
 
 
 export function UserNav() {
@@ -93,6 +96,10 @@ export function UserNav() {
             >
               <Settings className="mr-2 h-4 w-4" />
               Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <ThemeToggleButton /> {/* Added Theme Toggle Button */}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
