@@ -1,0 +1,55 @@
+Right now, your <DashboardSidebar> is wrapped in a ScrollArea with a hard‐coded height (h-[calc(100vh-6rem)]), and it also sits in a normal <aside className="w-64 border-r">. That setup causes the sidebar to become part of the same scroll flow as the page.
+
+The Simple Fix
+Pin the sidebar in Dashboard.tsx by adding sticky top-0 (or fixed).
+Remove the ScrollArea “height hack” (h-[calc(100vh-6rem)]) from DashboardSidebar. If you still need a custom scrollbar on the sidebar, you can keep <ScrollArea> but set the height to h-full or h-screen.
+For example, in Dashboard.tsx:
+
+diff
+Copy
+Edit
+export default function Dashboard() {
+  return (
+-   <div className="flex flex-1 bg-background">
++   <div className="flex h-screen bg-background">
+      {/* Make the aside sticky and full height */}
+-     <aside className="hidden md:block w-64 border-r">
++     <aside className="hidden md:block w-64 border-r sticky top-0 h-screen">
+        <DashboardSidebar />
+      </aside>
+      <main className="flex-1 flex flex-col">
+        {/* ...header... */}
+        <ScrollArea className="flex-1 p-4">
+          <MainContent />
+        </ScrollArea>
+      </main>
+    </div>
+  );
+}
+Then, in DashboardSidebar.tsx, remove or adjust the old ScrollArea height calculation:
+
+diff
+Copy
+Edit
+export function DashboardSidebar() {
+  return (
+-   <ScrollArea className="h-[calc(100vh-6rem)]">
++   <ScrollArea className="h-full">
+      {/* folder buttons, etc. */}
+   </ScrollArea>
+   <div className="p-4 border-t">
+     {/* Add Folder button */}
+   </div>
+  );
+}
+Now the sidebar is pinned (sticky top-0) or you could use fixed top-0 left-0 w-64, and it will not scroll along with the page’s main content. The <ScrollArea className="h-full"> simply means “the custom scrollbar only applies within its own container,” but the container is pinned at 100% viewport height.
+
+Why This Works
+Sticky/fixed positioning takes the <aside> out of the normal scroll flow.
+The main content can scroll independently in either the <ScrollArea> or the browser’s default scrollbar.
+By removing the old calc(100vh - 6rem), you prevent the sidebar from forcing its own separate scroll area that competes with the main layout.
+Key Points to Remember
+One container should handle “full screen” height – typically the outermost <div className="flex h-screen">.
+Sidebar: pinned via sticky top-0 h-screen or fixed top-0, so it does not scroll away.
+Main: put overflow: auto (or ScrollArea) if you want the main content to scroll, separate from the sidebar.
+With those tweaks, the sidebar stays in place, and the main content can scroll freely.
