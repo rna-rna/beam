@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,6 +22,13 @@ export default function Settings() {
   const { user, isLoaded, isSignedIn } = useUser();
   const clerk = useClerk();
   const { toast } = useToast();
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      user.getSessions().then(setSessions).catch(console.error);
+    }
+  }, [user]);
 
   // Profile info
   const [firstName, setFirstName] = useState(user?.firstName || "");
@@ -102,17 +110,10 @@ export default function Settings() {
 
   const handlePasswordChange = async (e: FormEvent) => {
     e.preventDefault();
-    if (!newPassword.trim() || !confirmPassword.trim()) {
-      return toast({
-        title: "Error",
-        description: "Please fill in all password fields.",
-        variant: "destructive",
-      });
-    }
     if (newPassword !== confirmPassword) {
       return toast({
         title: "Error",
-        description: "New password and confirm password do not match.",
+        description: "Passwords do not match.",
         variant: "destructive",
       });
     }
@@ -120,8 +121,8 @@ export default function Settings() {
     try {
       await clerk.updatePassword({ newPassword });
       toast({
-        title: "Password changed",
-        description: "Your password has been updated successfully.",
+        title: "Password updated",
+        description: "Your password has been changed successfully.",
       });
       setNewPassword("");
       setConfirmPassword("");
@@ -170,222 +171,329 @@ export default function Settings() {
   }
 
   return (
-    <div className="container py-6">
-      <Card className="max-w-2xl mx-auto p-6 space-y-10">
-        {/* Profile Section */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Profile</h2>
-          <div className="flex items-center space-x-4 mb-6">
-            <img
-              src={user?.imageUrl}
-              alt="Profile"
-              className="w-20 h-20 rounded-full object-cover"
-            />
+    <div className="container max-w-4xl py-8 mx-auto px-4">
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold mb-2">Settings</h1>
+        <p className="text-muted-foreground">
+          Manage your account details and notification preferences
+        </p>
+      </div>
+
+      <Tabs defaultValue="account" className="w-full">
+        <TabsList className="w-full mb-6">
+          <TabsTrigger value="account" className="flex-1">Account</TabsTrigger>
+          <TabsTrigger value="notifications" className="flex-1">Notifications</TabsTrigger>
+          <TabsTrigger value="security" className="flex-1">Security</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="account">
+          <Card className="p-6 space-y-8">
             <div>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files.length > 0) {
-                    setAvatarFile(e.target.files[0]);
-                  }
-                }}
-              />
+              <h2 className="text-xl font-semibold mb-6">Profile</h2>
+              <div className="flex items-center space-x-6 mb-6">
+                <img
+                  src={user?.imageUrl}
+                  alt="Profile"
+                  className="w-20 h-20 rounded-full object-cover"
+                />
+                <div className="flex-1 space-y-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) {
+                        setAvatarFile(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={handleAvatarUpload}
+                    disabled={isUploadingAvatar || !avatarFile}
+                  >
+                    {isUploadingAvatar && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Upload Avatar
+                  </Button>
+                </div>
+              </div>
+
+              <form onSubmit={handleProfileUpdate} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">First Name</label>
+                    <Input
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Last Name</label>
+                    <Input
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    Email (Primary)
+                  </label>
+                  <Input value={email} disabled className="bg-muted" />
+                </div>
+
+                <Button type="submit" disabled={isUpdatingProfile} className="w-full md:w-auto">
+                  {isUpdatingProfile && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Update Profile
+                </Button>
+              </form>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-semibold mb-6">Security</h2>
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    New Password
+                  </label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    Confirm Password
+                  </label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <Button type="submit" disabled={isChangingPassword} className="w-full md:w-auto">
+                  {isChangingPassword && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Change Password
+                </Button>
+              </form>
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-6">Notification Preferences</h2>
+            <form onSubmit={handleNotificationUpdate} className="space-y-8">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-medium mb-4">New Invites</h3>
+                  <div className="flex space-x-6">
+                    <label className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={notifications.invitesApp}
+                        onCheckedChange={(checked) =>
+                          setNotifications((prev) => ({
+                            ...prev,
+                            invitesApp: !!checked,
+                          }))
+                        }
+                      />
+                      <span className="text-sm">In-App</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={notifications.invitesEmail}
+                        onCheckedChange={(checked) =>
+                          setNotifications((prev) => ({
+                            ...prev,
+                            invitesEmail: !!checked,
+                          }))
+                        }
+                      />
+                      <span className="text-sm">Email</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-medium mb-4">Comments on Galleries</h3>
+                  <div className="flex space-x-6">
+                    <label className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={notifications.commentsApp}
+                        onCheckedChange={(checked) =>
+                          setNotifications((prev) => ({
+                            ...prev,
+                            commentsApp: !!checked,
+                          }))
+                        }
+                      />
+                      <span className="text-sm">In-App</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={notifications.commentsEmail}
+                        onCheckedChange={(checked) =>
+                          setNotifications((prev) => ({
+                            ...prev,
+                            commentsEmail: !!checked,
+                          }))
+                        }
+                      />
+                      <span className="text-sm">Email</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-medium mb-4">Starred Images</h3>
+                  <div className="flex space-x-6">
+                    <label className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={notifications.starredApp}
+                        onCheckedChange={(checked) =>
+                          setNotifications((prev) => ({
+                            ...prev,
+                            starredApp: !!checked,
+                          }))
+                        }
+                      />
+                      <span className="text-sm">In-App</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={notifications.starredEmail}
+                        onCheckedChange={(checked) =>
+                          setNotifications((prev) => ({
+                            ...prev,
+                            starredEmail: !!checked,
+                          }))
+                        }
+                      />
+                      <span className="text-sm">Email</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               <Button
-                variant="secondary"
-                className="mt-2"
-                onClick={handleAvatarUpload}
-                disabled={isUploadingAvatar || !avatarFile}
+                type="submit"
+                disabled={isUpdatingNotifications}
+                className="w-full md:w-auto"
               >
-                {isUploadingAvatar && (
+                {isUpdatingNotifications && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Upload Avatar
+                Save Notification Preferences
               </Button>
-            </div>
-          </div>
+            </form>
+          </Card>
+        </TabsContent>
 
-          <form onSubmit={handleProfileUpdate} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">First Name</label>
-              <Input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                required
-              />
-            </div>
+        <TabsContent value="security">
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-6">Session Management</h2>
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-medium mb-4">Active Sessions</h3>
+                <div className="space-y-4">
+                  {!isLoaded ? (
+                    <div className="text-muted-foreground">Loading sessions...</div>
+                  ) : sessions.length === 0 ? (
+                    <div className="text-muted-foreground">No active sessions found</div>
+                  ) : sessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="space-y-1">
+                        <p className="font-medium">
+                          {session.latestActivity?.deviceType || "Unknown Device"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          IP: {session.latestActivity?.ipAddress || "Unknown"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Last active:{" "}
+                          {new Date(session.lastActiveAt).toLocaleString()}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Location: {session.latestActivity?.geolocation?.city && session.latestActivity?.geolocation?.country ? 
+                            `${session.latestActivity.geolocation.city}, ${session.latestActivity.geolocation.country}` : 
+                            (session.latestActivity?.geolocation?.country || "Location not available")}
+                        </p>
+                      </div>
+                      {session.id !== user.primarySessionId && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await session.revoke();
+                              toast({
+                                title: "Session revoked",
+                                description: "The session has been logged out successfully.",
+                              });
+                            } catch (err) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to revoke session. Please try again.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          Revoke
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            <div>
-              <label className="text-sm font-medium mb-1 block">Last Name</label>
-              <Input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-1 block">
-                Email (Primary)
-              </label>
-              <Input value={email} disabled />
-            </div>
-
-            <Button type="submit" disabled={isUpdatingProfile}>
-              {isUpdatingProfile && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Update Profile
-            </Button>
-          </form>
-        </div>
-
-        {/* Security Section */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Security</h2>
-          <form onSubmit={handlePasswordChange} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">
-                New Password
-              </label>
-              <Input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-1 block">
-                Confirm New Password
-              </label>
-              <Input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <Button type="submit" disabled={isChangingPassword}>
-              {isChangingPassword && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Change Password
-            </Button>
-          </form>
-        </div>
-
-        {/* Notification Section */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Notifications</h2>
-          <form onSubmit={handleNotificationUpdate} className="space-y-6">
-            {/* New Invites */}
-            <div>
-              <p className="font-medium mb-2">New Invites</p>
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={notifications.invitesApp}
-                    onCheckedChange={(checked) =>
-                      setNotifications((prev) => ({
-                        ...prev,
-                        invitesApp: !!checked,
-                      }))
+              <div className="pt-4 border-t">
+                <h3 className="font-medium mb-4">Bulk Actions</h3>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await user?.signOutOfOtherSessions();
+                      toast({
+                        title: "Sessions revoked",
+                        description: "All other sessions have been logged out.",
+                      });
+                    } catch (err) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to revoke sessions. Please try again.",
+                        variant: "destructive",
+                      });
                     }
-                  />
-                  <span className="text-sm">In-App</span>
-                </label>
-
-                <label className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={notifications.invitesEmail}
-                    onCheckedChange={(checked) =>
-                      setNotifications((prev) => ({
-                        ...prev,
-                        invitesEmail: !!checked,
-                      }))
-                    }
-                  />
-                  <span className="text-sm">Email</span>
-                </label>
+                  }}
+                >
+                  Sign out of all other sessions
+                </Button>
               </div>
             </div>
-
-            {/* Comments on Galleries */}
-            <div>
-              <p className="font-medium mb-2">Comments on Galleries You Own</p>
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={notifications.commentsApp}
-                    onCheckedChange={(checked) =>
-                      setNotifications((prev) => ({
-                        ...prev,
-                        commentsApp: !!checked,
-                      }))
-                    }
-                  />
-                  <span className="text-sm">In-App</span>
-                </label>
-
-                <label className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={notifications.commentsEmail}
-                    onCheckedChange={(checked) =>
-                      setNotifications((prev) => ({
-                        ...prev,
-                        commentsEmail: !!checked,
-                      }))
-                    }
-                  />
-                  <span className="text-sm">Email</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Starred Images */}
-            <div>
-              <p className="font-medium mb-2">New Starred Images</p>
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={notifications.starredApp}
-                    onCheckedChange={(checked) =>
-                      setNotifications((prev) => ({
-                        ...prev,
-                        starredApp: !!checked,
-                      }))
-                    }
-                  />
-                  <span className="text-sm">In-App</span>
-                </label>
-
-                <label className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={notifications.starredEmail}
-                    onCheckedChange={(checked) =>
-                      setNotifications((prev) => ({
-                        ...prev,
-                        starredEmail: !!checked,
-                      }))
-                    }
-                  />
-                  <span className="text-sm">Email</span>
-                </label>
-              </div>
-            </div>
-
-            <Button type="submit" disabled={isUpdatingNotifications}>
-              {isUpdatingNotifications && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Update Notifications
-            </Button>
-          </form>
-        </div>
-      </Card>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
