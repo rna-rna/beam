@@ -2137,7 +2137,7 @@ export default function Gallery({
 
   if (isPrivateGallery) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="flex-1 flex items-center justify-center bg-background p-4">
         <Alert
           variant="destructive"
           className="w-full max-w-md border-destructive"
@@ -2157,7 +2157,7 @@ export default function Gallery({
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="flex-1 flex items-center justify-center bg-background p-4">
         <Alert variant="destructive" className="w-full max-w-md">
           <AlertCircle className="h-12 w-12 mb-2" />
           <AlertTitle className="text2xl mb-2">Gallery Not Found</AlertTitle>
@@ -2176,7 +2176,7 @@ export default function Gallery({
 
   if (!gallery && isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -2184,7 +2184,7 @@ export default function Gallery({
 
   if (!gallery && !isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center bg-background">
         <p className="text-xl">Gallery not found</p>
       </div>
     );
@@ -2192,7 +2192,7 @@ export default function Gallery({
 
   if (!gallery) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center bg-background">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4 text-center">
