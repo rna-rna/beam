@@ -1,0 +1,88 @@
+When multiple pages each try to enforce some variant of height: calc(100vh - <something>), while the Layout itself is already doing min-h-screen, you end up double‐stacking heights in the DOM. This inevitably creates an extra overflow region equal to your header height.
+
+In short:
+
+You should pick one place to control the “full‐height” layout—usually the Layout itself.
+Then each page (like Dashboard.tsx) just expands to fill the available space rather than trying to do another calc(100vh - X).
+Below is a general approach you can apply across all pages that currently set height: 100vh or height: calc(100vh - X), etc.
+
+1) Let Layout own the full height
+Your Layout.tsx already has:
+
+tsx
+Copy
+Edit
+<div className="min-h-screen w-full ...">
+  <div className="sticky top-0 z-10 border-b ...">
+    {/* header */}
+  </div>
+  <main className="relative">
+    <AnimatePresence mode="wait">
+      {children}
+    </AnimatePresence>
+  </main>
+</div>
+That min-h-screen is enough to stretch the entire viewport. The header is “sticky,” so it sits on top.
+
+2) Remove extra full‐height rules from pages
+For each page component (like Dashboard.tsx, RecentsPage, ProjectsPage, etc.), remove rules like h-[calc(100vh-65px)], h-full, or min-h-screen. Instead, structure them so that they just flex inside the parent’s space. For example:
+
+diff
+Copy
+Edit
+- <div className="flex h-[calc(100vh-65px)] bg-background">
++ <div className="flex flex-col flex-1 min-h-0 bg-background">
+    <aside className="hidden md:block w-64 border-r">
+      <DashboardSidebar />
+    </aside>
+    <main className="flex-1 flex flex-col min-h-0">
+      <header className="border-b p-4">
+        {/* header content */}
+      </header>
+      <div className="flex-1 overflow-auto p-4">
+        {/* main page content */}
+      </div>
+    </main>
+  </div>
+Key changes here:
+
+Use flex-1 (and min-h-0) to let the parent’s height boundary (the Layout) define how tall this container can be.
+Add overflow-auto on the region that you actually want to scroll.
+You no longer do calc(100vh - 65px) because the parent is already min-h-screen.
+Repeat a similar cleanup for other pages that cause the same overlap or scrolling issue.
+
+Why flex-1 min-h-0?
+When you nest multiple flex containers, you often add min-h-0 so that the child is allowed to shrink within the parent. By default, a flex item can’t shrink below its minimum content size. Using min-h-0 ensures the child can actually become scrollable within the parent’s boundary.
+
+3) Double‐check no other parent elements force a second scroll region
+If you have any extra wrappers that themselves do 100vh or have large padding, consider removing or adjusting those, too. You want exactly one container to control the overall 100vh. Everyone else should be flexible inside that container.
+
+What if you want the page to control height instead of the Layout?
+If for some reason you want each page to manage its own height:
+
+Remove min-h-screen from the Layout.
+
+In each page, do something like:
+
+tsx
+Copy
+Edit
+export function SomePage() {
+  return (
+    <div className="flex flex-col min-h-screen">
+      <header className="h-16 sticky top-0 ...">
+        {/* or a static header */}
+      </header>
+      <main className="flex-1 overflow-auto">
+        ...
+      </main>
+    </div>
+  );
+}
+But typically, you keep a consistent layout across your app. So letting Layout.tsx own the full viewport height is simpler—then each page just says “Fill the leftover space.”
+
+TL;DR
+Remove all height: 100vh, h-[calc(100vh-65px)], or min-h-screen from the child pages.
+Keep min-h-screen in one place—usually in Layout.tsx.
+Use flex-1 min-h-0 in the child pages to let them scroll inside that layout.
+This unifies your layout height rules and eliminates the extra scroll “header‐height” problem on every page.
