@@ -434,8 +434,9 @@ export default function Settings() {
                           {new Date(session.lastActiveAt).toLocaleString()}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Location: {session.latestActivity?.geolocation?.country || "Unknown"}
-                          {session.latestActivity?.geolocation?.city && `, ${session.latestActivity.geolocation.city}`}
+                          Location: {session.latestActivity?.geolocation?.city && session.latestActivity?.geolocation?.country ? 
+                            `${session.latestActivity.geolocation.city}, ${session.latestActivity.geolocation.country}` : 
+                            (session.latestActivity?.geolocation?.country || "Location not available")}
                         </p>
                       </div>
                       {session.id !== user.primarySessionId && (
