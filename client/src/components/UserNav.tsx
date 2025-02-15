@@ -16,13 +16,10 @@ import {
   LayoutDashboard,
   Settings,
   LogOut,
-  User as UserIcon,
-  Sun,
-  Moon
+  User as UserIcon
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBellDropdown } from "@/components/NotificationBellDropdown";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 
 export function UserNav() {
@@ -96,12 +93,6 @@ export function UserNav() {
             >
               <Settings className="mr-2 h-4 w-4" />
               Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-              <div className="flex justify-end w-full">
-                <ThemeToggle />
-              </div>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
