@@ -30,37 +30,12 @@ export function Layout({
   toggleSelectMode 
 }: LayoutProps) {
   const { isDark } = useTheme();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
 
   return (
     <div className="flex flex-col h-screen w-full bg-background">
       <header className="sticky top-0 z-10 border-b bg-background">
         <div className="px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2">
-          {!location.startsWith('/g/') && (
-            <svg 
-              width="27" 
-              height="27" 
-              viewBox="0 0 700 700" 
-              fill="none" 
-              xmlns="http://www.w3.org/2000/svg" 
-              className="mr-4 cursor-pointer" 
-              onClick={() => setLocation("/")}
-            >
-              <g clipPath="url(#clip0_123_74)">
-                <rect width="700" height="700" rx="85.5555" fill="#D9D9D9"/>
-                <path d="M561.238 356.735C422.897 388.503 388.928 422.372 357.071 560.336C355.38 567.672 344.886 567.672 343.195 560.336C311.338 422.378 277.375 388.503 139.028 356.735C131.671 355.048 131.671 344.584 139.028 342.897C277.375 311.128 311.345 277.253 343.201 139.295C344.893 131.959 355.386 131.959 357.078 139.295C388.934 277.253 422.897 311.128 561.245 342.897C568.601 344.584 568.601 355.048 561.245 356.735H561.238Z" fill="url(#paint0_radial_123_74)"/>
-              </g>
-              <defs>
-                <radialGradient id="paint0_radial_123_74" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(350.136 349.816) rotate(90) scale(216.022 216.626)">
-                  <stop stopColor="#D52A2A"/>
-                  <stop offset="0.485" stopColor="#FF52EE"/>
-                </radialGradient>
-                <clipPath id="clip0_123_74">
-                  <rect width="700" height="700" fill="white"/>
-                </clipPath>
-              </defs>
-            </svg>
-          )}
           {title && onTitleChange ? (
             <InlineEdit
               value={title}
