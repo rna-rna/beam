@@ -10,11 +10,13 @@ import {
 
 export function FloatingToolbar({
   selectedCount,
+  totalCount,
   onDeselect,
   onDelete,
   onDownload,
   onEdit,
   onReorder,
+  onSelectAll,
 }: {
   selectedCount: number;
   totalCount: number;
