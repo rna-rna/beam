@@ -1,0 +1,97 @@
+Below is a simple example of how to pass Clerk user data to Intercom so the user’s name (and other info) will appear in Intercom’s Messenger. This assumes you have:
+
+Next.js with Clerk
+Intercom’s JavaScript snippet added to your app (or using a React hook for Intercom)
+1. Get the User Data from Clerk
+In Next.js (with Clerk), you typically use the useUser hook to access the logged-in user’s information:
+
+tsx
+Copy
+Edit
+import { useUser } from "@clerk/nextjs";
+
+export default function MyApp({ Component, pageProps }) {
+  const { user } = useUser();
+
+  // ...
+  return <Component {...pageProps} />;
+}
+user will contain properties such as firstName, lastName, primaryEmailAddress, and id.
+
+2. Initialize or Update Intercom with the User Data
+Once you have the user’s info, you can boot or update Intercom using the user’s name and email. Typically, you’d do this in a useEffect so it runs on the client side after you know the user is loaded.
+
+Here’s an example snippet inside your _app.tsx or a dedicated Intercom provider component:
+
+tsx
+Copy
+Edit
+import { useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+
+function IntercomProvider() {
+  const { user } = useUser();
+
+  useEffect(() => {
+    // Only boot or update Intercom once the user data is loaded
+    if (!user) {
+      // If not logged in, you can either boot Intercom with no user data
+      window.Intercom("boot", {
+        app_id: process.env.NEXT_PUBLIC_INTERCOM_APP_ID,
+      });
+      return;
+    }
+
+    // If user is logged in, pass their data to Intercom
+    window.Intercom("boot", {
+      app_id: process.env.NEXT_PUBLIC_INTERCOM_APP_ID,
+      name: `${user.firstName ?? ""} ${user.lastName ?? ""}`, 
+      email: user.primaryEmailAddress?.emailAddress,
+      user_id: user.id,
+      // Add any other custom attributes if needed
+    });
+  }, [user]);
+
+  return null; // This component doesn't render UI, only sets up Intercom
+}
+
+export default IntercomProvider;
+Notes:
+Name Formatting: Combine firstName and lastName however you like—if lastName is missing, handle that gracefully.
+Email: Clerk typically stores multiple email addresses. The user’s “primary” email can be accessed with user.primaryEmailAddress?.emailAddress.
+User ID: Always pass a stable user_id so Intercom can consistently identify the user’s conversations.
+Logging Out: When the user logs out, you may want to call window.Intercom("shutdown") so Intercom clears the current user info, then reboot Intercom for a logged-out visitor state if desired.
+3. Ensure the Intercom Snippet is Present
+If you haven’t already, you need to include the Intercom JS code snippet in your <Head> or a Next.js Script component. For example, in _document.tsx or _app.tsx:
+
+tsx
+Copy
+Edit
+import Script from "next/script";
+
+function MyApp({ Component, pageProps }) {
+  return (
+    <>
+      <Script
+        id="intercom-init"
+        dangerouslySetInnerHTML={{
+          __html: `
+            window.intercomSettings = {
+              app_id: "${process.env.NEXT_PUBLIC_INTERCOM_APP_ID}"
+            };
+          `,
+        }}
+      />
+      <Script
+        id="intercom-script"
+        strategy="afterInteractive"
+        src="https://widget.intercom.io/widget/YOUR_APP_ID"
+      />
+      <IntercomProvider />
+      <Component {...pageProps} />
+    </>
+  );
+}
+
+export default MyApp;
+Replace YOUR_APP_ID with your actual Intercom app ID or reference an environment variable.
