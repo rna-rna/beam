@@ -34,7 +34,7 @@ export function Layout({
 
   return (
     <div className="flex flex-col h-screen w-full bg-background">
-      <header className="sticky top-0 z-10 border-b bg-background">
+      <header className="shrink-0 border-b bg-background">
         <div className="px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2">
           {title && onTitleChange ? (
             <InlineEdit
