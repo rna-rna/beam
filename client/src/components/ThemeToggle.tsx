@@ -8,14 +8,17 @@ export function ThemeToggle() {
   return (
     <Button
       variant="ghost"
-      size="icon"
-      onClick={toggleTheme}
-      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      size="sm"
+      onClick={(e) => {
+        e.preventDefault();
+        toggleTheme();
+      }}
+      className="h-8 w-8 p-0"
     >
       {isDark ? (
-        <Sun className="h-4 w-4" />
-      ) : (
         <Moon className="h-4 w-4" />
+      ) : (
+        <Sun className="h-4 w-4" />
       )}
     </Button>
   );

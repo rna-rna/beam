@@ -98,8 +98,14 @@ export function UserNav() {
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <ThemeToggle /> {/* Added Theme Toggle */}
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center">
+                  <Sun className="mr-2 h-4 w-4" />
+                  <span>Toggle theme</span>
+                </div>
+                <ThemeToggle />
+              </div>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
