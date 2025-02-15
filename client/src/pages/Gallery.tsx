@@ -2197,7 +2197,7 @@ export default function Gallery({
     useSensor(TouchSensor)
   );
 
-  const handleDragEnd = (event) => {
+  const handleDndDragEnd = (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) {
       setDraggedItemIndex(null);
@@ -2227,7 +2227,7 @@ export default function Gallery({
         sensors={sensors}
         collisionDetection={rectIntersection}
         onDragStart={(event) => setDraggedItemIndex(event.active.id)}
-        onDragEnd={handleDragEnd}
+        onDragEnd={handleDndDragEnd}
         onDragCancel={() => setDraggedItemIndex(null)}
       >
         <CursorOverlay cursors={cursors} />
