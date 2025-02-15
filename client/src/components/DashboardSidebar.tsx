@@ -53,11 +53,12 @@ export function DashboardSidebar() {
   });
 
   return (
-    <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
-          <Button
-            variant={selectedSection === 'recents' ? "secondary" : "ghost"}
+    <>
+      <div className="flex flex-col h-full">
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-4">
+            <Button
+              variant={selectedSection === 'recents' ? "secondary" : "ghost"}
             className="w-full justify-start"
             onClick={() => {
               setSelectedSection('recents');
@@ -171,9 +172,14 @@ export function DashboardSidebar() {
           <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
         </Button>
       </div>
-    </div>
+        </ScrollArea>
+        <div className="shrink-0 p-4 border-t">
+          <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
+            <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
+          </Button>
+        </div>
+      </div>
 
-    <div>
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent>
           <DialogHeader>
