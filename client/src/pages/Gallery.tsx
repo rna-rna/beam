@@ -31,6 +31,7 @@ import {
   Eye,
   EyeOff,
   Lock,
+  SquareScissors,
 } from "lucide-react";
 
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -1478,7 +1479,7 @@ export default function Gallery({
     deleteImagesMutation.mutate(selectedImages);
   };
 
-  const handleDownloadSelected = async () => {
+  const handleDownloadSelected = async (quality: 'original' | 'optimized' = 'original') => {
     try {
       toast({
         title: "Preparing Download",
@@ -1490,7 +1491,8 @@ export default function Gallery({
         const image = gallery!.images.find((img) => img.id === imageId);
         if (!image) return;
 
-        const response = await fetch(getR2Image(image)); // Use original unoptimized URL for downloads
+        const imageUrl = quality === 'original' ? getR2Image(image) : getR2Image(image, 'thumb');
+        const response = await fetch(imageUrl);
         const blob = await response.blob();
         const extension = image.url.split(".").pop() || "jpg";
         zip.file(`image-${imageId}.${extension}`, blob);
@@ -1498,11 +1500,11 @@ export default function Gallery({
 
       await Promise.all(imagePromises);
       const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, `selected-images.zip`);
+      saveAs(content, `selected-images-${quality}.zip`);
 
       toast({
         title: "Success",
-        description: "Selected images downloaded successfully",
+        description: `Selected images downloaded successfully (${quality} quality)`,
       });
     } catch (error) {
       console.error("Download error:", error);
@@ -1733,7 +1735,7 @@ export default function Gallery({
                       : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent/30 data-[state=on]:text-accent-foreground data-[state=on]:ring-2 data-[state=on]:ring-accent",
                   )}
                 >
-                  <PencilRuler className="h-4 w-4" />
+                  <SquareScissors className="h-4 w-4" />
                 </Toggle>
               </TooltipTrigger>
               <TooltipContent>
@@ -1981,7 +1983,7 @@ export default function Gallery({
                             if (!old) return { success: true, data: [] };
                             return {
                               ...old,
-                              data: hasUserStarred
+                              data: hasUserStarstarred
                                 ? [
                                     ...old.data,
                                     {
@@ -2905,12 +2907,17 @@ export default function Gallery({
           {renderCommentDialog()}
 
           <AnimatePresence>
-            {selectMode && selectedImages.length > 0 && (
+            {selectMode && (
               <FloatingToolbar
                 selectedCount={selectedImages.length}
+                totalCount={gallery?.images?.length || 0}
                 onDeselect={() => {
                   setSelectedImages([]);
                   setSelectMode(false);
+                }}
+                onSelectAll={() => {
+                  const allImageIds = gallery?.images?.map(img => img.id) || [];
+                  setSelectedImages(allImageIds);
                 }}
                 onDelete={handleDeleteSelected}
                 onDownload={handleDownloadSelected}

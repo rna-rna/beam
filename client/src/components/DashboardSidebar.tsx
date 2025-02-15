@@ -79,6 +79,17 @@ export function DashboardSidebar() {
               <Folder className="mr-2 h-4 w-4" />
               My Projects
             </Button>
+            <Button
+              variant={selectedSection === 'trash' ? "secondary" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => {
+                setSelectedSection('trash');
+                setLocation("/dashboard/trash");
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Trash
+            </Button>
             <Separator />
             <div className="font-semibold px-2">Folders</div>
             {folders.map((folder) => (
@@ -126,19 +137,7 @@ export function DashboardSidebar() {
                 </DropdownMenu>
               </div>
             ))}
-            <Separator />
-            <Button
-              variant={selectedSection === 'trash' ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => {
-                setSelectedSection('trash');
-                setLocation("/dashboard/trash");
-              }}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Trash
-            </Button>
-          </div>
+            </div>
         </ScrollArea>
         <div className="shrink-0 p-4 border-t">
           <Button className="w-full" onClick={() => setIsCreateOpen(true)}>

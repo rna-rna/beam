@@ -1,4 +1,4 @@
-import { Users, Star } from "lucide-react";
+import { Filter, Star } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -82,7 +82,7 @@ export function StarredUsersFilter({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="h-9 w-9" data-filter-trigger>
-          <Users className="h-7 w-7" /> {/* Changed icon size here */}
+          <Filter className="h-7 w-7" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
