@@ -27,9 +27,9 @@ export default function GuestUploadCard() {
             </ul>
             <button 
               onClick={() => setShowSignUpModal(true)} 
-              className="text-sm font-medium text-primary hover:underline cursor-pointer dark:text-primary-foreground"
+              className="w-full px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-md transition-colors"
             >
-              Unlock all features – Sign up for free
+              Sign up now
             </button>
           </div>
         </CardContent>
