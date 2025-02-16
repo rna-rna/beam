@@ -519,7 +519,6 @@ export default function Gallery({
     y: number;
   } | null>(null);
   const [scale, setScale] = useState(100);
-  const [isReorderMode, setIsReorderMode] = useState(false);
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(true);
@@ -538,11 +537,6 @@ export default function Gallery({
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   const [isMasonry, setIsMasonry] = useState(true);
-  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
-  const [dragPosition, setDragPosition] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
   const [userRole, setUserRole] = useState<string>("Viewer");
   const [images, setImages] = useState<ImageOrPending[]>([]);
@@ -986,8 +980,7 @@ export default function Gallery({
         variant: "destructive",
       });
     },
-    onSettled: () => {
-      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+    onSettled: () => {      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
     },
   });
 
@@ -1445,10 +1438,6 @@ export default function Gallery({
     }
   };
 
-  const handleReorderToggle = () => {
-    if (isReorderMode && reorderImageMutation.isPending) return;
-    setIsReorderMode(!isReorderMode);
-  };
 
   const handleStarredToggle = () => {
     setShowStarredOnly(!showStarredOnly);
@@ -1457,7 +1446,6 @@ export default function Gallery({
   const toggleSelectMode = () => {
     if (selectMode) {
       setSelectedImages([]);
-      setIsReorderMode(false);
     }
     setSelectMode(!selectMode);
   };
@@ -1524,572 +1512,24 @@ export default function Gallery({
     });
   };
 
-  const toggleReorderMode = () => {
-    setIsReorderMode(!isReorderMode);
+
+  const handleGlobalKeyDown = (e: KeyboardEvent) => {
+    // Allow Escape key regardless of focus state
+    if (e.key === "Escape" && selectMode) {
+      e.preventDefault();
+      setSelectedImages([]);
+      setSelectMode(false);
+      return;
+    }
+
+    // Skip other shortcuts if input/textarea is focused
+    if (document.activeElement instanceof HTMLInputElement || 
+        document.activeElement instanceof HTMLTextAreaElement) {
+      return;
+    }
   };
-
-  const handleDragEnd = useCallback(
-    (
-      event: PointerEvent | MouseEvent | TouchEvent,
-      draggedIndex: number,
-      info: PanInfo,
-    ) => {
-      setDraggedItemIndex(null);
-      setDragPosition(null);
-
-      if (!gallery || !isReorderMode) return;
-
-      const galleryItems = Array.from(
-        document.querySelectorAll(".image-container"),
-      );
-      if (galleryItems.length === 0 || draggedIndex >= galleryItems.length)
-        return;
-
-      let targetIndex = draggedIndex;
-      let closestDistance = Infinity;
-
-      // Get cursor position at drag end
-      const cursorPos = {
-        x:
-          event instanceof MouseEvent
-            ? event.clientX
-            : "touches" in event && event.touches[0]
-              ? event.touches[0].clientX
-              : info.point.x,
-        y:
-          event instanceof MouseEvent
-            ? event.clientY
-            : "touches" in event && event.touches[0]
-              ? event.touches[0].clientY
-              : info.point.y,
-      };
-
-      // Find closest drop target by comparing centers
-      galleryItems.forEach((item, index) => {
-        if (index === draggedIndex) return;
-
-        const rect = item.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-
-        // Calculate Euclidean distance to find closest drop target
-        const distance = Math.hypot(
-          centerX - cursorPos.x,
-          centerY - cursorPos.y,
-        );
-
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          targetIndex = index;
-        }
-      });
-
-      if (targetIndex !== draggedIndex) {
-        const updatedImages = [...gallery.images];
-        const [movedImage] = updatedImages.splice(draggedIndex, 1);
-        updatedImages.splice(targetIndex, 0, movedImage);
-
-        // Optimistic update for immediate visual feedback
-        queryClient.setQueryData([`/api/galleries/${slug}`], {
-          ...gallery,
-          images: updatedImages,
-        });
-
-        // Server update
-        reorderImageMutation.mutate(updatedImages.map((img) => img.id));
-      }
-    },
-    [gallery, isReorderMode, queryClient, reorderImageMutation, slug],
-  );
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    // Add your dark mode logic here, e.g., toggle a class on the body element
-  };
-
-  const [selectedStarredUsers, setSelectedStarredUsers] = useState<string[]>(
-    [],
-  );
-
-  const getUniqueStarredUsers = useMemo(() => {
-    if (!gallery?.images) return [];
-    const usersSet = new Set<string>();
-    const users: {
-      userId: string;
-      firstName: string | null;
-      lastName: string | null;
-      imageUrl: string | null;
-    }[] = [];
-
-    gallery.images.forEach((image) => {
-      image.stars?.forEach((star) => {
-        if (!usersSet.has(star.userId)) {
-          usersSet.add(star.userId);
-          users.push({
-            userId: star.userId,
-            firstName: star.firstName || null,
-            lastName: star.lastName || null,
-            imageUrl: star.imageUrl || null,
-          });
-        }
-      });
-    });
-
-    return users;
-  }, [gallery?.images]);
-
-  const renderGalleryControls = useCallback(() => {
-    if (!gallery) return null;
-
-    return (
-      <div
-        className={cn(
-          "flex items-center justify-between gap-2 rounded-lg",
-          isDark ? "bg-black/90" : "bg-white/90",
-        )}
-      >
-        <div className="flex items-center gap-4">
-          {/* Presence Avatars */}
-          <div className="flex -space-x-2">
-            {activeUsers.filter(member => 
-              member.lastActive && 
-              Date.now() - new Date(member.lastActive).getTime() < 30000
-            ).map((member) => (
-              <UserAvatar
-                key={member.userId}
-                name={member.name}
-                imageUrl={member.avatar}
-                color={member.color || "#ccc"}
-                size="xs"
-                isActive={true}
-                className="border-2 border-white/40 dark:border-black hover:translate-y-[-2px] transition-transform"
-              />
-            ))}
-          </div>
-        </div>
-        <TooltipProvider>
-          <StarredUsersFilter
-            users={getUniqueStarredUsers}
-            selectedUsers={selectedStarredUsers}
-            onSelectionChange={setSelectedStarredUsers}
-          />
-
-          {/* Grid View Toggle */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={toggleGridView}
-                className={cn(
-                  "h-9 w-9",
-                  isDark
-                    ? "text-white hover:bg-white/10"
-                    : "text-zinc-800 hover:bg-zinc-200",
-                  !isMasonry && "bg-primary/20",
-                )}
-              >
-                {isMasonry ? (
-                  <Grid className="h-4 w-4" />
-                ) : (
-                  <LayoutGrid className="h-4 w-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
-          </Tooltip>
-
-          {selectMode && <></>}
-
-          {/* Share Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className={cn(
-                  "h-9 w-9",
-                  isDark
-                    ? "text-white hover:bg-white/10"
-                    : "text-gray-800 hover:bg-gray-200",
-                )}
-                onClick={() => setIsOpenShareModal(true)}
-              >
-                <Share className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Share Gallery</TooltipContent>
-          </Tooltip>
-
-          {userRole === "Edit" && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Toggle
-                  size="sm"
-                  pressed={selectMode}
-                  onPressedChange={toggleSelectMode}
-                  className={cn(
-                    "h-9 w-9",
-                    isDark
-                      ? "text-white hover:bg-white/10 data-[state=on]:bg-white/20 data-[state=on]:text-white data-[state=on]:ring-2 data-[state=on]:ring-white/20"
-                      : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent/30 data-[state=on]:text-accent-foreground data-[state=on]:ring-2 data-[state=on]:ring-accent",
-                  )}
-                >
-                  <SquareScissors className="h-4 w-4" />
-                </Toggle>
-              </TooltipTrigger>
-              <TooltipContent>
-                {selectMode ? "Done" : "Select Images"}
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </TooltipProvider>
-      </div>
-    );
-  }, [
-    gallery,
-    isUploading,
-    selectMode,
-    isReorderMode,
-    selectedImages.length,
-    showStarredOnly,
-    showWithComments,
-    deleteImagesMutation,
-    toggleReorderMode,
-    toggleSelectMode,
-    setIsOpenShareModal,
-  ]);
-
-  const renderImage = (image: ImageOrPending, index: number) => (
-    <div
-      key={image.id === -1 ? `pending-${index}` : image.id}
-      className="mb-4 w-full"
-      style={{ breakInside: "avoid", position: "relative" }}
-    >
-      <motion.div
-        layout={false}
-        className={cn(
-          "image-container transform transition-opacity duration-200 w-full",
-          isReorderMode && "cursor-grab active:cursor-grabbing",
-          draggedItemIndex === index ? "fixed" : "relative",
-          "localUrl" in image && "opacity-80",
-          "block",
-        )}
-        initial={{ opacity: 0 }}
-        animate={{
-          opacity: 1,
-          transition: {
-            duration: 0.2,
-          },
-        }}
-        drag={isReorderMode}
-        dragMomentum={false}
-        dragElastic={0.1}
-        onDragStart={() => setDraggedItemIndex(index)}
-        onDrag={(_, info) => {
-          setDragPosition({ x: info.point.x, y: info.point.y });
-        }}
-        onDragEnd={(event, info) =>
-          handleDragEnd(event as PointerEvent, index, info)
-        }
-      >
-        <div
-          className={`group relative bg-card rounded-lg transform transition-all ${
-            !isReorderMode ? "hover:scale-[1.02] cursor-pointer" : ""
-          } ${selectMode ? "hover:scale-100" : ""} ${
-            isReorderMode
-              ? "border-2 border-dashed border-gray-200 border-opacity-50"
-              : ""
-          }`}
-          onClick={(e) => {
-            if (isReorderMode) {
-              e.stopPropagation();
-              return;
-            }
-            selectMode
-              ? handleImageSelect(image.id, e)
-              : handleImageClick(index);
-          }}
-        >
-          <img
-            key={`${image.id}-${image._status || "final"}`}
-            src={
-              "localUrl" in image ? image.localUrl : getR2Image(image, "thumb")
-            }
-            alt={image.originalFilename || "Uploaded image"}
-            className={cn(
-              "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
-              selectMode && selectedImages.includes(image.id) && "opacity-75",
-              draggedItemIndex === index && "opacity-50",
-              "localUrl" in image && "opacity-80",
-              image.status === "error" && "opacity-50",
-            )}
-            loading="lazy"
-            onLoad={(e) => {
-              const img = e.currentTarget;
-              img.classList.add("loaded");
-              if (!("localUrl" in image) && image.pendingRevoke) {
-                setTimeout(() => {
-                  URL.revokeObjectURL(image.pendingRevoke);
-                }, 800);
-              }
-            }}
-            onError={(e) => {
-              console.error("Image load failed:", {
-                id: image.id,
-                url: image.url,
-                isPending: "localUrl" in image,
-                status: image.status,
-                originalFilename: image.originalFilename,
-              });
-              if (!("localUrl" in image)) {
-                e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
-                setImages((prev) =>
-                  prev.map((upload) =>
-                    upload.id === image.id
-                      ? { ...upload, status: "error", _status: "error" }
-                      : upload,
-                  ),
-                );
-              }
-            }}
-            draggable={false}
-          />
-          {"localUrl" in image && (
-            <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
-              {image.status === "uploading" && (
-                <>
-                  <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                  <Progress value={image.progress} className="w-3/4 h-1" />
-                </>
-              )}
-              {image.status === "finalizing" && (
-                <div className="absolute top-2 right-2 flex items-center gap-2 bg-background/80 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span className="text-xs font-medium">Finalizing...</span>
-                </div>
-              )}
-              {image.status === "error" && (
-                <div className="absolute top-2 right-2 bg-destructive/80 backdrop-blur-sm p-2 rounded-full">
-                  <AlertCircle className="h-4 w-4 text-destructive-foreground" />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Starred avatars in bottom left corner */}
-          {!selectMode && (
-            <div className="absolute bottom-2 left-2 z-10">
-              <StarredAvatars imageId={image.id} />
-            </div>
-          )}
-
-          {/* Star button in bottom right corner */}
-          {!selectMode && userRole && ['owner', 'Edit', 'Comment'].includes(userRole) && (
-            <motion.div
-              className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-              animate={{ scale: 1 }}
-              whileTap={{ scale: 0.8 }}
-            >
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-7 w-7 bgbackground/80 hover:bg-background shadow-sm backdrop-blur-sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-
-                  if (!user) {
-                    setShowSignUpModal(true);
-                    return;
-                  }
-
-                  // Use image.userStarred for optimistic updates
-                  const hasUserStarred = image.userStarred;
-
-                  // Optimistic UI update for selected image
-                  setSelectedImageIndex((prevIndex) => {
-                    if (prevIndex >= 0) {
-                      setSelectedImage((prev) =>
-                        prev ? { ...prev, userStarred: !hasUserStarred } : prev,
-                      );
-                    }
-                    return prevIndex;
-                  });
-
-                  // Update gallery data optimistically
-                  queryClient.setQueryData(
-                    [`/api/galleries/${slug}`],
-                    (old: any) => ({
-                      ...old,
-                      images: old.images.map((img: Image) =>
-                        img.id === image.id
-                          ? { ...img, userStarred: !hasUserStarred }
-                          : img,
-                      ),
-                    }),
-                  );
-
-                  // Update star list optimistically
-                  queryClient.setQueryData(
-                    [`/api/images/${image.id}/stars`],
-                    (old: any) => {
-                      if (!old) return { success: true, data: [] };
-
-                      const updatedStars = hasUserStarred
-                        ? old.data.filter(
-                            (star: any) => star.userId !== user?.id,
-                          )
-                        : [
-                            ...old.data,
-                            {
-                              userId: user?.id,
-                              imageId: image.id,
-                              user: {
-                                firstName: user?.firstName,
-                                lastName: user?.lastName,
-                                imageUrl: user?.imageUrl,
-                              },
-                            },
-                          ];
-
-                      return { ...old, data: updatedStars };
-                    },
-                  );
-
-                  // Perform mutation to sync with backend
-                  toggleStarMutation.mutate(
-                    { imageId: image.id, isStarred: hasUserStarred },
-                    {
-                      onError: () => {
-                        // Revert optimistic UI
-                        queryClient.setQueryData(
-                          [`/api/galleries/${slug}`],
-                          (old: any) => ({
-                            ...old,
-                            images: old.images.map((img: Image) =>
-                              img.id === image.id
-                                ? { ...img, starred: hasUserStarred }
-                                : img,
-                            ),
-                          }),
-                        );
-
-                        // Revert star list
-                        queryClient.setQueryData(
-                          [`/api/images/${image.id}/stars`],
-                          (old: any) => {
-                            if (!old) return { success: true, data: [] };
-                            return {
-                              ...old,
-                              data: hasUserStarstarred
-                                ? [
-                                    ...old.data,
-                                    {
-                                      userId: user?.id,
-                                      imageId: image.id,
-                                      user: {
-                                        firstName: user?.firstName,
-                                        lastName: user?.lastName,
-                                        imageUrl: user?.imageUrl,
-                                      },
-                                    },
-                                  ]
-                                : old.data.filter(
-                                    (star: any) => star.userId !== user?.id,
-                                  ),
-                            };
-                          },
-                        );
-
-                        // Revert selected image if in lightbox
-                        if (selectedImage?.id === image.id) {
-                          setSelectedImage((prev) =>
-                            prev ? { ...prev, starred: hasUserStarred } : prev,
-                          );
-                        }
-
-                        toast({
-                          title: "Error",
-                          description:"Failed to update star status. Please try again.",
-                          variant: "destructive",
-                        });
-                      },
-                    },
-                  );
-                }}
-              >
-                <motion.div
-                  animate={{
-                    scale: image.userStarred ? 1.2 : 1,
-                    opacity: image.userStarred ? 1 : 0.6,
-                  }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {image.userStarred ? (
-                    <Star className="h-4 w-4 fill-black dark:fill-white transition-all duration-300" />
-                  ) : (
-                    <Star className="h-4 w-4 stroke-black dark:stroke-white fill-transparent transition-all duration-300" />
-                  )}
-                </motion.div>
-              </Button>
-            </motion.div>
-          )}
-
-          {/* Comment count badge */}
-          {!selectMode && image.commentCount! > 0 && (
-            <Badge
-              className="absolute top-2 right-2 bg-primary text-primary-foreground flex items-center gap-1"
-              variant="secondary"
-            >
-              <MessageSquare className="w-3 h-3" />
-              {image.commentCount}{" "}
-            </Badge>
-          )}
-
-          {/* Selection checkbox */}
-          {selectMode && !isReorderMode && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute top-2 right-2 z-10"
-            >
-              <div
-                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                  selectedImages.includes(image.id)
-                    ? "bg-primary border-primary"
-                    : "bg-background/80 border-background/80"
-                }`}
-              >
-                {selectedImages.includes(image.id) && (
-                  <CheckCircle className="w-4 h-4 text-primary-foreground" />
-                )}
-              </div>
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
-    </div>
-  );
 
   useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Allow Escape key regardless of focus state
-      if (e.key === "Escape" && selectMode) {
-        e.preventDefault();
-        setSelectedImages([]);
-        setSelectMode(false);
-        return;
-      }
-
-      // Skip other shortcuts if input/textarea is focused
-      if (document.activeElement instanceof HTMLInputElement || 
-          document.activeElement instanceof HTMLTextAreaElement) {
-        return;
-      }
-    };
-
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, [selectMode]);
@@ -2458,36 +1898,6 @@ export default function Gallery({
             </AnimatePresence>
           </div>
 
-          {dragPosition && draggedItemIndex !== null && gallery?.images && (
-            <motion.div
-              className="fixed pointer-events-none z-50 ghost-image"
-              style={{
-                top: dragPosition.y,
-                left: dragPosition.x,
-                transform: "translate(-50%, -50%)",
-                width: "80px",
-                height: "80px",
-              }}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{
-                opacity: 0.8,
-                scale: 1,
-                transition: {
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 25,
-                },
-              }}
-              exit={{ opacity: 0, scale: 0.8 }}
-            >
-              <img
-                src={gallery.images[draggedItemIndex].url}
-                alt="Dragged Preview"
-                className="w-full h-full object-cover rounded-lg shadow-lg"
-              />
-            </motion.div>
-          )}
-
           {/* Logo */}
           <div
             className="fixed bottom-6 left-6 z-50 opacity-30 hover:opacity-60 transition-opacity cursor-pointer"
@@ -2585,7 +1995,7 @@ export default function Gallery({
                     "absolute right-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9",
                     isDark
                       ? "text-white hover:bg-white/10"
-                      : "text-gray-800 hover:bg-gray-200",
+                      : "text-gray-800 hover:gray-200",
                   )}
                   onClick={() => {
                     if (!gallery?.images?.length) return;
@@ -2922,7 +2332,6 @@ export default function Gallery({
                 onDelete={handleDeleteSelected}
                 onDownload={handleDownloadSelected}
                 onEdit={handleEditSelected}
-                onReorder={() => setIsReorderMode(!isReorderMode)}
               />
             )}
           </AnimatePresence>
