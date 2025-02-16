@@ -1,12 +1,12 @@
 import React from "react";
+import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import {
-  Button,
-  Toggle,
   Tooltip,
   TooltipProvider,
   TooltipTrigger,
   TooltipContent,
-} from "@/components/ui";
+} from "@/components/ui/tooltip";
 import { Share, Grid } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { cn } from "@/lib/utils";
