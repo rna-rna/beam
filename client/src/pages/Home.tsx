@@ -32,15 +32,10 @@ export default function Home() {
     <div className="min-h-screen">
       <div className="w-full h-full flex">
         <SignedOut>
-            <div className="flex flex-col items-center justify-center w-full h-full relative">
-              <UploadDropzone onUpload={handleGuestUpload} />
-              
-              {/* Floating Guest Upload Card */}
-              <div className="absolute bottom-6 right-6 z-50">
-                <GuestUploadCard />
-              </div>
+            <div className="flex items-center justify-center w-full h-[calc(100vh-4rem)]">
+              <GuestUploadCard />
             </div>
-          </SignedOut>
+        </SignedOut>
 
         <SignedIn>
           <div className="flex flex-col items-center justify-center min-h-[80vh]">
