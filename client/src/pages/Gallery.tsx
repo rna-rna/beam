@@ -506,8 +506,6 @@ export default function Gallery({
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const { isDark } = useTheme();
-  const { gallery, isLoading: isGalleryLoading, error, titleUpdateMutation, toggleVisibilityMutation } = useGalleryData(slug);
-  const { toggleStarMutation, deleteImagesMutation, reorderImageMutation } = useImageOperations(slug || '');
 
   const toggleGridView = () => {
     setIsMasonry(!isMasonry);
