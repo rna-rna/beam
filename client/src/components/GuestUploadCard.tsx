@@ -17,7 +17,7 @@ export default function GuestUploadCard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="font-geist-mono text-sm">Guest Upload – Limited access.</p>
+          <p className="font-geist-mono text-sm">Sign up as an early access account.</p>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Create a free account to:</p>
             <ul className="space-y-2 text-sm text-muted-foreground">
@@ -29,7 +29,7 @@ export default function GuestUploadCard() {
               onClick={() => setShowSignUpModal(true)} 
               className="text-sm font-medium text-primary hover:underline cursor-pointer dark:text-primary-foreground"
             >
-              Unlock full features – Sign up for free
+              Unlock all features – Sign up for free
             </button>
           </div>
         </CardContent>
