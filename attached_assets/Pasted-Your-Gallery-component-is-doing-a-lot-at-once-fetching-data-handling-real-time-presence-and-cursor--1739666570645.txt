@@ -1,0 +1,24 @@
+Your Gallery component is doing a lot at once—fetching data, handling real-time presence and cursor updates, providing a drag-and-drop file upload zone, managing image display (both grid and masonry), and running a full-fledged lightbox with comments and annotations. Breaking these responsibilities into smaller pieces will keep the code more organized and maintainable. Here’s a quick, digestible strategy for refactoring:
+
+Custom Data Hook
+Extract all your fetching and mutation logic (querying the gallery data, toggling stars, deleting images, reordering, etc.) into a dedicated hook that returns the gallery data, any states, and the mutation methods. This way, the main component focuses on rendering, not on the intricacies of data retrieval.
+
+Presence & Real-Time Hook
+The real-time presence code (Socket.IO/Pusher logic, active users, mousemove listeners, etc.) can live in a separate custom hook. Your main Gallery component will simply import that hook and receive an array of “activeUsers” and “cursors,” which you can then pass into a smaller component or overlay to show who’s online.
+
+Header or Controls Component
+All the top-bar controls—like toggling from grid to masonry, selecting images, enabling reorder mode, showing presence avatars—are perfect to isolate in a <GalleryHeader> or similar. That header takes in simple booleans (isMasonry, selectMode) and callback props (onToggleGridView, onToggleSelectMode) so the main page doesn’t hold all the UI markup for those controls.
+
+Grid (or Masonry) Component
+Take your image layout logic (the loops that render each image thumbnail) and place it in a dedicated component. It can receive the images and any relevant mode flags (e.g., selectMode, reorderMode) and handle how each image is displayed or interacted with (like the selection overlay).
+
+Image Card Component
+Each individual image tile (with its star button, comment count, placeholders for uploading, etc.) can be carved out into its own piece. This makes it easy to tweak how each thumbnail is rendered without rummaging through the entire gallery.
+
+Lightbox Component
+The functionality for showing a full-screen image, cycling with left/right arrows, adding comments or annotations, and toggling star status can be localized in a standalone lightbox component. This ensures your main page only decides when the lightbox opens/closes, while the detailed UI and interactions live elsewhere.
+
+Optional: Separate Comment or Annotation Overlay
+If you prefer even more granularity, you can isolate the comment bubbles and annotation logic in yet another component that specifically deals with those. This is especially helpful given it handles user interactions like placing new comments, showing/hiding existing ones, and hooking into your custom data hook or back-end calls.
+
+By splitting up these responsibilities, each smaller piece becomes easier to navigate and maintain. Instead of managing everything in one massive file, you create reusable, testable components and hooks focused on a single responsibility.
