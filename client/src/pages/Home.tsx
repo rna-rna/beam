@@ -29,38 +29,13 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen">
-      <div className={cn("sticky top-0 z-10 backdrop-blur-sm border-b", isDark ? "bg-black/80" : "bg-background/80")}>
-        <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Logo size="sm" />
-          </div>
-          <div className="ml-auto flex items-center gap-4">
-            <ThemeToggle />
-            <SignedIn>
-              <UserNav />
-            </SignedIn>
-            <SignedOut>
-              <div className="flex items-center gap-2">
-                <LoginButton />
-                <SignUpButton />
-              </div>
-            </SignedOut>
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full h-[calc(100vh-4.1rem)] flex">
+    <div className="flex-1">
+      <div className="w-full h-full flex">
         <SignedOut>
-            <div className="flex flex-col items-center justify-center w-full h-full relative">
-              <UploadDropzone onUpload={handleGuestUpload} />
-              
-              {/* Floating Guest Upload Card */}
-              <div className="absolute bottom-6 right-6 z-50">
-                <GuestUploadCard />
-              </div>
+            <div className="flex items-center justify-center w-full min-h-[calc(100vh-4rem)]">
+              <GuestUploadCard />
             </div>
-          </SignedOut>
+        </SignedOut>
 
         <SignedIn>
           <div className="flex flex-col items-center justify-center min-h-[80vh]">
