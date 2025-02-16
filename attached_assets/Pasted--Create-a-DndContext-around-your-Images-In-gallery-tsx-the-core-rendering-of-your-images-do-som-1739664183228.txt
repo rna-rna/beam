@@ -1,38 +1,4 @@
-Below is a step‐by‐step guide to integrate @dnd-kit into your masonry gallery for a more flexible reordering system. The key points are:
-
-Wrap your list of images in a DndContext.
-Render each image as a draggable item.
-Implement a drag overlay (the “ghost” item) for a nice smaller preview.
-Write a custom or semi‐custom collision detection so you can handle the “where does it drop?” logic in a masonry layout.
-Because a masonry layout has different item heights, you typically need custom collision or advanced strategies. Below is a simplified approach you can adapt.
-
-1) Install and Import
-bash
-Copy
-Edit
-# Using npm:
-npm install @dnd-kit/core
-
-# or yarn:
-yarn add @dnd-kit/core
-In your code:
-
-ts
-Copy
-Edit
-import {
-  DndContext,
-  useDraggable,
-  useDroppable,
-  DragOverlay,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  rectIntersection,
-  // or any other collision detection, e.g. closestCenter
-} from '@dnd-kit/core';
-2) Create a “DndContext” around your Images
+ Create a “DndContext” around your Images
 In gallery.tsx (the core rendering of your images), do something like:
 
 diff
