@@ -29,10 +29,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen">
-      <div className="w-full h-full flex">
+    <div className="flex-1">
+      <div className="w-full flex">
         <SignedOut>
-            <div className="flex items-center justify-center w-full h-[calc(100vh-4rem)]">
+            <div className="flex items-center justify-center w-full py-8">
               <GuestUploadCard />
             </div>
         </SignedOut>
