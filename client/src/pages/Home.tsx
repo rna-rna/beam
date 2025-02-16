@@ -30,9 +30,9 @@ export default function Home() {
 
   return (
     <div className="flex-1">
-      <div className="w-full flex">
+      <div className="w-full h-full flex">
         <SignedOut>
-            <div className="flex items-center justify-center w-full py-8">
+            <div className="flex items-center justify-center w-full min-h-[calc(100vh-4rem)]">
               <GuestUploadCard />
             </div>
         </SignedOut>
