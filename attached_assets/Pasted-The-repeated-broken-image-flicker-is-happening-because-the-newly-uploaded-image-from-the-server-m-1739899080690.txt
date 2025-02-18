@@ -1,0 +1,81 @@
+The repeated broken-image “flicker” is happening because the newly uploaded image from the server (missing localUrl) keeps getting merged back into your images array each time the gallery query returns. Then your <img> tries to load getR2Image(...), hits a 404, and switches to /fallback-image.jpg. On the next re-render, you merge the same server item again, etc. Hence the cycle of repeated requests/flickers.
+
+Why Merging Causes Flicker
+Right now, in the useEffect(() => { if (gallery?.images) { ... } }, [gallery?.images]) block, you have:
+
+ts
+Copy
+Edit
+// Merges "uploading" items + all server items
+setImages((prev) => {
+  // Only keep actively uploading items
+  const uploading = prev.filter(
+    (img) => "localUrl" in img && img.status === "uploading",
+  );
+  return [...uploading, ...gallery.images];
+});
+When you first do an upload, your backend creates a database record with an imageId and a url, and that shows up in gallery.images. But the actual file on R2 might not be ready yet (or might be slow for big files). So <img src={getR2Image(image, "thumb")} /> 404s every time it renders.
+
+React re-renders whenever your query re-fires, merging the server copy over and over. Each time, the <img> tries again to load the broken server URL, flickers to fallback, etc.
+
+Two Ways to Fix It
+1) Skip the Server Copy if We Already Have a Local Copy
+Only merge the server’s image if we don’t have a local version. For example:
+
+ts
+Copy
+Edit
+useEffect(() => {
+  if (!gallery?.images) return;
+
+  setImages((prev) => {
+    // Keep all local images
+    const uploadingLocal = prev.filter((img) => "localUrl" in img);
+
+    // From the server images, exclude any that match a local uploading item
+    const newServerImages = gallery.images.filter((srv) => {
+      // If we have a local item with the same ID, skip
+      if (uploadingLocal.some((loc) => loc.id === srv.id)) {
+        return false;
+      }
+      return true;
+    });
+
+    return [...uploadingLocal, ...newServerImages];
+  });
+}, [gallery?.images]);
+Now, if you’ve just uploaded an image with ID=123, your local item with that ID stays in images (with its localUrl), and you never adopt the server version. So the <img> never attempts the server URL, and no flicker occurs.
+
+Later, if the user refreshes the page (or you really want to confirm the file is on R2), that local item is gone from memory. Then you’ll just use the server’s image. By that time, hopefully, R2 truly serves a 200, so no flicker.
+
+2) Conditionally Use the Server URL Only After We’re Sure It Exists
+If you do want to switch from local to server in the same session, you need some kind of check or “done” event:
+
+After your PUT to R2 completes, do a quick HEAD request or rely on a real-time event (e.g. from Socket/Pusher) that says: “Yes, the file is definitely available.”
+Then remove the local version, or set localUrl = undefined, so the <img> uses the server URL. No repeated 404 attempts.
+This approach is more complicated, but if you truly want to swap mid-session, that’s the pattern.
+
+Also Ensure the Lightbox Doesn’t Force the Server URL
+In your lightbox code, you do:
+
+tsx
+Copy
+Edit
+<motion.img
+  src={
+    "localUrl" in selectedImage 
+      ? selectedImage.localUrl 
+      : getR2Image(selectedImage, "lightbox")
+  }
+  onError={(e) => {
+    if (!("localUrl" in selectedImage)) {
+      e.currentTarget.src = "/fallback-image.jpg";
+    }
+  }}
+  ...
+/>
+That’s good. But if selectedImage is pulling from gallery.images (the server array) for a newly uploaded file, it’s the same problem. If so, don’t set selectedImage from the server array for the newly uploaded item. Instead, keep using your local item.
+
+In Summary
+Root cause: every time you fetch the updated gallery, you re-add that server item that lacks localUrl, so the <img> tries getR2Image(...), 404s, flickers to fallback, and repeats next render.
+Fix: “Don’t adopt that new server record if you already have a local version.” The snippet above (filtering out duplicates) is typically enough. Then your local preview remains stable until a refresh. That stops the repeated broken link attempts.
