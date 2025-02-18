@@ -975,7 +975,7 @@ export default function Gallery({
     },
     onError: (err, variables, context) => {
       if (context?.previousGallery) {
-        queryClient.setQueryData(
+        queryClient.setQueryData<replit_final_file>(
           [`/api/galleries/${slug}`],
           context.previousGallery,
         );
@@ -1229,78 +1229,23 @@ export default function Gallery({
       // Load the uploaded image to get final dimensions
       const img = new Image();
       img.onload = () => {
-        // Update status to finalizing
-        setImages((prev) =>
-          prev.map((img) =>
-            img.id === imageId
-              ? {
-                  ...(img as PendingImage),
-                  status: "finalizing",
-                  progress: 100,
-                }
-              : img,
-          ),
-        );
+          // Set the upload as complete but keep showing local preview
+          setImages((prev) =>
+            prev.map((img) =>
+              img.id === imageId
+                ? {
+                    ...(img as PendingImage),
+                    status: "complete",
+                    progress: 100,
+                  }
+                : img,
+            ),
+          );
 
-        // Add retry logic with delay
-        const pollForFinalImage = async (attempt = 0, maxAttempts = 5) => {
-          if (attempt >= maxAttempts) {
-            console.warn("Max polling attempts reached waiting for image", {
-              imageId,
-              attempts: attempt,
-            });
-            // Keep the current state but mark as error
-            setImages((prev) =>
-              prev.map((item) =>
-                item.id === imageId
-                  ? { ...item, status: "error", _status: "error" }
-                  : item,
-              ),
-            );
-            return;
-          }
-
-          // Wait between attempts
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          try {
-            await queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-            const galleryData = await queryClient.getQueryData([
-              `/api/galleries/${slug}`,
-            ]);
-
-            // Check if image exists in gallery data
-            const serverImage = galleryData?.images?.find(
-              (img) => img.id === imageId,
-            );
-            if (serverImage) {
-              setImages((prev) =>
-                prev.map((item) =>
-                  item.id === imageId
-                    ? {
-                        ...serverImage,
-                        status: "complete",
-                        _status: "complete",
-                      }
-                    : item,
-                ),
-              );
-              return;
-            }
-
-            // If not found, continue polling
-            await pollForFinalImage(attempt + 1, maxAttempts);
-          } catch (error) {
-            console.error("Error polling for image:", error);
-            await pollForFinalImage(attempt + 1, maxAttempts);
-          }
-        };
-
-        // Start polling after image is uploaded
-        pollForFinalImage().finally(() => {
+          // Invalidate gallery query to get new data but don't force update UI
+          queryClient.invalidateQueries([`/api/galleries/${slug}`]);
           completeBatch(addBatchId, true);
-        });
-      };
+        };
       img.src = publicUrl;
 
       completeBatch(addBatchId, true);
