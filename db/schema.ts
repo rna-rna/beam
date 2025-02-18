@@ -114,6 +114,10 @@ export const commentsRelations = relations(comments, ({ one }) => ({
   image: one(images, {
     fields: [comments.imageId],
     references: [images.id]
+  }),
+  parent: one(comments, {
+    fields: [comments.parentId],
+    references: [comments.id]
   })
 }));
 
