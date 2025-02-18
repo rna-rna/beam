@@ -538,6 +538,26 @@ export default function Gallery({
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   const [isMasonry, setIsMasonry] = useState(true);
+
+  // Add warning when closing/refreshing during active uploads
+  useEffect(() => {
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      const uploadingExists = images.some(
+        (img) => "localUrl" in img && img.status === "uploading"
+      );
+
+      if (uploadingExists) {
+        e.preventDefault();
+        e.returnValue = "You have images still uploading. Do you really want to leave?";
+        return e.returnValue;
+      }
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [images]);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{
     x: number;
