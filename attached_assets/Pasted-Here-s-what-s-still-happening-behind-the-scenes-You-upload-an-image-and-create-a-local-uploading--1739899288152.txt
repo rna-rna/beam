@@ -1,0 +1,36 @@
+Here’s what’s still happening behind the scenes:
+
+You upload an image and create a local “uploading” item (with localUrl).
+The server eventually returns a record with the same id but a URL that may still 404 if the file isn’t fully available in R2 yet.
+Your useEffect merges that server record into images. That record has no localUrl, so <img src={getR2Image(serverItem)...} /> tries to load it and flickers on 404.
+Next re-render, you again merge the same server item. Flicker repeats until eventually the R2 file works or you refresh.
+You did add a filter to skip server items if you already have a local item. But if your local item’s id matches the newly arrived server item’s id, you only skip it while the local one’s status is "uploading". The moment your local item sets itself to "complete", it no longer looks like an “actively uploading” item, so your code merges the server item and triggers flickers if the server URL is still not truly ready.
+
+Approaches to Eliminate the Flicker
+1. Keep Ignoring the Server Item Indefinitely
+If you genuinely want to rely on the local copy for the entire session (so no 404 flicker can ever happen mid-session), never adopt the server copy for that ID until the page is refreshed or the user does some manual “refresh.”
+
+In other words:
+
+js
+Copy
+Edit
+useEffect(() => {
+  if (!gallery?.images) return;
+
+  setImages((prev) => {
+    // All local items (uploading or done)
+    const localItems = prev.filter(img => 'localUrl' in img);
+
+    // Filter out any server items that match IDs we already have in local
+    const serverItems = gallery.images.filter(srv => {
+      // skip if there's ANY local item with that ID
+      return !localItems.some(loc => loc.id === srv.id);
+    });
+
+    // Merge local + new server items
+    return [...localItems, ...serverItems];
+  });
+}, [gallery?.images]);
+Result: Once an image is uploaded, you will always keep showing the local version for that entire session (no chance to flicker). After a full page refresh, you’ll load everything from the server. By then R2 is hopefully ready, so no 404.
+
