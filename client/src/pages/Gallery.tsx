@@ -1758,9 +1758,7 @@ export default function Gallery({
         >
           <img
             key={`${image.id}-${image._status || "final"}`}
-            src={
-              "localUrl" in image ? image.localUrl : getR2Image(image, "thumb")
-            }
+            src={"localUrl" in image ? image.localUrl : getR2Image(image, "thumb")}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
               "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
@@ -1771,8 +1769,7 @@ export default function Gallery({
             )}
             loading="lazy"
             onLoad={(e) => {
-              const img = e.currentTarget;
-              img.classList.add("loaded");
+              e.currentTarget.classList.add("loaded");
               if (!("localUrl" in image) && image.pendingRevoke) {
                 setTimeout(() => {
                   URL.revokeObjectURL(image.pendingRevoke);
@@ -1780,22 +1777,14 @@ export default function Gallery({
               }
             }}
             onError={(e) => {
-              console.error("Image load failed:", {
-                id: image.id,
-                url: image.url,
-                isPending: "localUrl" in image,
-                status: image.status,
-                originalFilename: image.originalFilename,
-              });
+              // Only set error and use fallback for non-local previews
               if (!("localUrl" in image)) {
-                e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
-                setImages((prev) =>
-                  prev.map((upload) =>
-                    upload.id === image.id
-                      ? { ...upload, status: "error", _status: "error" }
-                      : upload,
-                  ),
-                );
+                console.error("Server image load failed:", {
+                  id: image.id,
+                  url: image.url,
+                  originalFilename: image.originalFilename,
+                });
+                e.currentTarget.src = "/fallback-image.jpg";
               }
             }}
             draggable={false}
@@ -2694,8 +2683,7 @@ export default function Gallery({
 
                       {/* Final high-res image */}
                       <motion.img
-                        src={getR2Image(selectedImage, "lightbox")}
-                        data-src={getR2Image(selectedImage, "lightbox")}
+                        src={"localUrl" in selectedImage ? selectedImage.localUrl : getR2Image(selectedImage, "lightbox")}
                         alt={selectedImage.originalFilename || ""}
                         className="lightbox-img"
                         style={{
@@ -2713,19 +2701,20 @@ export default function Gallery({
                         onLoad={(e) => {
                           setIsLowResLoading(false);
                           setIsLoading(false);
-
-                          const img = e.currentTarget;
-                          img.src = img.dataset.src || img.src;
-                          img.classList.add("loaded");
+                          e.currentTarget.classList.add("loaded");
 
                           setImageDimensions({
-                            width: img.clientWidth,
-                            height: img.clientHeight,
+                            width: e.currentTarget.clientWidth,
+                            height: e.currentTarget.clientHeight,
                           });
                         }}
-                        onError={() => {
-                          setIsLoading(false);
-                          setIsLowResLoading(false);
+                        onError={(e) => {
+                          // Only set error state for non-local previews
+                          if (!("localUrl" in selectedImage)) {
+                            setIsLoading(false);
+                            setIsLowResLoading(false);
+                            e.currentTarget.src = "/fallback-image.jpg";
+                          }
                         }}
                       />
 
