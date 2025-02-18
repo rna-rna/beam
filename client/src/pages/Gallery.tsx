@@ -380,7 +380,7 @@ export default function Gallery({
     channel.bind("image-starred", (data: { imageId: number; isStarred: boolean; userId: string }) => {
       console.log("Image starred/unstarred:", data);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-      queryClient.invalidateQueries([`/api/images/stars`]);
+      queryClient.invalidateQueries([`/api/images/${data.imageId}/stars`]);
     });
 
     channel.bind("comment-added", (data: { imageId: number; content: string }) => {
@@ -974,7 +974,7 @@ export default function Gallery({
           ...oldData,
           images: oldData.images.map((image: any) =>
             image.id === imageid
-              ? { ...image, userStarstarred: !isStarred }
+              ? { ...image, userStarred: !isStarred }
               : image,
           ),
         };

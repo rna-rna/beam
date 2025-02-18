@@ -1955,64 +1955,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get batch stars for multiple images
-app.get('/api/images/stars', async (req, res) => {
-  try {
-    const imageIds = (req.query.ids as string || '').split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
-    const userId = req.auth?.userId;
-
-    if (!imageIds.length) {
-      return res.json({ success: true, data: {} });
-    }
-
-    const starData = await db.query.stars.findMany({
-      where: inArray(stars.imageId, imageIds),
-      orderBy: (stars, { desc }) => [desc(stars.createdAt)]
-    });
-
-    // Get unique user IDs and batch fetch full user data from cache
-    const userIds = [...new Set(starData.map(star => star.userId))];
-    const userData = await fetchCachedUserData(userIds);
-
-    // Group stars by imageId
-    const groupedStars = imageIds.reduce((acc, imageId) => {
-      const imageStars = starData
-        .filter(star => star.imageId === imageId)
-        .map(star => {
-          const user = userData.find(u => u.userId === star.userId);
-          return {
-            ...star,
-            user: {
-              fullName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
-              imageUrl: user?.imageUrl,
-              color: user?.color
-            }
-          };
-        });
-
-      acc[imageId] = {
-        stars: imageStars,
-        userStarred: userId ? imageStars.some(star => star.userId === userId) : false
-      };
-      return acc;
-    }, {});
-
-    res.json({
-      success: true,
-      data: groupedStars
-    });
-  } catch (error) {
-    console.error('Error fetching batch stars:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch stars',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// Get users who starred an image
-app.get('/api/images/:imageId/stars', async (req, res) => {
+  // Get users who starred an image
+  app.get('/api/images/:imageId/stars', async (req, res) => {
     try {
       const imageId = parseInt(req.params.imageId);
       const userId = req.auth?.userId;
