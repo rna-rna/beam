@@ -549,15 +549,23 @@ export default function Gallery({
 
   // Load server images
   useEffect(() => {
-    if (gallery?.images) {
-      setImages((prev) => {
-        // Only keep actively uploading items
-        const uploading = prev.filter(
-          (img) => "localUrl" in img && img.status === "uploading",
-        );
-        return [...uploading, ...gallery.images];
+    if (!gallery?.images) return;
+
+    setImages((prev) => {
+      // Keep all local images
+      const uploadingLocal = prev.filter((img) => "localUrl" in img);
+
+      // From the server images, exclude any that match a local uploading item
+      const newServerImages = gallery.images.filter((srv) => {
+        // If we have a local item with the same ID, skip
+        if (uploadingLocal.some((loc) => loc.id === srv.id)) {
+          return false;
+        }
+        return true;
       });
-    }
+
+      return [...uploadingLocal, ...newServerImages];
+    });
   }, [gallery?.images]);
 
   const [isDarkMode, setIsDarkMode] = useState(false);
