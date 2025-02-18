@@ -1283,68 +1283,34 @@ export function registerRoutes(app: Express): Server {
       }
 
       // If access is allowed, get the gallery images with star data
-      // Get all images with their stars
-      const galleryImages = await db.query.images.findMany({
+      const imagesWithStars = await db.query.images.findMany({
         where: eq(images.galleryId, gallery.id),
-        orderBy: (images, { asc }) => [asc(images.position)],
+        orderBy: (images, { asc }) => [
+          asc(images.position),
+          asc(images.createdAt)
+        ],
         with: {
-          stars: {
-            with: {
-              user: true
-            }
-          }
+          stars: true
         }
       });
 
-      const imageCount = galleryImages.length;
-
-      // Get user IDs from stars for fetching user data
-      const userIds = [...new Set(galleryImages.flatMap(img => img.stars.map(star => star.userId)))];
-      const userData = await fetchCachedUserData(userIds);
-      const userDataMap = new Map(userData.map(user => [user.userId, user]));
-
-      // Process images with star data
-      const processedImages = galleryImages.map(img => {
-        const userStarred = img.stars.some(star => star.userId === userId);
-        const processedStars = img.stars.map(star => {
-          const userData = userDataMap.get(star.userId);
-          return {
-            userId: star.userId,
-            firstName: userData?.firstName || null,
-            lastName: userData?.lastName || null,
-            imageUrl: userData?.imageUrl || null,
-            color: userData?.color || null
-          };
-        });
-
-        return {
-          ...img,
-          stars: processedStars,
-          userStarred
-        };
-      });
-
-      // Get thumbnail from first image
-      const thumbnailImage = galleryImages[0];
-
-
       // Debug image data
       console.log('Gallery Images Data:', {
-        count: processedImages.length,
-        sampleImage: processedImages[0] ? {
-          id: processedImages[0].id,
-          originalFilename: processedImages[0].originalFilename,
-          hasOriginalFilename: !!processedImages[0].originalFilename,
-          url: processedImages[0].url,
+        count: imagesWithStars.length,
+        sampleImage: imagesWithStars[0] ? {
+          id: imagesWithStars[0].id,
+          originalFilename: imagesWithStars[0].originalFilename,
+          hasOriginalFilename: !!imagesWithStars[0].originalFilename,
+          url: imagesWithStars[0].url,
         } : null,
-        missingFilenames: processedImages.filter(img => !img.originalFilename).length
+        missingFilenames: imagesWithStars.filter(img => !img.originalFilename).length
       });
 
       // Validate required image fields
-      const invalidImages = processedImages.filter(img => !img.originalFilename || !img.url);
+      const invalidImages = imagesWithStars.filter(img => !img.originalFilename || !img.url);
       if (invalidImages.length > 0) {
         console.error('Invalid image data detected:', {
-          total: processedImages.length,
+          total: imagesWithStars.length,
           invalid: invalidImages.length,
           samples: invalidImages.slice(0, 3).map(img => ({
             id: img.id,
@@ -1354,9 +1320,49 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
+      // Fetch user data for all stars
+      const imagesWithUserData = await Promise.all(
+        imagesWithStars.map(async (img) => {
+          const starsWithUserData = await Promise.all(
+            img.stars.map(async (star) => {
+              try {
+                const [fetchedUser] = await fetchCachedUserData([star.userId]) || [];
+                if (!fetchedUser) {
+                  console.warn('No user found in cache for userId:', star.userId);
+                  return {
+                    ...star,
+                    firstName: null,
+                    lastName: null,
+                    imageUrl: null
+                  };
+                }
+
+                return {
+                  ...star,
+                  firstName: fetchedUser.firstName,
+                  lastName: fetchedUser.lastName,
+                  imageUrl: fetchedUser.imageUrl
+                };
+              } catch (error) {
+                console.error(`Failed to fetch user data for userId: ${star.userId}`, error);
+                return {
+                  ...star,
+                  firstName: null,
+                  lastName: null,
+                  imageUrl: null
+                };
+              }
+            })
+          );
+          return {
+            ...img,
+            stars: starsWithUserData
+          };
+        })
+      );
 
       const commentCounts = await Promise.all(
-        galleryImages.map(async (img) => {
+        imagesWithStars.map(async (img) => {
           const result = await db.execute(
             sql`SELECT COUNT(*) as count FROM comments WHERE image_id = ${img.id}`
           );
@@ -1364,7 +1370,7 @@ export function registerRoutes(app: Express): Server {
         })
       );
 
-      const finalProcessedImages = processedImages.map(img => ({
+      const processedImages = imagesWithUserData.map(img => ({
         id: img.id,
         url: img.url || '',
         width: img.width,
@@ -1380,13 +1386,13 @@ export function registerRoutes(app: Express): Server {
 
       // Final validation check
       console.log('Processed Images:', {
-        total: finalProcessedImages.length,
-        withFilenames: finalProcessedImages.filter(img => img.originalFilename).length,
-        sample: finalProcessedImages[0]
+        total: processedImages.length,
+        withFilenames: processedImages.filter(img => img.originalFilename).length,
+        sample: processedImages[0]
       });
 
       // Get OG image URL from first image or use fallback
-      const ogImageUrl = finalProcessedImages[0]?.url ||
+      const ogImageUrl = processedImages[0]?.url ||
         'https://res.cloudinary.com/dq7m5z3zf/image/upload/v1700000000/12_crhopz.jpg';
 
       // Check for invite and role if not owner
@@ -1417,7 +1423,7 @@ export function registerRoutes(app: Express): Server {
         slug: gallery.slug,
         title: gallery.title,
         isPublic: gallery.isPublic,
-        images: finalProcessedImages,
+        images: processedImages,
         isOwner,
         role,
         createdAt: gallery.createdAt,

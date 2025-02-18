@@ -110,18 +110,10 @@ export const starsRelations = relations(stars, ({ one }) => ({
   })
 }));
 
-export const commentsRelations = relations(comments, ({ one, many }) => ({
+export const commentsRelations = relations(comments, ({ one }) => ({
   image: one(images, {
     fields: [comments.imageId],
     references: [images.id]
-  }),
-  parent: one(comments, {
-    fields: [comments.parentId],
-    references: [comments.id]
-  }),
-  replies: many(comments, {
-    fields: [comments.id],
-    references: [comments.parentId]
   })
 }));
 

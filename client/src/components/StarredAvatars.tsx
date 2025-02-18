@@ -1,48 +1,148 @@
-import { useQuery } from "@tanstack/react-query";
-import { UserAvatar } from "./UserAvatar";
 
-interface Props {
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { HoverCard, HoverCardTrigger, HoverCardContent, HoverCardPortal } from "@/components/ui/hover-card";
+import { Star } from "lucide-react";
+import { UserAvatar } from "./UserAvatar";
+import { useUser } from "@clerk/clerk-react";
+
+interface StarData {
+  id: number;
+  userId: string;
   imageId: number;
+  createdAt: string;
+  user?: {
+    fullName: string;
+    imageUrl?: string;
+    color?: string;
+  };
 }
 
-export function StarredAvatars({ imageId }: Props) {
-  // Find the current image's stars in the parent gallery query data
-  const stars = useQuery({
-    queryKey: [`/api/galleries`],
-    select: (data) => {
-      const allGalleries = data || [];
-      for (const gallery of allGalleries) {
-        const image = gallery.images?.find(img => img.id === imageId);
-        if (image) {
-          return image.stars || [];
+interface StarredAvatarsProps {
+  imageId: number;
+  size?: "default" | "lg";
+}
+
+interface StarResponse {
+  success: boolean;
+  data: StarData[];
+}
+
+export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProps) {
+  const { user } = useUser();
+  const queryClient = useQueryClient();
+
+  const toggleStarMutation = useMutation({
+    mutationFn: async ({ imageId, isStarred }: { imageId: number; isStarred: boolean }) => {
+      const res = await fetch(`/api/images/${imageId}/star`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isStarred })
+      });
+      return res.json();
+    },
+    onMutate: async ({ imageId, isStarred }) => {
+      await queryClient.cancelQueries([`/api/images/${imageId}/stars`]);
+      const previousStars = queryClient.getQueryData([`/api/images/${imageId}/stars`]);
+
+      queryClient.setQueryData([`/api/images/${imageId}/stars`], (old: any) => {
+        if (!old) return { success: true, data: [] };
+        const newData = [...old.data];
+
+        if (!isStarred) {
+          newData.push({
+            userId: user?.id,
+            user: {
+              fullName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+              imageUrl: user?.imageUrl,
+              color: user?.publicMetadata?.color,
+            }
+          });
+        } else {
+          return { success: true, data: newData.filter(s => s.userId !== user?.id) };
         }
+
+        return { ...old, data: newData };
+      });
+
+      return { previousStars };
+    },
+    onError: (err, { imageId }, context) => {
+      if (context?.previousStars) {
+        queryClient.setQueryData([`/api/images/${imageId}/stars`], context.previousStars);
       }
-      return [];
-    }
+    },
+    onSettled: ({ imageId }) => {
+      queryClient.invalidateQueries([`/api/images/${imageId}/stars`]);
+    },
   });
 
-  const visibleStars = (stars.data || []).slice(0, 3);
-  const remainingCount = Math.max(0, (stars.data?.length || 0) - visibleStars.length);
+  const { data: response } = useQuery<StarResponse>({
+    queryKey: [`/api/images/${imageId}/stars`],
+    staleTime: 5000,
+    cacheTime: 10000,
+    enabled: Number.isInteger(Number(imageId)) && !imageId.toString().startsWith('pending-'),
+    select: (data) => ({
+      ...data,
+      data: Array.from(
+        new Map(
+          (data?.data || []).map(star => [star.userId, star])
+        ).values()
+      )
+    })
+  });
 
-  if (!stars.data?.length) return null;
+  const stars = response?.data || [];
+  const visibleStars = stars.slice(0, 3);
+  const remainingCount = Math.max(0, stars.length - visibleStars.length);
+
+  if (stars.length === 0) return null;
 
   return (
-    <div className="flex -space-x-2 items-center">
-      {visibleStars.map((star, i) => (
-        <UserAvatar
-          key={`${star.userId}-${i}`}
-          name={`${star.firstName || ''} ${star.lastName || ''}`.trim()}
-          imageUrl={star.imageUrl}
-          color={star.color}
-          size="xs"
-          className="border-2 border-white/40 dark:border-black"
-        />
-      ))}
-      {remainingCount > 0 && (
-        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-medium border-2 border-background">
-          +{remainingCount}
+    <HoverCard>
+      <HoverCardTrigger asChild>
+        <div className="relative flex items-center cursor-pointer">
+          {visibleStars.map((star) => (
+            <UserAvatar
+              key={star.userId}
+              name={star.user?.fullName || 'Unknown User'}
+              imageUrl={star.user?.imageUrl}
+              color={star.user?.color}
+              size="sm"
+              className="shadow-sm -ml-2 first:ml-0"
+            />
+          ))}
+          {remainingCount > 0 && (
+            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium -ml-2">
+              +{remainingCount}
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </HoverCardTrigger>
+      <HoverCardPortal>
+        <HoverCardContent className="w-56 p-4 shadow-lg">
+          <h4 className="text-sm font-medium text-zinc-700 mb-2 flex items-center gap-1">
+            <Star className="w-3 h-3" />
+            Favorited by
+          </h4>
+          <div className="space-y-2">
+            {stars.map((star) => (
+              <div key={star.userId} className="flex items-center space-x-3">
+                <UserAvatar
+                  name={star.user?.fullName || 'Unknown User'}
+                  imageUrl={star.user?.imageUrl}
+                  color={star.user?.color}
+                  className="h-8 w-8"
+                />
+                <div className="text-sm font-medium">
+                  {star.user?.fullName || 'Unknown User'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </HoverCardContent>
+      </HoverCardPortal>
+    </HoverCard>
   );
 }
