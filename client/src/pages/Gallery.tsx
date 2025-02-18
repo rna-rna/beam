@@ -973,7 +973,7 @@ export default function Gallery({
         return {
           ...oldData,
           images: oldData.images.map((image: any) =>
-            image.id === imageId
+            image.id === imageid
               ? { ...image, userStarred: !isStarred }
               : image,
           ),
@@ -1318,10 +1318,10 @@ export default function Gallery({
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      console.log("Files dropped:", acceptedFiles.length); // Added log for file count
+      console.log("Files dropped:", acceptedFiles.length);
       if (acceptedFiles.length === 0) return;
 
-      const limit = pLimit(3); // Only allow 3 concurrent uploads
+      const limit = pLimit(3);
 
       const uploadPromises = acceptedFiles.map(async (file) => {
         const tmpId = nanoid();
@@ -1342,10 +1342,8 @@ export default function Gallery({
               height,
             };
 
-            // Add new uploads at the end to maintain order
             setImages((prev) => [...prev, newItem]);
 
-            // Use the concurrency limiter
             limit(() => uploadSingleFile(file, tmpId))
               .then(resolve)
               .catch((error) => {
@@ -1367,6 +1365,8 @@ export default function Gallery({
       try {
         await Promise.all(uploadPromises);
         console.log("All uploads completed");
+        // Single query invalidation after all uploads complete
+        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
       } catch (error) {
         console.error("Batch upload error:", error);
         toast({
@@ -1376,7 +1376,7 @@ export default function Gallery({
         });
       }
     },
-    [setImages, uploadSingleFile],
+    [setImages, uploadSingleFile, queryClient, slug],
   );
 
   // Modify the useDropzone configuration to disable click
