@@ -1193,111 +1193,132 @@ export default function Gallery({
 
   const uploadSingleFile = (file: File, tmpId: string): Promise<void> => {
     return new Promise(async (resolve, reject) => {
-    const addBatchId = nanoid();
-    addBatch(addBatchId, file.size, 1);
+      const addBatchId = nanoid();
+      addBatch(addBatchId, file.size, 1);
 
-    try {
-      const token = await getToken();
-      const response = await fetch(`/api/galleries/${slug}/images`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          files: [
-            {
-              name: file.name,
-              type: file.type,
-              size: file.size,
-            },
-          ],
-        }),
-      });
+      try {
+        const token = await getToken();
+        const response = await fetch(`/api/galleries/${slug}/images`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            files: [
+              {
+                name: file.name,
+                type: file.type,
+                size: file.size,
+              },
+            ],
+          }),
+        });
 
-      if (!response.ok) throw new Error("Failed to get upload URL");
+        if (!response.ok) throw new Error("Failed to get upload URL");
 
-      const { urls } = await response.json();
-      const { signedUrl, publicUrl, imageId } = urls[0];
+        const { urls } = await response.json();
+        const { signedUrl, publicUrl, imageId } = urls[0];
 
-      // Immediately update the placeholder with the real ID
-      setImages((prev) =>
-        prev.map((img) =>
-          img.id === tmpId
-            ? {
-                ...img,
-                id: imageId,
-                status: "uploading",
-                progress: 0,
-              }
-            : img,
-        ),
-      );
+        // Immediately update the placeholder with the real ID
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === tmpId
+              ? {
+                  ...img,
+                  id: imageId,
+                  status: "uploading",
+                  progress: 0,
+                }
+              : img,
+          ),
+        );
 
-      // Upload to R2
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.upload.onprogress = (ev) => {
-          if (ev.lengthComputable) {
-            const progress = (ev.loaded / ev.total) * 100;
+        // Upload to R2
+        await new Promise<void>((resolve, reject) => {
+          console.log("Starting upload:", {
+            fileName: file.name,
+            tmpId,
+            size: `${(file.size / 1024 / 1024).toFixed(2)}MB`
+          });
+
+          const xhr = new XMLHttpRequest();
+          xhr.upload.onprogress = (ev) => {
+            if (ev.lengthComputable) {
+              const progress = (ev.loaded / ev.total) * 100;
+              setImages((prev) =>
+                prev.map((img) =>
+                  img.id === imageId ? { ...img, progress } : img,
+                ),
+              );
+              updateBatchProgress(addBatchId, ev.loaded);
+            }
+          };
+
+          xhr.open("PUT", signedUrl);
+          xhr.setRequestHeader("Content-Type", file.type);
+          xhr.onload = () => {
+            console.log("XHR onload:", {
+              fileName: file.name,
+              status: xhr.status,
+              response: xhr.responseText.slice(0, 100)
+            });
+            xhr.status === 200 ? resolve() : reject();
+          };
+          xhr.onerror = () => {
+            console.error("Upload error for:", {
+              fileName: file.name,
+              status: xhr.status,
+              statusText: xhr.statusText
+            });
+            reject();
+          };
+          xhr.send(file);
+        });
+
+        // Load the uploaded image to get final dimensions
+        const img = new Image();
+        img.onload = () => {
+            // Set the upload as complete but keep showing local preview
             setImages((prev) =>
               prev.map((img) =>
-                img.id === imageId ? { ...img, progress } : img,
+                img.id === imageId
+                  ? {
+                      ...(img as PendingImage),
+                      status: "complete",
+                      progress: 100,
+                    }
+                  : img,
               ),
             );
-            updateBatchProgress(addBatchId, ev.loaded);
-          }
-        };
 
-        xhr.open("PUT", signedUrl);
-        xhr.setRequestHeader("Content-Type", file.type);
-        xhr.onload = () => (xhr.status === 200 ? resolve() : reject());
-        xhr.onerror = () => reject();
-        xhr.send(file);
-      });
+            // Invalidate gallery query to get new data but don't force update UI
+            queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+            completeBatch(addBatchId, true);
+          };
+        img.src = publicUrl;
 
-      // Load the uploaded image to get final dimensions
-      const img = new Image();
-      img.onload = () => {
-          // Set the upload as complete but keep showing local preview
-          setImages((prev) =>
-            prev.map((img) =>
-              img.id === imageId
-                ? {
-                    ...(img as PendingImage),
-                    status: "complete",
-                    progress: 100,
-                  }
-                : img,
-            ),
-          );
-
-          // Invalidate gallery query to get new data but don't force update UI
-          queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-          completeBatch(addBatchId, true);
-        };
-      img.src = publicUrl;
-
-      completeBatch(addBatchId, true);
-      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-      resolve();
-    } catch (error) {
-      setImages((prev) =>
-        prev.map((img) =>
-          img.id === tmpId
-            ? { ...(img as PendingImage), status: "error", progress: 0 }
-            : img,
-        ),
-      );
-      completeBatch(addBatchId, false);
-      console.error("Upload failed:", error);
-      reject(error);
-    }
+        completeBatch(addBatchId, true);
+        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+        resolve();
+      } catch (error) {
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === tmpId
+              ? { ...(img as PendingImage), status: "error", progress: 0 }
+              : img,
+          ),
+        );
+        completeBatch(addBatchId, false);
+        console.error("Upload failed:", error);
+        reject(error);
+      }
     });
   };
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
+      console.log("Files dropped:", acceptedFiles.length); // Added log for file count
       if (acceptedFiles.length === 0) return;
 
       const limit = pLimit(3); // Only allow 3 concurrent uploads
@@ -1323,7 +1344,7 @@ export default function Gallery({
 
             // Add new uploads at the end to maintain order
             setImages((prev) => [...prev, newItem]);
-            
+
             // Use the concurrency limiter
             limit(() => uploadSingleFile(file, tmpId))
               .then(resolve)
