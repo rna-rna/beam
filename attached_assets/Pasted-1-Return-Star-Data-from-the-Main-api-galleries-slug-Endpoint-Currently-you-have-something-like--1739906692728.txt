@@ -1,0 +1,98 @@
+1. Return Star Data from the Main /api/galleries/:slug Endpoint
+Currently, you have something like:
+
+js
+Copy
+Edit
+// In the gallery object, you have something like:
+{
+  id: 123,
+  slug: "myGallery",
+  images: [
+    {
+      id: 4005,
+      url: "...",
+      // etc
+    },
+    ...
+  ]
+}
+And in a separate step, you do:
+
+ts
+Copy
+Edit
+// useQuery for each image:
+useQuery([`/api/images/${imageId}/stars`], ...)
+Instead, modify your backend so that each image in the gallery’s response includes the star info (or at least stars: [] plus userStarred: boolean). That means your GET /api/galleries/:slug would return something like:
+
+js
+Copy
+Edit
+{
+  id: 123,
+  slug: "myGallery",
+  images: [
+    {
+      id: 4005,
+      url: "...",
+      // Instead of refetching, embed star info here:
+      stars: [
+        { userId: "u1", firstName: "Alice", ... },
+        { userId: "u2", firstName: "Bob", ... }
+      ],
+      userStarred: true, // or false
+      ...
+    },
+    ...
+  ]
+}
+Backend changes
+In your /api/galleries/:slug endpoint, join or gather star data for each image.
+Return that star data directly in the images array.
+Also compute whether the current user has starred each image or not (this is your userStarred boolean).
+Example (Node.js pseudo-code):
+
+js
+Copy
+Edit
+router.get("/api/galleries/:slug", async (req, res) => {
+  const { slug } = req.params;
+
+  // 1. Fetch the gallery
+  const gallery = await prisma.gallery.findUnique({
+    where: { slug },
+    include: {
+      images: {
+        include: {
+          // If using Prisma with a separate 'stars' or 'starsCount' table
+          stars: true
+        }
+      }
+    }
+  });
+
+  if (!gallery) {
+    return res.status(404).json({ message: "Gallery not found" });
+  }
+
+  // 2. For each image, compute if the user has starred it
+  const userId = req.user?.id; // or however you get the user ID
+  gallery.images = gallery.images.map((img) => {
+    const userStarred = !!img.stars.find((star) => star.userId === userId);
+    return {
+      ...img,
+      userStarred,
+      // possibly filter star fields, or reduce them
+      stars: img.stars.map((star) => ({
+        userId: star.userId,
+        firstName: star.firstName,
+        imageUrl: star.imageUrl
+      }))
+    };
+  });
+
+  return res.json(gallery);
+});
+Note: The exact code depends on your ORM/database setup. The main point is to gather star data in the same request as the gallery images.
+
