@@ -1,148 +1,90 @@
-
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { HoverCard, HoverCardTrigger, HoverCardContent, HoverCardPortal } from "@/components/ui/hover-card";
-import { Star } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserAvatar } from "./UserAvatar";
-import { useUser } from "@clerk/clerk-react";
-
-interface StarData {
-  id: number;
-  userId: string;
-  imageId: number;
-  createdAt: string;
-  user?: {
-    fullName: string;
-    imageUrl?: string;
-    color?: string;
-  };
-}
-
-interface StarredAvatarsProps {
-  imageId: number;
-  size?: "default" | "lg";
-}
+import { Badge } from "@/components/ui/badge";
 
 interface StarResponse {
   success: boolean;
-  data: StarData[];
+  data: {
+    stars: Array<{
+      userId: string;
+      user: {
+        fullName: string;
+        imageUrl: string | null;
+        color: string;
+      };
+    }>;
+    userStarred: boolean;
+  };
 }
 
-export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProps) {
-  const { user } = useUser();
+interface BatchStarResponse {
+  success: boolean;
+  data: {
+    [key: string]: {
+      stars: Array<{
+        userId: string;
+        user: {
+          fullName: string;
+          imageUrl: string | null;
+          color: string;
+        };
+      }>;
+      userStarred: boolean;
+    };
+  };
+}
+
+export function StarredAvatars({ imageId }: { imageId: number }) {
   const queryClient = useQueryClient();
 
-  const toggleStarMutation = useMutation({
-    mutationFn: async ({ imageId, isStarred }: { imageId: number; isStarred: boolean }) => {
-      const res = await fetch(`/api/images/${imageId}/star`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isStarred })
-      });
+  // Use the batch endpoint
+  const { data: response } = useQuery<BatchStarResponse>({
+    queryKey: [`/api/images/stars`, [imageId]],
+    queryFn: async () => {
+      const res = await fetch(`/api/images/stars?ids=${imageId}`);
       return res.json();
     },
-    onMutate: async ({ imageId, isStarred }) => {
-      await queryClient.cancelQueries([`/api/images/${imageId}/stars`]);
-      const previousStars = queryClient.getQueryData([`/api/images/${imageId}/stars`]);
-
-      queryClient.setQueryData([`/api/images/${imageId}/stars`], (old: any) => {
-        if (!old) return { success: true, data: [] };
-        const newData = [...old.data];
-
-        if (!isStarred) {
-          newData.push({
-            userId: user?.id,
-            user: {
-              fullName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
-              imageUrl: user?.imageUrl,
-              color: user?.publicMetadata?.color,
-            }
-          });
-        } else {
-          return { success: true, data: newData.filter(s => s.userId !== user?.id) };
-        }
-
-        return { ...old, data: newData };
-      });
-
-      return { previousStars };
-    },
-    onError: (err, { imageId }, context) => {
-      if (context?.previousStars) {
-        queryClient.setQueryData([`/api/images/${imageId}/stars`], context.previousStars);
-      }
-    },
-    onSettled: ({ imageId }) => {
-      queryClient.invalidateQueries([`/api/images/${imageId}/stars`]);
-    },
-  });
-
-  const { data: response } = useQuery<StarResponse>({
-    queryKey: [`/api/images/${imageId}/stars`],
     staleTime: 5000,
     cacheTime: 10000,
     enabled: Number.isInteger(Number(imageId)) && !imageId.toString().startsWith('pending-'),
     select: (data) => ({
       ...data,
-      data: Array.from(
-        new Map(
-          (data?.data || []).map(star => [star.userId, star])
-        ).values()
-      )
+      data: Object.entries(data.data).reduce((acc, [id, starData]) => {
+        acc[id] = {
+          ...starData,
+          stars: Array.from(
+            new Map(
+              starData.stars.map(star => [star.userId, star])
+            ).values()
+          )
+        };
+        return acc;
+      }, {} as BatchStarResponse['data'])
     })
   });
 
-  const stars = response?.data || [];
-  const visibleStars = stars.slice(0, 3);
-  const remainingCount = Math.max(0, stars.length - visibleStars.length);
+  const imageStars = response?.data?.[imageId]?.stars || [];
+  const visibleStars = imageStars.slice(0, 3);
+  const remainingCount = Math.max(0, imageStars.length - visibleStars.length);
 
-  if (stars.length === 0) return null;
+  if (imageStars.length === 0) return null;
 
   return (
-    <HoverCard>
-      <HoverCardTrigger asChild>
-        <div className="relative flex items-center cursor-pointer">
-          {visibleStars.map((star) => (
-            <UserAvatar
-              key={star.userId}
-              name={star.user?.fullName || 'Unknown User'}
-              imageUrl={star.user?.imageUrl}
-              color={star.user?.color}
-              size="sm"
-              className="shadow-sm -ml-2 first:ml-0"
-            />
-          ))}
-          {remainingCount > 0 && (
-            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium -ml-2">
-              +{remainingCount}
-            </div>
-          )}
-        </div>
-      </HoverCardTrigger>
-      <HoverCardPortal>
-        <HoverCardContent className="w-56 p-4 shadow-lg">
-          <h4 className="text-sm font-medium text-zinc-700 mb-2 flex items-center gap-1">
-            <Star className="w-3 h-3" />
-            Favorited by
-          </h4>
-          <div className="space-y-2">
-            {stars.map((star) => (
-              <div key={star.userId} className="flex items-center space-x-3">
-                <UserAvatar
-                  name={star.user?.fullName || 'Unknown User'}
-                  imageUrl={star.user?.imageUrl}
-                  color={star.user?.color}
-                  className="h-8 w-8"
-                />
-                <div className="text-sm font-medium">
-                  {star.user?.fullName || 'Unknown User'}
-                </div>
-              </div>
-            ))}
-          </div>
-        </HoverCardContent>
-      </HoverCardPortal>
-    </HoverCard>
+    <div className="flex items-center -space-x-2">
+      {visibleStars.map((star) => (
+        <UserAvatar
+          key={star.userId}
+          name={star.user.fullName}
+          imageUrl={star.user.imageUrl}
+          color={star.user.color}
+          size="xs"
+        />
+      ))}
+      {remainingCount > 0 && (
+        <Badge variant="secondary" className="ml-2 bg-background/80">
+          +{remainingCount}
+        </Badge>
+      )}
+    </div>
   );
 }
