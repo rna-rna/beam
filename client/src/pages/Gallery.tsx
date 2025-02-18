@@ -1291,9 +1291,6 @@ export default function Gallery({
                   : img,
               ),
             );
-
-            // Invalidate gallery query to get new data but don't force update UI
-            queryClient.invalidateQueries([`/api/galleries/${slug}`]);
             completeBatch(addBatchId, true);
           };
         img.src = publicUrl;
