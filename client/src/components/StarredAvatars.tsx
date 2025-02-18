@@ -86,8 +86,9 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
     staleTime: 5000,
     cacheTime: 10000,
     enabled: Number.isInteger(Number(imageId)) && 
-             !imageId.toString().startsWith('pending-') && 
-             imageId > 0,
+             !String(imageId).startsWith('pending-') && 
+             imageId > 0 &&
+             !('localUrl' in imageId),
     select: (data) => ({
       success: true,
       data: Array.from(
