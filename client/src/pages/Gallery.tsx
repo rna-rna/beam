@@ -538,6 +538,7 @@ export default function Gallery({
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   const [isMasonry, setIsMasonry] = useState(true);
+  const [images, setImages] = useState<ImageOrPending[]>([]); // Moved here
 
   // Add warning when closing/refreshing during active uploads
   useEffect(() => {
@@ -567,7 +568,8 @@ export default function Gallery({
   } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
   const [userRole, setUserRole] = useState<string>("Viewer");
-  const [images, setImages] = useState<ImageOrPending[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const masonryRef = useRef<any>(null);
 
   // Load server images
   useEffect(() => {
@@ -588,8 +590,6 @@ export default function Gallery({
     });
   }, [gallery?.images]);
 
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const masonryRef = useRef<any>(null);
 
   const combinedImages = useMemo(() => {
     return images;
@@ -973,7 +973,7 @@ export default function Gallery({
           ...oldData,
           images: oldData.images.map((image: any) =>
             image.id === imageId
-              ? { ...image, userStarred: !isStarred }
+              ?              ? { ...image, userStarred: !isStarred }
               : image,
           ),
         };
@@ -1976,7 +1976,7 @@ export default function Gallery({
                 <motion.div
                   animate={{
                     scale: image.userStarred ? 1.2 : 1,
-                    opacity: image.userStarred ? 1 : 0.6,                  }}
+                    opacity: image.userStarred ? 1 :0.6,                  }}
                   transition={{ duration: 0.2 }}
                 >
                   {image.userStarred ? (
