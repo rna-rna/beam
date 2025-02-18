@@ -975,7 +975,7 @@ export default function Gallery({
     },
     onError: (err, variables, context) => {
       if (context?.previousGallery) {
-        queryClient.setQueryData(
+        queryClient.setQueryData<replit_final_file>(
           [`/api/galleries/${slug}`],
           context.previousGallery,
         );
@@ -1229,78 +1229,23 @@ export default function Gallery({
       // Load the uploaded image to get final dimensions
       const img = new Image();
       img.onload = () => {
-        // Update status to finalizing
-        setImages((prev) =>
-          prev.map((img) =>
-            img.id === imageId
-              ? {
-                  ...(img as PendingImage),
-                  status: "finalizing",
-                  progress: 100,
-                }
-              : img,
-          ),
-        );
+          // Set the upload as complete but keep showing local preview
+          setImages((prev) =>
+            prev.map((img) =>
+              img.id === imageId
+                ? {
+                    ...(img as PendingImage),
+                    status: "complete",
+                    progress: 100,
+                  }
+                : img,
+            ),
+          );
 
-        // Add retry logic with delay
-        const pollForFinalImage = async (attempt = 0, maxAttempts = 5) => {
-          if (attempt >= maxAttempts) {
-            console.warn("Max polling attempts reached waiting for image", {
-              imageId,
-              attempts: attempt,
-            });
-            // Keep the current state but mark as error
-            setImages((prev) =>
-              prev.map((item) =>
-                item.id === imageId
-                  ? { ...item, status: "error", _status: "error" }
-                  : item,
-              ),
-            );
-            return;
-          }
-
-          // Wait between attempts
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          try {
-            await queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-            const galleryData = await queryClient.getQueryData([
-              `/api/galleries/${slug}`,
-            ]);
-
-            // Check if image exists in gallery data
-            const serverImage = galleryData?.images?.find(
-              (img) => img.id === imageId,
-            );
-            if (serverImage) {
-              setImages((prev) =>
-                prev.map((item) =>
-                  item.id === imageId
-                    ? {
-                        ...serverImage,
-                        status: "complete",
-                        _status: "complete",
-                      }
-                    : item,
-                ),
-              );
-              return;
-            }
-
-            // If not found, continue polling
-            await pollForFinalImage(attempt + 1, maxAttempts);
-          } catch (error) {
-            console.error("Error polling for image:", error);
-            await pollForFinalImage(attempt + 1, maxAttempts);
-          }
-        };
-
-        // Start polling after image is uploaded
-        pollForFinalImage().finally(() => {
+          // Invalidate gallery query to get new data but don't force update UI
+          queryClient.invalidateQueries([`/api/galleries/${slug}`]);
           completeBatch(addBatchId, true);
-        });
-      };
+        };
       img.src = publicUrl;
 
       completeBatch(addBatchId, true);
@@ -1813,9 +1758,7 @@ export default function Gallery({
         >
           <img
             key={`${image.id}-${image._status || "final"}`}
-            src={
-              "localUrl" in image ? image.localUrl : getR2Image(image, "thumb")
-            }
+            src={"localUrl" in image ? image.localUrl : getR2Image(image, "thumb")}
             alt={image.originalFilename || "Uploaded image"}
             className={cn(
               "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
@@ -1826,31 +1769,12 @@ export default function Gallery({
             )}
             loading="lazy"
             onLoad={(e) => {
-              const img = e.currentTarget;
-              img.classList.add("loaded");
-              if (!("localUrl" in image) && image.pendingRevoke) {
-                setTimeout(() => {
-                  URL.revokeObjectURL(image.pendingRevoke);
-                }, 800);
-              }
+              e.currentTarget.classList.add("loaded");
             }}
             onError={(e) => {
-              console.error("Image load failed:", {
-                id: image.id,
-                url: image.url,
-                isPending: "localUrl" in image,
-                status: image.status,
-                originalFilename: image.originalFilename,
-              });
+              // Only set fallback if no local URL is available
               if (!("localUrl" in image)) {
-                e.currentTarget.src = "https://cdn.beam.ms/placeholder.jpg";
-                setImages((prev) =>
-                  prev.map((upload) =>
-                    upload.id === image.id
-                      ? { ...upload, status: "error", _status: "error" }
-                      : upload,
-                  ),
-                );
+                e.currentTarget.src = "/fallback-image.jpg";
               }
             }}
             draggable={false}
@@ -2749,10 +2673,14 @@ export default function Gallery({
 
                       {/* Final high-res image */}
                       <motion.img
-                        src={getR2Image(selectedImage, "lightbox")}
-                        data-src={getR2Image(selectedImage, "lightbox")}
+                        src={"localUrl" in selectedImage ? selectedImage.localUrl : getR2Image(selectedImage, "lightbox")}
                         alt={selectedImage.originalFilename || ""}
                         className="lightbox-img"
+                        onError={(e) => {
+                          if (!("localUrl" in selectedImage)) {
+                            e.currentTarget.src = "/fallback-image.jpg";
+                          }
+                        }}
                         style={{
                           position: "absolute",
                           top: 0,
@@ -2768,19 +2696,20 @@ export default function Gallery({
                         onLoad={(e) => {
                           setIsLowResLoading(false);
                           setIsLoading(false);
-
-                          const img = e.currentTarget;
-                          img.src = img.dataset.src || img.src;
-                          img.classList.add("loaded");
+                          e.currentTarget.classList.add("loaded");
 
                           setImageDimensions({
-                            width: img.clientWidth,
-                            height: img.clientHeight,
+                            width: e.currentTarget.clientWidth,
+                            height: e.currentTarget.clientHeight,
                           });
                         }}
-                        onError={() => {
-                          setIsLoading(false);
-                          setIsLowResLoading(false);
+                        onError={(e) => {
+                          // Only set error state for non-local previews
+                          if (!("localUrl" in selectedImage)) {
+                            setIsLoading(false);
+                            setIsLowResLoading(false);
+                            e.currentTarget.src = "/fallback-image.jpg";
+                          }
                         }}
                       />
 
