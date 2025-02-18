@@ -1,0 +1,45 @@
+This error message, net::ERR_INSUFFICIENT_RESOURCES, typically indicates the browser (or occasionally the hosting environment) is running out of ephemeral resources when trying to make too many network requests at once. In many cases, Google Chrome will throw this error when it’s overwhelmed with parallel connections. On Replit, you can also see this if the environment hits its internal resource or concurrent connection limits.
+
+Here are some common causes and practical steps to fix or mitigate the issue:
+
+1. Too Many Parallel Requests
+Cause:
+Your React app might be firing off a large number of requests in parallel—especially if you’re calling /api/images/:id/stars separately for every image.
+
+Symptoms:
+
+50 or 100+ images in a gallery can cause 50 or 100 parallel API calls.
+Browser dev tools might show a waterfall of requests and eventually “net::ERR_INSUFFICIENT_RESOURCES”.
+How to Fix:
+
+Batch Your Requests
+
+Instead of fetching star data for each image individually, add a single bulk endpoint (e.g. /api/images/stars?ids=123,124,125,...) that returns star info for all images at once.
+This dramatically reduces total connections and the chance of resource exhaustion.
+Limit Concurrency
+
+If you absolutely have to fetch star data per image, consider a concurrency limit. For instance, load star data 5 or 10 images at a time rather than all at once.
+Tools like p-queue, bluebird’s map with concurrency, or a custom approach with React Query (e.g., using retry or onSuccess) can help.
+Store/Embed Star Data
+
+If star information seldom changes or can be included with the /api/galleries/:slug response, you can avoid making separate star-queries altogether.
+That means your gallery response itself might include stars or userStarred for each image, so no second round of requests is needed.
+2. React Query Over-Fetching or Loop
+Cause:
+In some cases, if React Query is set up to refetch a large array repeatedly (e.g., refetchOnWindowFocus: true or a side effect triggers a cascade of star fetches), you may see repeated bursts of parallel calls.
+
+How to Fix
+
+Turn Off Unnecessary Refetches
+If you’re using React Query with defaults like refetchOnWindowFocus: true, it may refetch everything each time you switch tabs or windows.
+Consider disabling or customizing those settings to reduce spam:
+js
+Copy
+Edit
+useQuery(["/api/images/stars"], fetchStars, {
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+  // ...
+})
+Check for Loops
+Ensure there isn’t a useEffect or onSuccess callback that triggers refetching many times.
