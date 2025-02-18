@@ -976,7 +976,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Find the gallery by slug
-      const gallery = await db.query`.galleries.findFirst({
+      const gallery = await db.query.galleries.findFirst({
         where: eq(galleries.slug, req.params.slug)
       });
 
