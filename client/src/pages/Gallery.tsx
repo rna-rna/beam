@@ -974,7 +974,7 @@ export default function Gallery({
       return { previousGallery, previousStars };
     },
     onError: (err, variables, context) => {
-      if (context?..previousGallery) {
+      if (context?.previousGallery) {
         queryClient.setQueryData<replit_final_file>(
           [`/api/galleries/${slug}`],
           context.previousGallery,
@@ -1768,8 +1768,22 @@ export default function Gallery({
               image.status === "error" && "opacity-50",
             )}
             loading="lazy"
+            onLoad={(e) => {
+              e.currentTarget.classList.add("loaded");
+              if (!("localUrl" in image) && image.pendingRevoke) {
+                setTimeout(() => {
+                  URL.revokeObjectURL(image.pendingRevoke);
+                }, 800);
+              }
+            }}
             onError={(e) => {
+              // Only set error and use fallback for non-local previews
               if (!("localUrl" in image)) {
+                console.error("Server image load failed:", {
+                  id: image.id,
+                  url: image.url,
+                  originalFilename: image.originalFilename,
+                });
                 e.currentTarget.src = "/fallback-image.jpg";
               }
             }}
