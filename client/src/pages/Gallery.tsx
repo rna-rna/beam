@@ -1244,7 +1244,7 @@ export default function Gallery({
                 img.id === imageId ? { ...img, progress } : img,
               ),
             );
-            updateBatchProgress(addBatchId, ev.loaded - ev.total);
+            updateBatchProgress(addBatchId, ev.loaded);
           }
         };
 
