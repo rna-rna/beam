@@ -1770,20 +1770,10 @@ export default function Gallery({
             loading="lazy"
             onLoad={(e) => {
               e.currentTarget.classList.add("loaded");
-              if (!("localUrl" in image) && image.pendingRevoke) {
-                setTimeout(() => {
-                  URL.revokeObjectURL(image.pendingRevoke);
-                }, 800);
-              }
             }}
             onError={(e) => {
-              // Only set error and use fallback for non-local previews
+              // Only set fallback if no local URL is available
               if (!("localUrl" in image)) {
-                console.error("Server image load failed:", {
-                  id: image.id,
-                  url: image.url,
-                  originalFilename: image.originalFilename,
-                });
                 e.currentTarget.src = "/fallback-image.jpg";
               }
             }}
@@ -2686,6 +2676,11 @@ export default function Gallery({
                         src={"localUrl" in selectedImage ? selectedImage.localUrl : getR2Image(selectedImage, "lightbox")}
                         alt={selectedImage.originalFilename || ""}
                         className="lightbox-img"
+                        onError={(e) => {
+                          if (!("localUrl" in selectedImage)) {
+                            e.currentTarget.src = "/fallback-image.jpg";
+                          }
+                        }}
                         style={{
                           position: "absolute",
                           top: 0,
