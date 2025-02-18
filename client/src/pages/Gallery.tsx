@@ -1190,7 +1190,8 @@ export default function Gallery({
 
   const { addBatch, updateBatchProgress, completeBatch } = useUpload();
 
-  const uploadSingleFile = async (file: File, tmpId: string) => {
+  const uploadSingleFile = (file: File, tmpId: string): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
     const addBatchId = nanoid();
     addBatch(addBatchId, file.size, 1);
 
@@ -1278,6 +1279,7 @@ export default function Gallery({
 
       completeBatch(addBatchId, true);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      resolve();
     } catch (error) {
       setImages((prev) =>
         prev.map((img) =>
@@ -1288,37 +1290,69 @@ export default function Gallery({
       );
       completeBatch(addBatchId, false);
       console.error("Upload failed:", error);
+      reject(error);
     }
+    });
   };
 
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    async (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
 
-      acceptedFiles.forEach((file) => {
+      const limit = pLimit(3); // Only allow 3 concurrent uploads
+
+      const uploadPromises = acceptedFiles.map(async (file) => {
         const tmpId = nanoid();
         const localUrl = URL.createObjectURL(file);
 
-        const imageEl = new Image();
-        imageEl.onload = () => {
-          const width = imageEl.naturalWidth;
-          const height = imageEl.naturalHeight;
+        return new Promise<void>((resolve) => {
+          const imageEl = new Image();
+          imageEl.onload = () => {
+            const width = imageEl.naturalWidth;
+            const height = imageEl.naturalHeight;
 
-          const newItem: ImageOrPending = {
-            id: tmpId,
-            localUrl,
-            status: "uploading",
-            progress: 0,
-            width,
-            height,
+            const newItem: ImageOrPending = {
+              id: tmpId,
+              localUrl,
+              status: "uploading",
+              progress: 0,
+              width,
+              height,
+            };
+
+            // Add new uploads at the end to maintain order
+            setImages((prev) => [...prev, newItem]);
+            
+            // Use the concurrency limiter
+            limit(() => uploadSingleFile(file, tmpId))
+              .then(resolve)
+              .catch((error) => {
+                console.error("Upload failed:", error);
+                setImages((prev) =>
+                  prev.map((img) =>
+                    img.id === tmpId
+                      ? { ...img as PendingImage, status: "error", progress: 0 }
+                      : img
+                  )
+                );
+                resolve();
+              });
           };
-
-          // Add new uploads at the end to maintain order
-          setImages((prev) => [...prev, newItem]);
-          uploadSingleFile(file, tmpId);
-        };
-        imageEl.src = localUrl;
+          imageEl.src = localUrl;
+        });
       });
+
+      try {
+        await Promise.all(uploadPromises);
+        console.log("All uploads completed");
+      } catch (error) {
+        console.error("Batch upload error:", error);
+        toast({
+          title: "Upload Error",
+          description: "Some files failed to upload. Please try again.",
+          variant: "destructive"
+        });
+      }
     },
     [setImages, uploadSingleFile],
   );
