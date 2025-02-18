@@ -1,0 +1,56 @@
+ Warn the User If They Close or Refresh Mid-Upload
+To warn the user before they close the tab (or refresh the page) while uploads are in progress, add a simple beforeunload listener that checks if any “uploading” items remain:
+
+tsx
+Copy
+Edit
+useEffect(() => {
+  function handleBeforeUnload(e: BeforeUnloadEvent) {
+    // If *any* item is still "uploading," we block navigation
+    const uploadingExists = images.some(
+      (img) => "localUrl" in img && img.status === "uploading"
+    );
+
+    if (uploadingExists) {
+      // Most modern browsers ignore custom text
+      // but you still must set returnValue for it to block
+      e.preventDefault();
+      e.returnValue = 
+        "You have images still uploading. Do you really want to leave?";
+      return e.returnValue;
+    }
+  }
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [images]);
+How This Works
+Whenever your images array changes, we re-check if any image is currently status: "uploading".
+If so, the browser will show a generic “Are you sure you want to leave?” style dialog on close/refresh.
+Once all uploads finish, the listener will not show a dialog.
+If You Want to Warn on Route Changes Within Your App
+If your app uses Wouter, React Router, or any other router, you can also intercept navigation within the app. That’s more complicated, but the same concept: check whether uploads are in progress; if so, confirm or block. For Wouter or a custom approach, you’d do something like:
+
+js
+Copy
+Edit
+// Pseudocode
+import { useLocation } from "wouter";
+
+function useBlockNavigationWhenUploading() {
+  const [location, setLocation] = useLocation();
+
+  const newSetLocation = useCallback((to: string) => {
+    if (someUploadIsActive) {
+      if (!window.confirm("Uploads in progress—leave anyway?")) {
+        return;
+      }
+    }
+    setLocation(to);
+  }, [someUploadIsActive, setLocation]);
+
+  return [location, newSetLocation];
+}
+But the above snippet is purely illustrative; you might need a custom approach to intercept Wouter route changes. The simplest universal approach is always the beforeunload event for browser close/refresh.

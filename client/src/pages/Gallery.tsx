@@ -552,19 +552,17 @@ export default function Gallery({
     if (!gallery?.images) return;
 
     setImages((prev) => {
-      // Keep all local images
-      const uploadingLocal = prev.filter((img) => "localUrl" in img);
+      // All local items (uploading or done)
+      const localItems = prev.filter(img => 'localUrl' in img);
 
-      // From the server images, exclude any that match a local uploading item
-      const newServerImages = gallery.images.filter((srv) => {
-        // If we have a local item with the same ID, skip
-        if (uploadingLocal.some((loc) => loc.id === srv.id)) {
-          return false;
-        }
-        return true;
+      // Filter out any server items that match IDs we already have in local
+      const serverItems = gallery.images.filter(srv => {
+        // Skip if there's ANY local item with that ID
+        return !localItems.some(loc => loc.id === srv.id);
       });
 
-      return [...uploadingLocal, ...newServerImages];
+      // Merge local + new server items
+      return [...localItems, ...serverItems];
     });
   }, [gallery?.images]);
 
@@ -1791,8 +1789,9 @@ export default function Gallery({
             <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
               {image.status === "uploading" && (
                 <>
-                  <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-full">
+                  <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-md text-sm font-medium text-foreground flex items-center gap-1.5">
                     <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>{Math.floor(image.progress)}%</span>
                   </div>
                   <Progress value={image.progress} className="w-3/4 h-1" />
                 </>
