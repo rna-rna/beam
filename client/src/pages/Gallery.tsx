@@ -1,6 +1,7 @@
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import pLimit from 'p-limit';
 import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
 import { default as GalleryActions } from '@/components/GalleryActions';
@@ -538,6 +539,29 @@ export default function Gallery({
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   const [isMasonry, setIsMasonry] = useState(true);
+  const [images, setImages] = useState<ImageOrPending[]>([]); // Moved here
+
+  // Add warning when closing/refreshing during active uploads
+  useEffect(() => {
+    if (!images) return; // Guard against undefined images
+
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      const uploadingExists = images.some(
+        (img) => "localUrl" in img && img.status === "uploading"
+      );
+
+      if (uploadingExists) {
+        e.preventDefault();
+        e.returnValue = "You have images still uploading. Do you really want to leave?";
+        return e.returnValue;
+      }
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [images]);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{
     x: number;
@@ -545,7 +569,8 @@ export default function Gallery({
   } | null>(null);
   const [showWithComments, setShowWithComments] = useState(false);
   const [userRole, setUserRole] = useState<string>("Viewer");
-  const [images, setImages] = useState<ImageOrPending[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const masonryRef = useRef<any>(null);
 
   // Load server images
   useEffect(() => {
@@ -566,8 +591,6 @@ export default function Gallery({
     });
   }, [gallery?.images]);
 
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const masonryRef = useRef<any>(null);
 
   const combinedImages = useMemo(() => {
     return images;
@@ -1168,7 +1191,8 @@ export default function Gallery({
 
   const { addBatch, updateBatchProgress, completeBatch } = useUpload();
 
-  const uploadSingleFile = async (file: File, tmpId: string) => {
+  const uploadSingleFile = (file: File, tmpId: string): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
     const addBatchId = nanoid();
     addBatch(addBatchId, file.size, 1);
 
@@ -1221,7 +1245,7 @@ export default function Gallery({
                 img.id === imageId ? { ...img, progress } : img,
               ),
             );
-            updateBatchProgress(addBatchId, ev.loaded - ev.total);
+            updateBatchProgress(addBatchId, ev.loaded);
           }
         };
 
@@ -1256,6 +1280,7 @@ export default function Gallery({
 
       completeBatch(addBatchId, true);
       queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+      resolve();
     } catch (error) {
       setImages((prev) =>
         prev.map((img) =>
@@ -1266,37 +1291,69 @@ export default function Gallery({
       );
       completeBatch(addBatchId, false);
       console.error("Upload failed:", error);
+      reject(error);
     }
+    });
   };
 
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    async (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
 
-      acceptedFiles.forEach((file) => {
+      const limit = pLimit(3); // Only allow 3 concurrent uploads
+
+      const uploadPromises = acceptedFiles.map(async (file) => {
         const tmpId = nanoid();
         const localUrl = URL.createObjectURL(file);
 
-        const imageEl = new Image();
-        imageEl.onload = () => {
-          const width = imageEl.naturalWidth;
-          const height = imageEl.naturalHeight;
+        return new Promise<void>((resolve) => {
+          const imageEl = new Image();
+          imageEl.onload = () => {
+            const width = imageEl.naturalWidth;
+            const height = imageEl.naturalHeight;
 
-          const newItem: ImageOrPending = {
-            id: tmpId,
-            localUrl,
-            status: "uploading",
-            progress: 0,
-            width,
-            height,
+            const newItem: ImageOrPending = {
+              id: tmpId,
+              localUrl,
+              status: "uploading",
+              progress: 0,
+              width,
+              height,
+            };
+
+            // Add new uploads at the end to maintain order
+            setImages((prev) => [...prev, newItem]);
+            
+            // Use the concurrency limiter
+            limit(() => uploadSingleFile(file, tmpId))
+              .then(resolve)
+              .catch((error) => {
+                console.error("Upload failed:", error);
+                setImages((prev) =>
+                  prev.map((img) =>
+                    img.id === tmpId
+                      ? { ...img as PendingImage, status: "error", progress: 0 }
+                      : img
+                  )
+                );
+                resolve();
+              });
           };
-
-          // Add new uploads at the end to maintain order
-          setImages((prev) => [...prev, newItem]);
-          uploadSingleFile(file, tmpId);
-        };
-        imageEl.src = localUrl;
+          imageEl.src = localUrl;
+        });
       });
+
+      try {
+        await Promise.all(uploadPromises);
+        console.log("All uploads completed");
+      } catch (error) {
+        console.error("Batch upload error:", error);
+        toast({
+          title: "Upload Error",
+          description: "Some files failed to upload. Please try again.",
+          variant: "destructive"
+        });
+      }
     },
     [setImages, uploadSingleFile],
   );
@@ -1954,8 +2011,7 @@ export default function Gallery({
                 <motion.div
                   animate={{
                     scale: image.userStarred ? 1.2 : 1,
-                    opacity: image.userStarred ? 1 : 0.6,
-                  }}
+                    opacity: image.userStarred ? 1 :0.6,                  }}
                   transition={{ duration: 0.2 }}
                 >
                   {image.userStarred ? (
