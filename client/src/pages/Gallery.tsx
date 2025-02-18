@@ -541,6 +541,8 @@ export default function Gallery({
 
   // Add warning when closing/refreshing during active uploads
   useEffect(() => {
+    if (!images) return; // Guard against undefined images
+
     function handleBeforeUnload(e: BeforeUnloadEvent) {
       const uploadingExists = images.some(
         (img) => "localUrl" in img && img.status === "uploading"
@@ -1974,8 +1976,7 @@ export default function Gallery({
                 <motion.div
                   animate={{
                     scale: image.userStarred ? 1.2 : 1,
-                    opacity: image.userStarred ? 1 : 0.6,
-                  }}
+                    opacity: image.userStarred ? 1 : 0.6,                  }}
                   transition={{ duration: 0.2 }}
                 >
                   {image.userStarred ? (
