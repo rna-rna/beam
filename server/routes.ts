@@ -1956,26 +1956,39 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get users who starred an image
-  app.get('/api/images/:imageId/stars', async (req, res) => {
+  app.get('/api/galleries/:slug/starred', async (req, res) => {
     try {
-      const imageId = parseInt(req.params.imageId);
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.slug, req.params.slug),
+        with: {
+          images: {
+            columns: {
+              id: true
+            }
+          }
+        }
+      });
+
+      if (!gallery) {
+        return res.status(404).json({ message: 'Gallery not found' });
+      }
+
+      const imageIds = gallery.images.map(img => img.id);
       const userId = req.auth?.userId;
 
       const starData = await db.query.stars.findMany({
-        where: eq(stars.imageId, imageId),
+        where: inArray(stars.imageId, imageIds),
         orderBy: (stars, { desc }) => [desc(stars.createdAt)]
       });
 
-      const userStarred = userId ? starData.some(star => star.userId === userId) : false;
-
-      // Get unique user IDs and batch fetch full user data from cache
+      // Get unique user IDs and batch fetch user data
       const userIds = [...new Set(starData.map(star => star.userId))];
       const userData = await fetchCachedUserData(userIds);
 
-      // Merge star data with full user details
-      const starsWithUserData = starData.map(star => {
+      // Group stars by image ID with user data
+      const groupedStars = starData.reduce((acc, star) => {
         const user = userData.find(u => u.userId === star.userId);
-        return {
+        const starWithUser = {
           ...star,
           user: {
             fullName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown User',
@@ -1983,19 +1996,29 @@ export function registerRoutes(app: Express): Server {
             color: user?.color
           }
         };
-      });
+
+        if (!acc[star.imageId]) {
+          acc[star.imageId] = {
+            stars: [],
+            userStarred: false
+          };
+        }
+        acc[star.imageId].stars.push(starWithUser);
+        if (userId && star.userId === userId) {
+          acc[star.imageId].userStarred = true;
+        }
+        return acc;
+      }, {});
 
       res.json({
         success: true,
-        data: starsWithUserData,
-        userStarred 
+        data: groupedStars
       });
     } catch (error) {
-      console.error('Error fetching stars:', error);
+      console.error('Error fetching gallery stars:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch stars',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Failed to fetch gallery stars'
       });
     }
   });

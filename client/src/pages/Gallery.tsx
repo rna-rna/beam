@@ -1090,8 +1090,8 @@ export default function Gallery({
   });
 
   const handleUploadComplete = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-    queryClient.refetchQueries({ queryKey: [`/api/galleries/${slug}`] });
+    // Upload completion is now handled in batch
+    console.log("Upload batch completed");
   };
 
   const createCommentMutation = useMutation({
@@ -1362,10 +1362,14 @@ export default function Gallery({
       try {
         await Promise.all(uploadPromises);
         console.log("All uploads completed");
-        // Only invalidate gallery data after upload
-        queryClient.invalidateQueries([`/api/galleries/${slug}`], {
-          exact: true
+        
+        // Only invalidate once after all uploads complete
+        queryClient.invalidateQueries({
+          queryKey: [`/api/galleries/${slug}`],
+          exact: true,
+          refetchType: 'all'
         });
+
       } catch (error) {
         console.error("Batch upload error:", error);
         toast({
@@ -1863,7 +1867,7 @@ export default function Gallery({
             draggable={false}
           />
           {"localUrl" in image && (
-            <div className="absolute inset-0 flex items-center justify-center ring-2 ring-purple-500/40">
+            <div className="absolute inset-0 flex items-center justify-center">
               {image.status === "uploading" && (
                 <>
                   <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-md text-sm font-medium text-foreground flex items-center gap-1.5">
