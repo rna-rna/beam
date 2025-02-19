@@ -1090,8 +1090,8 @@ export default function Gallery({
   });
 
   const handleUploadComplete = () => {
-    queryClient.invalidateQueries({ queryKey: [`/api/galleries/${slug}`] });
-    queryClient.refetchQueries({ queryKey: [`/api/galleries/${slug}`] });
+    // Upload completion is now handled in batch
+    console.log("Upload batch completed");
   };
 
   const createCommentMutation = useMutation({
@@ -1362,10 +1362,14 @@ export default function Gallery({
       try {
         await Promise.all(uploadPromises);
         console.log("All uploads completed");
-        // Only invalidate gallery data after upload
-        queryClient.invalidateQueries([`/api/galleries/${slug}`], {
-          exact: true
+        
+        // Only invalidate once after all uploads complete
+        queryClient.invalidateQueries({
+          queryKey: [`/api/galleries/${slug}`],
+          exact: true,
+          refetchType: 'all'
         });
+
       } catch (error) {
         console.error("Batch upload error:", error);
         toast({
