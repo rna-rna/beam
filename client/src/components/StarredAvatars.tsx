@@ -19,15 +19,19 @@ interface StarData {
 
 interface StarredAvatarsProps {
   imageId: number;
+  gallerySlug: string;
   size?: "default" | "lg";
 }
 
 interface StarResponse {
   success: boolean;
-  data: StarData[];
+  data: Record<number, {
+    stars: StarData[];
+    userStarred: boolean;
+  }>;
 }
 
-export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProps) {
+export function StarredAvatars({ imageId, gallerySlug, size = "default" }: StarredAvatarsProps) {
   const { user } = useUser();
   const queryClient = useQueryClient();
 
@@ -48,15 +52,19 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
       return res.json();
     },
     onMutate: async ({ imageId, isStarred }) => {
-      await queryClient.cancelQueries([`/api/images/${imageId}/stars`]);
-      const previousStars = queryClient.getQueryData([`/api/images/${imageId}/stars`]);
+      await queryClient.cancelQueries([`/api/galleries/${gallerySlug}/starred`]);
+      const previousData = queryClient.getQueryData([`/api/galleries/${gallerySlug}/starred`]);
 
-      queryClient.setQueryData([`/api/images/${imageId}/stars`], (old: any) => {
-        if (!old) return { success: true, data: [] };
-        const newData = [...old.data];
+      queryClient.setQueryData([`/api/galleries/${gallerySlug}/starred`], (old: any) => {
+        if (!old?.data) return old;
+        const newData = { ...old.data };
+        
+        if (!newData[imageId]) {
+          newData[imageId] = { stars: [], userStarred: false };
+        }
 
         if (!isStarred) {
-          newData.push({
+          newData[imageId].stars.push({
             userId: user?.id,
             user: {
               fullName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
@@ -64,51 +72,39 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
               color: user?.publicMetadata?.color,
             }
           });
+          newData[imageId].userStarred = true;
         } else {
-          return { success: true, data: newData.filter(s => s.userId !== user?.id) };
+          newData[imageId].stars = newData[imageId].stars.filter(s => s.userId !== user?.id);
+          newData[imageId].userStarred = false;
         }
 
         return { ...old, data: newData };
       });
 
-      return { previousStars };
+      return { previousData };
     },
     onError: (err, { imageId }, context) => {
-      if (context?.previousStars) {
-        queryClient.setQueryData([`/api/images/${imageId}/stars`], context.previousStars);
+      if (context?.previousData) {
+        queryClient.setQueryData([`/api/galleries/${gallerySlug}/starred`], context.previousData);
       }
     },
-    onSettled: ({ imageId }) => {
-      queryClient.invalidateQueries([`/api/images/${imageId}/stars`]);
+    onSettled: () => {
+      queryClient.invalidateQueries([`/api/galleries/${gallerySlug}/starred`]);
     },
   });
 
-  if (!imageId || String(imageId).startsWith('pending-')) {
-    return null;
-  }
-
   const { data: response } = useQuery<StarResponse>({
-    queryKey: [`/api/images/${imageId}/stars`],
+    queryKey: [`/api/galleries/${gallerySlug}/starred`],
     staleTime: 30000,
     cacheTime: 60000,
-    enabled: true, // We've already validated imageId in the early return
-    select: (data) => ({
-      success: true,
-      data: Array.from(
-        new Map(
-          (data?.data || []).map(star => [star.userId, star])
-        ).values()
-      )
-    }),
-    refetchOnMount: false,
-    refetchOnWindowFocus: false
+    enabled: true
   });
 
-  const stars = response?.data || [];
-  const visibleStars = stars.slice(0, 3);
-  const remainingCount = Math.max(0, stars.length - visibleStars.length);
+  const imageStars = response?.data?.[imageId]?.stars || [];
+  if (imageStars.length === 0) return null;
 
-  if (stars.length === 0) return null;
+  const visibleStars = imageStars.slice(0, 3);
+  const remainingCount = Math.max(0, imageStars.length - visibleStars.length);
 
   return (
     <HoverCard>
@@ -138,7 +134,7 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
             Favorited by
           </h4>
           <div className="space-y-2">
-            {stars.map((star) => (
+            {imageStars.map((star) => (
               <div key={star.userId} className="flex items-center space-x-3">
                 <UserAvatar
                   name={star.user?.fullName || 'Unknown User'}
