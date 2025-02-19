@@ -81,13 +81,15 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
     },
   });
 
+  if (!imageId || String(imageId).startsWith('pending-')) {
+    return null;
+  }
+
   const { data: response } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
     staleTime: 5000,
     cacheTime: 10000,
-    enabled: Number.isInteger(Number(imageId)) && 
-             !String(imageId).startsWith('pending-') && 
-             imageId > 0,
+    enabled: Number.isInteger(Number(imageId)) && imageId > 0,
     select: (data) => ({
       success: true,
       data: Array.from(
