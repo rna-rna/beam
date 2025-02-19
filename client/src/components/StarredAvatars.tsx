@@ -87,9 +87,11 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
 
   const { data: response } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
-    staleTime: 5000,
-    cacheTime: 10000,
-    enabled: Number.isInteger(Number(imageId)) && imageId > 0,
+    staleTime: 30000, // Increase stale time to 30 seconds
+    cacheTime: 60000, // Increase cache time to 1 minute
+    enabled: Number.isInteger(Number(imageId)) && 
+             !String(imageId).startsWith('pending-') && 
+             imageId > 0,
     select: (data) => ({
       success: true,
       data: Array.from(
@@ -97,7 +99,9 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
           (data?.data || []).map(star => [star.userId, star])
         ).values()
       )
-    })
+    }),
+    refetchOnMount: false,
+    refetchOnWindowFocus: false
   });
 
   const stars = response?.data || [];
