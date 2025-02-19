@@ -133,7 +133,16 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
         const previousFilesSize = acceptedFiles.slice(0, index).reduce((acc, f) => acc + f.size, 0);
 
         await new Promise((resolve, reject) => {
+          console.log('[Upload Start]', {
+            fileName: file.name,
+            fileSize: `${(file.size / (1024 * 1024)).toFixed(2)}MB`,
+            fileType: file.type,
+            batchId,
+            timestamp: new Date().toISOString()
+          });
+
           const xhr = new XMLHttpRequest();
+          xhr.timeout = 120000; // 2 minutes timeout
 
           xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
@@ -141,6 +150,15 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
               const batchProgress = previousFilesSize + currentFileProgress;
               const incrementBytes = batchProgress - uploadedBatchBytes;
               uploadedBatchBytes = batchProgress;
+              
+              console.log('[Upload Progress]', {
+                fileName: file.name,
+                loaded: `${(event.loaded / (1024 * 1024)).toFixed(2)}MB`,
+                total: `${(event.total / (1024 * 1024)).toFixed(2)}MB`,
+                progress: `${((event.loaded / event.total) * 100).toFixed(1)}%`,
+                timestamp: new Date().toISOString()
+              });
+              
               updateBatchProgress(batchId, incrementBytes);
             }
           };
@@ -149,14 +167,51 @@ export default function UploadDropzone({ onUpload, imageCount = 0, gallerySlug }
           xhr.setRequestHeader('Content-Type', file.type);
 
           xhr.onload = () => {
+            console.log('[Upload Complete]', {
+              fileName: file.name,
+              status: xhr.status,
+              statusText: xhr.statusText,
+              responseLength: xhr.responseText.length,
+              timestamp: new Date().toISOString()
+            });
+
             if (xhr.status === 200) {
               resolve(xhr.response);
             } else {
+              console.error('[Upload Failed]', {
+                fileName: file.name,
+                status: xhr.status,
+                statusText: xhr.statusText,
+                responseSnippet: xhr.responseText.slice(0, 200)
+              });
               reject(new Error(`Failed to upload ${file.name}`));
             }
           };
 
-          xhr.onerror = () => reject(new Error(`Network error uploading ${file.name}`));
+          xhr.ontimeout = () => {
+            console.error('[Upload Timeout]', {
+              fileName: file.name,
+              status: xhr.status,
+              statusText: xhr.statusText,
+              readyState: xhr.readyState,
+              duration: '120s',
+              timestamp: new Date().toISOString()
+            });
+            reject(new Error(`Upload timed out for ${file.name}`));
+          };
+
+          xhr.onerror = () => {
+            console.error('[Upload Error]', {
+              fileName: file.name,
+              status: xhr.status,
+              statusText: xhr.statusText,
+              readyState: xhr.readyState,
+              response: xhr.responseText,
+              timestamp: new Date().toISOString()
+            });
+            reject(new Error(`Network error uploading ${file.name}`));
+          };
+
           xhr.send(file);
         });
       }
