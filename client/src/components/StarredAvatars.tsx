@@ -46,12 +46,18 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
   const toggleStarMutation = useMutation({
     mutationFn: async ({ imageId, isStarred }: { imageId: number; isStarred: boolean }) => {
       const res = await fetch(`/api/images/${imageId}/star`, {
-        method: 'POST',
+        method: isStarred ? 'DELETE' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include'
       });
+      
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || 'Failed to update star status');
+      }
+      
       return res.json();
     },
     onMutate: async ({ imageId, isStarred }) => {
