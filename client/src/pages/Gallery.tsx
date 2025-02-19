@@ -1196,6 +1196,14 @@ export default function Gallery({
       const addBatchId = nanoid();
       addBatch(addBatchId, file.size, 1);
 
+      console.log("Starting upload process:", {
+        fileName: file.name,
+        fileSize: `${(file.size / (1024 * 1024)).toFixed(2)}MB`,
+        fileType: file.type,
+        batchId: addBatchId,
+        timestamp: new Date().toISOString()
+      });
+
       try {
         const token = await getToken();
         const response = await fetch(`/api/galleries/${slug}/images`, {
@@ -1236,16 +1244,20 @@ export default function Gallery({
 
         // Upload to R2
         await new Promise<void>((resolve, reject) => {
-          console.log("Starting upload:", {
-            fileName: file.name,
-            tmpId,
-            size: `${(file.size / 1024 / 1024).toFixed(2)}MB`
-          });
-
           const xhr = new XMLHttpRequest();
+          xhr.timeout = 120000; // 2 minutes timeout
+
           xhr.upload.onprogress = (ev) => {
             if (ev.lengthComputable) {
               const progress = (ev.loaded / ev.total) * 100;
+              console.log("Upload progress:", {
+                fileName: file.name,
+                loaded: `${(ev.loaded / (1024 * 1024)).toFixed(2)}MB`,
+                total: `${(ev.total / (1024 * 1024)).toFixed(2)}MB`,
+                progress: `${progress.toFixed(1)}%`,
+                timestamp: new Date().toISOString()
+              });
+              
               setImages((prev) =>
                 prev.map((img) =>
                   img.id === imageId ? { ...img, progress } : img,
@@ -1255,23 +1267,53 @@ export default function Gallery({
             }
           };
 
+          xhr.ontimeout = () => {
+            console.error("Upload timeout:", {
+              fileName: file.name,
+              status: xhr.status,
+              statusText: xhr.statusText,
+              readyState: xhr.readyState,
+              duration: '120s',
+              timestamp: new Date().toISOString()
+            });
+            reject(new Error(`Upload timed out for ${file.name}`));
+          };
+
           xhr.open("PUT", signedUrl);
           xhr.setRequestHeader("Content-Type", file.type);
           xhr.onload = () => {
-            console.log("XHR onload:", {
+            console.log("Upload complete:", {
               fileName: file.name,
               status: xhr.status,
-              response: xhr.responseText.slice(0, 100)
+              statusText: xhr.statusText,
+              responseLength: xhr.responseText.length,
+              timestamp: new Date().toISOString()
             });
-            xhr.status === 200 ? resolve() : reject();
+
+            if (xhr.status === 200) {
+              resolve();
+            } else {
+              console.error("Upload failed:", {
+                fileName: file.name,
+                status: xhr.status,
+                statusText: xhr.statusText,
+                responseSnippet: xhr.responseText.slice(0, 200),
+                timestamp: new Date().toISOString()
+              });
+              reject(new Error(`Failed to upload ${file.name}`));
+            }
           };
+
           xhr.onerror = () => {
-            console.error("Upload error for:", {
+            console.error("Upload network error:", {
               fileName: file.name,
               status: xhr.status,
-              statusText: xhr.statusText
+              statusText: xhr.statusText,
+              readyState: xhr.readyState,
+              response: xhr.responseText,
+              timestamp: new Date().toISOString()
             });
-            reject();
+            reject(new Error(`Network error uploading ${file.name}`));
           };
           xhr.send(file);
         });
