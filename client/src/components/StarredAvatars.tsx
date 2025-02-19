@@ -31,12 +31,14 @@ interface StarResponse {
   }>;
 }
 
-export function StarredAvatars({ imageId, gallerySlug, size = "default" }: StarredAvatarsProps) {
+export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProps) {
   const { user } = useUser();
   const queryClient = useQueryClient();
+  const params = useParams();
+  const gallerySlug = params?.slug;
 
-  // Single early return for invalid/pending images
-  if (!imageId || !Number.isInteger(Number(imageId)) || imageId <= 0 || String(imageId).startsWith('pending-')) {
+  // Single early return for invalid/pending images or missing gallery
+  if (!imageId || !Number.isInteger(Number(imageId)) || imageId <= 0 || String(imageId).startsWith('pending-') || !gallerySlug) {
     return null;
   }
 
