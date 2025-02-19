@@ -53,12 +53,13 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
         credentials: 'include'
       });
       
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error || 'Failed to update star status');
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to update star status');
       }
       
-      return res.json();
+      return data;
     },
     onMutate: async ({ imageId, isStarred }) => {
       await queryClient.cancelQueries([`/api/galleries/${gallerySlug}/starred`]);
