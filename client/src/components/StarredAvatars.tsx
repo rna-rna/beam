@@ -31,11 +31,13 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
   const { user } = useUser();
   const queryClient = useQueryClient();
 
+  // Single early return for invalid/pending images
+  if (!imageId || !Number.isInteger(Number(imageId)) || imageId <= 0 || String(imageId).startsWith('pending-')) {
+    return null;
+  }
+
   const toggleStarMutation = useMutation({
     mutationFn: async ({ imageId, isStarred }: { imageId: number; isStarred: boolean }) => {
-      if (!imageId || String(imageId).startsWith('pending-')) {
-        return { success: false, message: 'Cannot star pending image' };
-      }
       const res = await fetch(`/api/images/${imageId}/star`, {
         method: 'POST',
         headers: {
@@ -85,15 +87,11 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
     return null;
   }
 
-  if (!imageId || String(imageId).startsWith('pending-')) {
-    return null;
-  }
-
   const { data: response } = useQuery<StarResponse>({
     queryKey: [`/api/images/${imageId}/stars`],
     staleTime: 30000,
     cacheTime: 60000,
-    enabled: Number.isInteger(Number(imageId)) && imageId > 0,
+    enabled: true, // We've already validated imageId in the early return
     select: (data) => ({
       success: true,
       data: Array.from(
