@@ -1,0 +1,61 @@
+each time your client component re-renders the list of images, it’s making a new call to fetch star data (GET /api/images/:id/stars) for every image. When you add a new image or refetch the gallery, React triggers re-renders, and the app is re-querying stars for all the existing images.
+
+Here’s why it happens and how to fix it:
+
+1. Your UI is hooking a star query for each image
+Somewhere in your code (for example, with <StarredAvatars imageId={image.id} />), you likely have a React Query hook:
+
+ts
+Copy
+Edit
+useQuery({
+  queryKey: [`/api/images/${imageId}/stars`],
+  /* ...other config... */
+});
+That means the stars endpoint is called once per image to retrieve who starred that image. If you have 50 images, that's 50 GET /stars calls whenever the gallery re-renders.
+
+Why it triggers so many times during upload
+
+Every time a new upload finishes, your code might invalidateQueries(["/api/galleries/:slug"]) or similar. That re-fetches the gallery, triggers a fresh render, and each image (including brand-new ones) calls the star query again.
+So you see multiple waves of star requests all firing in a short time.
+2. Pending uploads also request stars unnecessarily
+As soon as you add a “pending” image (with a temporary ID), the UI might still be running useQuery([/api/images/${imageId}/stars]).
+
+But that image doesn’t exist on the server, so there’s no star data to retrieve.
+This leads to wasted calls for any brand-new “pending” or “uploading” image.
+Solution:
+Skip the star query if image.id is not a valid integer or starts with "pending-". For example:
+jsx
+Copy
+Edit
+if (!image.id || String(image.id).startsWith('pending-')) {
+  return null; // or skip the star logic
+}
+
+useQuery({
+  queryKey: [`/api/images/${image.id}/stars`],
+  enabled: (
+    Number.isInteger(image.id) && 
+    image.id > 0
+  ),
+  // ...
+});
+3. On every upload success, you’re invalidating the entire gallery
+When you do:
+
+ts
+Copy
+Edit
+queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+…this forces the gallery fetch to run again, which triggers a re-render, which triggers all the star queries again. That’s great for staying up to date, but it’s very chatty if you do it per-file.
+
+Better approach
+Upload your entire batch with Promise.all(...), then invalidate the gallery once at the end:
+ts
+Copy
+Edit
+const uploadPromises = files.map(file => limit(() => uploadSingleFile(file)));
+await Promise.all(uploadPromises);
+queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+That way, you get one re-render after the batch, instead of one re-render per file.
+
