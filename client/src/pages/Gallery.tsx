@@ -1911,13 +1911,10 @@ export default function Gallery({
           {"localUrl" in image && (
             <div className="absolute inset-0 flex items-center justify-center">
               {image.status === "uploading" && (
-                <>
-                  <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-md text-sm font-medium text-foreground flex items-center gap-1.5">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>{Math.floor(image.progress)}%</span>
-                  </div>
-                  <Progress value={image.progress} className="w-3/4 h-1" />
-                </>
+                <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-md text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{Math.floor(image.progress)}%</span>
+                </div>
               )}
               {image.status === "finalizing" && (
                 <div className="absolute top-2 right-2 flex items-center gap-2 bg-background/80 backdrop-blur-sm px-3 py-1.5 rounded-full">
