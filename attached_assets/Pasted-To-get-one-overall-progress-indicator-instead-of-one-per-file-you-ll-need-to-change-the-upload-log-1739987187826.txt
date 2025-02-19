@@ -1,0 +1,322 @@
+To get one overall progress indicator (instead of one per file) you’ll need to change the upload logic so that a single batch is created for the entire drop rather than one batch per file. In other words, when files are dropped:
+
+Compute the total size of all dropped files.
+Add one batch with that total size and total file count.
+When each file uploads, update the same (global) batch’s progress.
+When all file uploads complete, mark the global batch as complete.
+Below are the steps and code modifications you can make:
+
+1. Modify Your onDrop Handler
+Currently, you create a new batch inside each call to uploadSingleFile. Instead, create one global batch in the onDrop callback.
+
+Before (current approach):
+
+Inside each file’s promise you do:
+
+ts
+Copy
+const addBatchId = nanoid();
+addBatch(addBatchId, file.size, 1);
+—and then call uploadSingleFile(file, tmpId) which uses that batch id.
+
+After (global batch approach):
+
+Compute the total size and file count for the entire drop.
+Create one batch with that data.
+Pass that global batch id to every file’s upload function.
+For example, update your onDrop as follows:
+
+tsx
+Copy
+const onDrop = useCallback(
+  async (acceptedFiles: File[]) => {
+    console.log("Files dropped:", acceptedFiles.length);
+    if (acceptedFiles.length === 0) return;
+
+    // Compute total size for all files
+    const totalDropSize = acceptedFiles.reduce(
+      (sum, file) => sum + file.size,
+      0
+    );
+    const globalBatchId = nanoid(); // One batch for the whole drop
+
+    // Add a single batch representing the entire drop
+    addBatch(globalBatchId, totalDropSize, acceptedFiles.length);
+
+    const limit = pLimit(3);
+
+    // Map over acceptedFiles and start each file upload
+    const uploadPromises = acceptedFiles.map(async (file) => {
+      const tmpId = nanoid();
+      const localUrl = URL.createObjectURL(file);
+
+      return new Promise<void>((resolve) => {
+        const imageEl = new Image();
+        imageEl.onload = () => {
+          const width = imageEl.naturalWidth;
+          const height = imageEl.naturalHeight;
+
+          const newItem: ImageOrPending = {
+            id: tmpId,
+            localUrl,
+            status: "uploading",
+            progress: 0,
+            width,
+            height,
+          };
+
+          setImages((prev) => [...prev, newItem]);
+
+          // Pass the globalBatchId to each file upload
+          limit(() => uploadSingleFile(file, tmpId, globalBatchId))
+            .then(resolve)
+            .catch((error) => {
+              console.error("Upload failed:", error);
+              setImages((prev) =>
+                prev.map((img) =>
+                  img.id === tmpId
+                    ? { ...img, status: "error", progress: 0 }
+                    : img
+                )
+              );
+              resolve();
+            });
+        };
+        imageEl.src = localUrl;
+      });
+    });
+
+    try {
+      await Promise.all(uploadPromises);
+      console.log("All uploads completed");
+      // Mark the global batch complete once all files have finished
+      completeBatch(globalBatchId, true);
+      queryClient.invalidateQueries({
+        queryKey: [`/api/galleries/${slug}`],
+        exact: true,
+        refetchType: "all",
+      });
+    } catch (error) {
+      console.error("Batch upload error:", error);
+      toast({
+        title: "Upload Error",
+        description: "Some files failed to upload. Please try again.",
+        variant: "destructive",
+      });
+    }
+  },
+  [setImages, uploadSingleFile, queryClient, slug, addBatch, completeBatch]
+);
+2. Update uploadSingleFile to Use the Global Batch
+Modify the signature so that it accepts a third parameter (globalBatchId). Remove the per-file batch creation inside this function and, instead, call updateBatchProgress using the global batch id.
+
+Before:
+
+ts
+Copy
+const addBatchId = nanoid();
+addBatch(addBatchId, file.size, 1);
+// … later in progress event: updateBatchProgress(addBatchId, ev.loaded);
+After:
+
+ts
+Copy
+// Do not add a batch here.
+// Use the provided globalBatchId:
+xhr.upload.onprogress = (ev) => {
+  if (ev.lengthComputable) {
+    const progress = (ev.loaded / ev.total) * 100;
+    console.log("Upload progress:", {
+      fileName: file.name,
+      loaded: `${(ev.loaded / (1024 * 1024)).toFixed(2)}MB`,
+      total: `${(ev.total / (1024 * 1024)).toFixed(2)}MB`,
+      progress: `${progress.toFixed(1)}%`,
+      timestamp: new Date().toISOString(),
+    });
+
+    setImages((prev) =>
+      prev.map((img) =>
+        img.id === imageId ? { ...img, progress } : img
+      )
+    );
+    // Update the global batch progress
+    updateBatchProgress(globalBatchId, ev.loaded);
+  }
+};
+And update the function signature:
+
+ts
+Copy
+const uploadSingleFile = (file: File, tmpId: string, globalBatchId: string): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`/api/galleries/${slug}/images`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          files: [
+            {
+              name: file.name,
+              type: file.type,
+              size: file.size,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to get upload URL");
+
+      const { urls } = await response.json();
+      const { signedUrl, publicUrl, imageId } = urls[0];
+
+      // Immediately update the placeholder with the real ID
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === tmpId
+            ? {
+                ...img,
+                id: imageId,
+                status: "uploading",
+                progress: 0,
+              }
+            : img
+        )
+      );
+
+      // Upload to R2
+      await new Promise<void>((resolveUpload, rejectUpload) => {
+        const xhr = new XMLHttpRequest();
+        xhr.timeout = 120000; // 2 minutes timeout
+
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) {
+            const progress = (ev.loaded / ev.total) * 100;
+            console.log("Upload progress:", {
+              fileName: file.name,
+              loaded: `${(ev.loaded / (1024 * 1024)).toFixed(2)}MB`,
+              total: `${(ev.total / (1024 * 1024)).toFixed(2)}MB`,
+              progress: `${progress.toFixed(1)}%`,
+              timestamp: new Date().toISOString(),
+            });
+
+            setImages((prev) =>
+              prev.map((img) =>
+                img.id === imageId ? { ...img, progress } : img
+              )
+            );
+            updateBatchProgress(globalBatchId, ev.loaded);
+          }
+        };
+
+        xhr.ontimeout = () => {
+          console.error("Upload timeout:", {
+            fileName: file.name,
+            status: xhr.status,
+            statusText: xhr.statusText,
+            readyState: xhr.readyState,
+            duration: "120s",
+            timestamp: new Date().toISOString(),
+          });
+          rejectUpload(new Error(`Upload timed out for ${file.name}`));
+        };
+
+        xhr.open("PUT", signedUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.onload = () => {
+          console.log("Upload complete:", {
+            fileName: file.name,
+            status: xhr.status,
+            statusText: xhr.statusText,
+            responseLength: xhr.responseText.length,
+            timestamp: new Date().toISOString(),
+          });
+
+          if (xhr.status === 200) {
+            resolveUpload();
+          } else {
+            console.error("Upload failed:", {
+              fileName: file.name,
+              status: xhr.status,
+              statusText: xhr.statusText,
+              responseSnippet: xhr.responseText.slice(0, 200),
+              timestamp: new Date().toISOString(),
+            });
+            rejectUpload(new Error(`Failed to upload ${file.name}`));
+          }
+        };
+
+        xhr.onerror = () => {
+          console.error("Upload network error:", {
+            fileName: file.name,
+            status: xhr.status,
+            statusText: xhr.statusText,
+            readyState: xhr.readyState,
+            response: xhr.responseText,
+            timestamp: new Date().toISOString(),
+          });
+          rejectUpload(new Error(`Network error uploading ${file.name}`));
+        };
+
+        xhr.send(file);
+      });
+
+      // Load the uploaded image to get final dimensions
+      const img = new Image();
+      img.onload = () => {
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === imageId
+              ? {
+                  ...(img as PendingImage),
+                  status: "complete",
+                  progress: 100,
+                  localUrl: undefined,
+                  url: publicUrl,
+                }
+              : img
+          )
+        );
+        resolve();
+      };
+      img.onerror = () => {
+        console.error("Error loading final image for", file.name);
+        reject(new Error("Failed to load uploaded image"));
+      };
+      img.src = publicUrl;
+    } catch (error) {
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === tmpId
+            ? { ...(img as PendingImage), status: "error", progress: 0 }
+            : img
+        )
+      );
+      reject(error);
+    }
+  });
+};
+3. Update the Global Indicator (GlobalUploadProgress)
+Your GlobalUploadProgress component already aggregates progress across all batches. With the changes above, all file uploads will update the same batch (the global batch), so the aggregated progress will reflect the total progress of the drop.
+
+For example, your GlobalUploadProgress code:
+
+tsx
+Copy
+const overallUploadedBytes = batches.reduce(
+  (sum, batch) => sum + batch.uploadedBytes,
+  0
+);
+const overallTotalSize = batches.reduce(
+  (sum, batch) => sum + batch.totalSize,
+  0
+);
+—will now work on just one batch (if you drop many files, you'll have one global batch).
+
+Summary
+Create a Single Batch: In your onDrop handler, sum the file sizes and create one batch (globalBatchId) for the entire drop.
+Update File Uploads: Modify uploadSingleFile to accept this global batch ID and update progress on that batch instead of creating its own.
+Global Indicator: Your GlobalUploadProgress component will then display the aggregate progress of the single global batch.
