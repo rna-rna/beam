@@ -1362,8 +1362,10 @@ export default function Gallery({
       try {
         await Promise.all(uploadPromises);
         console.log("All uploads completed");
-        // Single query invalidation after all uploads complete
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+        // Only invalidate gallery data after upload
+        queryClient.invalidateQueries([`/api/galleries/${slug}`], {
+          exact: true
+        });
       } catch (error) {
         console.error("Batch upload error:", error);
         toast({
