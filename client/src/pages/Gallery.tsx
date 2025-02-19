@@ -1322,34 +1322,28 @@ export default function Gallery({
         const img = new Image();
         img.onload = () => {
           setImages((prev) =>
-            prev.map((item) =>
-              item.id === imageId
+            prev.map((img) =>
+              img.id === imageId
                 ? {
-                    ...(item as PendingImage),
-                    status: "complete",
+                    ...(img as PendingImage),
+                    status: "complete", 
                     progress: 100,
                     localUrl: undefined,
                     url: publicUrl,
                   }
-                : item,
+                : img,
             ),
           );
           completeBatch(addBatchId, true);
           queryClient.invalidateQueries([`/api/galleries/${slug}`]);
           resolve();
         };
-        
         img.onerror = () => {
-          console.error("Error loading final image:", publicUrl);
+          console.error("Error loading the final image:", publicUrl);
           completeBatch(addBatchId, false);
           reject(new Error("Failed to load final image"));
         };
-
         img.src = publicUrl;
-        
-        if (img.complete) {
-          img.onload();
-        }
       } catch (error) {
         setImages((prev) =>
           prev.map((img) =>
