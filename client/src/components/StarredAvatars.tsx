@@ -50,7 +50,7 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ isStarred })
+        credentials: 'include'
       });
       return res.json();
     },
