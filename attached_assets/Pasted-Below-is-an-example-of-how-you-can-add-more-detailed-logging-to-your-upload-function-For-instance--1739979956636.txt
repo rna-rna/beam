@@ -1,0 +1,181 @@
+Below is an example of how you can add more detailed logging to your upload function. For instance, in your uploadSingleFile function where you create the XMLHttpRequest, you can add logs to:
+
+Log file details when starting the upload.
+Log progress events.
+Log the response details on load.
+Log extra information (such as xhr.readyState and xhr.responseText) on error.
+Optionally, set a timeout and log if the request times out.
+Here’s an updated code snippet with additional logging:
+
+ts
+Copy
+const uploadSingleFile = (file: File, tmpId: string): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    const addBatchId = nanoid();
+    addBatch(addBatchId, file.size, 1);
+
+    try {
+      const token = await getToken();
+      const response = await fetch(`/api/galleries/${slug}/images`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          files: [
+            {
+              name: file.name,
+              type: file.type,
+              size: file.size,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to get upload URL");
+
+      const { urls } = await response.json();
+      const { signedUrl, publicUrl, imageId } = urls[0];
+
+      // Update placeholder image with real ID
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === tmpId
+            ? { ...img, id: imageId, status: "uploading", progress: 0 }
+            : img,
+        ),
+      );
+
+      // Begin upload to R2 using XMLHttpRequest
+      await new Promise<void>((resolveUpload, rejectUpload) => {
+        console.log("Starting upload", {
+          fileName: file.name,
+          fileSize: file.size,
+          batchId: addBatchId,
+          signedUrl,
+        });
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", signedUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+
+        // Optional: set a timeout (e.g. 2 minutes)
+        xhr.timeout = 120000;
+        xhr.ontimeout = () => {
+          console.error("Upload timeout for file:", file.name, {
+            status: xhr.status,
+            statusText: xhr.statusText,
+            readyState: xhr.readyState,
+          });
+          rejectUpload(new Error("Upload timed out"));
+        };
+
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) {
+            const progress = (ev.loaded / ev.total) * 100;
+            console.log("Upload progress", {
+              fileName: file.name,
+              loaded: ev.loaded,
+              total: ev.total,
+              progress: progress.toFixed(2) + "%",
+            });
+            setImages((prev) =>
+              prev.map((img) =>
+                img.id === imageId ? { ...img, progress } : img,
+              ),
+            );
+            updateBatchProgress(addBatchId, ev.loaded);
+          }
+        };
+
+        xhr.onload = () => {
+          console.log("XHR onload", {
+            fileName: file.name,
+            status: xhr.status,
+            responseSnippet: xhr.responseText.slice(0, 100),
+          });
+          if (xhr.status === 200) {
+            resolveUpload();
+          } else {
+            console.error("Upload failed with non-200 status", {
+              fileName: file.name,
+              status: xhr.status,
+              statusText: xhr.statusText,
+            });
+            rejectUpload(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => {
+          console.error("XHR error", {
+            fileName: file.name,
+            status: xhr.status,
+            statusText: xhr.statusText,
+            readyState: xhr.readyState,
+            response: xhr.responseText,
+          });
+          rejectUpload(new Error(`XHR error for ${file.name}`));
+        };
+
+        xhr.send(file);
+      });
+
+      // Once the file is uploaded, load it to get dimensions and finalize
+      const img = new Image();
+      img.onload = () => {
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === imageId
+              ? { ...img, status: "complete", progress: 100 }
+              : img,
+          ),
+        );
+        completeBatch(addBatchId, true);
+        resolve();
+      };
+      img.onerror = () => {
+        console.error("Error loading uploaded image for finalization", {
+          fileName: file.name,
+          publicUrl,
+        });
+        completeBatch(addBatchId, false);
+        reject(new Error("Failed to load uploaded image"));
+      };
+      img.src = publicUrl;
+
+      // Invalidate queries, etc.
+      queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+    } catch (error) {
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === tmpId ? { ...img, status: "error", progress: 0 } : img,
+        ),
+      );
+      completeBatch(addBatchId, false);
+      console.error("Upload failed", {
+        fileName: file.name,
+        error: error instanceof Error ? error.message : error,
+      });
+      reject(error);
+    }
+  });
+};
+Explanation
+Start Upload Logging:
+Right before creating the XMLHttpRequest, we log the file name, size, batch ID, and the signed URL.
+
+Timeout Handling:
+We set a timeout (xhr.timeout = 120000) and add an ontimeout callback that logs the status, readyState, etc., then rejects the promise.
+
+Progress Logging:
+In the xhr.upload.onprogress callback, we log the loaded bytes, total bytes, and calculated percentage.
+
+Onload Logging:
+In xhr.onload, we log the status code and the first 100 characters of the response text to see if there’s any useful message.
+
+Error Logging:
+In xhr.onerror, we log additional details including xhr.readyState and xhr.responseText to help diagnose what went wrong.
+
+Image Finalization Logging:
+When the uploaded image is loaded to get its dimensions, we also log an error if that fails.
