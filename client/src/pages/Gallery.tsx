@@ -1190,17 +1190,15 @@ export default function Gallery({
   });
 
   const { addBatch, updateBatchProgress, completeBatch } = useUpload();
+  const [globalBatchId, setGlobalBatchId] = useState<string | null>(null);
 
-  const uploadSingleFile = (file: File, tmpId: string): Promise<void> => {
+  const uploadSingleFile = (file: File, batchId: string): Promise<void> => {
     return new Promise(async (resolve, reject) => {
-      const addBatchId = nanoid();
-      addBatch(addBatchId, file.size, 1);
-
       console.log("Starting upload process:", {
         fileName: file.name,
         fileSize: `${(file.size / (1024 * 1024)).toFixed(2)}MB`,
         fileType: file.type,
-        batchId: addBatchId,
+        batchId: batchId,
         timestamp: new Date().toISOString()
       });
 
@@ -1231,7 +1229,7 @@ export default function Gallery({
         // Immediately update the placeholder with the real ID
         setImages((prev) =>
           prev.map((img) =>
-            img.id === tmpId
+            img.id === file.name
               ? {
                   ...img,
                   id: imageId,
@@ -1257,13 +1255,13 @@ export default function Gallery({
                 progress: `${progress.toFixed(1)}%`,
                 timestamp: new Date().toISOString()
               });
-              
+
               setImages((prev) =>
                 prev.map((img) =>
                   img.id === imageId ? { ...img, progress } : img,
                 ),
               );
-              updateBatchProgress(addBatchId, ev.loaded);
+              updateBatchProgress(batchId, ev.loaded);
             }
           };
 
@@ -1333,22 +1331,17 @@ export default function Gallery({
                   : img,
               ),
             );
-            completeBatch(addBatchId, true);
           };
         img.src = publicUrl;
-
-        completeBatch(addBatchId, true);
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
         resolve();
       } catch (error) {
         setImages((prev) =>
           prev.map((img) =>
-            img.id === tmpId
+            img.id === file.name
               ? { ...(img as PendingImage), status: "error", progress: 0 }
               : img,
           ),
         );
-        completeBatch(addBatchId, false);
         console.error("Upload failed:", error);
         reject(error);
       }
@@ -1360,10 +1353,14 @@ export default function Gallery({
       console.log("Files dropped:", acceptedFiles.length);
       if (acceptedFiles.length === 0) return;
 
+      const totalSize = acceptedFiles.reduce((sum, file) => sum + file.size, 0);
+      const batchId = nanoid();
+      addBatch(batchId, totalSize, acceptedFiles.length);
+      setGlobalBatchId(batchId);
+
       const limit = pLimit(3);
 
       const uploadPromises = acceptedFiles.map(async (file) => {
-        const tmpId = nanoid();
         const localUrl = URL.createObjectURL(file);
 
         return new Promise<void>((resolve) => {
@@ -1373,7 +1370,7 @@ export default function Gallery({
             const height = imageEl.naturalHeight;
 
             const newItem: ImageOrPending = {
-              id: tmpId,
+              id: file.name, // Use filename as temporary ID
               localUrl,
               status: "uploading",
               progress: 0,
@@ -1383,13 +1380,13 @@ export default function Gallery({
 
             setImages((prev) => [...prev, newItem]);
 
-            limit(() => uploadSingleFile(file, tmpId))
+            limit(() => uploadSingleFile(file, batchId))
               .then(resolve)
               .catch((error) => {
                 console.error("Upload failed:", error);
                 setImages((prev) =>
                   prev.map((img) =>
-                    img.id === tmpId
+                    img.id === file.name
                       ? { ...img as PendingImage, status: "error", progress: 0 }
                       : img
                   )
@@ -1404,7 +1401,8 @@ export default function Gallery({
       try {
         await Promise.all(uploadPromises);
         console.log("All uploads completed");
-        
+        completeBatch(batchId, true); // Complete the batch after all uploads
+
         // Only invalidate once after all uploads complete
         queryClient.invalidateQueries({
           queryKey: [`/api/galleries/${slug}`],
@@ -1414,6 +1412,7 @@ export default function Gallery({
 
       } catch (error) {
         console.error("Batch upload error:", error);
+        completeBatch(batchId, false); // Mark batch as failed
         toast({
           title: "Upload Error",
           description: "Some files failed to upload. Please try again.",
@@ -1421,7 +1420,7 @@ export default function Gallery({
         });
       }
     },
-    [setImages, uploadSingleFile, queryClient, slug],
+    [setImages, uploadSingleFile, queryClient, slug, addBatch, completeBatch],
   );
 
   // Modify the useDropzone configuration to disable click
