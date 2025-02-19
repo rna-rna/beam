@@ -1321,25 +1321,35 @@ export default function Gallery({
         // Load the uploaded image to get final dimensions
         const img = new Image();
         img.onload = () => {
-            // Set the upload as complete but keep showing local preview
-            setImages((prev) =>
-              prev.map((img) =>
-                img.id === imageId
-                  ? {
-                      ...(img as PendingImage),
-                      status: "complete",
-                      progress: 100,
-                    }
-                  : img,
-              ),
-            );
-            completeBatch(addBatchId, true);
-          };
-        img.src = publicUrl;
+          setImages((prev) =>
+            prev.map((item) =>
+              item.id === imageId
+                ? {
+                    ...(item as PendingImage),
+                    status: "complete",
+                    progress: 100,
+                    localUrl: undefined,
+                    url: publicUrl,
+                  }
+                : item,
+            ),
+          );
+          completeBatch(addBatchId, true);
+          queryClient.invalidateQueries([`/api/galleries/${slug}`]);
+          resolve();
+        };
+        
+        img.onerror = () => {
+          console.error("Error loading final image:", publicUrl);
+          completeBatch(addBatchId, false);
+          reject(new Error("Failed to load final image"));
+        };
 
-        completeBatch(addBatchId, true);
-        queryClient.invalidateQueries([`/api/galleries/${slug}`]);
-        resolve();
+        img.src = publicUrl;
+        
+        if (img.complete) {
+          img.onload();
+        }
       } catch (error) {
         setImages((prev) =>
           prev.map((img) =>
