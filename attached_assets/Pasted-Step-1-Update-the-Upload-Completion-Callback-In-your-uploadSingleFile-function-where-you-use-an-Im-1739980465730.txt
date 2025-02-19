@@ -1,0 +1,63 @@
+Step 1. Update the Upload Completion Callback
+In your uploadSingleFile function (where you use an Image object to load the public URL and finalize the upload), locate your img.onload callback. It might currently look something like this:
+
+tsx
+Copy
+img.onload = () => {
+  // Existing code – note this doesn’t remove localUrl
+  setImages((prev) =>
+    prev.map((img) =>
+      img.id === imageId
+        ? { ...img, status: "complete", progress: 100 }
+        : img,
+    ),
+  );
+  completeBatch(addBatchId, true);
+  resolve();
+};
+Change it to update the image’s state by removing the localUrl and ensuring the final url is set:
+
+tsx
+Copy
+img.onload = () => {
+  setImages((prev) =>
+    prev.map((img) =>
+      img.id === imageId
+        ? {
+            ...img,
+            status: "complete",
+            progress: 100,
+            // Remove the temporary local URL so the rendering uses the final URL.
+            localUrl: undefined,
+            // Set the public URL from the upload response.
+            url: publicUrl,
+          }
+        : img,
+    ),
+  );
+  completeBatch(addBatchId, true);
+  resolve();
+};
+This change ensures that once the upload is complete, your image object no longer contains a valid localUrl, so your UI will use the public URL (via your image worker).
+
+Step 2. Adjust Your Render Logic (if needed)
+In your rendering code you currently have logic like:
+
+tsx
+Copy
+<img
+  src={"localUrl" in image ? image.localUrl : getR2Image(image, "thumb")}
+  alt={image.originalFilename || "Uploaded image"}
+  // ...
+/>
+Even after setting localUrl to undefined, the "localUrl" in image check returns true (because the property still exists, even if its value is undefined). To make sure the component uses the public URL when localUrl is not set (or is falsy), update the conditional check to use a truthy test:
+
+tsx
+Copy
+<img
+  src={image.localUrl ? image.localUrl : getR2Image(image, "thumb")}
+  alt={image.originalFilename || "Uploaded image"}
+  // ...
+/>
+This way, if image.localUrl is undefined or falsy (which will be the case once the upload completes), the component will call getR2Image(image, "thumb") and display the final image from R2.
+
