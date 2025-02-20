@@ -1,0 +1,53 @@
+The most obvious issue is that I don’t see any Intersection Observer usage in your code at all. You have a preloadImage function and a bunch of standard React Query / Masonry / Lightbox code, but there’s no place in gallery.tsx where you do something like:
+
+js
+Copy
+Edit
+const intersectionRef = useIntersectionPreload("/optimized/...");
+
+// and then in your JSX...
+<div ref={intersectionRef}> ... </div>
+So if you expected to see logs from the Intersection Observer callback, it’s because the observer code never runs—there’s simply no intersection observer being set up.
+
+Below are the key points:
+
+No Intersection Observer Hook
+
+In the code you posted, there's no useIntersectionPreload(...) or any custom hook that calls new IntersectionObserver(...).
+Even if you wrote one in a separate file, you’re not importing or calling it anywhere in gallery.tsx (or any child components).
+preloadImage Just Uses new Image()
+
+The preloadImage function in your code uses const img = new Image(); img.src = ...;, but it’s called immediately in your useEffect to preload thumbs.
+That’s not using Intersection Observer; it’s just a direct load for each image. It doesn’t wait until the user scrolls that thumbnail into view.
+If You Want Intersection Observer
+
+You must create (or import) something like:
+js
+Copy
+Edit
+const intersectionRef = useIntersectionPreload(optimizedUrl, { rootMargin: "200px" });
+And attach it to the thumbnail container in renderImage() or somewhere similar:
+jsx
+Copy
+Edit
+function renderImage(image) {
+  const optimizedUrl = getR2Image(image, "lightbox");
+  const intersectionRef = useIntersectionPreload(optimizedUrl);
+
+  return (
+    <div ref={intersectionRef}>
+      <img src={getR2Image(image, "thumb")} alt="..." />
+    </div>
+  );
+}
+Then in your custom hook, you'd see logs like "Intersection triggered for: /optimized/..." whenever that <div> becomes visible.
+No Logs Because No Observer
+
+Since the observer never gets created, you won’t see console logs from the callback. The only logs you have are from your data fetching (console.log("Gallery API Response:", ...)), from Pusher events, or from the Socket.IO connection.
+All Other Code Looks Fine
+
+Apart from missing the intersection observer, your layout, app routing, and masonry usage all appear valid. If your main goal is to make “optimized” images load early, you need to integrate that observer logic somewhere in the thumbnail rendering process.
+Next Steps
+Implement or Import your intersection observer hook (e.g., useIntersectionPreload).
+Use that hook in renderImage() (or wherever you build your thumbnail) so that each thumbnail will get an intersectionRef.
+Pass it the optimized URL, not the thumb. That way, the moment the thumbnail is near the viewport, the bigger version is downloaded.
