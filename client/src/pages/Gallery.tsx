@@ -1837,7 +1837,7 @@ export default function Gallery({
   const renderImage = (image: ImageOrPending, index: number) => {
     // Get optimized version URL for preloading
     const optimizedSrc = "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox");
-    
+
     // Use intersection observer hook to preload optimized version
     const intersectionRef = useIntersectionPreload(optimizedSrc, {
       rootMargin: '200px',
@@ -1965,9 +1965,7 @@ export default function Gallery({
                   if (!user) {
                     setShowSignUpModal(true);
                     return;
-                  }
-
-                  // Use image.userStarred for optimistic updates
+                  }                  // Use image.userStarred for optimistic updates
                   const hasUserStarred = image.userStarred;
 
                   // Optimistic UI update for selected image
@@ -2970,7 +2968,7 @@ export default function Gallery({
               slug={slug}
             />
           )}
-          {renderCommentDialog()}
+          {{renderCommentDialog()}
 
           <AnimatePresence>
             {selectMode && (
