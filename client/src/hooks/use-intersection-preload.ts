@@ -12,9 +12,21 @@ function useIntersectionPreload(imageUrl: string, options: IntersectionObserverI
       const [entry] = entries;
       
       if (entry.isIntersecting) {
+        console.log("Intersection triggered for URL:", imageUrl, {
+          boundingRect: entry.boundingClientRect,
+          intersectionRatio: entry.intersectionRatio,
+          time: new Date().toISOString()
+        });
+        
         // Create new image and set source
         const img = new Image();
         img.src = imageUrl;
+        
+        // Log when image starts loading
+        img.onloadstart = () => console.log("Image load started:", imageUrl);
+        
+        // Log when image finishes loading
+        img.onload = () => console.log("Image load completed:", imageUrl);
         
         // Unobserve after detecting intersection
         observer.unobserve(currentElement);
