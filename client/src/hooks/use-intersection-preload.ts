@@ -5,11 +5,20 @@ function useIntersectionPreload(imageUrl: string, options: IntersectionObserverI
   const elementRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    console.log("useIntersectionPreload effect running", elementRef.current, imageUrl);
+    console.log("useIntersectionPreload effect running for:", imageUrl, {
+      hasRef: !!elementRef.current,
+      refDetails: elementRef.current?.getBoundingClientRect?.(),
+      timestamp: new Date().toISOString()
+    });
 
     // If no ref element or no image url, bail early
     if (!elementRef.current || !imageUrl) {
-      console.log("No element or no imageUrl:", elementRef.current, imageUrl);
+      console.log("Hook bailing early:", {
+        reason: !elementRef.current ? "Missing ref" : "Missing imageUrl",
+        imageUrl,
+        refExists: !!elementRef.current,
+        timestamp: new Date().toISOString()
+      });
       return;
     }
 
