@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import pLimit from 'p-limit';
 import { getR2Image } from "@/lib/r2";
-import { useIntersectionPreload } from "@/hooks/use-intersection-preload";
 import { io } from 'socket.io-client';
 import { default as GalleryActions } from '@/components/GalleryActions';
 
@@ -969,7 +968,7 @@ export default function Gallery({
       );
 
       // Update Gallery Grid
-      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData) => {
+      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
@@ -1834,23 +1833,12 @@ export default function Gallery({
     setIsOpenShareModal,
   ]);
 
-  const renderImage = (image: ImageOrPending, index: number) => {
-    // Get optimized version URL for preloading
-    const optimizedSrc = "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox");
-
-    // Use intersection observer hook to preload optimized version
-    const intersectionRef = useIntersectionPreload(optimizedSrc, {
-      rootMargin: '200px',
-      threshold: 0
-    });
-
-    return (
-      <div
-        ref={intersectionRef}
-        key={image.id === -1 ? `pending-${index}` : image.id}
-        className="mb-4 w-full"
-        style={{ breakInside: "avoid", position: "relative" }}
-      >
+  const renderImage = (image: ImageOrPending, index: number) => (
+    <div
+      key={image.id === -1 ? `pending-${index}` : image.id}
+      className="mb-4 w-full"
+      style={{ breakInside: "avoid", position: "relative" }}
+    >
       <motion.div
         layout={false}
         className={cn(
@@ -1965,7 +1953,9 @@ export default function Gallery({
                   if (!user) {
                     setShowSignUpModal(true);
                     return;
-                  }                  // Use image.userStarred for optimistic updates
+                  }
+
+                  // Use image.userStarred for optimistic updates
                   const hasUserStarred = image.userStarred;
 
                   // Optimistic UI update for selected image
