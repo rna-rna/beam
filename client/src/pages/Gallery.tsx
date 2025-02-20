@@ -1834,8 +1834,7 @@ export default function Gallery({
     setIsOpenShareModal,
   ]);
 
-  const renderImage = (image: ImageOrPending, index: number) => {
-    // Memoize the callback to keep it stable
+  const ImageComponent = memo(({ image, index }: { image: ImageOrPending; index: number }) => {
     const preloadCallback = useCallback(() => {
       const optimizedUrl = "localUrl" in image
         ? image.localUrl
@@ -2136,6 +2135,10 @@ export default function Gallery({
       </motion.div>
     </div>
     );
+  });
+
+  const renderImage = (image: ImageOrPending, index: number) => {
+    return <ImageComponent image={image} index={index} />;
   };
 
   useEffect(() => {
