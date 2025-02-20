@@ -3002,4 +3002,3 @@ export default function Gallery({
       </>
     </UploadProvider>
   );
-}
