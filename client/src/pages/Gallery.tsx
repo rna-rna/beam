@@ -1835,15 +1835,15 @@ export default function Gallery({
   ]);
 
   const renderImage = (image: ImageOrPending, index: number) => {
-    const optimizedUrl = "localUrl" in image
-      ? image.localUrl
-      : getR2Image(image, "lightbox");
-
-    const preloadCallback = () => {
+    // Memoize the callback to keep it stable
+    const preloadCallback = useCallback(() => {
+      const optimizedUrl = "localUrl" in image
+        ? image.localUrl
+        : getR2Image(image, "lightbox");
       console.log("Preloading optimized image:", optimizedUrl);
       const img = new Image();
       img.src = optimizedUrl;
-    };
+    }, [image]);
 
     const intersectionRef = useIntersectionPreload(preloadCallback);
 
