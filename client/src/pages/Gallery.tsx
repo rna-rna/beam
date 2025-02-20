@@ -1,7 +1,6 @@
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useIntersectionPreload } from "@/hooks/use-intersection-preload";
 import pLimit from 'p-limit';
 import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
@@ -1834,16 +1833,8 @@ export default function Gallery({
     setIsOpenShareModal,
   ]);
 
-  const renderImage = (image: ImageOrPending, index: number) => {
-    // Get the URL for the optimized version we want to preload
-    const optimizedUrl = "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox");
-
-    // Create intersection observer reference for this image
-    const intersectionRef = useIntersectionPreload(optimizedUrl);
-
-    return (
+  const renderImage = (image: ImageOrPending, index: number) => (
     <div
-      ref={intersectionRef}
       key={image.id === -1 ? `pending-${index}` : image.id}
       className="mb-4 w-full"
       style={{ breakInside: "avoid", position: "relative" }}
