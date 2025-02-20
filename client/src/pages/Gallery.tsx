@@ -2968,7 +2968,7 @@ export default function Gallery({
               slug={slug}
             />
           )}
-          {{renderCommentDialog()}
+          {renderCommentDialog()}
 
           <AnimatePresence>
             {selectMode && (
