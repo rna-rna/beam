@@ -1836,19 +1836,24 @@ export default function Gallery({
 
   const ImageComponent = memo(({ image, index }: { image: ImageOrPending; index: number }) => {
     const [hasPreloaded, setHasPreloaded] = useState(false);
-    const imageId = "localUrl" in image ? image.localUrl : image.id;
+    const imageId = useMemo(() => 
+      "localUrl" in image ? image.localUrl : image.id, 
+      [image]
+    );
+    
+    const optimizedUrl = useMemo(() => 
+      "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox"),
+      [image]
+    );
     
     const preloadCallback = useCallback(() => {
       if (hasPreloaded) return;
       setHasPreloaded(true);
       
-      const optimizedUrl = "localUrl" in image
-        ? image.localUrl
-        : getR2Image(image, "lightbox");
       console.log("Preloading optimized image:", optimizedUrl);
       const img = new Image();
       img.src = optimizedUrl;
-    }, [hasPreloaded, image, imageId]);
+    }, [hasPreloaded, optimizedUrl]);
 
     const intersectionRef = useIntersectionPreload(preloadCallback);
 
