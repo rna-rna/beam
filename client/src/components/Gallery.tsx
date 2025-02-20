@@ -63,19 +63,23 @@ function Gallery({gallery, userRole = 'View', ...props}: any) {
   const renderImage = (image, index) => {
     // if localUrl is present, it’s an uploading image
     const thumbSrc = "localUrl" in image ? image.localUrl : getR2Image(image, "thumb");
-
-    // The PRELOAD target is the “optimized” version (this is your real goal)
-    const optimizedSrc = getR2Image(image, "lightbox");
+    const imageUrl = "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox");
 
     // 1. Call the hook
-    const intersectionRef = useIntersectionPreload(optimizedSrc);
+    const intersectionRef = useIntersectionPreload(imageUrl);
+
+    console.log("RenderImage called for:", image.id);
 
     return (
       <div
         ref={intersectionRef} // 2. attach the ref here
         key={image.id === -1 ? `pending-${index}` : image.id}
         className="mb-4 w-full"
-        style={{ breakInside: "avoid", position: "relative" }}
+        style={{ 
+          breakInside: "avoid", 
+          position: "relative",
+          border: "2px solid red" // Debug border
+        }}
       >
         <img
           src={thumbSrc}
