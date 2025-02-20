@@ -1837,7 +1837,7 @@ export default function Gallery({
   const renderImage = (image: ImageOrPending, index: number) => {
     // Get the URL for the optimized version we want to preload
     const optimizedUrl = "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox");
-    
+
     // Create intersection observer reference for this image
     const intersectionRef = useIntersectionPreload(optimizedUrl);
 
