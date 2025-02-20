@@ -1834,12 +1834,26 @@ export default function Gallery({
     setIsOpenShareModal,
   ]);
 
-  const renderImage = (image: ImageOrPending, index: number) => (
-    <div
-      key={image.id === -1 ? `pending-${index}` : image.id}
-      className="mb-4 w-full"
-      style={{ breakInside: "avoid", position: "relative" }}
-    >
+  const renderImage = (image: ImageOrPending, index: number) => {
+    const optimizedUrl = "localUrl" in image
+      ? image.localUrl
+      : getR2Image(image, "lightbox");
+
+    const preloadCallback = () => {
+      console.log("Preloading optimized image:", optimizedUrl);
+      const img = new Image();
+      img.src = optimizedUrl;
+    };
+
+    const intersectionRef = useIntersectionPreload(preloadCallback);
+
+    return (
+      <div
+        ref={intersectionRef}
+        key={image.id === -1 ? `pending-${index}` : image.id}
+        className="mb-4 w-full"
+        style={{ breakInside: "avoid", position: "relative" }}
+      >
       <motion.div
         layout={false}
         className={cn(
@@ -2121,7 +2135,8 @@ export default function Gallery({
         </div>
       </motion.div>
     </div>
-  );
+    );
+  };
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
