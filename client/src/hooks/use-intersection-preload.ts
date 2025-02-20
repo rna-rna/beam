@@ -5,9 +5,15 @@ function useIntersectionPreload(imageUrl: string, options: IntersectionObserverI
   const elementRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    const currentElement = elementRef.current;
-    if (!currentElement || !imageUrl) return;
+    console.log("useIntersectionPreload effect running", elementRef.current, imageUrl);
 
+    // If no ref element or no image url, bail early
+    if (!elementRef.current || !imageUrl) {
+      console.log("No element or no imageUrl:", elementRef.current, imageUrl);
+      return;
+    }
+
+    const currentElement = elementRef.current;
     const observer = new IntersectionObserver((entries) => {
       const [entry] = entries;
       
@@ -39,9 +45,11 @@ function useIntersectionPreload(imageUrl: string, options: IntersectionObserverI
 
     // Start observing
     observer.observe(currentElement);
+    console.log("Started observing element for:", imageUrl);
 
     // Cleanup
     return () => {
+      console.log("Cleaning up observer for:", imageUrl);
       observer.disconnect();
     };
   }, [imageUrl, options]);
