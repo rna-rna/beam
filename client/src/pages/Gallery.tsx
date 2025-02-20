@@ -123,7 +123,7 @@ interface ImageDimensions {
 
 import { Helmet } from "react-helmet";
 
-export default export default function Gallery({
+export default function Gallery({
   slug: propSlug,
   title,
   onHeaderActionsChange,
