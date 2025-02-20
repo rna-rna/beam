@@ -969,7 +969,7 @@ export default function Gallery({
       );
 
       // Update Gallery Grid
-      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
+      queryClient.setQueryData([`/api/galleries/${slug}`], (oldData) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
@@ -3002,3 +3002,4 @@ export default function Gallery({
       </>
     </UploadProvider>
   );
+}
