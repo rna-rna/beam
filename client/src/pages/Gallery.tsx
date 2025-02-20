@@ -121,6 +121,7 @@ interface ImageDimensions {
 }
 
 import { Helmet } from "react-helmet";
+import { useIntersectionPreload } from "@/hooks/useIntersectionPreload";
 
 export default function Gallery({
   slug: propSlug,
