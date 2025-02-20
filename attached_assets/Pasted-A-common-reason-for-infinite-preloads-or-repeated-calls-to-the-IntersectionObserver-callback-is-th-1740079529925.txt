@@ -1,0 +1,106 @@
+A common reason for “infinite” preloads or repeated calls to the IntersectionObserver callback is that your <ImageComponent> (and therefore the observer) is being re-mounted or re-initialized on every render. In other words, React keeps tearing down the old observer and creating a new one in rapid succession, causing the preloadCallback to fire again and again.
+
+Below are some practical fixes and checks you can do to stop that constant reloading:
+
+1. Guard Against Repeated Preloads in Your Callback
+If your goal is a “one-time” preload per image, you need to ensure the callback only runs once per image. A simple way is to store a small piece of state or a Set of IDs so that once you’ve preloaded an image, you never run its preload again. For example:
+
+tsx
+Copy
+Edit
+function ImageComponent({ image, index }: { image: ImageOrPending; index: number }) {
+  const [hasPreloaded, setHasPreloaded] = useState(false);
+
+  const preloadCallback = useCallback(() => {
+    // 1) Early return if we already preloaded
+    if (hasPreloaded) return;
+
+    setHasPreloaded(true);
+
+    // 2) Actually do your preload
+    const optimizedUrl =
+      "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox");
+
+    console.log("Preloading optimized image:", optimizedUrl);
+    const img = new Image();
+    img.src = optimizedUrl;
+  }, [hasPreloaded, image]);
+
+  const intersectionRef = useIntersectionPreload(preloadCallback);
+
+  return (
+    <div ref={intersectionRef} className="..." /* the rest of your component */>
+      {/* render the thumbnail */}
+    </div>
+  );
+}
+By using hasPreloaded and checking it in preloadCallback, each <ImageComponent> instance will preload exactly once. Even if React re-renders and “re-subscribes” the observer, the callback bails out immediately.
+
+2. Avoid Passing Unstable Objects to the Callback
+Notice you do:
+
+js
+Copy
+Edit
+const preloadCallback = useCallback(() => {
+  const optimizedUrl = "localUrl" in image
+    ? image.localUrl
+    : getR2Image(image, "lightbox");
+  ...
+}, [image]);
+If image is a brand new object reference on every render (for example, if you reconstruct or spread it somewhere else in the parent), then useCallback will keep getting a new dependency. That means React tears down the old observer and sets up a new observer each time.
+
+One remedy: Pass only stable pieces (like image.id and image.url) instead of the entire image object, or make sure that image is memoized/stable in the parent so that its reference does not change. For instance:
+
+js
+Copy
+Edit
+const preloadCallback = useCallback(() => {
+  if (hasPreloaded) return;
+  setHasPreloaded(true);
+
+  const optimizedUrl = getR2ImageById(imageId); // just use ID or a stable param
+  ...
+}, [imageId, hasPreloaded]);
+3. Verify You Are Not Doing Two Types of Preload
+From your code, it looks like you have two preloading approaches:
+
+A standalone effect that iterates over gallery.images:
+js
+Copy
+Edit
+useEffect(() => {
+  if (!gallery?.images) return;
+  gallery.images.forEach((image) => {
+    if (!preloadedImages.has(image.id)) {
+      preloadImage(image, image.id);
+    }
+  });
+}, [gallery?.images, preloadImage, preloadedImages]);
+An intersection-based preload in <ImageComponent>.
+Often you only need one of these. If you’re preloading all images upfront in a loop, there isn’t much reason to also set up an intersection-based observer in each <ImageComponent>. That can cause duplication or “double dipping” in preloads—potentially spamming your logs.
+
+So, decide which approach you want:
+
+Intersection-based “lazy” preload (preloads only if the image is actually in the viewport).
+Global “preload everything” approach in a single useEffect.
+If you keep both, you can easily end up reloading/logging the same item repeatedly.
+
+4. Check for Parent Re-renders Triggering New Observers
+A final detail: even if your callback is stable, if the parent rebuilds the <ImageComponent> array on every render (e.g., by doing map(...) on a new array each time), you might still see repeated unmount/mount cycles.
+
+Make sure you are not constantly creating new references in the parent—for instance, by spreading images into a new array or reconstructing them in useMemo incorrectly. Keep them stable so React sees the same identity across renders.
+
+Quick Summary of the Most Common Fix
+Inside <ImageComponent>: Add a small flag to skip re-preloading:
+js
+Copy
+Edit
+const [hasPreloaded, setHasPreloaded] = useState(false);
+...
+if (hasPreloaded) return;
+setHasPreloaded(true);
+// do the image = new Image(), etc
+Do not rebuild the entire image object on every parent render. Provide stable references so the child doesn’t keep unmounting/remounting.
+If you also have a global useEffect that preloads images, you probably don’t need intersection-based preloads as well. Pick one or the other.
+With these tweaks, the infinite console spam should stop, and you’ll see each image only loaded once.
