@@ -7,6 +7,11 @@ export function useIntersectionPreload(
 ) {
   const ref = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const callbackRef = useRef(callback);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -18,7 +23,7 @@ export function useIntersectionPreload(
     observerRef.current = new IntersectionObserver((entries) => {
       const [entry] = entries;
       if (entry.isIntersecting) {
-        callback();
+        callbackRef.current();
         observerRef.current?.disconnect();
       }
     }, options);
@@ -30,7 +35,7 @@ export function useIntersectionPreload(
         observerRef.current.disconnect();
       }
     };
-  }, [callback, options]);
+  }, [options]);
 
   return ref;
 }

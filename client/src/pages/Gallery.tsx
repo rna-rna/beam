@@ -1844,9 +1844,14 @@ export default function Gallery({
       "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox"),
       [image]
     );
+
+    const hasPreloadedRef = useRef(false);
     
     const preloadCallback = useCallback(() => {
-      if (preloadedImages.has(stableKey)) return;
+      if (hasPreloadedRef.current || preloadedImages.has(stableKey)) {
+        return;
+      }
+      hasPreloadedRef.current = true;
       
       console.log("Preloading optimized image:", optimizedUrl);
       const img = new Image();
@@ -1854,7 +1859,7 @@ export default function Gallery({
       img.onload = () => {
         setPreloadedImages(prev => new Set([...prev, stableKey]));
       };
-    }, [stableKey, optimizedUrl, preloadedImages]);
+    }, [stableKey, optimizedUrl]);
 
     const intersectionRef = useIntersectionPreload(preloadCallback);
 
