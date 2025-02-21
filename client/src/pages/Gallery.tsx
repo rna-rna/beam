@@ -1835,9 +1835,8 @@ export default function Gallery({
   ]);
 
   const ImageComponent = memo(({ image, index }: { image: ImageOrPending; index: number }) => {
-    const [hasPreloaded, setHasPreloaded] = useState(false);
-    const imageId = useMemo(() => 
-      "localUrl" in image ? image.localUrl : image.id, 
+    const stableKey = useMemo(() => 
+      "localUrl" in image ? image.localUrl : `server-${image.id}`, 
       [image]
     );
     
@@ -1847,20 +1846,22 @@ export default function Gallery({
     );
     
     const preloadCallback = useCallback(() => {
-      if (hasPreloaded) return;
-      setHasPreloaded(true);
+      if (preloadedImages.has(stableKey)) return;
       
       console.log("Preloading optimized image:", optimizedUrl);
       const img = new Image();
       img.src = optimizedUrl;
-    }, [hasPreloaded, optimizedUrl]);
+      img.onload = () => {
+        setPreloadedImages(prev => new Set([...prev, stableKey]));
+      };
+    }, [stableKey, optimizedUrl, preloadedImages]);
 
     const intersectionRef = useIntersectionPreload(preloadCallback);
 
     return (
       <div
         ref={intersectionRef}
-        key={image.id === -1 ? `pending-${index}` : image.id}
+        key={stableKey}
         className="mb-4 w-full"
         style={{ breakInside: "avoid", position: "relative" }}
       >
