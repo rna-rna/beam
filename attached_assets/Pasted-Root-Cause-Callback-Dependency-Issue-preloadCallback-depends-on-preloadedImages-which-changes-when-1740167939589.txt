@@ -1,0 +1,163 @@
+Root Cause
+Callback Dependency Issue:
+preloadCallback depends on preloadedImages, which changes whenever any image is preloaded (via setPreloadedImages). This recreates the callback, causing useIntersectionPreload to re-run its useEffect, re-attaching a new observer, and firing again if the element is still in the viewport.
+Type Mismatch in preloadedImages:
+preloadedImages is a Set<number>, but stableKey is a string ("server-${image.id}" or localUrl). The check preloadedImages.has(stableKey) fails to prevent duplicates because it’s comparing a string to numbers.
+Observer Re-attachment:
+Even though the observer disconnects after firing, a new observer is created whenever preloadCallback changes, leading to multiple preloads for the same image during the initial render phase or state updates.
+Solution
+Fixes
+Fix Type Consistency:
+Change preloadedImages to Set<string> and use stableKey consistently across all preloading logic.
+Stabilize preloadCallback:
+Move preloadedImages check and update outside the callback to the parent scope, or use a ref to avoid dependency changes.
+Prevent Observer Re-attachment:
+Ensure preloadCallback is stable by removing preloadedImages from its dependencies, or memoize it properly with a ref-based check.
+Updated Code
+gallery.tsx (Relevant Changes)
+tsx
+export default function Gallery({ slug: propSlug, title, onHeaderActionsChange }: GalleryProps) {
+  // ... existing imports and code ...
+
+  // Change preloadedImages to Set<string> for consistency
+  const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set());
+
+  // Preload image function updated to use string ID
+  const preloadImage = useCallback((image: ImageOrPending, stableId: string) => {
+    if (preloadedImages.has(stableId)) return;
+    const url = "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox");
+    console.log("Preloading optimized image:", url);
+    const img = new Image();
+    img.src = url;
+    img.onload = () => {
+      setPreloadedImages((prev) => new Set([...Array.from(prev), stableId]));
+    };
+  }, [preloadedImages, getR2Image]);
+
+  // Preload images when gallery data is available
+  useEffect(() => {
+    if (gallery?.images) {
+      gallery.images.forEach((image) => {
+        const stableId = `server-${image.id}`;
+        if (!preloadedImages.has(stableId)) {
+          preloadImage(image, stableId);
+        }
+      });
+    }
+  }, [gallery?.images, preloadImage]);
+
+  const ImageComponent = memo(({ image, index }: { image: ImageOrPending; index: number }) => {
+    const stableKey = useMemo(() => 
+      "localUrl" in image ? image.localUrl : `server-${image.id}`, 
+      [image]
+    );
+    
+    const optimizedUrl = useMemo(() => 
+      "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox"),
+      [image]
+    );
+
+    // Use ref to track preloaded state locally to avoid dependency churn
+    const hasPreloadedRef = useRef(false);
+
+    const preloadCallback = useCallback(() => {
+      if (hasPreloadedRef.current || preloadedImages.has(stableKey)) {
+        return;
+      }
+      hasPreloadedRef.current = true;
+      preloadImage(image, stableKey);
+    }, [image, stableKey]); // Removed preloadedImages from dependencies
+
+    const intersectionRef = useIntersectionPreload(preloadCallback);
+
+    return (
+      <div
+        ref={intersectionRef}
+        key={stableKey}
+        className="mb-4 w-full"
+        style={{ breakInside: "avoid", position: "relative" }}
+      >
+        <motion.div
+          layout={false}
+          className={cn(
+            "image-container transform transition-opacity duration-200 w-full",
+            // ... rest of classes ...
+          )}
+          // ... rest of motion.div props ...
+        >
+          <div
+            className={`group relative bg-card rounded-lg transform transition-all ...`}
+            onClick={(e) => {
+              // ... existing click logic ...
+            }}
+          >
+            <img
+              src={"localUrl" in image ? image.localUrl : getR2Image(image, "thumb")}
+              alt={image.originalFilename || "Uploaded image"}
+              className={cn(
+                "w-full h-auto rounded-lg blur-up transition-opacity duration-200 object-contain",
+                // ... rest of classes ...
+              )}
+              loading="lazy"
+              onLoad={(e) => e.currentTarget.classList.add("loaded")}
+              onError={(e) => {
+                if (!("localUrl" in image)) e.currentTarget.src = "/fallback-image.jpg";
+              }}
+              draggable={false}
+            />
+            {/* ... rest of JSX ... */}
+          </div>
+        </motion.div>
+      </div>
+    );
+  }, [/* Add dependencies like preloadImage, isReorderMode, etc. */]);
+
+  // ... rest of Gallery component ...
+}
+useIntersectionPreload.tsx (Unchanged)
+tsx
+import { useRef, useEffect } from "react";
+
+export function useIntersectionPreload(
+  callback: () => void,
+  options?: IntersectionObserverInit
+) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    observerRef.current = new IntersectionObserver((entries) => {
+      const [entry] = entries;
+      if (entry.isIntersecting) {
+        callback();
+        observerRef.current?.disconnect();
+      }
+    }, options);
+
+    observerRef.current.observe(ref.current);
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [callback, options]);
+
+  return ref;
+}
+Explanation of Fixes
+Type Consistency:
+Changed preloadedImages to Set<string> to match stableKey. Now, preloadImage and ImageComponent use the same string-based ID ("server-${image.id}" or localUrl).
+Stable Callback:
+Removed preloadedImages from preloadCallback dependencies by using a useRef (hasPreloadedRef) to track preloading locally within the component. This prevents the callback from changing when preloadedImages updates, avoiding observer re-attachment.
+The parent preloadImage function still checks preloadedImages to ensure no duplicates across the app.
+Local-to-Server Swap:
+The stableKey remains consistent (localUrl during upload, server-${id} after), and the upload logic in uploadSingleFile updates id while preserving rendering continuity.
+Memoization:
+Added memo to ImageComponent with proper dependencies to ensure it only re-renders when necessary. The preloadCallback is now stable unless image or stableKey changes.
