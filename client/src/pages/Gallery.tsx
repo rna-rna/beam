@@ -1840,18 +1840,20 @@ export default function Gallery({
       [image]
     );
     
+    const thumbUrl = useMemo(() => 
+      "localUrl" in image ? image.localUrl : getR2Image(image, "thumb"),
+      [image]
+    );
+
     const optimizedUrl = useMemo(() => 
       "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox"),
       [image]
     );
-
-    const hasPreloadedRef = useRef(false);
     
     const preloadCallback = useCallback(() => {
-      if (hasPreloadedRef.current || preloadedImages.has(stableKey)) {
+      if (preloadedImages.has(stableKey)) {
         return;
       }
-      hasPreloadedRef.current = true;
       
       console.log("Preloading optimized image:", optimizedUrl);
       const img = new Image();
