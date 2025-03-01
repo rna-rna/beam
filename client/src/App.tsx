@@ -319,10 +319,16 @@ function MixpanelProvider() {
     // Identify user if they're signed in
     if (isSignedIn && user) {
       mixpanel.identify(user.id);
+      
+      // Set complete user profile information
       mixpanel.people.set({
-        $email: user.primaryEmailAddress?.emailAddress,
+        $first_name: user.firstName,
+        $last_name: user.lastName,
         $name: [user.firstName, user.lastName].filter(Boolean).join(" "),
-        $created: user.createdAt
+        $email: user.primaryEmailAddress?.emailAddress,
+        $created: user.createdAt,
+        username: user.username,
+        imageUrl: user.imageUrl
       });
     }
   }, [isSignedIn, user]);
