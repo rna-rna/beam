@@ -1,6 +1,6 @@
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import pLimit from 'p-limit';
 import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
@@ -121,7 +121,6 @@ interface ImageDimensions {
 }
 
 import { Helmet } from "react-helmet";
-import { useIntersectionPreload } from "@/hooks/useIntersectionPreload";
 
 export default function Gallery({
   slug: propSlug,
@@ -1834,44 +1833,12 @@ export default function Gallery({
     setIsOpenShareModal,
   ]);
 
-  const ImageComponent = memo(({ image, index }: { image: ImageOrPending; index: number }) => {
-    const stableKey = useMemo(() => 
-      "localUrl" in image ? image.localUrl : `server-${image.id}`, 
-      [image]
-    );
-    
-    const thumbUrl = useMemo(() => 
-      "localUrl" in image ? image.localUrl : getR2Image(image, "thumb"),
-      [image]
-    );
-
-    const optimizedUrl = useMemo(() => 
-      "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox"),
-      [image]
-    );
-    
-    const preloadCallback = useCallback(() => {
-      if (preloadedImages.has(stableKey)) {
-        return;
-      }
-      
-      console.log("Preloading optimized image:", optimizedUrl);
-      const img = new Image();
-      img.src = optimizedUrl;
-      img.onload = () => {
-        setPreloadedImages(prev => new Set([...prev, stableKey]));
-      };
-    }, [stableKey, optimizedUrl]);
-
-    const intersectionRef = useIntersectionPreload(preloadCallback);
-
-    return (
-      <div
-        ref={intersectionRef}
-        key={stableKey}
-        className="mb-4 w-full"
-        style={{ breakInside: "avoid", position: "relative" }}
-      >
+  const renderImage = (image: ImageOrPending, index: number) => (
+    <div
+      key={image.id === -1 ? `pending-${index}` : image.id}
+      className="mb-4 w-full"
+      style={{ breakInside: "avoid", position: "relative" }}
+    >
       <motion.div
         layout={false}
         className={cn(
@@ -2153,12 +2120,7 @@ export default function Gallery({
         </div>
       </motion.div>
     </div>
-    );
-  });
-
-  const renderImage = (image: ImageOrPending, index: number) => {
-    return <ImageComponent image={image} index={index} />;
-  };
+  );
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
