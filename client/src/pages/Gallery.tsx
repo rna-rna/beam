@@ -970,7 +970,7 @@ export default function Gallery({
 
       // Update Gallery Grid
       queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
-        if (!oldData) return oldData;
+        if (!oldData) return olddata;
         return {
           ...oldData,
           images: oldData.images.map((image: any) =>
@@ -1451,11 +1451,11 @@ export default function Gallery({
       } catch (error) {
         console.error("Batch upload error:", error);
         completeBatch(batchId, false); // Mark batch as failed
-        
+
         // Calculate error metrics
         const endTime = performance.now();
         const uploadDurationSeconds = (endTime - startTime) / 1000;
-        
+
         // Track upload failures with enhanced metrics
         mixpanel.track("Bulk Upload Error", {
           file_count: fileCount,
@@ -1468,7 +1468,7 @@ export default function Gallery({
           batch_id: batchId,
           error_message: error instanceof Error ? error.message : "Unknown error"
         });
-        
+
         toast({
           title: "Upload Error",
           description: "Some files failed to upload. Please try again.",
@@ -2064,6 +2064,18 @@ export default function Gallery({
                     },
                   );
 
+                  // Track the star/unstar event with Mixpanel
+                  mixpanel.track("Image Star Toggled", {
+                    imageId: image.id,
+                    galleryId: gallery?.id,
+                    gallerySlug: slug,
+                    toggledTo: !hasUserStarred,
+                    action: hasUserStarred ? 'unstar' : 'star',
+                    userRole: userRole,
+                    totalStars: image.stars?.length || 0,
+                    timestamp: new Date().toISOString()
+                  });
+
                   // Perform mutation to sync with backend
                   toggleStarMutation.mutate(
                     { imageId: image.id, isStarred: hasUserStarred },
@@ -2089,7 +2101,7 @@ export default function Gallery({
                             if (!old) return { success: true, data: [] };
                             return {
                               ...old,
-                              data: hasUserStarstarred
+                              data: hasUserStarred
                                 ? [
                                     ...old.data,
                                     {
@@ -2221,6 +2233,20 @@ export default function Gallery({
           selectedImage &&
           (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")
         ) {
+          // Track star event in lightbox view
+          mixpanel.track("Image Star Toggled", {
+            imageId: selectedImage.id,
+            galleryId: gallery?.id,
+            gallerySlug: slug,
+            toggledTo: !selectedImage.userStarred,
+            action: selectedImage.userStarred ? 'unstar' : 'star',
+            userRole: userRole,
+            viewContext: 'lightbox',
+            totalStars: selectedImage.stars?.length || 0,
+            timestamp: new Date().toISOString()
+          });
+
+          // Perform mutation to sync with backend
           toggleStarMutation.mutate({
             imageId: selectedImage.id,
             isStarred: selectedImage.userStarred,
@@ -2715,12 +2741,18 @@ export default function Gallery({
                       onClick={(e) => {
                         e.stopPropagation();
 
-                        // Optimistic UI update for selected image
-                        setSelectedImage((prev) =>
-                          prev
-                            ? { ...prev, userStarred: !prev.userStarred }
-                            : prev,
-                        );
+                        // Track star event in lightbox view
+                        mixpanel.track("Image Star Toggled", {
+                          imageId: selectedImage.id,
+                          galleryId: gallery?.id,
+                          gallerySlug: slug,
+                          toggledTo: !selectedImage.userStarred,
+                          action: selectedImage.userStarred ? 'unstar' : 'star',
+                          userRole: userRole,
+                          viewContext: 'lightbox',
+                          totalStars: selectedImage.stars?.length || 0,
+                          timestamp: new Date().toISOString()
+                        });
 
                         // Perform mutation to sync with backend
                         toggleStarMutation.mutate({
@@ -2897,8 +2929,7 @@ export default function Gallery({
                       {/* Drawing Canvas */}
                       <div className="absolute inset-0">
                         <DrawingCanvas
-                          width={imageDimensions?.width || 800}
-                          height={imageDimensions?.height || 600}
+                          width={imageDimensions?.width || 800                          height={imageDimensions?.height || 600}
                           imageWidth={imageDimensions?.width}
                           imageHeight={imageDimensions?.height}
                           isDrawing={isAnnotationMode}
