@@ -973,7 +973,7 @@ export default function Gallery({
         return {
           ...oldData,
           images: oldData.images.map((image: any) =>
-            image.id === imageid
+            image.id === imageId
               ? { ...image, userStarred: !isStarred }
               : image,
           ),
