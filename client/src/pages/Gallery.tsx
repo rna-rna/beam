@@ -5,6 +5,7 @@ import pLimit from 'p-limit';
 import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
 import { default as GalleryActions } from '@/components/GalleryActions';
+import { mixpanel } from "@/lib/analytics";
 
 // Initialize Socket.IO client
 const socket = io("/", {
@@ -1353,6 +1354,13 @@ export default function Gallery({
       console.log("Files dropped:", acceptedFiles.length);
       if (acceptedFiles.length === 0) return;
 
+      // Track the upload event
+      mixpanel.track("Upload Started", {
+        file_count: acceptedFiles.length,
+        total_size: acceptedFiles.reduce((sum, file) => sum + file.size, 0),
+        gallery_slug: slug,
+      });
+
       const totalSize = acceptedFiles.reduce((sum, file) => sum + file.size, 0);
       const batchId = nanoid();
       addBatch(batchId, totalSize, acceptedFiles.length);
@@ -1403,6 +1411,13 @@ export default function Gallery({
         console.log("All uploads completed");
         completeBatch(batchId, true); // Complete the batch after all uploads
 
+        // Track successful upload completion
+        mixpanel.track("Upload Completed", {
+          file_count: acceptedFiles.length,
+          gallery_slug: slug,
+          success: true
+        });
+
         // Only invalidate once after all uploads complete
         queryClient.invalidateQueries({
           queryKey: [`/api/galleries/${slug}`],
@@ -1413,6 +1428,14 @@ export default function Gallery({
       } catch (error) {
         console.error("Batch upload error:", error);
         completeBatch(batchId, false); // Mark batch as failed
+        
+        // Track upload failures
+        mixpanel.track("Upload Error", {
+          file_count: acceptedFiles.length,
+          gallery_slug: slug,
+          error_message: error instanceof Error ? error.message : "Unknown error"
+        });
+        
         toast({
           title: "Upload Error",
           description: "Some files failed to upload. Please try again.",
