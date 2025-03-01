@@ -1134,7 +1134,21 @@ export default function Gallery({
 
       return data.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Track successful comment creation with Mixpanel
+      mixpanel.track("Comment Created", {
+        imageId: selectedImage?.id,
+        galleryId: gallery?.id,
+        gallerySlug: gallery?.slug,
+        commentLength: data.content?.length || 0,
+        parentCommentId: null, // This is a top-level comment
+        userRole: userRole,
+        xPosition: newCommentPos?.x,
+        yPosition: newCommentPos?.y,
+        commentType: "top-level",
+        totalComments: (selectedImage?.commentCount || 0) + 1
+      });
+
       queryClient.invalidateQueries({
         queryKey: [`/api/images/${selectedImage?.id}/comments`],
       });
@@ -1145,6 +1159,15 @@ export default function Gallery({
       });
     },
     onError: (error) => {
+      // Track failed comment creation
+      mixpanel.track("Comment Error", {
+        imageId: selectedImage?.id,
+        galleryId: gallery?.id,
+        gallerySlug: gallery?.slug,
+        errorMessage: error.message,
+        userRole: userRole
+      });
+      
       toast({
         title: "Error",
         description: `Failed to add comment: ${error.message}`,
