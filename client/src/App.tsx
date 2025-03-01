@@ -30,6 +30,7 @@ import MagicLinkLanding from "@/pages/MagicLinkLanding"; // Added import for Mag
 import ProjectsPage from '@/pages/ProjectsPage'; // Added import for ProjectsPage
 import React from 'react';
 import Intercom from '@intercom/messenger-js-sdk';
+import { initMixpanel, mixpanel } from "@/lib/analytics"; //Added import for Mixpanel
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
@@ -308,6 +309,27 @@ function IntercomProvider() {
   return null;
 }
 
+function MixpanelProvider() {
+  const { isSignedIn, user } = useUser();
+
+  useEffect(() => {
+    // Initialize Mixpanel for all users
+    initMixpanel();
+
+    // Identify user if they're signed in
+    if (isSignedIn && user) {
+      mixpanel.identify(user.id);
+      mixpanel.people.set({
+        $email: user.primaryEmailAddress?.emailAddress,
+        $name: [user.firstName, user.lastName].filter(Boolean).join(" "),
+        $created: user.createdAt
+      });
+    }
+  }, [isSignedIn, user]);
+
+  return null;
+}
+
 export default function App() {
   const { isLoaded } = useUser();
 
@@ -326,6 +348,7 @@ export default function App() {
           <AppContent />
           <GlobalUploadProgress />
           <IntercomProvider />
+          <MixpanelProvider />
         </NotificationProvider>
       </UploadProvider>
     </DndProvider>
