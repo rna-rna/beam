@@ -1354,15 +1354,26 @@ export default function Gallery({
       console.log("Files dropped:", acceptedFiles.length);
       if (acceptedFiles.length === 0) return;
 
-      // Track the upload event
+      // Calculate upload metrics
+      const fileCount = acceptedFiles.length;
+      const totalSize = acceptedFiles.reduce((sum, file) => sum + file.size, 0);
+      const totalSizeMB = totalSize / (1024 * 1024);
+      const avgFileSizeMB = totalSizeMB / fileCount;
+      const batchId = nanoid();
+      const startTime = performance.now();
+      const existingImageCount = gallery?.images?.length || 0;
+
+      // Track the upload start event
       mixpanel.track("Upload Started", {
-        file_count: acceptedFiles.length,
-        total_size: acceptedFiles.reduce((sum, file) => sum + file.size, 0),
+        file_count: fileCount,
+        total_size: totalSize,
+        total_size_mb: Number(totalSizeMB.toFixed(2)),
         gallery_slug: slug,
+        gallery_id: gallery?.id,
+        user_role: userRole,
+        batch_id: batchId
       });
 
-      const totalSize = acceptedFiles.reduce((sum, file) => sum + file.size, 0);
-      const batchId = nanoid();
       addBatch(batchId, totalSize, acceptedFiles.length);
       setGlobalBatchId(batchId);
 
@@ -1411,10 +1422,22 @@ export default function Gallery({
         console.log("All uploads completed");
         completeBatch(batchId, true); // Complete the batch after all uploads
 
-        // Track successful upload completion
-        mixpanel.track("Upload Completed", {
-          file_count: acceptedFiles.length,
+        // Calculate final metrics
+        const endTime = performance.now();
+        const uploadDurationSeconds = (endTime - startTime) / 1000;
+        const updatedImageCount = existingImageCount + fileCount;
+
+        // Track detailed bulk upload completion
+        mixpanel.track("Bulk Upload", {
+          file_count: fileCount,
+          total_size_mb: Number(totalSizeMB.toFixed(2)),
+          avg_file_size_mb: Number(avgFileSizeMB.toFixed(2)),
+          upload_duration_seconds: Number(uploadDurationSeconds.toFixed(2)),
+          gallery_id: gallery?.id,
           gallery_slug: slug,
+          user_role: userRole,
+          batch_id: batchId,
+          gallery_image_count_after: updatedImageCount,
           success: true
         });
 
@@ -1429,10 +1452,20 @@ export default function Gallery({
         console.error("Batch upload error:", error);
         completeBatch(batchId, false); // Mark batch as failed
         
-        // Track upload failures
-        mixpanel.track("Upload Error", {
-          file_count: acceptedFiles.length,
+        // Calculate error metrics
+        const endTime = performance.now();
+        const uploadDurationSeconds = (endTime - startTime) / 1000;
+        
+        // Track upload failures with enhanced metrics
+        mixpanel.track("Bulk Upload Error", {
+          file_count: fileCount,
+          total_size_mb: Number(totalSizeMB.toFixed(2)),
+          avg_file_size_mb: Number(avgFileSizeMB.toFixed(2)),
+          upload_duration_seconds: Number(uploadDurationSeconds.toFixed(2)),
+          gallery_id: gallery?.id,
           gallery_slug: slug,
+          user_role: userRole,
+          batch_id: batchId,
           error_message: error instanceof Error ? error.message : "Unknown error"
         });
         
