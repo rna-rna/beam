@@ -1167,7 +1167,7 @@ export default function Gallery({
         errorMessage: error.message,
         userRole: userRole
       });
-      
+
       toast({
         title: "Error",
         description: `Failed to add comment: ${error.message}`,
@@ -1973,7 +1973,7 @@ export default function Gallery({
               draggedItemIndex === index && "opacity-50",
               "localUrl" in image && "opacity-80",
               image.status === "error" && "opacity-50",
-            )}
+                        )}
             loading="lazy"
             onLoad={(e) => {
               e.currentTarget.classList.add("loaded");
@@ -2928,7 +2928,7 @@ export default function Gallery({
                               toast({
                                 title: "Annotation saved",
                                 description:
-                                  "Your drawing has been saved successfully.",
+                                    "Your drawing has been saved successfully.",
                               });
                             } catch (error) {
                               toast({
