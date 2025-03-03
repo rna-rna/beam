@@ -2359,43 +2359,43 @@ export default function Gallery({
 
     console.log("Setting comment position:", { x, y });
     setNewCommentPos({ x, y });
-    setIsCommentModalOpen(true);
+    //setIsCommentModalOpen(true); // Removed
   };
 
   // Render comment dialog with debugging
-  const renderCommentDialog = () => {
-    if (!isCommentModalOpen) return null;
+  //const renderCommentDialog = () => { //removed
+  //  if (!isCommentModalOpen) return null;
 
-    return (
-      <CommentModal
-        isOpen={isCommentModalOpen}
-        position={newCommentPos}
-        onClose={() => {
-          setIsCommentModalOpen(false);
-          setNewCommentPos(null);
-          console.log("Comment modal closed");
-        }}
-        onSubmit={(content) => {
-          if (!user) {
-            console.log("User not authenticated, cannot submit comment");
-            return;
-          }
+  //  return (
+  //    <CommentModal
+  //      isOpen={isCommentModalOpen}
+  //      position={newCommentPos}
+  //      onClose={() => {
+  //        setIsCommentModalOpen(false);
+  //        setNewCommentPos(null);
+  //        console.log("Comment modal closed");
+  //      }}
+  //      onSubmit={(content) => {
+  //        if (!user) {
+  //          console.log("User not authenticated, cannot submit comment");
+  //          return;
+  //        }
 
-          if (!selectedImage?.id || !newCommentPos) return;
+  //        if (!selectedImage?.id || !newCommentPos) return;
 
-          createCommentMutation.mutate({
-            imageId: selectedImage.id,
-            content,
-            x: newCommentPos.x,
-            y: newCommentPos.y,
-          });
+  //        createCommentMutation.mutate({
+  //          imageId: selectedImage.id,
+  //          content,
+  //          x: newCommentPos.x,
+  //          y: newCommentPos.y,
+  //        });
 
-          setIsCommentModalOpen(false);
-          setNewCommentPos(null);
-        }}
-      />
-    );
-  };
+  //        setIsCommentModalOpen(false);
+  //        setNewCommentPos(null);
+  //      }}
+  //    />
+  //  );
+  //}; //removed
 
   return (
     <UploadProvider>
@@ -2911,8 +2911,7 @@ export default function Gallery({
                               await fetch(
                                 `/api/images/${selectedImage.id}/annotations`,
                                 {
-                                  method: "POST",
-                                  headers: {
+                                  method: "POST",                                  headers: {
                                     "Content-Type": "application/json",
                                   },
                                   body: JSON.stringify({ pathData }),
@@ -3016,7 +3015,7 @@ export default function Gallery({
               slug={slug}
             />
           )}
-          {renderCommentDialog()}
+          {/*renderCommentDialog() Removed*/}
 
           <AnimatePresence>
             {selectMode && (
