@@ -5,6 +5,7 @@ import pLimit from 'p-limit';
 import { getR2Image } from "@/lib/r2";
 import { io } from 'socket.io-client';
 import { default as GalleryActions } from '@/components/GalleryActions';
+import { mixpanel } from "@/lib/analytics";
 
 // Initialize Socket.IO client
 const socket = io("/", {
@@ -1133,7 +1134,21 @@ export default function Gallery({
 
       return data.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Track successful comment creation with Mixpanel
+      mixpanel.track("Comment Created", {
+        imageId: selectedImage?.id,
+        galleryId: gallery?.id,
+        gallerySlug: gallery?.slug,
+        commentLength: data.content?.length || 0,
+        parentCommentId: null, // This is a top-level comment
+        userRole: userRole,
+        xPosition: newCommentPos?.x,
+        yPosition: newCommentPos?.y,
+        commentType: "top-level",
+        totalComments: (selectedImage?.commentCount || 0) + 1
+      });
+
       queryClient.invalidateQueries({
         queryKey: [`/api/images/${selectedImage?.id}/comments`],
       });
@@ -1144,6 +1159,15 @@ export default function Gallery({
       });
     },
     onError: (error) => {
+      // Track failed comment creation
+      mixpanel.track("Comment Error", {
+        imageId: selectedImage?.id,
+        galleryId: gallery?.id,
+        gallerySlug: gallery?.slug,
+        errorMessage: error.message,
+        userRole: userRole
+      });
+
       toast({
         title: "Error",
         description: `Failed to add comment: ${error.message}`,
@@ -1353,8 +1377,26 @@ export default function Gallery({
       console.log("Files dropped:", acceptedFiles.length);
       if (acceptedFiles.length === 0) return;
 
+      // Calculate upload metrics
+      const fileCount = acceptedFiles.length;
       const totalSize = acceptedFiles.reduce((sum, file) => sum + file.size, 0);
+      const totalSizeMB = totalSize / (1024 * 1024);
+      const avgFileSizeMB = totalSizeMB / fileCount;
       const batchId = nanoid();
+      const startTime = performance.now();
+      const existingImageCount = gallery?.images?.length || 0;
+
+      // Track the upload start event
+      mixpanel.track("Upload Started", {
+        file_count: fileCount,
+        total_size: totalSize,
+        total_size_mb: Number(totalSizeMB.toFixed(2)),
+        gallery_slug: slug,
+        gallery_id: gallery?.id,
+        user_role: userRole,
+        batch_id: batchId
+      });
+
       addBatch(batchId, totalSize, acceptedFiles.length);
       setGlobalBatchId(batchId);
 
@@ -1403,6 +1445,25 @@ export default function Gallery({
         console.log("All uploads completed");
         completeBatch(batchId, true); // Complete the batch after all uploads
 
+        // Calculate final metrics
+        const endTime = performance.now();
+        const uploadDurationSeconds = (endTime - startTime) / 1000;
+        const updatedImageCount = existingImageCount + fileCount;
+
+        // Track detailed bulk upload completion
+        mixpanel.track("Bulk Upload", {
+          file_count: fileCount,
+          total_size_mb: Number(totalSizeMB.toFixed(2)),
+          avg_file_size_mb: Number(avgFileSizeMB.toFixed(2)),
+          upload_duration_seconds: Number(uploadDurationSeconds.toFixed(2)),
+          gallery_id: gallery?.id,
+          gallery_slug: slug,
+          user_role: userRole,
+          batch_id: batchId,
+          gallery_image_count_after: updatedImageCount,
+          success: true
+        });
+
         // Only invalidate once after all uploads complete
         queryClient.invalidateQueries({
           queryKey: [`/api/galleries/${slug}`],
@@ -1413,6 +1474,24 @@ export default function Gallery({
       } catch (error) {
         console.error("Batch upload error:", error);
         completeBatch(batchId, false); // Mark batch as failed
+
+        // Calculate error metrics
+        const endTime = performance.now();
+        const uploadDurationSeconds = (endTime - startTime) / 1000;
+
+        // Track upload failures with enhanced metrics
+        mixpanel.track("Bulk Upload Error", {
+          file_count: fileCount,
+          total_size_mb: Number(totalSizeMB.toFixed(2)),
+          avg_file_size_mb: Number(avgFileSizeMB.toFixed(2)),
+          upload_duration_seconds: Number(uploadDurationSeconds.toFixed(2)),
+          gallery_id: gallery?.id,
+          gallery_slug: slug,
+          user_role: userRole,
+          batch_id: batchId,
+          error_message: error instanceof Error ? error.message : "Unknown error"
+        });
+
         toast({
           title: "Upload Error",
           description: "Some files failed to upload. Please try again.",
@@ -1894,7 +1973,7 @@ export default function Gallery({
               draggedItemIndex === index && "opacity-50",
               "localUrl" in image && "opacity-80",
               image.status === "error" && "opacity-50",
-            )}
+                        )}
             loading="lazy"
             onLoad={(e) => {
               e.currentTarget.classList.add("loaded");
@@ -1910,7 +1989,7 @@ export default function Gallery({
           {"localUrl" in image && (
             <div className="absolute inset-0 flex items-center justify-center">
               {image.status === "uploading" && (
-                <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm p-2 rounded-md text-sm font-medium text-foreground flex items-center gap-1.5">
+                <div className="absolute top-2 right-2bg-background/80 backdrop-blur-sm p-2 rounded-md text-sm font-medium text-foreground flex items-center gap-1.5">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>{Math.floor(image.progress)}%</span>
                 </div>
@@ -1958,55 +2037,16 @@ export default function Gallery({
                   // Use image.userStarred for optimistic updates
                   const hasUserStarred = image.userStarred;
 
-                  // Optimistic UI update for selected image
-                  setSelectedImageIndex((prevIndex) => {
-                    if (prevIndex >= 0) {
-                      setSelectedImage((prev) =>
-                        prev ? { ...prev, userStarred: !hasUserStarred } : prev,
-                      );
-                    }
-                    return prevIndex;
+                  // Track star toggle event with Mixpanel
+                  mixpanel.track("Image Star Toggled", {
+                    imageId: image.id,
+                    galleryId: gallery?.id,
+                    gallerySlug: gallery?.slug,
+                    toggledTo: !hasUserStarred,
+                    action: hasUserStarred ? 'unstar' : 'star',
+                    userRole: userRole,
+                    totalStars: image.stars?.length || 0
                   });
-
-                  // Update gallery data optimistically
-                  queryClient.setQueryData(
-                    [`/api/galleries/${slug}`],
-                    (old: any) => ({
-                      ...old,
-                      images: old.images.map((img: Image) =>
-                        img.id === image.id
-                          ? { ...img, userStarred: !hasUserStarred }
-                          : img,
-                      ),
-                    }),
-                  );
-
-                  // Update star list optimistically
-                  queryClient.setQueryData(
-                    [`/api/images/${image.id}/stars`],
-                    (old: any) => {
-                      if (!old) return { success: true, data: [] };
-
-                      const updatedStars = hasUserStarred
-                        ? old.data.filter(
-                            (star: any) => star.userId !== user?.id,
-                          )
-                        : [
-                            ...old.data,
-                            {
-                              userId: user?.id,
-                              imageId: image.id,
-                              user: {
-                                firstName: user?.firstName,
-                                lastName: user?.lastName,
-                                imageUrl: user?.imageUrl,
-                              },
-                            },
-                          ];
-
-                      return { ...old, data: updatedStars };
-                    },
-                  );
 
                   // Perform mutation to sync with backend
                   toggleStarMutation.mutate(
@@ -2033,7 +2073,7 @@ export default function Gallery({
                             if (!old) return { success: true, data: [] };
                             return {
                               ...old,
-                              data: hasUserStarstarred
+                              data: hasUserStarred
                                 ? [
                                     ...old.data,
                                     {
@@ -2165,6 +2205,19 @@ export default function Gallery({
           selectedImage &&
           (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "s")
         ) {
+          // Track star toggle event with Mixpanel
+          mixpanel.track("Image Star Toggled", {
+            imageId: selectedImage.id,
+            galleryId: gallery?.id,
+            gallerySlug: gallery?.slug,
+            toggledTo: !selectedImage.userStarred,
+            action: selectedImage.userStarred ? 'unstar' : 'star',
+            userRole: userRole,
+            totalStars: selectedImage.stars?.length || 0,
+            viewContext: 'lightbox'
+          });
+
+          // Perform mutation to sync with backend
           toggleStarMutation.mutate({
             imageId: selectedImage.id,
             isStarred: selectedImage.userStarred,
@@ -2659,12 +2712,17 @@ export default function Gallery({
                       onClick={(e) => {
                         e.stopPropagation();
 
-                        // Optimistic UI update for selected image
-                        setSelectedImage((prev) =>
-                          prev
-                            ? { ...prev, userStarred: !prev.userStarred }
-                            : prev,
-                        );
+                        // Track star toggle event with Mixpanel
+                        mixpanel.track("Image Star Toggled", {
+                          imageId: selectedImage.id,
+                          galleryId: gallery?.id,
+                          gallerySlug: gallery?.slug,
+                          toggledTo: !selectedImage.userStarred,
+                          action: selectedImage.userStarred ? 'unstar' : 'star',
+                          userRole: userRole,
+                          totalStars: selectedImage.stars?.length || 0,
+                          viewContext: 'lightbox'
+                        });
 
                         // Perform mutation to sync with backend
                         toggleStarMutation.mutate({
@@ -2870,7 +2928,7 @@ export default function Gallery({
                               toast({
                                 title: "Annotation saved",
                                 description:
-                                  "Your drawing has been saved successfully.",
+                                    "Your drawing has been saved successfully.",
                               });
                             } catch (error) {
                               toast({
@@ -2894,8 +2952,7 @@ export default function Gallery({
                             imageId: selectedImage.id
                           });
                           return (
-                            <CommentBubble
-                              key={comment.id}
+                            <CommentBubble                              key={comment.id}
                               id={comment.id}
                               x={comment.xPosition}
                               y={comment.yPosition}

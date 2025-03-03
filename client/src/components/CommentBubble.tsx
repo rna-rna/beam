@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, SmilePlus } from "lucide-react";
@@ -11,6 +11,7 @@ import { SignUp } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
 import { EmojiPicker } from "./EmojiPicker";
 import { cn } from "@/lib/utils";
+import { mixpanel } from '@/lib/analytics'; // Added Mixpanel import
 
 interface CommentBubbleProps {
   x: number;
@@ -76,6 +77,7 @@ export function CommentBubble({
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(isNew);
   const bubbleRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null); // Added inputRef
 
   // Handle clicks outside the comment bubble
   useEffect(() => {
@@ -140,6 +142,14 @@ export function CommentBubble({
       if (onSubmit) onSubmit();
       setLocalCommentId(data.data.id);
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+      // Mixpanel tracking for successful comment creation
+      mixpanel.track("Comment Created", {
+        imageId: imageId,
+        galleryId: null, // Needs to be fetched or passed as a prop
+        commentLength: text.length,
+        parentCommentId: parentId || null,
+        userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+      });
     },
     onError: (error) => {
       if (!user) {
@@ -149,6 +159,14 @@ export function CommentBubble({
           title: "Error",
           description: error.message || "Failed to add comment",
           variant: "destructive"
+        });
+        // Mixpanel tracking for comment creation error
+        mixpanel.track("Comment Failed", {
+          error: error.message,
+          imageId: imageId,
+          galleryId: null, // Needs to be fetched or passed as a prop
+          parentCommentId: parentId || null,
+          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
         });
       }
     }
@@ -287,13 +305,41 @@ export function CommentBubble({
         description: error.message || "Failed to post reply",
         variant: "destructive"
       });
+      // Mixpanel tracking for reply creation error
+      mixpanel.track("Comment Failed", {
+        error: error.message,
+        imageId: imageId,
+        galleryId: null, // Needs to be fetched or passed as a prop
+        parentCommentId: parentId || null,
+        userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+      });
     },
     onSuccess: (data) => {
       setReplyContent('');
       setIsReplying(false);
       queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+      // Mixpanel tracking for successful reply creation
+      mixpanel.track("Comment Created", {
+        imageId: imageId,
+        galleryId: null, // Needs to be fetched or passed as a prop
+        commentLength: replyContent.length,
+        parentCommentId: id || parentId,
+        userRole: user.publicMetadata.role, // Assumes user role is in publicMetadata
+        commentType: "reply"
+      });
     }
   });
+
+  useEffect(() => {
+    // Focus the input when component is mounted if it's a new comment or if it's in editing mode
+    if (inputRef.current && (isNew || isEditing)) {
+      // Use setTimeout to ensure the focus happens after the component is fully rendered
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 10);
+    }
+  }, [isNew, isEditing]);
+
 
   return (
     <motion.div
@@ -351,14 +397,7 @@ export function CommentBubble({
                   onClick={() => {
                     if (!user) setShowAuthModal(true);
                   }}
-                  ref={(input) => {
-                    if (input && isNew) {
-                      // Use RAF for more reliable focus
-                      requestAnimationFrame(() => {
-                        input.focus();
-                      });
-                    }
-                  }}
+                  ref={inputRef} // Changed ref to inputRef
                 />
               </div>
             </form>

@@ -225,6 +225,9 @@ export function registerRoutes(app: Express): Server {
         guestUpload: isGuestUpload,
         fileCount: files?.length || 0
       });
+      
+      // Tracking can be added server-side here if needed
+      // This would require a server-side implementation of analytics
 
       // Generate unique slug for every new gallery
       const slug = nanoid(10);

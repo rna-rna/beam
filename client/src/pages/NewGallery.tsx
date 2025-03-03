@@ -1,13 +1,15 @@
 
 import { useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { useMutation } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { mixpanel } from '@/lib/analytics';
 
 export default function NewGallery() {
   const [, setLocation] = useLocation();
   const { getToken } = useAuth();
+  const { user } = useUser();
 
   const createGalleryMutation = useMutation({
     mutationFn: async () => {
@@ -28,6 +30,13 @@ export default function NewGallery() {
       return res.json();
     },
     onSuccess: (data) => {
+      // Track the "Gallery Created" event in Mixpanel
+      mixpanel.track("Gallery Created", {
+        gallery_id: data.id,
+        gallery_slug: data.slug,
+        is_draft: true
+      });
+      
       setLocation(`/g/${data.slug}`);
     },
   });
