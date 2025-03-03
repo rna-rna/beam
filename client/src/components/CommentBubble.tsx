@@ -333,12 +333,27 @@ export function CommentBubble({
   useEffect(() => {
     // Focus the input when component is mounted if it's a new comment or if it's in editing mode
     if (inputRef.current && (isNew || isEditing)) {
-      // Use setTimeout to ensure the focus happens after the component is fully rendered
+      // Use a longer timeout to ensure the component is fully rendered and animated in
       setTimeout(() => {
-        inputRef.current?.focus();
-      }, 10);
+        if (inputRef.current) {
+          inputRef.current.focus();
+          console.log("Focusing input field", { isNew, isEditing });
+        }
+      }, 100); // Increased timeout for more reliable focus
     }
   }, [isNew, isEditing]);
+
+  // Additional effect to re-attempt focus if the component becomes visible/expanded
+  useEffect(() => {
+    if (isExpanded && inputRef.current && isEditing) {
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          console.log("Re-focusing on expansion", { isExpanded, isEditing });
+        }
+      }, 50);
+    }
+  }, [isExpanded, isEditing]);
 
 
   return (
@@ -375,9 +390,14 @@ export function CommentBubble({
             <form onSubmit={async (e) => {
               e.preventDefault();
               if (text.trim()) {
+                // Focus the input first to ensure the browser recognizes it as active
+                inputRef.current?.focus();
                 await commentMutation.mutateAsync(text);
                 setIsExpanded(false);
                 setIsHovered(false);
+              } else {
+                // If empty text, re-focus the input
+                inputRef.current?.focus();
               }
             }}>
               <div className="flex items-center gap-2">

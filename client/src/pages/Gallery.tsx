@@ -1972,7 +1972,7 @@ export default function Gallery({
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50",
               "localUrl" in image && "opacity-80",
-              image.status === "error" && "opacity-50",
+              image.status === "error" && ""opacity-50",
                         )}
             loading="lazy"
             onLoad={(e) => {
@@ -2926,8 +2926,7 @@ export default function Gallery({
                               });
 
                               toast({
-                                title: "Annotation saved",
-                                description:
+                                title: "Annotation saved",                                description:
                                     "Your drawing has been saved successfully.",
                               });
                             } catch (error) {
@@ -2971,7 +2970,8 @@ export default function Gallery({
                           x={newCommentPos.x}
                           y={newCommentPos.y}
                           isNew={true}
-                          imageId={Number(selectedImage.id)}
+                          isExpanded={true}
+                          imageId={selectedImage?.id}
                           replies={[]}
                           onSubmit={() => {
                             setNewCommentPos(null);
@@ -2994,6 +2994,7 @@ export default function Gallery({
               x={newCommentPos.x}
               y={newCommentPos.y}
               isNew={true}
+              isExpanded={true}
               imageId={Number(selectedImage.id)}
               replies={[]}
               onSubmit={() => {
