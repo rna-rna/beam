@@ -331,10 +331,14 @@ export function CommentBubble({
   });
 
   useEffect(() => {
-    if (inputRef.current && isEditing) {
-      inputRef.current.focus();
+    // Focus the input when component is mounted if it's a new comment or if it's in editing mode
+    if (inputRef.current && (isNew || isEditing)) {
+      // Use setTimeout to ensure the focus happens after the component is fully rendered
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 10);
     }
-  }, [isEditing]);
+  }, [isNew, isEditing]);
 
 
   return (
