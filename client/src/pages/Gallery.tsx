@@ -2629,6 +2629,7 @@ export default function Gallery({
           {!isMobile && selectedImageIndex >= 0 && (
             <Dialog
               open={selectedImageIndex >= 0}
+              onOpenAutoFocus={(event) => event.preventDefault()} 
               onOpenChange={(open) => {
                 if (!open) {
                   setSelectedImageIndex(-1);

@@ -332,14 +332,18 @@ export function CommentBubble({
 
   useEffect(() => {
     // Focus the input when component is mounted if it's a new comment or if it's in editing mode
-    if (inputRef.current && (isNew || isEditing)) {
-      // Use a longer timeout to ensure the component is fully rendered and animated in
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          console.log("Focusing input field", { isNew, isEditing });
-        }
-      }, 100); // Increased timeout for more reliable focus
+    if (isNew || isEditing) {
+      // Use multiple timeouts with increasing delays for more reliable focus
+      const attempts = [100, 200, 300, 500];
+      
+      attempts.forEach(delay => {
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            console.log(`Focus attempt at ${delay}ms`, { isNew, isEditing });
+          }
+        }, delay);
+      });
     }
   }, [isNew, isEditing]);
 
