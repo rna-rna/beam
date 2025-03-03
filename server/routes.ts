@@ -2923,7 +2923,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       const validImageIds = new Set(galleryImages.map(img => img.id));
-      ifif (!order.every(id => validImageIds.has(id))) {
+      if (!order.every(id => validImageIds.has(id))) {
         return res.status(400).json({ message: 'Invalid image IDs in order' });
       }
 
