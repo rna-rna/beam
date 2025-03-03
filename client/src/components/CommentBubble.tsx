@@ -331,21 +331,28 @@ export function CommentBubble({
   });
 
   useEffect(() => {
-    // Focus the input when component is mounted if it's a new comment or if it's in editing mode
-    if (isNew || isEditing) {
-      // Use multiple timeouts with increasing delays for more reliable focus
-      const attempts = [100, 200, 300, 500];
-      
-      attempts.forEach(delay => {
-        setTimeout(() => {
-          if (inputRef.current) {
-            inputRef.current.focus();
-            console.log(`Focus attempt at ${delay}ms`, { isNew, isEditing });
-          }
-        }, delay);
-      });
+    // This effect tries to focus if `isNew || isEditing`
+    console.log("CommentBubble effect start => ", { isNew, isEditing, isExpanded });
+
+    // Guard that we have an inputRef and the proper condition
+    if (inputRef.current && (isNew || isEditing)) {
+      const timer = setTimeout(() => {
+        console.log("Attempting to focus the comment inputRef...");
+        inputRef.current?.focus();
+
+        // Log which element is actually focused now
+        console.log("After focusing, document.activeElement is:", document.activeElement);
+        console.log("inputRef.current is:", inputRef.current);
+
+        // Check if focus was stolen
+        if (document.activeElement !== inputRef.current) {
+          console.warn("Focus was overridden by something else!");
+        }
+      }, 200); // small delay to allow any transitions or dialog opening
+
+      return () => clearTimeout(timer);
     }
-  }, [isNew, isEditing]);
+  }, [isNew, isEditing, isExpanded]);
 
   // Additional effect to re-attempt focus if the component becomes visible/expanded
   useEffect(() => {
@@ -370,7 +377,10 @@ export function CommentBubble({
       className="absolute"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => !isExpanded && setIsHovered(false)}
-      onClick={() => setIsExpanded(true)}
+      onClick={(e) => {
+        console.log("CommentBubble onClick => expanding bubble", { isNew, isEditing, isExpanded, bubbleId: id });
+        setIsExpanded(true);
+      }}
       style={{
         left: `${x}%`,
         top: `${y}%`,
@@ -393,14 +403,17 @@ export function CommentBubble({
           {isEditing ? (
             <form onSubmit={async (e) => {
               e.preventDefault();
+              console.log("CommentBubble form submitted =>", { text, bubbleId: id, isNew, isEditing });
               if (text.trim()) {
                 // Focus the input first to ensure the browser recognizes it as active
                 inputRef.current?.focus();
                 await commentMutation.mutateAsync(text);
+                console.log("Comment added successfully, closing bubble...", { bubbleId: id });
                 setIsExpanded(false);
                 setIsHovered(false);
               } else {
                 // If empty text, re-focus the input
+                console.log("Empty text, re-focusing input", { bubbleId: id });
                 inputRef.current?.focus();
               }
             }}>
