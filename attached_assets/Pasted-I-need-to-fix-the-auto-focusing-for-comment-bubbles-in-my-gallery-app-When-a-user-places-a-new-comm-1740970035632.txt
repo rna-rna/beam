@@ -1,0 +1,66 @@
+I need to fix the auto-focusing for comment bubbles in my gallery app. When a user places a new comment bubble on an image, the input field should automatically receive focus so they can start typing immediately. Here are the specific changes needed:
+
+1. In CommentBubble.tsx:
+   - Modify the useEffect hook for input focusing to use a longer timeout (100ms instead of 10ms)
+   - Add debug logging to help troubleshoot
+   - Add a second useEffect that focuses when isExpanded changes to true
+   - Update the form submission handler to ensure proper focus behavior
+
+2. In Gallery.tsx:
+   - Add isExpanded={true} prop to both instances of new CommentBubble components 
+   - This ensures they start in expanded state with the input field visible
+
+The specific code changes:
+
+In CommentBubble.tsx, replace:
+```typescript
+useEffect(() => {
+  // Focus the input when component is mounted if it's a new comment or if it's in editing mode
+  if (inputRef.current && (isNew || isEditing)) {
+    // Use setTimeout to ensure the focus happens after the component is fully rendered
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 10);
+  }
+}, [isNew, isEditing]);
+With:
+typescriptCopyuseEffect(() => {
+  // Focus the input when component is mounted if it's a new comment or if it's in editing mode
+  if (inputRef.current && (isNew || isEditing)) {
+    // Use a longer timeout to ensure the component is fully rendered and animated in
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        console.log("Focusing input field", { isNew, isEditing });
+      }
+    }, 100); // Increased timeout for more reliable focus
+  }
+}, [isNew, isEditing]);
+
+// Additional effect to re-attempt focus if the component becomes visible/expanded
+useEffect(() => {
+  if (isExpanded && inputRef.current && isEditing) {
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        console.log("Re-focusing on expansion", { isExpanded, isEditing });
+      }
+    }, 50);
+  }
+}, [isExpanded, isEditing]);
+Also in CommentBubble.tsx, update the form submission handler:
+typescriptCopy<form onSubmit={async (e) => {
+  e.preventDefault();
+  if (text.trim()) {
+    // Focus the input first to ensure the browser recognizes it as active
+    inputRef.current?.focus();
+    await commentMutation.mutateAsync(text);
+    setIsExpanded(false);
+    setIsHovered(false);
+  } else {
+    // If empty text, re-focus the input
+    inputRef.current?.focus();
+  }
+}}>
+In Gallery.tsx, add isExpanded={true} to both CommentBubble instances where newCommentPos is used.
+These changes ensure the input field receives focus when a new comment bubble is placed.
