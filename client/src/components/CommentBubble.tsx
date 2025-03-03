@@ -77,6 +77,7 @@ export function CommentBubble({
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(isNew);
   const bubbleRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null); // Added inputRef
 
   // Handle clicks outside the comment bubble
   useEffect(() => {
@@ -329,6 +330,13 @@ export function CommentBubble({
     }
   });
 
+  useEffect(() => {
+    if (inputRef.current && isEditing) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
+
+
   return (
     <motion.div
       ref={bubbleRef}
@@ -385,14 +393,7 @@ export function CommentBubble({
                   onClick={() => {
                     if (!user) setShowAuthModal(true);
                   }}
-                  ref={(input) => {
-                    if (input && isNew) {
-                      // Use RAF for more reliable focus
-                      requestAnimationFrame(() => {
-                        input.focus();
-                      });
-                    }
-                  }}
+                  ref={inputRef} // Changed ref to inputRef
                 />
               </div>
             </form>
