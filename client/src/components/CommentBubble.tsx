@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SignUp } from "@clerk/clerk-react";
-import { motion } from "framer-motion";
+import { motion, PanInfo } from "framer-motion";
 import { EmojiPicker } from "./EmojiPicker";
 import { cn } from "@/lib/utils";
 import { mixpanel } from '@/lib/analytics'; // Added Mixpanel import
@@ -230,14 +230,56 @@ export function CommentBubble({
     }
   });
 
-  const handleDragEnd = (_e: any, info: { point: { x: number; y: number } }) => {
-    if (isAuthor && onPositionChange) {
-      const newX = (info.point.x / window.innerWidth) * 100;
-      const newY = (info.point.y / window.innerHeight) * 100;
-      onPositionChange(newX, newY);
-      updatePositionMutation.mutate({ newX, newY });
-    }
+  const handleDragEnd = async (_e: any, info: { point: { x: number; y: number } }) => {
     setIsDragging(false);
+    if (!bubbleRef.current) return;
+
+    const container = bubbleRef.current.parentElement;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const bubbleRect = bubbleRef.current.getBoundingClientRect();
+
+    // Calculate new position as percentage of container width/height
+    const newX = ((bubbleRect.left + bubbleRect.width/2 - rect.left) / rect.width) * 100;
+    const newY = ((bubbleRect.top + bubbleRect.height/2 - rect.top) / rect.height) * 100;
+
+    // Keep the position within bounds (0-100%)
+    const boundedX = Math.max(0, Math.min(100, newX));
+    const boundedY = Math.max(0, Math.min(100, newY));
+
+    // If we have an onPositionChange callback, use it
+    if (onPositionChange) {
+      onPositionChange(boundedX, boundedY);
+    }
+
+    // If this is an existing comment (has an ID), update its position in the database
+    if (id && !isNew) {
+      try {
+        const token = await getToken();
+        await fetch(`/api/comments/${id}/position`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            xPosition: boundedX,
+            yPosition: boundedY
+          })
+        });
+
+        // Invalidate queries to refresh the data
+        queryClient.invalidateQueries({ queryKey: ["/api/galleries"] });
+      } catch (error) {
+        console.error("Failed to update comment position:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update comment position",
+          variant: "destructive"
+        });
+      }
+    }
   };
 
   const [isReplying, setIsReplying] = useState(false);
@@ -370,8 +412,7 @@ export function CommentBubble({
   return (
     <motion.div
       ref={bubbleRef}
-      // Removed drag functionality to fix input focus issues
-      // drag={isAuthor && !isEditing}
+      drag={isAuthor && !isEditing}
       dragConstraints={dragConstraints}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={handleDragEnd}

@@ -225,7 +225,7 @@ export function registerRoutes(app: Express): Server {
         guestUpload: isGuestUpload,
         fileCount: files?.length || 0
       });
-      
+
       // Tracking can be added server-side here if needed
       // This would require a server-side implementation of analytics
 
@@ -2923,7 +2923,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       const validImageIds = new Set(galleryImages.map(img => img.id));
-      if (!order.every(id => validImageIds.has(id))) {
+      ifif (!order.every(id => validImageIds.has(id))) {
         return res.status(400).json({ message: 'Invalid image IDs in order' });
       }
 
