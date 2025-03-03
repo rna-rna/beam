@@ -1972,7 +1972,7 @@ export default function Gallery({
               selectMode && selectedImages.includes(image.id) && "opacity-75",
               draggedItemIndex === index && "opacity-50",
               "localUrl" in image && "opacity-80",
-              image.status === "error" && ""opacity-50",
+              image.status === "error" && "opacity-50",
                         )}
             loading="lazy"
             onLoad={(e) => {
