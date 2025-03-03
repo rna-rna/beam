@@ -412,7 +412,7 @@ export function CommentBubble({
   return (
     <motion.div
       ref={bubbleRef}
-      drag={isAuthor && !isEditing}
+      drag={isAuthor && !isEditing} // Re-enable drag for comment authors
       dragConstraints={dragConstraints}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={handleDragEnd}
