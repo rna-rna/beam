@@ -370,7 +370,7 @@ export function CommentBubble({
   return (
     <motion.div
       ref={bubbleRef}
-      drag={isAuthor}
+      drag={isAuthor && !isEditing} // Disable drag when editing to prevent input issues
       dragConstraints={dragConstraints}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={handleDragEnd}
