@@ -429,7 +429,7 @@ export function CommentBubble({
                   type="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  className="flex-1 h-10 px-4 bg-background/80 backdrop-blur-sm border-0 shadow-none rounded-full focus-visible:ring-1 focus-visible:ring-offset-0"
+                  className="flex-1 h-10 px-4 bg-background/80 backdrop-blur-sm border-0 shadow-none rounded-full focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-ring focus-visible:rounded-full"
                   placeholder={user ? "Add a comment" : "Please sign in to comment"}
                   readOnly={!user}
                   onClick={() => {
