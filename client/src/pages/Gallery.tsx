@@ -2988,21 +2988,6 @@ export default function Gallery({
             </Dialog>
           )}
 
-          {/* New comment placement outside lightbox */}
-          {newCommentPos && selectedImage && (
-            <CommentBubble
-              x={newCommentPos.x}
-              y={newCommentPos.y}
-              isNew={true}
-              isExpanded={true}
-              imageId={Number(selectedImage.id)}
-              replies={[]}
-              onSubmit={() => {
-                setNewCommentPos(null);
-                queryClient.invalidateQueries({ queryKey: ["/api/galleries"] });
-              }}
-            />
-          )}
           {/* Share Modal */}
           {isOpenShareModal && gallery && (
             <ShareModal
