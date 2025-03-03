@@ -68,6 +68,8 @@ export function CommentBubble({
 }: CommentBubbleProps) {
 
   const { user } = useUser();
+  console.log("CommentBubble user => ", user);
+  console.log("readOnly = ", !user);
   const isAuthor = user?.id === author?.id;
   const [isEditing, setIsEditing] = useState(isNew);
   const [text, setText] = useState(content || "");
