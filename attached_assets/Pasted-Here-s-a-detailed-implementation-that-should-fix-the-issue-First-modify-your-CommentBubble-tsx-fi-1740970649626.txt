@@ -1,0 +1,149 @@
+Here's a detailed implementation that should fix the issue:
+
+First, modify your CommentBubble.tsx file:
+
+typescriptCopy// Make sure these properties are correctly passed from Gallery.tsx
+export function CommentBubble({ 
+  x, 
+  y, 
+  content, 
+  author, 
+  onSubmit, 
+  isNew = false,
+  isExpanded = false, // This prop should be properly passed
+  imageId,
+  id,
+  // ... other props
+}) {
+  // Update the useState initialization to respect the incoming isExpanded prop
+  const [isExpanded, setIsExpanded] = useState(isNew || isExpanded);
+  const [isEditing, setIsEditing] = useState(isNew);
+  
+  // Add this effect to properly initialize state for new comments
+  useEffect(() => {
+    if (isNew) {
+      setIsEditing(true);
+      setIsExpanded(true);
+    }
+  }, [isNew]);
+  
+  // Replace your existing focus effect with this more robust version
+  useEffect(() => {
+    const focusInput = () => {
+      if (!inputRef.current || !isEditing) return;
+      
+      // Try multiple times with increasing delays to ensure focus
+      const attempts = [10, 50, 100, 200, 500];
+      
+      attempts.forEach((delay, index) => {
+        setTimeout(() => {
+          if (inputRef.current && isEditing) {
+            inputRef.current.focus();
+            
+            // For some browsers, also try clicking the element
+            if (index === attempts.length - 1) {
+              try {
+                inputRef.current.click();
+              } catch (e) {}
+            }
+            
+            console.log(`Focus attempt ${index+1} at ${delay}ms:`, {
+              activeElement: document.activeElement === inputRef.current ? "FOCUSED" : "NOT FOCUSED",
+              isEditing,
+              isNew,
+              hasRef: !!inputRef.current,
+            });
+          }
+        }, delay);
+      });
+    };
+    
+    focusInput();
+  }, [isEditing, isNew, isExpanded]);
+  
+  // Replace the form submission handler with this version
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      if (text.trim()) {
+        await commentMutation.mutateAsync(text);
+        setIsExpanded(false);
+        setIsHovered(false);
+      } else {
+        inputRef.current?.focus();
+      }
+    } catch (error) {
+      console.error("Comment submission failed:", error);
+      inputRef.current?.focus();
+    }
+  };
+  
+  // In the return JSX, update the form to use the new handler
+  // <form onSubmit={handleSubmit}>
+  
+  // Make sure the input has an autofocus attribute too
+  <Input
+    type="text"
+    value={text}
+    onChange={(e) => setText(e.target.value)}
+    className="flex-1 h-10 px-4 bg-background/80 backdrop-blur-sm border-0 shadow-none rounded-full focus-visible:ring-1 focus-visible:ring-offset-0"
+    placeholder={user ? "Add a comment" : "Please sign in to comment"}
+    readOnly={!user}
+    onClick={(e) => {
+      e.stopPropagation();
+      if (!user) setShowAuthModal(true);
+    }}
+    ref={inputRef}
+    autoFocus={true} // Add this to help with focus
+  />
+}
+
+Then, ensure you're properly passing props from Gallery.tsx:
+
+typescriptCopy{/* New comment placement */}
+{newCommentPos && selectedImage && (
+  <CommentBubble
+    x={newCommentPos.x}
+    y={newCommentPos.y}
+    isNew={true}
+    isExpanded={true} // Explicitly set this to true
+    imageId={Number(selectedImage.id)}
+    replies={[]}
+    onSubmit={() => {
+      setNewCommentPos(null);
+      queryClient.invalidateQueries({
+        queryKey: ["/api/galleries"],
+      });
+    }}
+  />
+)}
+
+Finally, you may need to adjust your Gallery.tsx comment placement logic:
+
+typescriptCopy// When creating a new comment
+onClick={(e) => {
+  if (!isCommentPlacementMode) return;
+  
+  const target = e.currentTarget;
+  const rect = target.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * 100;
+  const y = ((e.clientY - rect.top) / rect.height) * 100;
+  
+  console.log("Setting new comment position", {x, y});
+  
+  // Turn off comment placement mode AFTER setting the position
+  setNewCommentPos({ x, y });
+  setTimeout(() => {
+    setIsCommentPlacementMode(false);
+  }, 10);
+}
+The key improvements here are:
+
+Multiple focus attempts with increasing delays
+Making sure isExpanded and isEditing are properly set for new comments
+Adding autoFocus to the input element
+Using stopPropagation to prevent click events from interfering
+A more robust focus strategy that accounts for browser differences
+
