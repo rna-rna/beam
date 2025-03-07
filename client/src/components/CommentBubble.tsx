@@ -492,28 +492,40 @@ export function CommentBubble({
     }
   });
 
+  // Focus the input field when the component mounts
   useEffect(() => {
-    // Focus the input when component is mounted if it's a new comment or if it's in editing mode
     if (inputRef.current && (isNew || isEditing)) {
-      // Use a longer timeout to ensure the component is fully rendered and animated in
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          console.log("Focusing input field", { isNew, isEditing });
-        }
-      }, 100); // Increased timeout for more reliable focus
+      // Use a sequence of focus attempts with increasing delays
+      const focusAttempts = [0, 50, 150, 300];
+      
+      focusAttempts.forEach(delay => {
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            console.log(`Focusing input field (attempt at ${delay}ms)`, { isNew, isEditing });
+          }
+        }, delay);
+      });
     }
   }, [isNew, isEditing]);
 
-  // Additional effect to re-attempt focus if the component becomes visible/expanded
+  // Additional effect to re-attempt focus when component becomes visible/expanded
   useEffect(() => {
     if (isExpanded && inputRef.current && isEditing) {
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          console.log("Re-focusing on expansion", { isExpanded, isEditing });
-        }
-      }, 50);
+      // Use a sequence of focus attempts with increasing delays
+      const focusAttempts = [0, 50, 150];
+      
+      focusAttempts.forEach(delay => {
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            console.log(`Re-focusing on expansion (attempt at ${delay}ms)`, { isExpanded, isEditing });
+            
+            // Also try to select all text for easier editing
+            inputRef.current.select();
+          }
+        }, delay);
+      });
     }
   }, [isExpanded, isEditing]);
 
@@ -618,6 +630,8 @@ export function CommentBubble({
                     if (!user) setShowAuthModal(true);
                   }}
                   ref={inputRef}
+                  autoFocus={isNew || isEditing}
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
             </form>
