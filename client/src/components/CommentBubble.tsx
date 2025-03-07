@@ -565,28 +565,19 @@ export function CommentBubble({
       }}
     >
       <div className="relative">
-        <TooltipProvider>
-          <Tooltip open={showDragHint && isAuthor && !isEditing && !isDragging}>
-            <TooltipTrigger asChild>
-              <div 
-                className={cn(
-                  "w-6 h-6 rounded-full flex items-center justify-center text-primary-foreground transition-all duration-200",
-                  isAuthor ? "bg-primary cursor-move" : "bg-primary",
-                  isDragging && "scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background"
-                )}
-              >
-                {isAuthor && (showDragHint || isDragging) ? (
-                  <GripHorizontal className="w-4 h-4" />
-                ) : (
-                  <MessageCircle className="w-4 h-4" />
-                )}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p>Drag to reposition your comment</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div 
+            className={cn(
+              "w-6 h-6 rounded-full flex items-center justify-center text-primary-foreground transition-all duration-200",
+              isAuthor ? "bg-primary cursor-move" : "bg-primary",
+              isDragging && "scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background"
+            )}
+          >
+            {isAuthor && (showDragHint || isDragging) ? (
+              <GripHorizontal className="w-4 h-4" />
+            ) : (
+              <MessageCircle className="w-4 h-4" />
+            )}
+          </div>
 
         <Card className={cn(
           "absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px]",
