@@ -318,19 +318,11 @@ export function CommentBubble({
     if (!isAuthor || !containerRef.current || !bubbleRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const bubbleRect = bubbleRef.current.getBoundingClientRect();
-
-    // Center the comment to the mouse cursor by accounting for the bubble's dimensions
-    const offsetX = bubbleRect.width / 2;
-    const offsetY = bubbleRect.height / 2;
-
-    // Calculate adjusted mouse position
-    const mouseX = info.point.x;
-    const mouseY = info.point.y;
-
+    
     // Calculate percentage position relative to the container
-    const newX = ((mouseX - rect.left) / rect.width) * 100;
-    const newY = ((mouseY - rect.top) / rect.height) * 100;
+    // Use the point from the drag info which is the actual position of the drag
+    const newX = ((info.point.x - rect.left) / rect.width) * 100;
+    const newY = ((info.point.y - rect.top) / rect.height) * 100;
 
     // Ensure values are within bounds
     const boundedX = Math.max(0, Math.min(100, newX));
@@ -522,6 +514,7 @@ export function CommentBubble({
         bounceStiffness: 0,
         bounceDamping: 0
       }}
+      dragListener={false} // Disable automatic drag to allow custom control
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onDragEnd={handleDragEnd}

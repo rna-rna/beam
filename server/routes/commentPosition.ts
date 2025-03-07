@@ -74,11 +74,14 @@ router.put('/api/comments/:commentId/position', async (req, res) => {
       });
     }
     
-    // Log position values before update
+    // Log detailed position information before update
     console.log("Updating comment position:", {
       commentId,
       xPosition: x,
       yPosition: y,
+      userId: req.auth?.userId,
+      commentOwner: comment.userId,
+      isOwner: comment.userId === req.auth?.userId,
       timestamp: new Date().toISOString()
     });
     
