@@ -1,18 +1,25 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, SmilePlus, Move, GripHorizontal } from "lucide-react";
+import { MessageCircle, SmilePlus, Move, GripHorizontal, Trash, Edit, MoreVertical } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SignUp } from "@clerk/clerk-react";
-import { motion, PanInfo, useDragControls } from "framer-motion";
+import { motion } from "framer-motion";
 import { EmojiPicker } from "./EmojiPicker";
 import { cn } from "@/lib/utils";
 import { mixpanel } from '@/lib/analytics'; // Added Mixpanel import
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface CommentBubbleProps {
   x: number;
@@ -48,6 +55,7 @@ interface CommentBubbleProps {
   }>;
   parentId?: number | null;
   timestamp?: string;
+  isExpanded?: boolean;
 }
 
 import { Button } from "@/components/ui/button";
@@ -66,7 +74,8 @@ export function CommentBubble({
   onPositionChange,
   parentId = null,
   timestamp,
-  replies = []
+  replies = [],
+  isExpanded: propIsExpanded
 }: CommentBubbleProps) {
 
   const { user } = useUser();
@@ -77,12 +86,12 @@ export function CommentBubble({
   const [isDragging, setIsDragging] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(isNew);
+  const [isExpanded, setIsExpanded] = useState(isNew || propIsExpanded);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [showDragHint, setShowDragHint] = useState(false);
   const containerRef = useRef<Element | null>(null);
-  const dragControls = useDragControls();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Track position locally but initialize from props
   const [position, setPosition] = useState({ x, y });
@@ -93,6 +102,13 @@ export function CommentBubble({
       setPosition({ x, y });
     }
   }, [x, y, isDragging]);
+
+  // Update expanded state if prop changes
+  useEffect(() => {
+    if (propIsExpanded !== undefined) {
+      setIsExpanded(propIsExpanded);
+    }
+  }, [propIsExpanded]);
 
   // Find and store the container reference on mount and when dragging starts
   const findContainer = useCallback(() => {
@@ -134,11 +150,30 @@ export function CommentBubble({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isNew]);
+
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const [localCommentId, setLocalCommentId] = useState<number | null>(null);
+
+  // Wait for container to be fully loaded
+  const [containerReady, setContainerReady] = useState(false);
+  useEffect(() => {
+    const container = findContainer();
+    if (container) {
+      // Create an observer to watch for size changes in the container
+      const resizeObserver = new ResizeObserver(() => {
+        setContainerReady(true);
+      });
+
+      resizeObserver.observe(container);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, [findContainer]);
 
   const commentMutation = useMutation({
     mutationFn: async (commentText: string) => {
@@ -302,7 +337,7 @@ export function CommentBubble({
   });
 
   const handleDragStart = (event: React.PointerEvent) => {
-    if (!isAuthor) return;
+    if (!isAuthor || !containerReady) return;
 
     console.log("Drag start", { isAuthor });
     setIsDragging(true);
@@ -311,29 +346,50 @@ export function CommentBubble({
     containerRef.current = findContainer();
   };
 
-  // We don't need the handleDrag function anymore as we handle that directly in onPointerDown
-  
-  const handleDragEnd = (_e: any, info: PanInfo) => {
-    if (!isAuthor || !containerRef.current) {
+  const handleDrag = (clientX: number, clientY: number) => {
+    if (!isDragging || !containerRef.current) return;
+
+    // Get container dimensions - this is the visible part of the image
+    const rect = containerRef.current.getBoundingClientRect();
+
+    // Calculate new percentage position precisely
+    const newX = ((clientX - rect.left) / rect.width) * 100;
+    const newY = ((clientY - rect.top) / rect.height) * 100;
+
+    // Clamp values between 0 and 100
+    const boundedX = Math.max(0, Math.min(100, newX));
+    const boundedY = Math.max(0, Math.min(100, newY));
+
+    // Update position state immediately
+    setPosition({ x: boundedX, y: boundedY });
+  };
+
+  const handleDragEnd = (clientX: number, clientY: number) => {
+    if (!isAuthor || !containerRef.current || !isDragging) {
       return;
     }
 
+    // Get container dimensions
+    const rect = containerRef.current.getBoundingClientRect();
+
+    // Calculate final percentage position precisely
+    const finalX = ((clientX - rect.left) / rect.width) * 100;
+    const finalY = ((clientY - rect.top) / rect.height) * 100;
+
+    // Clamp values between 0 and 100
+    const boundedX = Math.max(0, Math.min(100, finalX));
+    const boundedY = Math.max(0, Math.min(100, finalY));
+
+    // Update final position state
+    setPosition({ x: boundedX, y: boundedY });
+    setIsDragging(false);
+
+    console.log("Final position after drag:", { x: boundedX, y: boundedY });
+
     try {
-      // Use the position state which has been updated during drag
-      // This ensures we save exactly what the user sees
-      const finalPosition = position;
-
-      console.log("Saving final position:", { 
-        x: finalPosition.x, 
-        y: finalPosition.y, 
-        commentId: id,
-        containerId: containerRef.current.id, 
-        containerClass: containerRef.current.className
-      });
-
       // Notify parent component if available
       if (onPositionChange) {
-        onPositionChange(finalPosition.x, finalPosition.y);
+        onPositionChange(boundedX, boundedY);
       }
 
       // Always update the position on the server if we have an ID and the user is authenticated
@@ -341,8 +397,8 @@ export function CommentBubble({
         // Update position on the server and persist in database
         updatePositionMutation.mutate({ 
           commentId: id,
-          x: finalPosition.x, 
-          y: finalPosition.y 
+          x: boundedX, 
+          y: boundedY 
         });
       } else if (id && !user) {
         // Show toast if user is not authenticated
@@ -355,8 +411,6 @@ export function CommentBubble({
     } catch (error) {
       console.error("Error updating comment position:", error);
     }
-    // Note: We don't set isDragging to false here anymore
-    // It's handled in the pointerup event handler
   };
 
   const [isReplying, setIsReplying] = useState(false);
@@ -446,127 +500,268 @@ export function CommentBubble({
     }
   });
 
+  // Focus the input field when the component mounts
   useEffect(() => {
-    // Focus the input when component is mounted if it's a new comment or if it's in editing mode
     if (inputRef.current && (isNew || isEditing)) {
-      // Use a longer timeout to ensure the component is fully rendered and animated in
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          console.log("Focusing input field", { isNew, isEditing });
-        }
-      }, 100); // Increased timeout for more reliable focus
+      // Use a sequence of focus attempts with increasing delays
+      const focusAttempts = [0, 50, 150, 300];
+      
+      focusAttempts.forEach(delay => {
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            console.log(`Focusing input field (attempt at ${delay}ms)`, { isNew, isEditing });
+          }
+        }, delay);
+      });
     }
   }, [isNew, isEditing]);
 
-  // Additional effect to re-attempt focus if the component becomes visible/expanded
+  // Additional effect to re-attempt focus when component becomes visible/expanded
   useEffect(() => {
     if (isExpanded && inputRef.current && isEditing) {
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          console.log("Re-focusing on expansion", { isExpanded, isEditing });
-        }
-      }, 50);
+      // Use a sequence of focus attempts with increasing delays
+      const focusAttempts = [0, 50, 150];
+      
+      focusAttempts.forEach(delay => {
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            console.log(`Re-focusing on expansion (attempt at ${delay}ms)`, { isExpanded, isEditing });
+            
+            // Also try to select all text for easier editing
+            inputRef.current.select();
+          }
+        }, delay);
+      });
     }
   }, [isExpanded, isEditing]);
 
+  // Add edit comment mutation
+  const editCommentMutation = useMutation({
+    mutationFn: async (newContent: string) => {
+      if (!user || !id) {
+        throw new Error('Must be logged in to edit comment');
+      }
+      
+      if (!newContent.trim()) {
+        throw new Error('Comment content cannot be empty');
+      }
+      
+      const token = await getToken();
+      const response = await fetch(`/api/comments/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ content: newContent.trim() })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to edit comment');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setIsEditing(false);
+      setText(data.data.content);
+      
+      // Update the local cache
+      if (imageId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+      }
+      
+      toast({
+        title: "Success",
+        description: "Comment updated successfully",
+      });
+      
+      // Mixpanel tracking for successful edit
+      if (user) {
+        mixpanel.track("Comment Edited", {
+          imageId: imageId,
+          commentId: id,
+          commentLength: text.length,
+          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to edit comment",
+        variant: "destructive"
+      });
+      
+      // Mixpanel tracking for edit error
+      if (user) {
+        mixpanel.track("Comment Edit Failed", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          imageId: imageId,
+          commentId: id,
+          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+        });
+      }
+    }
+  });
+
+  // Add delete comment mutation
+  const deleteCommentMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !id) {
+        throw new Error('Must be logged in to delete comment');
+      }
+      
+      const token = await getToken();
+      const response = await fetch(`/api/comments/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to delete comment');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Update the local cache
+      if (imageId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+      }
+      
+      toast({
+        title: "Success",
+        description: "Comment deleted successfully",
+      });
+      
+      // Mixpanel tracking for successful deletion
+      if (user) {
+        mixpanel.track("Comment Deleted", {
+          imageId: imageId,
+          commentId: id,
+          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete comment",
+        variant: "destructive"
+      });
+      
+      // Mixpanel tracking for deletion error
+      if (user) {
+        mixpanel.track("Comment Delete Failed", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          imageId: imageId,
+          commentId: id,
+          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+        });
+      }
+    }
+  });
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setIsExpanded(true);
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteCommentMutation.mutate();
+    setShowDeleteConfirm(false);
+  };
+
+  const handleCancelEdit = () => {
+    setText(content || "");
+    setIsEditing(false);
+  };
+
+  const handleSubmitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (text.trim()) {
+      await editCommentMutation.mutateAsync(text);
+    }
+  };
 
   return (
-    <motion.div
+    <div
       ref={bubbleRef}
-      layoutId={`comment-${id}`}
-      className="absolute"
-      onMouseEnter={() => {
-        setIsHovered(true);
-        if (isAuthor && !isDragging) setShowDragHint(true);
-      }}
-      onMouseLeave={() => {
-        if (!isExpanded) setIsHovered(false);
-        setShowDragHint(false);
-      }}
-      onClick={() => setIsExpanded(true)}
-      onPointerDown={(e) => {
-        if (isAuthor) {
-          e.preventDefault();
-          e.stopPropagation();
-          handleDragStart(e);
-          
-          // Set up global event listeners for dragging
-          const handlePointerMove = (moveEvent: PointerEvent) => {
-            if (!isDragging || !containerRef.current) return;
-            
-            // Get container dimensions
-            const rect = containerRef.current.getBoundingClientRect();
-            
-            // Calculate new percentage position
-            const newX = ((moveEvent.clientX - rect.left) / rect.width) * 100;
-            const newY = ((moveEvent.clientY - rect.top) / rect.height) * 100;
-            
-            // Clamp values between 0 and 100
-            const boundedX = Math.max(0, Math.min(100, newX));
-            const boundedY = Math.max(0, Math.min(100, newY));
-            
-            // Update position state
-            setPosition({ x: boundedX, y: boundedY });
-          };
-          
-          const handlePointerUp = (upEvent: PointerEvent) => {
-            // End the drag operation
-            setIsDragging(false);
-            
-            // Clean up event listeners
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
-            
-            // Call handleDragEnd to send position to server
-            if (containerRef.current) {
-              handleDragEnd(upEvent, {
-                point: { x: upEvent.clientX, y: upEvent.clientY },
-                delta: { x: 0, y: 0 },
-                offset: { x: 0, y: 0 },
-                velocity: { x: 0, y: 0 }
-              });
-            }
-          };
-          
-          // Add global event listeners
-          window.addEventListener('pointermove', handlePointerMove);
-          window.addEventListener('pointerup', handlePointerUp);
-        }
-      }}
+      className="absolute" 
       style={{
         left: `${position.x}%`,
         top: `${position.y}%`,
         transform: 'translate(-50%, -50%)',
         zIndex: isDragging ? 1000 : 1,
-        cursor: isAuthor ? (isDragging ? 'grabbing' : 'grab') : 'default',
-        touchAction: 'none'
+        cursor: isAuthor && containerReady ? (isDragging ? 'grabbing' : 'grab') : 'default',
+        touchAction: 'none',
+        // Use CSS transitions for smoother movement that doesn't rely on Framer Motion
+        transition: isDragging ? 'none' : 'left 0.1s ease, top 0.1s ease'
+      }}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        if (isAuthor) setShowDragHint(true);
+      }}
+      onMouseLeave={() => {
+        if (!isExpanded) setIsHovered(false);
+        setShowDragHint(false);
+      }}
+      onClick={(e) => {
+        if (!isDragging) {
+          setIsExpanded(true);
+        }
+      }}
+      onPointerDown={(e) => {
+        if (isAuthor && containerReady) {
+          e.stopPropagation();
+          // Set dragging state immediately
+          setIsDragging(true);
+          handleDragStart(e);
+
+          // Use DOM API directly for better pointer tracking
+          const handlePointerMove = (moveEvent: PointerEvent) => {
+            moveEvent.preventDefault(); // Prevent text selection
+            handleDrag(moveEvent.clientX, moveEvent.clientY);
+          };
+
+          const handlePointerUp = (upEvent: PointerEvent) => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+
+            handleDragEnd(upEvent.clientX, upEvent.clientY);
+          };
+
+          // Add global event listeners
+          window.addEventListener('pointermove', handlePointerMove);
+          window.addEventListener('pointerup', handlePointerUp);
+        }
       }}
     >
       <div className="relative">
-        <TooltipProvider>
-          <Tooltip open={showDragHint && isAuthor && !isEditing && !isDragging}>
-            <TooltipTrigger asChild>
-              <div 
-                className={cn(
-                  "w-6 h-6 rounded-full flex items-center justify-center text-primary-foreground transition-all duration-200",
-                  isAuthor ? "bg-primary cursor-move" : "bg-primary",
-                  isDragging && "scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background"
-                )}
-              >
-                {isAuthor && (showDragHint || isDragging) ? (
-                  <GripHorizontal className="w-4 h-4" />
-                ) : (
-                  <MessageCircle className="w-4 h-4" />
-                )}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p>Drag to reposition your comment</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div 
+            className={cn(
+              "w-6 h-6 rounded-full flex items-center justify-center text-primary-foreground transition-all duration-200",
+              isAuthor ? "bg-primary cursor-move" : "bg-primary",
+              isDragging && "scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background"
+            )}
+          >
+            {isAuthor && (showDragHint || isDragging) ? (
+              <GripHorizontal className="w-4 h-4" />
+            ) : (
+              <MessageCircle className="w-4 h-4" />
+            )}
+          </div>
 
         <Card className={cn(
           "absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px]",
@@ -576,7 +771,7 @@ export function CommentBubble({
           "transition-all duration-200"
         )}>
           {isEditing ? (
-            <form onSubmit={async (e) => {
+            <form onSubmit={isNew ? async (e) => {
               e.preventDefault();
               if (text.trim()) {
                 // Focus the input first to ensure the browser recognizes it as active
@@ -588,7 +783,7 @@ export function CommentBubble({
                 // If empty text, re-focus the input
                 inputRef.current?.focus();
               }
-            }}>
+            } : handleSubmitEdit}>
               <div className="flex items-center gap-2">
                 <UserAvatar
                   size="xs"
@@ -607,8 +802,27 @@ export function CommentBubble({
                     if (!user) setShowAuthModal(true);
                   }}
                   ref={inputRef}
+                  autoFocus={isNew || isEditing}
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
+              {!isNew && (
+                <div className="flex justify-end gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="text-xs text-primary hover:text-primary/80"
+                  >
+                    Save
+                  </button>
+                </div>
+              )}
             </form>
           ) : (
             <div>
@@ -619,15 +833,36 @@ export function CommentBubble({
                   color={author?.color || '#ccc'}
                   size="xs"
                 />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {author?.fullName || author?.username || 'Unknown User'}
-                    </span>
-                    {timestamp && (
-                      <span className="text-xs text-muted-foreground">
-                        {formatRelativeDate(new Date(timestamp))}
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {author?.fullName || author?.username || 'Unknown User'}
                       </span>
+                      {timestamp && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {formatRelativeDate(new Date(timestamp))}
+                        </span>
+                      )}
+                    </div>
+                    {isAuthor && !parentId && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1 rounded-full hover:bg-muted/80">
+                            <MoreVertical className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-32">
+                          <DropdownMenuItem onClick={handleEditClick} className="cursor-pointer">
+                            <Edit className="h-3.5 w-3.5 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleDeleteClick} className="cursor-pointer text-destructive">
+                            <Trash className="h-3.5 w-3.5 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
                   <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{content}</p>
@@ -650,11 +885,6 @@ export function CommentBubble({
                     </button>
                   ))}
                 </div>
-              )}
-              {timestamp && (
-                <span className="text-xs text-muted-foreground mt-1 block">
-                  {formatRelativeDate(new Date(timestamp))}
-                </span>
               )}
               {replies && replies.length > 0 && (
                 <div className="mt-2 space-y-2 border-l-2 border-muted pl-3">
@@ -759,7 +989,25 @@ export function CommentBubble({
           onClose={() => setShowEmojiPicker(false)}
         />
       )}
-    </motion.div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this comment? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
 
