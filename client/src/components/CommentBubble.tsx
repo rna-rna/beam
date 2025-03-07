@@ -318,7 +318,7 @@ export function CommentBubble({
     if (!isAuthor || !containerRef.current || !bubbleRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    
+
     // Calculate percentage position relative to the container
     // Use the point from the drag info which is the actual position of the drag
     const newX = ((info.point.x - rect.left) / rect.width) * 100;
@@ -512,7 +512,9 @@ export function CommentBubble({
         power: 0, 
         timeConstant: 0,
         bounceStiffness: 0,
-        bounceDamping: 0
+        bounceDamping: 0,
+        restDelta: 0.001, // More precise stopping threshold
+        restSpeed: 0.001   // More precise stopping threshold
       }}
       dragListener={false} // Disable automatic drag to allow custom control
       onDragStart={handleDragStart}
