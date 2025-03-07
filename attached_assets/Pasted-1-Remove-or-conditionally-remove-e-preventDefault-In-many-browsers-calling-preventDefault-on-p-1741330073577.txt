@@ -1,0 +1,118 @@
+1. Remove or conditionally remove e.preventDefault()
+In many browsers, calling preventDefault() on pointerdown can cause subsequent pointermove events not to fire in the way you expect—especially if you are also listening at the window level. Try removing the line:
+
+diff
+Copy
+Edit
+onPointerDown={(e) => {
+  if (isAuthor) {
+-   e.preventDefault();
+    e.stopPropagation();
+    handleDragStart(e);
+    // ...
+Or, only call it if you’re certain you need to (for example, to block text selection). Often, you don’t need preventDefault() for a custom drag in modern browsers.
+
+2. Use Pointer Capture (Strongly Recommended)
+Instead of adding global pointermove/pointerup listeners on the window, you can capture the pointer on the bubble itself. That ensures all subsequent pointer events get directed to this element until pointerup, which simplifies the logic. For example:
+
+tsx
+Copy
+Edit
+onPointerDown={(e) => {
+  if (!isAuthor) return;
+
+  // Capture the pointer on this element,
+  // so it will receive pointermove/pointerup
+  // events even if the mouse/finger goes outside.
+  e.currentTarget.setPointerCapture(e.pointerId);
+  
+  setIsDragging(true);
+
+  // Optionally remove preventDefault (see #1)
+  // e.preventDefault();
+  e.stopPropagation();
+
+  // Grab the container ref in case we need it:
+  containerRef.current = findContainer();
+}}
+onPointerMove={(e) => {
+  if (!isDragging || !containerRef.current) return;
+
+  const rect = containerRef.current.getBoundingClientRect();
+  const newX = ((e.clientX - rect.left) / rect.width) * 100;
+  const newY = ((e.clientY - rect.top) / rect.height) * 100;
+  setPosition({
+    x: Math.max(0, Math.min(100, newX)),
+    y: Math.max(0, Math.min(100, newY)),
+  });
+}}
+onPointerUp={(e) => {
+  if (!isDragging) return;
+  e.currentTarget.releasePointerCapture(e.pointerId);
+
+  setIsDragging(false);
+
+  // Persist final position to the server
+  // (use the code you already have in handleDragEnd)
+  handleDragEnd(e, {
+    point: { x: e.clientX, y: e.clientY },
+    delta: { x: 0, y: 0 },
+    offset: { x: 0, y: 0 },
+    velocity: { x: 0, y: 0 },
+  });
+}}
+Key changes:
+
+onPointerDown calls setPointerCapture(e.pointerId), so you don’t need to attach global handlers to window.
+You listen for onPointerMove and onPointerUp on the same element. No need to remove global listeners; React will clean up the handlers automatically when the component unmounts.
+Removing preventDefault() typically allows normal pointer events to flow. If you do need it, just note that in some browsers it can interfere with scrolling or text selection—but it shouldn’t kill your pointer events if you are capturing.
+Putting It All Together
+Here’s a stripped‐down snippet using pointer capture on the bubble itself (instead of hooking pointer events on window):
+
+tsx
+Copy
+Edit
+<motion.div
+  ref={bubbleRef}
+  className="absolute"
+  style={{
+    left: `${position.x}%`,
+    top: `${position.y}%`,
+    transform: "translate(-50%, -50%)",
+    cursor: isAuthor ? (isDragging ? "grabbing" : "grab") : "default",
+    touchAction: "none",
+  }}
+  onPointerDown={(e) => {
+    if (!isAuthor) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setIsDragging(true);
+    e.stopPropagation();
+    containerRef.current = findContainer();
+  }}
+  onPointerMove={(e) => {
+    if (!isDragging || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const newX = ((e.clientX - rect.left) / rect.width) * 100;
+    const newY = ((e.clientY - rect.top) / rect.height) * 100;
+    setPosition({
+      x: Math.max(0, Math.min(100, newX)),
+      y: Math.max(0, Math.min(100, newY)),
+    });
+  }}
+  onPointerUp={(e) => {
+    if (isDragging) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+      setIsDragging(false);
+      // Call the existing handleDragEnd or your mutation:
+      handleDragEnd(e, {
+        point: { x: e.clientX, y: e.clientY },
+        delta: { x: 0, y: 0 },
+        offset: { x: 0, y: 0 },
+        velocity: { x: 0, y: 0 },
+      });
+    }
+  }}
+>
+  {/* ...the rest of your bubble content */}
+</motion.div>
+That’s all you need to get smooth percentage‐based dragging while guaranteeing that once you press down on the bubble, all moves/up events come back to it. That fixes the “pin is no longer draggable” issue.
