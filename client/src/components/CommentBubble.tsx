@@ -221,6 +221,11 @@ export function CommentBubble({
 
       console.log("Sending position update to server:", { commentId, x, y, hasToken: !!token });
 
+      // Ensure token is valid
+      if (!user || !user.id) {
+        throw new Error('User authentication required');
+      }
+
       const response = await fetch(`/api/comments/${commentId}/position`, {
         method: 'PUT',
         headers: {
@@ -229,7 +234,7 @@ export function CommentBubble({
           'Cache-Control': 'no-cache'
         },
         credentials: 'include', // Use 'include' to ensure cookies are sent
-        body: JSON.stringify({ x, y })
+        body: JSON.stringify({ x, y, userId: user.id }) // Include userId explicitly
       });
 
       if (!response.ok) {
