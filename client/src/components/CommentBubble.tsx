@@ -670,11 +670,15 @@ export function CommentBubble({
   });
 
   const handleEditClick = () => {
+    // Prevent any drag operations when clicking edit
+    setIsDragging(false);
     setIsEditing(true);
     setIsExpanded(true);
   };
 
   const handleDeleteClick = () => {
+    // Prevent any drag operations when clicking delete
+    setIsDragging(false);
     setShowDeleteConfirm(true);
   };
 
@@ -848,16 +852,36 @@ export function CommentBubble({
                     {isAuthor && !parentId && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="p-1 rounded-full hover:bg-muted/80">
+                          <button 
+                            className="p-1 rounded-full hover:bg-muted/80"
+                            onClick={(e) => {
+                              // Prevent the event from bubbling up to parent handlers
+                              e.stopPropagation();
+                            }}
+                          >
                             <MoreVertical className="h-3 w-3 text-muted-foreground" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-32">
-                          <DropdownMenuItem onClick={handleEditClick} className="cursor-pointer">
+                        <DropdownMenuContent align="end" className="w-32 z-50">
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              handleEditClick();
+                            }} 
+                            className="cursor-pointer"
+                          >
                             <Edit className="h-3.5 w-3.5 mr-2" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handleDeleteClick} className="cursor-pointer text-destructive">
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              handleDeleteClick();
+                            }} 
+                            className="cursor-pointer text-destructive"
+                          >
                             <Trash className="h-3.5 w-3.5 mr-2" />
                             Delete
                           </DropdownMenuItem>

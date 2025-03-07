@@ -1,0 +1,26 @@
+A second copy of your edit/delete menu is being rendered (likely at default coordinates of 0,0) whenever you click. That extra copy is what flickers and appears in the top‐left corner. Here are the main reasons it happens, and how to fix it:
+
+Why a Second Menu Appears
+Duplicate Rendering Condition
+Somewhere in your code, the same “Edit/Delete” menu logic is triggered twice. One version is anchored where you expect it; the other version has no valid anchor and defaults to the screen’s top‐left, causing flicker.
+
+Framer Motion Re‐Mount
+If you’re using layoutId or other “layout” props on your comment bubble, clicking inside that bubble may trigger a re‐mount. In that brief re‐mount, the menu reappears at (0,0) before snapping to the correct location.
+
+Multiple <ContextMenu> / <DropdownMenu>
+If you’re using shadcn’s <DropdownMenu> or <ContextMenu>, check that you don’t have two sets of <DropdownMenuItem> or <ContextMenuItem> for “Edit” & “Delete.” One might be in a higher‐level parent component, and the other in the bubble itself.
+
+How to Fix It
+Remove Duplicate Menu Logic
+Search for any code that renders the edit/delete UI twice. Possibly you have a snippet in the bubble’s parent and in the bubble itself. Remove the extra one, so you only show one set of edit/delete actions.
+
+Avoid Re‐Mount on Click
+
+If you have layoutId="comment-xyz" or layout on the comment bubble, remove those if they aren’t crucial. They can cause Framer Motion to treat “on click” as a layout transition, which can briefly re‐render your menu at (0,0).
+Check if your bubble unmounts/remounts each time you toggle an “edit mode.” If so, keep it mounted and just conditionally render the input or menu.
+Ensure a Single <DropdownMenu>
+If you’re using shadcn’s “DropdownMenu” or Radix “ContextMenu,” confirm you have only one <DropdownMenu> for each bubble. Sometimes you might have a separate <DropdownMenu> in a parent, so you get an extra one at (0,0).
+
+Anchor the Menu
+If your menu has a positional anchor or reference prop, make sure it’s set every time. A missing anchor can cause the fallback position at the top‐left corner.
+
