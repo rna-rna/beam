@@ -1,0 +1,386 @@
+CommentBubble.tsx:224 
+            
+            
+           PUT https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/api/comments/219/position 401 (Unauthorized)
+mutationFn @ CommentBubble.tsx:224
+await in mutationFn
+fn @ @tanstack_react-query.js?v=8e63fa1f:1189
+run @ @tanstack_react-query.js?v=8e63fa1f:494
+start @ @tanstack_react-query.js?v=8e63fa1f:536
+execute @ @tanstack_react-query.js?v=8e63fa1f:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=8e63fa1f:2630
+(anonymous) @ @tanstack_react-query.js?v=8e63fa1f:3295
+handleDragEnd @ CommentBubble.tsx:367
+(anonymous) @ framer-motion.js?v=8e63fa1f:5539
+triggerCallback @ framer-motion.js?v=8e63fa1f:366
+process @ framer-motion.js?v=8e63fa1f:399
+processBatch @ framer-motion.js?v=8e63fa1f:452
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456Understand this errorAI
+Gallery.tsx:2252 
+            
+            
+           PUT https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/api/comments/219/position 401 (Unauthorized)
+mutationFn @ Gallery.tsx:2252
+await in mutationFn
+fn @ @tanstack_react-query.js?v=8e63fa1f:1189
+run @ @tanstack_react-query.js?v=8e63fa1f:494
+start @ @tanstack_react-query.js?v=8e63fa1f:536
+execute @ @tanstack_react-query.js?v=8e63fa1f:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=8e63fa1f:2630
+(anonymous) @ @tanstack_react-query.js?v=8e63fa1f:3295
+handleCommentPositionChange @ Gallery.tsx:2308
+onPositionChange @ Gallery.tsx:3033
+handleDragEnd @ CommentBubble.tsx:361
+(anonymous) @ framer-motion.js?v=8e63fa1f:5539
+triggerCallback @ framer-motion.js?v=8e63fa1f:366
+process @ framer-motion.js?v=8e63fa1f:399
+processBatch @ framer-motion.js?v=8e63fa1f:452
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456Understand this errorAI
+CommentBubble.tsx:237 Position update failed: {"message":"Authentication required"}
+mutationFn @ CommentBubble.tsx:237
+await in mutationFn
+fn @ @tanstack_react-query.js?v=8e63fa1f:1189
+run @ @tanstack_react-query.js?v=8e63fa1f:494
+start @ @tanstack_react-query.js?v=8e63fa1f:536
+execute @ @tanstack_react-query.js?v=8e63fa1f:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=8e63fa1f:2630
+(anonymous) @ @tanstack_react-query.js?v=8e63fa1f:3295
+handleDragEnd @ CommentBubble.tsx:367
+(anonymous) @ framer-motion.js?v=8e63fa1f:5539
+triggerCallback @ framer-motion.js?v=8e63fa1f:366
+process @ framer-motion.js?v=8e63fa1f:399
+processBatch @ framer-motion.js?v=8e63fa1f:452
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456Understand this errorAI
+CommentBubble.tsx:252 Error updating position: Error: Failed to update position
+    at Object.mutationFn (CommentBubble.tsx:238:15)
+onError @ CommentBubble.tsx:252
+execute @ @tanstack_react-query.js?v=8e63fa1f:1254
+await in execute
+mutate @ @tanstack_react-query.js?v=8e63fa1f:2630
+(anonymous) @ @tanstack_react-query.js?v=8e63fa1f:3295
+handleDragEnd @ CommentBubble.tsx:367
+(anonymous) @ framer-motion.js?v=8e63fa1f:5539
+triggerCallback @ framer-motion.js?v=8e63fa1f:366
+process @ framer-motion.js?v=8e63fa1f:399
+processBatch @ framer-motion.js?v=8e63fa1f:452
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456Understand this errorAI
+Gallery.tsx:2265 Failed to update comment position: {"message":"Authentication required"}
+mutationFn @ Gallery.tsx:2265
+await in mutationFn
+fn @ @tanstack_react-query.js?v=8e63fa1f:1189
+run @ @tanstack_react-query.js?v=8e63fa1f:494
+start @ @tanstack_react-query.js?v=8e63fa1f:536
+execute @ @tanstack_react-query.js?v=8e63fa1f:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=8e63fa1f:2630
+(anonymous) @ @tanstack_react-query.js?v=8e63fa1f:3295
+handleCommentPositionChange @ Gallery.tsx:2308
+onPositionChange @ Gallery.tsx:3033
+handleDragEnd @ CommentBubble.tsx:361
+(anonymous) @ framer-motion.js?v=8e63fa1f:5539
+triggerCallback @ framer-motion.js?v=8e63fa1f:366
+process @ framer-motion.js?v=8e63fa1f:399
+processBatch @ framer-motion.js?v=8e63fa1f:452
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456
+requestAnimationFrame
+processBatch @ framer-motion.js?v=8e63fa1f:456Understand this errorAI
+Gallery.tsx:2283 Error updating comment position: Error: Failed to update comment position
+    at Object.mutationFn (Gallery.tsx:2266:15)
