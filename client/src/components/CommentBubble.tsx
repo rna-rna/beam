@@ -676,11 +676,6 @@ export function CommentBubble({
                   ))}
                 </div>
               )}
-              {timestamp && (
-                <span className="text-xs text-muted-foreground mt-1 block">
-                  {formatRelativeDate(new Date(timestamp))}
-                </span>
-              )}
               {replies && replies.length > 0 && (
                 <div className="mt-2 space-y-2 border-l-2 border-muted pl-3">
                   {replies.map((reply) => (
