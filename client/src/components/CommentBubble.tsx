@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, SmilePlus, Move, GripHorizontal } from "lucide-react";
+import { MessageCircle, SmilePlus, Move, GripHorizontal, Trash, Edit, MoreVertical } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,13 @@ import { EmojiPicker } from "./EmojiPicker";
 import { cn } from "@/lib/utils";
 import { mixpanel } from '@/lib/analytics'; // Added Mixpanel import
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface CommentBubbleProps {
   x: number;
@@ -84,6 +91,7 @@ export function CommentBubble({
   const inputRef = useRef<HTMLInputElement>(null);
   const [showDragHint, setShowDragHint] = useState(false);
   const containerRef = useRef<Element | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Track position locally but initialize from props
   const [position, setPosition] = useState({ x, y });
@@ -529,6 +537,164 @@ export function CommentBubble({
     }
   }, [isExpanded, isEditing]);
 
+  // Add edit comment mutation
+  const editCommentMutation = useMutation({
+    mutationFn: async (newContent: string) => {
+      if (!user || !id) {
+        throw new Error('Must be logged in to edit comment');
+      }
+      
+      if (!newContent.trim()) {
+        throw new Error('Comment content cannot be empty');
+      }
+      
+      const token = await getToken();
+      const response = await fetch(`/api/comments/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ content: newContent.trim() })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to edit comment');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setIsEditing(false);
+      setText(data.data.content);
+      
+      // Update the local cache
+      if (imageId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+      }
+      
+      toast({
+        title: "Success",
+        description: "Comment updated successfully",
+      });
+      
+      // Mixpanel tracking for successful edit
+      if (user) {
+        mixpanel.track("Comment Edited", {
+          imageId: imageId,
+          commentId: id,
+          commentLength: text.length,
+          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to edit comment",
+        variant: "destructive"
+      });
+      
+      // Mixpanel tracking for edit error
+      if (user) {
+        mixpanel.track("Comment Edit Failed", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          imageId: imageId,
+          commentId: id,
+          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+        });
+      }
+    }
+  });
+
+  // Add delete comment mutation
+  const deleteCommentMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !id) {
+        throw new Error('Must be logged in to delete comment');
+      }
+      
+      const token = await getToken();
+      const response = await fetch(`/api/comments/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to delete comment');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Update the local cache
+      if (imageId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+      }
+      
+      toast({
+        title: "Success",
+        description: "Comment deleted successfully",
+      });
+      
+      // Mixpanel tracking for successful deletion
+      if (user) {
+        mixpanel.track("Comment Deleted", {
+          imageId: imageId,
+          commentId: id,
+          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete comment",
+        variant: "destructive"
+      });
+      
+      // Mixpanel tracking for deletion error
+      if (user) {
+        mixpanel.track("Comment Delete Failed", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          imageId: imageId,
+          commentId: id,
+          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+        });
+      }
+    }
+  });
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setIsExpanded(true);
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteCommentMutation.mutate();
+    setShowDeleteConfirm(false);
+  };
+
+  const handleCancelEdit = () => {
+    setText(content || "");
+    setIsEditing(false);
+  };
+
+  const handleSubmitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (text.trim()) {
+      await editCommentMutation.mutateAsync(text);
+    }
+  };
+
   return (
     <div
       ref={bubbleRef}
@@ -605,7 +771,7 @@ export function CommentBubble({
           "transition-all duration-200"
         )}>
           {isEditing ? (
-            <form onSubmit={async (e) => {
+            <form onSubmit={isNew ? async (e) => {
               e.preventDefault();
               if (text.trim()) {
                 // Focus the input first to ensure the browser recognizes it as active
@@ -617,7 +783,7 @@ export function CommentBubble({
                 // If empty text, re-focus the input
                 inputRef.current?.focus();
               }
-            }}>
+            } : handleSubmitEdit}>
               <div className="flex items-center gap-2">
                 <UserAvatar
                   size="xs"
@@ -640,6 +806,23 @@ export function CommentBubble({
                   onFocus={(e) => e.target.select()}
                 />
               </div>
+              {!isNew && (
+                <div className="flex justify-end gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="text-xs text-primary hover:text-primary/80"
+                  >
+                    Save
+                  </button>
+                </div>
+              )}
             </form>
           ) : (
             <div>
@@ -650,15 +833,36 @@ export function CommentBubble({
                   color={author?.color || '#ccc'}
                   size="xs"
                 />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {author?.fullName || author?.username || 'Unknown User'}
-                    </span>
-                    {timestamp && (
-                      <span className="text-xs text-muted-foreground">
-                        {formatRelativeDate(new Date(timestamp))}
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {author?.fullName || author?.username || 'Unknown User'}
                       </span>
+                      {timestamp && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {formatRelativeDate(new Date(timestamp))}
+                        </span>
+                      )}
+                    </div>
+                    {isAuthor && !parentId && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1 rounded-full hover:bg-muted/80">
+                            <MoreVertical className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-32">
+                          <DropdownMenuItem onClick={handleEditClick} className="cursor-pointer">
+                            <Edit className="h-3.5 w-3.5 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleDeleteClick} className="cursor-pointer text-destructive">
+                            <Trash className="h-3.5 w-3.5 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
                   <p className="text-sm text-foreground whitespace-pre-wrap mt-1">{content}</p>
@@ -785,6 +989,24 @@ export function CommentBubble({
           onClose={() => setShowEmojiPicker(false)}
         />
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this comment? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
