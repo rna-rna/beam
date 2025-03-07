@@ -2239,6 +2239,70 @@ export default function Gallery({
     onHeaderActionsChange?.(controls);
   }, [onHeaderActionsChange, renderGalleryControls]);
 
+  // Add a mutation for updating comment positions
+  const updateCommentPositionMutation = useMutation({
+    mutationFn: async ({ commentId, x, y }: { commentId: number, x: number, y: number }) => {
+      const token = await getToken();
+      if (!token) {
+        throw new Error('Authentication failed');
+      }
+      
+      console.log("Sending position update to server:", { commentId, x, y });
+      
+      const response = await fetch(`/api/comments/${commentId}/position`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ x, y })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to update comment position:", errorText);
+        throw new Error('Failed to update comment position');
+      }
+      
+      const data = await response.json();
+      console.log("Position update response:", data);
+      return data;
+    },
+    onSuccess: (data) => {
+      console.log("Comment position updated successfully:", data);
+      // Invalidate comments query to refresh the UI
+      if (selectedImage?.id) {
+        queryClient.invalidateQueries({ queryKey: [`/api/images/${selectedImage.id}/comments`] });
+      }
+    },
+    onError: (error) => {
+      console.error("Error updating comment position:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update comment position",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Handler for comment position changes
+  const handleCommentPositionChange = (commentId: number, x: number, y: number) => {
+    console.log("Comment position change in Gallery:", { commentId, x, y });
+    
+    // Update the local state of comments to reflect the new position immediately
+    // This provides immediate visual feedback before the server responds
+    setComments(prevComments => 
+      prevComments.map(comment => 
+        comment.id === commentId 
+          ? { ...comment, xPosition: x, yPosition: y } 
+          : comment
+      )
+    );
+    
+    // Call the mutation to update the position on the server
+    updateCommentPositionMutation.mutate({ commentId, x, y });
+  };
+
   if (isPrivateGallery) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background p-4">
@@ -2473,11 +2537,8 @@ export default function Gallery({
                   <Masonry
                     ref={masonryRef}
                     breakpointCols={breakpointCols}
-                    className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid"
-                    columnClassName={cn(
-                      "pl-4",
-                      isDark ? "bg-black/90" : "bg-background",
-                    )}
+                    className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid gallery-container"
+                    columnClassName="pl-4 bg-transparent"
                   >
                     {(() => {
                       const allImages = [...images];
@@ -2519,7 +2580,7 @@ export default function Gallery({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="grid gap-4"
+                  className="grid gap-4 gallery-container"
                   style={{
                     gridTemplateColumns: `repeat(${breakpointCols.default}, minmax(0, 1fr))`,
                   }}
@@ -2837,7 +2898,7 @@ export default function Gallery({
                     }}
                   >
                     <div
-                      className="w-full h-full flex items-center justify-center"
+                      className="w-full h-full flex items-center justify-center gallery-container"
                       style={{
                         position: "relative",
                         width: "100%",
@@ -2948,10 +3009,12 @@ export default function Gallery({
                           console.log('Rendering CommentBubble:', {
                             commentId: comment.id,
                             parentId: comment.parentId,
-                            imageId: selectedImage.id
+                            imageId: selectedImage.id,
+                            isAuthor: user?.id === comment.author.id
                           });
                           return (
-                            <CommentBubble                              key={comment.id}
+                            <CommentBubble
+                              key={comment.id}
                               id={comment.id}
                               x={comment.xPosition}
                               y={comment.yPosition}
@@ -2960,6 +3023,9 @@ export default function Gallery({
                               imageId={Number(selectedImage.id)}
                               replies={comment.replies || []}
                               parentId={comment.parentId}
+                              timestamp={comment.createdAt}
+                              reactions={comment.reactions || []}
+                              onPositionChange={(x, y) => handleCommentPositionChange(comment.id, x, y)}
                             />
                           );
                         })}
