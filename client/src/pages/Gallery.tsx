@@ -2253,8 +2253,10 @@ export default function Gallery({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache'
         },
+        credentials: 'include', // Ensure cookies are sent with the request
         body: JSON.stringify({ x, y })
       });
 

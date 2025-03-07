@@ -9,12 +9,23 @@ const router = Router();
 // Update comment position endpoint
 router.put('/api/comments/:commentId/position', async (req, res) => {
   try {
-    console.log("Comment position update request:", { params: req.params, body: req.body });
+    console.log("Comment position update request:", { 
+      params: req.params, 
+      body: req.body,
+      authHeader: !!req.headers.authorization,
+      hasAuth: !!req.auth,
+      userId: req.auth?.userId
+    });
     
     const commentId = parseInt(req.params.commentId);
     const { x, y } = req.body;
     
     if (!req.auth?.userId) {
+      console.error("Authentication missing for comment position update", {
+        headers: Object.keys(req.headers),
+        cookies: req.headers.cookie ? 'present' : 'missing',
+        authHeader: req.headers.authorization
+      });
       return res.status(401).json({ message: 'Authentication required' });
     }
     

@@ -228,7 +228,7 @@ export function CommentBubble({
           'Authorization': `Bearer ${token}`,
           'Cache-Control': 'no-cache'
         },
-        credentials: 'same-origin', // Use same-origin for more reliable auth handling
+        credentials: 'include', // Use 'include' to ensure cookies are sent
         body: JSON.stringify({ x, y })
       });
 
