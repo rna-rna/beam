@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SignUp } from "@clerk/clerk-react";
-import { motion, PanInfo, useDragControls } from "framer-motion";
+import { motion } from "framer-motion";
 import { EmojiPicker } from "./EmojiPicker";
 import { cn } from "@/lib/utils";
 import { mixpanel } from '@/lib/analytics'; // Added Mixpanel import
@@ -48,6 +48,7 @@ interface CommentBubbleProps {
   }>;
   parentId?: number | null;
   timestamp?: string;
+  isExpanded?: boolean;
 }
 
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,8 @@ export function CommentBubble({
   onPositionChange,
   parentId = null,
   timestamp,
-  replies = []
+  replies = [],
+  isExpanded: propIsExpanded
 }: CommentBubbleProps) {
 
   const { user } = useUser();
@@ -77,12 +79,11 @@ export function CommentBubble({
   const [isDragging, setIsDragging] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(isNew);
+  const [isExpanded, setIsExpanded] = useState(isNew || propIsExpanded);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [showDragHint, setShowDragHint] = useState(false);
   const containerRef = useRef<Element | null>(null);
-  const dragControls = useDragControls();
 
   // Track position locally but initialize from props
   const [position, setPosition] = useState({ x, y });
@@ -93,6 +94,13 @@ export function CommentBubble({
       setPosition({ x, y });
     }
   }, [x, y, isDragging]);
+
+  // Update expanded state if prop changes
+  useEffect(() => {
+    if (propIsExpanded !== undefined) {
+      setIsExpanded(propIsExpanded);
+    }
+  }, [propIsExpanded]);
 
   // Find and store the container reference on mount and when dragging starts
   const findContainer = useCallback(() => {
@@ -134,11 +142,30 @@ export function CommentBubble({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isNew]);
+
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const [localCommentId, setLocalCommentId] = useState<number | null>(null);
+
+  // Wait for container to be fully loaded
+  const [containerReady, setContainerReady] = useState(false);
+  useEffect(() => {
+    const container = findContainer();
+    if (container) {
+      // Create an observer to watch for size changes in the container
+      const resizeObserver = new ResizeObserver(() => {
+        setContainerReady(true);
+      });
+
+      resizeObserver.observe(container);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, [findContainer]);
 
   const commentMutation = useMutation({
     mutationFn: async (commentText: string) => {
@@ -302,7 +329,7 @@ export function CommentBubble({
   });
 
   const handleDragStart = (event: React.PointerEvent) => {
-    if (!isAuthor) return;
+    if (!isAuthor || !containerReady) return;
 
     console.log("Drag start", { isAuthor });
     setIsDragging(true);
@@ -311,29 +338,50 @@ export function CommentBubble({
     containerRef.current = findContainer();
   };
 
-  // We don't need the handleDrag function anymore as we handle that directly in onPointerDown
-  
-  const handleDragEnd = (_e: any, info: PanInfo) => {
-    if (!isAuthor || !containerRef.current) {
+  const handleDrag = (clientX: number, clientY: number) => {
+    if (!isDragging || !containerRef.current) return;
+
+    // Get container dimensions - this is the visible part of the image
+    const rect = containerRef.current.getBoundingClientRect();
+
+    // Calculate new percentage position precisely
+    const newX = ((clientX - rect.left) / rect.width) * 100;
+    const newY = ((clientY - rect.top) / rect.height) * 100;
+
+    // Clamp values between 0 and 100
+    const boundedX = Math.max(0, Math.min(100, newX));
+    const boundedY = Math.max(0, Math.min(100, newY));
+
+    // Update position state immediately
+    setPosition({ x: boundedX, y: boundedY });
+  };
+
+  const handleDragEnd = (clientX: number, clientY: number) => {
+    if (!isAuthor || !containerRef.current || !isDragging) {
       return;
     }
 
+    // Get container dimensions
+    const rect = containerRef.current.getBoundingClientRect();
+
+    // Calculate final percentage position precisely
+    const finalX = ((clientX - rect.left) / rect.width) * 100;
+    const finalY = ((clientY - rect.top) / rect.height) * 100;
+
+    // Clamp values between 0 and 100
+    const boundedX = Math.max(0, Math.min(100, finalX));
+    const boundedY = Math.max(0, Math.min(100, finalY));
+
+    // Update final position state
+    setPosition({ x: boundedX, y: boundedY });
+    setIsDragging(false);
+
+    console.log("Final position after drag:", { x: boundedX, y: boundedY });
+
     try {
-      // Use the position state which has been updated during drag
-      // This ensures we save exactly what the user sees
-      const finalPosition = position;
-
-      console.log("Saving final position:", { 
-        x: finalPosition.x, 
-        y: finalPosition.y, 
-        commentId: id,
-        containerId: containerRef.current.id, 
-        containerClass: containerRef.current.className
-      });
-
       // Notify parent component if available
       if (onPositionChange) {
-        onPositionChange(finalPosition.x, finalPosition.y);
+        onPositionChange(boundedX, boundedY);
       }
 
       // Always update the position on the server if we have an ID and the user is authenticated
@@ -341,8 +389,8 @@ export function CommentBubble({
         // Update position on the server and persist in database
         updatePositionMutation.mutate({ 
           commentId: id,
-          x: finalPosition.x, 
-          y: finalPosition.y 
+          x: boundedX, 
+          y: boundedY 
         });
       } else if (id && !user) {
         // Show toast if user is not authenticated
@@ -355,8 +403,6 @@ export function CommentBubble({
     } catch (error) {
       console.error("Error updating comment position:", error);
     }
-    // Note: We don't set isDragging to false here anymore
-    // It's handled in the pointerup event handler
   };
 
   const [isReplying, setIsReplying] = useState(false);
@@ -471,12 +517,20 @@ export function CommentBubble({
     }
   }, [isExpanded, isEditing]);
 
-
   return (
-    <motion.div
+    <div
       ref={bubbleRef}
-      layoutId={`comment-${id}`}
-      className="absolute"
+      className="absolute" 
+      style={{
+        left: `${position.x}%`,
+        top: `${position.y}%`,
+        transform: 'translate(-50%, -50%)',
+        zIndex: isDragging ? 1000 : 1,
+        cursor: isAuthor && containerReady ? (isDragging ? 'grabbing' : 'grab') : 'default',
+        touchAction: 'none',
+        // Use CSS transitions for smoother movement that doesn't rely on Framer Motion
+        transition: isDragging ? 'none' : 'left 0.1s ease, top 0.1s ease'
+      }}
       onMouseEnter={() => {
         setIsHovered(true);
         if (isAuthor && !isDragging) setShowDragHint(true);
@@ -487,59 +541,27 @@ export function CommentBubble({
       }}
       onClick={() => setIsExpanded(true)}
       onPointerDown={(e) => {
-        if (isAuthor) {
-          // Use pointer capture instead of global listeners
-          e.currentTarget.setPointerCapture(e.pointerId);
-          e.stopPropagation(); // Keep stopPropagation to prevent parent handlers
+        if (isAuthor && containerReady) {
+          e.stopPropagation();
           handleDragStart(e);
-          
-          // Get the container reference for dragging calculations
-          containerRef.current = findContainer();
+
+          // Use DOM API directly for better pointer tracking
+          const handlePointerMove = (moveEvent: PointerEvent) => {
+            moveEvent.preventDefault(); // Prevent text selection
+            handleDrag(moveEvent.clientX, moveEvent.clientY);
+          };
+
+          const handlePointerUp = (upEvent: PointerEvent) => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+
+            handleDragEnd(upEvent.clientX, upEvent.clientY);
+          };
+
+          // Add global event listeners
+          window.addEventListener('pointermove', handlePointerMove);
+          window.addEventListener('pointerup', handlePointerUp);
         }
-      }}
-      onPointerMove={(e) => {
-        if (!isAuthor || !isDragging || !containerRef.current) return;
-        
-        // Get container dimensions
-        const rect = containerRef.current.getBoundingClientRect();
-        
-        // Calculate new percentage position
-        const newX = ((e.clientX - rect.left) / rect.width) * 100;
-        const newY = ((e.clientY - rect.top) / rect.height) * 100;
-        
-        // Clamp values between 0 and 100
-        const boundedX = Math.max(0, Math.min(100, newX));
-        const boundedY = Math.max(0, Math.min(100, newY));
-        
-        // Update position state
-        setPosition({ x: boundedX, y: boundedY });
-      }}
-      onPointerUp={(e) => {
-        if (!isAuthor || !isDragging) return;
-        
-        // Release the pointer capture
-        e.currentTarget.releasePointerCapture(e.pointerId);
-        
-        // End the drag operation
-        setIsDragging(false);
-        
-        // Call handleDragEnd to send position to server
-        if (containerRef.current) {
-          handleDragEnd(e, {
-            point: { x: e.clientX, y: e.clientY },
-            delta: { x: 0, y: 0 },
-            offset: { x: 0, y: 0 },
-            velocity: { x: 0, y: 0 }
-          });
-        }
-      }}
-      style={{
-        left: `${position.x}%`,
-        top: `${position.y}%`,
-        transform: 'translate(-50%, -50%)',
-        zIndex: isDragging ? 1000 : 1,
-        cursor: isAuthor ? (isDragging ? 'grabbing' : 'grab') : 'default',
-        touchAction: 'none'
       }}
     >
       <div className="relative">
@@ -757,7 +779,7 @@ export function CommentBubble({
           onClose={() => setShowEmojiPicker(false)}
         />
       )}
-    </motion.div>
+    </div>
   );
 }
 
