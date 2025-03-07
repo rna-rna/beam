@@ -83,10 +83,10 @@ export function CommentBubble({
   const [showDragHint, setShowDragHint] = useState(false);
   const containerRef = useRef<Element | null>(null);
   const dragControls = useDragControls();
-  
+
   // Track position locally but initialize from props
   const [position, setPosition] = useState({ x, y });
-  
+
   // Update local position when props change (but not during dragging)
   useEffect(() => {
     if (!isDragging) {
@@ -97,15 +97,15 @@ export function CommentBubble({
   // Find and store the container reference on mount and when dragging starts
   const findContainer = useCallback(() => {
     if (!bubbleRef.current) return null;
-    
+
     // Find the closest parent with gallery-container class
     const container = bubbleRef.current.closest('.gallery-container') || 
                       bubbleRef.current.closest('.lightbox-img-container');
-    
+
     if (container) {
       return container;
     }
-    
+
     // Fallback to any gallery container in the document
     return document.querySelector('.gallery-container') || 
            document.querySelector('.lightbox-img-container') || 
@@ -211,18 +211,24 @@ export function CommentBubble({
   });
 
   const updatePositionMutation = useMutation({
-    mutationFn: async ({ x, y, commentId = id }: { x: number, y: number, commentId?: number }) => {
+    mutationFn: async ({ commentId = id, x, y }: { x: number, y: number, commentId?: number }) => {
       if (!commentId) throw new Error('Comment ID is required');
-      
+
       const token = await getToken();
-      console.log("Sending position update to server:", { commentId, x, y });
-      
+      if (!token) {
+        throw new Error('Authentication token not available');
+      }
+
+      console.log("Sending position update to server:", { commentId, x, y, hasToken: !!token });
+
       const response = await fetch(`/api/comments/${commentId}/position`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache'
         },
+        credentials: 'include',
         body: JSON.stringify({ x, y })
       });
 
@@ -231,7 +237,7 @@ export function CommentBubble({
         console.error("Position update failed:", errorText);
         throw new Error('Failed to update position');
       }
-      
+
       const result = await response.json();
       console.log("Position update success:", result);
       return result;
@@ -292,56 +298,56 @@ export function CommentBubble({
 
   const handleDragStart = (event: React.PointerEvent) => {
     if (!isAuthor) return;
-    
+
     console.log("Drag start", { isAuthor });
     setIsDragging(true);
-    
+
     // Start the drag with the controls
     dragControls.start(event);
-    
+
     // Update container reference when drag starts
     containerRef.current = findContainer();
   };
 
   const handleDrag = (_e: any, info: PanInfo) => {
     if (!isAuthor || !containerRef.current || !bubbleRef.current) return;
-    
+
     const rect = containerRef.current.getBoundingClientRect();
     const bubbleRect = bubbleRef.current.getBoundingClientRect();
-    
+
     // Center the comment to the mouse cursor by accounting for the bubble's dimensions
     const offsetX = bubbleRect.width / 2;
     const offsetY = bubbleRect.height / 2;
-    
+
     // Calculate adjusted mouse position
     const mouseX = info.point.x;
     const mouseY = info.point.y;
-    
+
     // Calculate percentage position relative to the container
     const newX = ((mouseX - rect.left) / rect.width) * 100;
     const newY = ((mouseY - rect.top) / rect.height) * 100;
-    
+
     // Ensure values are within bounds
     const boundedX = Math.max(0, Math.min(100, newX));
     const boundedY = Math.max(0, Math.min(100, newY));
-    
+
     // Update local state for immediate feedback
     setPosition({ x: boundedX, y: boundedY });
   };
 
   const handleDragEnd = (_e: any, info: PanInfo) => {
     console.log("Drag end detected", { isAuthor, info });
-    
+
     if (!isAuthor || !containerRef.current) {
       setIsDragging(false);
       return;
     }
-    
+
     try {
       // Use the position state which has been updated during drag
       // This ensures we save exactly what the user sees
       const finalPosition = position;
-      
+
       console.log("Saving final position:", { 
         x: finalPosition.x, 
         y: finalPosition.y, 
@@ -349,12 +355,12 @@ export function CommentBubble({
         containerId: containerRef.current.id, 
         containerClass: containerRef.current.className
       });
-      
+
       // Notify parent component if available
       if (onPositionChange) {
         onPositionChange(finalPosition.x, finalPosition.y);
       }
-      
+
       // Always update the position on the server if we have an ID
       if (id) {
         // Update position on the server and persist in database
