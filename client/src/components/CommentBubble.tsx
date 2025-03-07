@@ -210,22 +210,44 @@ export function CommentBubble({
   });
 
   const updatePositionMutation = useMutation({
-    mutationFn: async ({ newX, newY }: { newX: number, newY: number }) => {
+    mutationFn: async ({ x, y, commentId = id }: { x: number, y: number, commentId?: number }) => {
+      if (!commentId) throw new Error('Comment ID is required');
+      
       const token = await getToken();
-      const response = await fetch(`/api/comments/${id}/position`, {
+      console.log("Sending position update to server:", { commentId, x, y });
+      
+      const response = await fetch(`/api/comments/${commentId}/position`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ x: newX, y: newY })
+        body: JSON.stringify({ x, y })
       });
 
-      if (!response.ok) throw new Error('Failed to update position');
-      return response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Position update failed:", errorText);
+        throw new Error('Failed to update position');
+      }
+      
+      const result = await response.json();
+      console.log("Position update success:", result);
+      return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+    onSuccess: (data) => {
+      console.log("Position updated successfully:", data);
+      if (imageId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+      }
+    },
+    onError: (error) => {
+      console.error("Error updating position:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save comment position",
+        variant: "destructive"
+      });
     }
   });
 
@@ -297,7 +319,7 @@ export function CommentBubble({
   const handleDragEnd = (_e: any, info: PanInfo) => {
     console.log("Drag end detected", { isAuthor, info });
     
-    if (!isAuthor || !onPositionChange || !containerRef.current) {
+    if (!isAuthor || !containerRef.current) {
       setIsDragging(false);
       return;
     }
@@ -309,33 +331,35 @@ export function CommentBubble({
       const newX = ((info.point.x - rect.left) / rect.width) * 100;
       const newY = ((info.point.y - rect.top) / rect.height) * 100;
       
-      console.log("Updating position", { 
-        newX, 
-        newY, 
-        containerId: containerRef.current.id, 
-        containerClass: containerRef.current.className,
-        containerRect: {
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-          height: rect.height
-        },
-        point: info.point
-      });
-      
       // Ensure values are within bounds
       const boundedX = Math.max(0, Math.min(100, newX));
       const boundedY = Math.max(0, Math.min(100, newY));
       
+      console.log("Calculated position update:", { 
+        boundedX, 
+        boundedY, 
+        comment: id,
+        containerId: containerRef.current.id, 
+        containerClass: containerRef.current.className,
+        point: info.point
+      });
+      
       // Update local state for immediate feedback
       setPosition({ x: boundedX, y: boundedY });
       
-      // Notify parent component
-      onPositionChange(boundedX, boundedY);
+      // Notify parent component if available
+      if (onPositionChange) {
+        onPositionChange(boundedX, boundedY);
+      }
       
-      // Only call the mutation if we have an ID (not a new comment)
+      // Always update the position on the server if we have an ID
       if (id) {
-        updatePositionMutation.mutate({ newX: boundedX, newY: boundedY });
+        // Use the updatePositionMutation directly to avoid potential issues with parent component handling
+        updatePositionMutation.mutate({ 
+          commentId: id,
+          x: boundedX, 
+          y: boundedY 
+        });
       }
     } catch (error) {
       console.error("Error updating comment position:", error);
@@ -462,11 +486,18 @@ export function CommentBubble({
       ref={bubbleRef}
       drag={isAuthor}
       dragMomentum={false}
-      dragElastic={0}
+      dragElastic={0.1}
+      dragConstraints={{
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0
+      }}
       dragTransition={{ 
         power: 0, 
         timeConstant: 0,
-        modifyTarget: (target) => target // Ensure direct cursor following
+        bounceStiffness: 600,
+        bounceDamping: 10
       }}
       onDragStart={handleDragStart}
       onDrag={handleDrag}

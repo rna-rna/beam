@@ -40,6 +40,14 @@ router.put('/api/comments/:commentId/position', async (req, res) => {
       });
     }
     
+    // Log position values before update
+    console.log("Updating comment position:", {
+      commentId,
+      xPosition: x,
+      yPosition: y,
+      timestamp: new Date().toISOString()
+    });
+    
     // Update the comment position
     await db.update(comments)
       .set({ 
@@ -48,6 +56,17 @@ router.put('/api/comments/:commentId/position', async (req, res) => {
         updatedAt: new Date()
       })
       .where(eq(comments.id, commentId));
+      
+    // Verify the update was successful
+    const updatedComment = await db.query.comments.findFirst({
+      where: eq(comments.id, commentId)
+    });
+    
+    console.log("Comment position after update:", {
+      commentId,
+      xPosition: updatedComment?.xPosition,
+      yPosition: updatedComment?.yPosition
+    });
     
     // Notify clients about the position update
     if (comment.imageId) {
