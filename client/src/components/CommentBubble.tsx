@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SignUp } from "@clerk/clerk-react";
-import { motion, PanInfo } from "framer-motion";
+import { motion, PanInfo, useDragControls } from "framer-motion";
 import { EmojiPicker } from "./EmojiPicker";
 import { cn } from "@/lib/utils";
 import { mixpanel } from '@/lib/analytics'; // Added Mixpanel import
@@ -82,6 +82,7 @@ export function CommentBubble({
   const inputRef = useRef<HTMLInputElement>(null);
   const [showDragHint, setShowDragHint] = useState(false);
   const containerRef = useRef<Element | null>(null);
+  const dragControls = useDragControls();
   
   // Track position locally but initialize from props
   const [position, setPosition] = useState({ x, y });
@@ -289,11 +290,14 @@ export function CommentBubble({
     }
   });
 
-  const handleDragStart = () => {
+  const handleDragStart = (event: React.PointerEvent) => {
     if (!isAuthor) return;
     
     console.log("Drag start", { isAuthor });
     setIsDragging(true);
+    
+    // Start the drag with the controls
+    dragControls.start(event);
     
     // Update container reference when drag starts
     containerRef.current = findContainer();
@@ -486,7 +490,7 @@ export function CommentBubble({
       drag={isAuthor}
       dragMomentum={false}
       dragElastic={0}
-      dragControls
+      dragControls={dragControls}
       layoutId={`comment-${id}`} 
       dragConstraints={containerRef.current ? {
         top: 0,
@@ -506,7 +510,10 @@ export function CommentBubble({
       className="absolute"
       onMouseEnter={() => {
         setIsHovered(true);
-        if (isAuthor) setShowDragHint(true);
+        if (isAuthor && !isDragging) setShowDragHint(true);
+      }}
+      onPointerDown={(e) => {
+        if (isAuthor) handleDragStart(e);
       }}
       onMouseLeave={() => {
         if (!isExpanded) setIsHovered(false);
