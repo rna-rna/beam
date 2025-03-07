@@ -304,9 +304,13 @@ export function CommentBubble({
     
     const rect = containerRef.current.getBoundingClientRect();
     
+    // Get current mouse position
+    const mouseX = info.point.x;
+    const mouseY = info.point.y;
+    
     // Calculate percentage position relative to the container
-    const newX = ((info.point.x - rect.left) / rect.width) * 100;
-    const newY = ((info.point.y - rect.top) / rect.height) * 100;
+    const newX = ((mouseX - rect.left) / rect.width) * 100;
+    const newY = ((mouseY - rect.top) / rect.height) * 100;
     
     // Ensure values are within bounds
     const boundedX = Math.max(0, Math.min(100, newX));
@@ -327,9 +331,13 @@ export function CommentBubble({
     try {
       const rect = containerRef.current.getBoundingClientRect();
       
+      // Get current mouse position
+      const mouseX = info.point.x;
+      const mouseY = info.point.y;
+      
       // Calculate percentage position relative to the container
-      const newX = ((info.point.x - rect.left) / rect.width) * 100;
-      const newY = ((info.point.y - rect.top) / rect.height) * 100;
+      const newX = ((mouseX - rect.left) / rect.width) * 100;
+      const newY = ((mouseY - rect.top) / rect.height) * 100;
       
       // Ensure values are within bounds
       const boundedX = Math.max(0, Math.min(100, newX));
@@ -354,7 +362,7 @@ export function CommentBubble({
       
       // Always update the position on the server if we have an ID
       if (id) {
-        // Use the updatePositionMutation directly to avoid potential issues with parent component handling
+        // Update position on the server and persist in database
         updatePositionMutation.mutate({ 
           commentId: id,
           x: boundedX, 
@@ -486,18 +494,18 @@ export function CommentBubble({
       ref={bubbleRef}
       drag={isAuthor}
       dragMomentum={false}
-      dragElastic={0.1}
-      dragConstraints={{
+      dragElastic={0}
+      dragConstraints={containerRef.current ? {
         top: 0,
-        right: 0,
-        bottom: 0,
+        right: containerRef.current.clientWidth,
+        bottom: containerRef.current.clientHeight,
         left: 0
-      }}
+      } : undefined}
       dragTransition={{ 
         power: 0, 
         timeConstant: 0,
-        bounceStiffness: 600,
-        bounceDamping: 10
+        bounceStiffness: 0,
+        bounceDamping: 50
       }}
       onDragStart={handleDragStart}
       onDrag={handleDrag}
