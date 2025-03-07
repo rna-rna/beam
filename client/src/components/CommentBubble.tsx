@@ -228,7 +228,7 @@ export function CommentBubble({
           'Authorization': `Bearer ${token}`,
           'Cache-Control': 'no-cache'
         },
-        credentials: 'include',
+        credentials: 'same-origin', // Use same-origin for more reliable auth handling
         body: JSON.stringify({ x, y })
       });
 
@@ -361,13 +361,20 @@ export function CommentBubble({
         onPositionChange(finalPosition.x, finalPosition.y);
       }
 
-      // Always update the position on the server if we have an ID
-      if (id) {
+      // Always update the position on the server if we have an ID and the user is authenticated
+      if (id && user) {
         // Update position on the server and persist in database
         updatePositionMutation.mutate({ 
           commentId: id,
           x: finalPosition.x, 
           y: finalPosition.y 
+        });
+      } else if (id && !user) {
+        // Show toast if user is not authenticated
+        toast({
+          title: "Authentication required",
+          description: "You need to be signed in to save comment positions.",
+          variant: "destructive"
         });
       }
     } catch (error) {
