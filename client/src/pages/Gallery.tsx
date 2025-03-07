@@ -2272,7 +2272,9 @@ export default function Gallery({
       console.log("Comment position updated successfully:", data);
       // Invalidate comments query to refresh the UI
       if (selectedImage?.id) {
+        // Force a refetch to get fresh data with updated positions
         queryClient.invalidateQueries({ queryKey: [`/api/images/${selectedImage.id}/comments`] });
+        queryClient.refetchQueries({ queryKey: [`/api/images/${selectedImage.id}/comments`] });
       }
     },
     onError: (error) => {
@@ -2289,19 +2291,16 @@ export default function Gallery({
   const handleCommentPositionChange = (commentId: number, x: number, y: number) => {
     console.log("Comment position change in Gallery:", { commentId, x, y });
     
-    // Update the local state of comments to reflect the new position immediately
-    // This provides immediate visual feedback before the server responds
-    const updatedComments = comments.map(comment => 
-      comment.id === commentId 
-        ? { ...comment, xPosition: x, yPosition: y } 
-        : comment
-    );
-    
-    // Update the comments state
-    if (typeof comments !== 'undefined' && Array.isArray(comments)) {
-      // @ts-ignore - Ignoring type issues since we know comments is an array
-      setComments(updatedComments);
-    }
+    // Update the comments cache immediately for a smooth experience
+    queryClient.setQueryData([`/api/images/${selectedImage?.id}/comments`], (oldData: any) => {
+      if (!oldData || !Array.isArray(oldData)) return oldData;
+      
+      return oldData.map(comment => 
+        comment.id === commentId 
+          ? { ...comment, xPosition: x, yPosition: y } 
+          : comment
+      );
+    });
     
     // Call the mutation to update the position on the server
     updateCommentPositionMutation.mutate({ commentId, x, y });

@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SignUp } from "@clerk/clerk-react";
-import { motion, PanInfo } from "framer-motion";
+import { motion, PanInfo, useDragControls } from "framer-motion";
 import { EmojiPicker } from "./EmojiPicker";
 import { cn } from "@/lib/utils";
 import { mixpanel } from '@/lib/analytics'; // Added Mixpanel import
@@ -82,10 +82,11 @@ export function CommentBubble({
   const inputRef = useRef<HTMLInputElement>(null);
   const [showDragHint, setShowDragHint] = useState(false);
   const containerRef = useRef<Element | null>(null);
-  
+  const dragControls = useDragControls();
+
   // Track position locally but initialize from props
   const [position, setPosition] = useState({ x, y });
-  
+
   // Update local position when props change (but not during dragging)
   useEffect(() => {
     if (!isDragging) {
@@ -96,15 +97,15 @@ export function CommentBubble({
   // Find and store the container reference on mount and when dragging starts
   const findContainer = useCallback(() => {
     if (!bubbleRef.current) return null;
-    
+
     // Find the closest parent with gallery-container class
     const container = bubbleRef.current.closest('.gallery-container') || 
                       bubbleRef.current.closest('.lightbox-img-container');
-    
+
     if (container) {
       return container;
     }
-    
+
     // Fallback to any gallery container in the document
     return document.querySelector('.gallery-container') || 
            document.querySelector('.lightbox-img-container') || 
@@ -210,22 +211,50 @@ export function CommentBubble({
   });
 
   const updatePositionMutation = useMutation({
-    mutationFn: async ({ newX, newY }: { newX: number, newY: number }) => {
+    mutationFn: async ({ commentId = id, x, y }: { x: number, y: number, commentId?: number }) => {
+      if (!commentId) throw new Error('Comment ID is required');
+
       const token = await getToken();
-      const response = await fetch(`/api/comments/${id}/position`, {
+      if (!token) {
+        throw new Error('Authentication token not available');
+      }
+
+      console.log("Sending position update to server:", { commentId, x, y, hasToken: !!token });
+
+      const response = await fetch(`/api/comments/${commentId}/position`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache'
         },
-        body: JSON.stringify({ x: newX, y: newY })
+        credentials: 'same-origin', // Use same-origin for more reliable auth handling
+        body: JSON.stringify({ x, y })
       });
 
-      if (!response.ok) throw new Error('Failed to update position');
-      return response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Position update failed:", errorText);
+        throw new Error('Failed to update position');
+      }
+
+      const result = await response.json();
+      console.log("Position update success:", result);
+      return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+    onSuccess: (data) => {
+      console.log("Position updated successfully:", data);
+      if (imageId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+      }
+    },
+    onError: (error) => {
+      console.error("Error updating position:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save comment position",
+        variant: "destructive"
+      });
     }
   });
 
@@ -267,75 +296,86 @@ export function CommentBubble({
     }
   });
 
-  const handleDragStart = () => {
+  const handleDragStart = (event: React.PointerEvent) => {
     if (!isAuthor) return;
-    
+
     console.log("Drag start", { isAuthor });
     setIsDragging(true);
-    
+
+    // Start the drag with the controls
+    dragControls.start(event);
+
     // Update container reference when drag starts
     containerRef.current = findContainer();
   };
 
   const handleDrag = (_e: any, info: PanInfo) => {
-    if (!isAuthor || !containerRef.current) return;
-    
+    if (!isAuthor || !containerRef.current || !bubbleRef.current) return;
+
     const rect = containerRef.current.getBoundingClientRect();
-    
+    const bubbleRect = bubbleRef.current.getBoundingClientRect();
+
+    // Center the comment to the mouse cursor by accounting for the bubble's dimensions
+    const offsetX = bubbleRect.width / 2;
+    const offsetY = bubbleRect.height / 2;
+
+    // Calculate adjusted mouse position
+    const mouseX = info.point.x;
+    const mouseY = info.point.y;
+
     // Calculate percentage position relative to the container
-    const newX = ((info.point.x - rect.left) / rect.width) * 100;
-    const newY = ((info.point.y - rect.top) / rect.height) * 100;
-    
+    const newX = ((mouseX - rect.left) / rect.width) * 100;
+    const newY = ((mouseY - rect.top) / rect.height) * 100;
+
     // Ensure values are within bounds
     const boundedX = Math.max(0, Math.min(100, newX));
     const boundedY = Math.max(0, Math.min(100, newY));
-    
+
     // Update local state for immediate feedback
     setPosition({ x: boundedX, y: boundedY });
   };
 
   const handleDragEnd = (_e: any, info: PanInfo) => {
     console.log("Drag end detected", { isAuthor, info });
-    
-    if (!isAuthor || !onPositionChange || !containerRef.current) {
+
+    if (!isAuthor || !containerRef.current) {
       setIsDragging(false);
       return;
     }
-    
+
     try {
-      const rect = containerRef.current.getBoundingClientRect();
-      
-      // Calculate percentage position relative to the container
-      const newX = ((info.point.x - rect.left) / rect.width) * 100;
-      const newY = ((info.point.y - rect.top) / rect.height) * 100;
-      
-      console.log("Updating position", { 
-        newX, 
-        newY, 
+      // Use the position state which has been updated during drag
+      // This ensures we save exactly what the user sees
+      const finalPosition = position;
+
+      console.log("Saving final position:", { 
+        x: finalPosition.x, 
+        y: finalPosition.y, 
+        commentId: id,
         containerId: containerRef.current.id, 
-        containerClass: containerRef.current.className,
-        containerRect: {
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-          height: rect.height
-        },
-        point: info.point
+        containerClass: containerRef.current.className
       });
-      
-      // Ensure values are within bounds
-      const boundedX = Math.max(0, Math.min(100, newX));
-      const boundedY = Math.max(0, Math.min(100, newY));
-      
-      // Update local state for immediate feedback
-      setPosition({ x: boundedX, y: boundedY });
-      
-      // Notify parent component
-      onPositionChange(boundedX, boundedY);
-      
-      // Only call the mutation if we have an ID (not a new comment)
-      if (id) {
-        updatePositionMutation.mutate({ newX: boundedX, newY: boundedY });
+
+      // Notify parent component if available
+      if (onPositionChange) {
+        onPositionChange(finalPosition.x, finalPosition.y);
+      }
+
+      // Always update the position on the server if we have an ID and the user is authenticated
+      if (id && user) {
+        // Update position on the server and persist in database
+        updatePositionMutation.mutate({ 
+          commentId: id,
+          x: finalPosition.x, 
+          y: finalPosition.y 
+        });
+      } else if (id && !user) {
+        // Show toast if user is not authenticated
+        toast({
+          title: "Authentication required",
+          description: "You need to be signed in to save comment positions.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error("Error updating comment position:", error);
@@ -463,10 +503,19 @@ export function CommentBubble({
       drag={isAuthor}
       dragMomentum={false}
       dragElastic={0}
+      dragControls={dragControls}
+      layoutId={`comment-${id}`} 
+      dragConstraints={containerRef.current ? {
+        top: 0,
+        right: containerRef.current.clientWidth,
+        bottom: containerRef.current.clientHeight,
+        left: 0
+      } : undefined}
       dragTransition={{ 
         power: 0, 
         timeConstant: 0,
-        modifyTarget: (target) => target // Ensure direct cursor following
+        bounceStiffness: 0,
+        bounceDamping: 0
       }}
       onDragStart={handleDragStart}
       onDrag={handleDrag}
@@ -474,7 +523,10 @@ export function CommentBubble({
       className="absolute"
       onMouseEnter={() => {
         setIsHovered(true);
-        if (isAuthor) setShowDragHint(true);
+        if (isAuthor && !isDragging) setShowDragHint(true);
+      }}
+      onPointerDown={(e) => {
+        if (isAuthor) handleDragStart(e);
       }}
       onMouseLeave={() => {
         if (!isExpanded) setIsHovered(false);
