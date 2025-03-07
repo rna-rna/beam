@@ -1,17 +1,18 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, SmilePlus } from "lucide-react";
+import { MessageCircle, SmilePlus, Move, GripHorizontal } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SignUp } from "@clerk/clerk-react";
-import { motion } from "framer-motion";
+import { motion, PanInfo, useMotionValue } from "framer-motion";
 import { EmojiPicker } from "./EmojiPicker";
 import { cn } from "@/lib/utils";
 import { mixpanel } from '@/lib/analytics'; // Added Mixpanel import
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CommentBubbleProps {
   x: number;
@@ -43,6 +44,7 @@ interface CommentBubbleProps {
       color?: string;
     };
     createdAt: string;
+    reactions?: Array<{emoji: string, count: number, userIds: string[]}>;
   }>;
   parentId?: number | null;
   timestamp?: string;
@@ -77,7 +79,46 @@ export function CommentBubble({
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(isNew);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null); // Added inputRef
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [showDragHint, setShowDragHint] = useState(false);
+  const containerRef = useRef<Element | null>(null);
+  
+  // Track position locally but initialize from props
+  const [position, setPosition] = useState({ x, y });
+  
+  // Motion values for smooth dragging
+  const motionX = useMotionValue(0);
+  const motionY = useMotionValue(0);
+  
+  // Update local position when props change (but not during dragging)
+  useEffect(() => {
+    if (!isDragging) {
+      setPosition({ x, y });
+    }
+  }, [x, y, isDragging]);
+
+  // Find and store the container reference on mount and when dragging starts
+  const findContainer = useCallback(() => {
+    if (!bubbleRef.current) return null;
+    
+    // Find the closest parent with gallery-container class
+    const container = bubbleRef.current.closest('.gallery-container') || 
+                      bubbleRef.current.closest('.lightbox-img-container');
+    
+    if (container) {
+      return container;
+    }
+    
+    // Fallback to any gallery container in the document
+    return document.querySelector('.gallery-container') || 
+           document.querySelector('.lightbox-img-container') || 
+           document.documentElement;
+  }, []);
+
+  // Store container reference on mount
+  useEffect(() => {
+    containerRef.current = findContainer();
+  }, [findContainer]);
 
   // Handle clicks outside the comment bubble
   useEffect(() => {
@@ -99,8 +140,6 @@ export function CommentBubble({
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  const dragConstraints = useRef(null);
 
   const [localCommentId, setLocalCommentId] = useState<number | null>(null);
 
@@ -141,15 +180,17 @@ export function CommentBubble({
       setIsEditing(false);
       if (onSubmit) onSubmit();
       setLocalCommentId(data.data.id);
-      queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
       // Mixpanel tracking for successful comment creation
-      mixpanel.track("Comment Created", {
-        imageId: imageId,
-        galleryId: null, // Needs to be fetched or passed as a prop
-        commentLength: text.length,
-        parentCommentId: parentId || null,
-        userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
-      });
+      if (user) {
+        mixpanel.track("Comment Created", {
+          imageId: imageId,
+          galleryId: null, // Needs to be fetched or passed as a prop
+          commentLength: text.length,
+          parentCommentId: parentId || null,
+          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+        });
+      }
     },
     onError: (error) => {
       if (!user) {
@@ -188,7 +229,7 @@ export function CommentBubble({
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
     }
   });
 
@@ -223,21 +264,87 @@ export function CommentBubble({
     },
     onSuccess: () => {
       // Invalidate both comments and reactions queries
-      queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
-      queryClient.invalidateQueries([`/api/comments/${id}/reactions`]);
+      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/comments/${id}/reactions`] });
       // Force refetch
-      queryClient.refetchQueries([`/api/images/${imageId}/comments`]);
+      queryClient.refetchQueries({ queryKey: [`/api/images/${imageId}/comments`] });
     }
   });
 
-  const handleDragEnd = (_e: any, info: { point: { x: number; y: number } }) => {
-    if (isAuthor && onPositionChange) {
-      const newX = (info.point.x / window.innerWidth) * 100;
-      const newY = (info.point.y / window.innerHeight) * 100;
-      onPositionChange(newX, newY);
-      updatePositionMutation.mutate({ newX, newY });
+  const handleDragStart = () => {
+    console.log("Drag start", { isAuthor });
+    if (isAuthor) {
+      setIsDragging(true);
+      // Update container reference when drag starts
+      containerRef.current = findContainer();
     }
-    setIsDragging(false);
+  };
+
+  const handleDrag = (_e: any, info: PanInfo) => {
+    if (!isAuthor || !containerRef.current) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    
+    // Calculate percentage position relative to the container
+    const newX = ((info.point.x - rect.left) / rect.width) * 100;
+    const newY = ((info.point.y - rect.top) / rect.height) * 100;
+    
+    // Ensure values are within bounds
+    const boundedX = Math.max(0, Math.min(100, newX));
+    const boundedY = Math.max(0, Math.min(100, newY));
+    
+    // Update local state for immediate feedback
+    setPosition({ x: boundedX, y: boundedY });
+  };
+
+  const handleDragEnd = (_e: any, info: PanInfo) => {
+    console.log("Drag end detected", { isAuthor, info });
+    
+    if (!isAuthor || !onPositionChange || !containerRef.current) {
+      setIsDragging(false);
+      return;
+    }
+    
+    try {
+      const rect = containerRef.current.getBoundingClientRect();
+      
+      // Calculate percentage position relative to the container
+      const newX = ((info.point.x - rect.left) / rect.width) * 100;
+      const newY = ((info.point.y - rect.top) / rect.height) * 100;
+      
+      console.log("Updating position", { 
+        newX, 
+        newY, 
+        containerId: containerRef.current.id, 
+        containerClass: containerRef.current.className,
+        containerRect: {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height
+        },
+        point: info.point
+      });
+      
+      // Ensure values are within bounds
+      const boundedX = Math.max(0, Math.min(100, newX));
+      const boundedY = Math.max(0, Math.min(100, newY));
+      
+      // Update local state for immediate feedback
+      setPosition({ x: boundedX, y: boundedY });
+      
+      // Notify parent component
+      onPositionChange(boundedX, boundedY);
+      
+      // Only call the mutation if we have an ID (not a new comment)
+      if (id) {
+        updatePositionMutation.mutate({ newX: boundedX, newY: boundedY });
+      }
+    } catch (error) {
+      console.error("Error updating comment position:", error);
+    } finally {
+      setIsDragging(false);
+    }
   };
 
   const [isReplying, setIsReplying] = useState(false);
@@ -251,8 +358,6 @@ export function CommentBubble({
         throw new Error(`Invalid imageId: Expected a number, got ${typeof imageId}`);
       }
 
-
-
       // Validate all required fields upfront
       if (!user?.id) {
         throw new Error('User not authenticated');
@@ -261,7 +366,6 @@ export function CommentBubble({
         throw new Error('Reply content is empty');
       }
       if (!numericImageId || typeof numericImageId !== 'number' || isNaN(numericImageId)) {
-
         throw new Error('Valid image ID is required');
       }
       if (!id && !parentId) {
@@ -270,8 +374,6 @@ export function CommentBubble({
 
       const token = await getToken();
       const endpoint = `/api/images/${imageId}/comments`;
-
-
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -290,12 +392,10 @@ export function CommentBubble({
 
       if (!response.ok) {
         const error = await response.text();
-
         throw new Error(error);
       }
 
       const data = await response.json();
-
       return data;
     },
     onError: (error) => {
@@ -306,27 +406,31 @@ export function CommentBubble({
         variant: "destructive"
       });
       // Mixpanel tracking for reply creation error
-      mixpanel.track("Comment Failed", {
-        error: error.message,
-        imageId: imageId,
-        galleryId: null, // Needs to be fetched or passed as a prop
-        parentCommentId: parentId || null,
-        userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
-      });
+      if (user) {
+        mixpanel.track("Comment Failed", {
+          error: error.message,
+          imageId: imageId,
+          galleryId: null, // Needs to be fetched or passed as a prop
+          parentCommentId: parentId || null,
+          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+        });
+      }
     },
     onSuccess: (data) => {
       setReplyContent('');
       setIsReplying(false);
-      queryClient.invalidateQueries([`/api/images/${imageId}/comments`]);
+      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
       // Mixpanel tracking for successful reply creation
-      mixpanel.track("Comment Created", {
-        imageId: imageId,
-        galleryId: null, // Needs to be fetched or passed as a prop
-        commentLength: replyContent.length,
-        parentCommentId: id || parentId,
-        userRole: user.publicMetadata.role, // Assumes user role is in publicMetadata
-        commentType: "reply"
-      });
+      if (user) {
+        mixpanel.track("Comment Created", {
+          imageId: imageId,
+          galleryId: null, // Needs to be fetched or passed as a prop
+          commentLength: replyContent.length,
+          parentCommentId: id || parentId,
+          userRole: user.publicMetadata.role, // Assumes user role is in publicMetadata
+          commentType: "reply"
+        });
+      }
     }
   });
 
@@ -360,24 +464,51 @@ export function CommentBubble({
     <motion.div
       ref={bubbleRef}
       drag={isAuthor}
-      dragConstraints={dragConstraints}
-      onDragStart={() => setIsDragging(true)}
+      dragMomentum={false}
+      dragElastic={0} // Disable elastic dragging for precise positioning
+      onDragStart={handleDragStart}
+      onDrag={handleDrag}
       onDragEnd={handleDragEnd}
       className="absolute"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => !isExpanded && setIsHovered(false)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        if (isAuthor) setShowDragHint(true);
+      }}
+      onMouseLeave={() => {
+        if (!isExpanded) setIsHovered(false);
+        setShowDragHint(false);
+      }}
       onClick={() => setIsExpanded(true)}
       style={{
-        left: `${x}%`,
-        top: `${y}%`,
+        left: `${position.x}%`,
+        top: `${position.y}%`,
         transform: 'translate(-50%, -50%)',
-        zIndex: isDragging ? 1000 : 1
+        zIndex: isDragging ? 1000 : 1,
+        cursor: isAuthor ? (isDragging ? 'grabbing' : 'grab') : 'default',
+        touchAction: 'none'
       }}
     >
       <div className="relative">
-        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-          <MessageCircle className="w-4 h-4" />
-        </div>
+        <TooltipProvider>
+          <Tooltip open={showDragHint && isAuthor && !isEditing && !isDragging}>
+            <TooltipTrigger asChild>
+              <div className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center text-primary-foreground transition-all duration-200",
+                isAuthor ? "bg-primary cursor-move" : "bg-primary",
+                isDragging && "scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background"
+              )}>
+                {isAuthor && (showDragHint || isDragging) ? (
+                  <GripHorizontal className="w-4 h-4" />
+                ) : (
+                  <MessageCircle className="w-4 h-4" />
+                )}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>Drag to reposition your comment</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         <Card className={cn(
           "absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px]",
@@ -417,7 +548,7 @@ export function CommentBubble({
                   onClick={() => {
                     if (!user) setShowAuthModal(true);
                   }}
-                  ref={inputRef} // Changed ref to inputRef
+                  ref={inputRef}
                 />
               </div>
             </form>
