@@ -488,51 +488,49 @@ export function CommentBubble({
       onClick={() => setIsExpanded(true)}
       onPointerDown={(e) => {
         if (isAuthor) {
-          e.preventDefault();
-          e.stopPropagation();
+          // Use pointer capture instead of global listeners
+          e.currentTarget.setPointerCapture(e.pointerId);
+          e.stopPropagation(); // Keep stopPropagation to prevent parent handlers
           handleDragStart(e);
           
-          // Set up global event listeners for dragging
-          const handlePointerMove = (moveEvent: PointerEvent) => {
-            if (!isDragging || !containerRef.current) return;
-            
-            // Get container dimensions
-            const rect = containerRef.current.getBoundingClientRect();
-            
-            // Calculate new percentage position
-            const newX = ((moveEvent.clientX - rect.left) / rect.width) * 100;
-            const newY = ((moveEvent.clientY - rect.top) / rect.height) * 100;
-            
-            // Clamp values between 0 and 100
-            const boundedX = Math.max(0, Math.min(100, newX));
-            const boundedY = Math.max(0, Math.min(100, newY));
-            
-            // Update position state
-            setPosition({ x: boundedX, y: boundedY });
-          };
-          
-          const handlePointerUp = (upEvent: PointerEvent) => {
-            // End the drag operation
-            setIsDragging(false);
-            
-            // Clean up event listeners
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
-            
-            // Call handleDragEnd to send position to server
-            if (containerRef.current) {
-              handleDragEnd(upEvent, {
-                point: { x: upEvent.clientX, y: upEvent.clientY },
-                delta: { x: 0, y: 0 },
-                offset: { x: 0, y: 0 },
-                velocity: { x: 0, y: 0 }
-              });
-            }
-          };
-          
-          // Add global event listeners
-          window.addEventListener('pointermove', handlePointerMove);
-          window.addEventListener('pointerup', handlePointerUp);
+          // Get the container reference for dragging calculations
+          containerRef.current = findContainer();
+        }
+      }}
+      onPointerMove={(e) => {
+        if (!isAuthor || !isDragging || !containerRef.current) return;
+        
+        // Get container dimensions
+        const rect = containerRef.current.getBoundingClientRect();
+        
+        // Calculate new percentage position
+        const newX = ((e.clientX - rect.left) / rect.width) * 100;
+        const newY = ((e.clientY - rect.top) / rect.height) * 100;
+        
+        // Clamp values between 0 and 100
+        const boundedX = Math.max(0, Math.min(100, newX));
+        const boundedY = Math.max(0, Math.min(100, newY));
+        
+        // Update position state
+        setPosition({ x: boundedX, y: boundedY });
+      }}
+      onPointerUp={(e) => {
+        if (!isAuthor || !isDragging) return;
+        
+        // Release the pointer capture
+        e.currentTarget.releasePointerCapture(e.pointerId);
+        
+        // End the drag operation
+        setIsDragging(false);
+        
+        // Call handleDragEnd to send position to server
+        if (containerRef.current) {
+          handleDragEnd(e, {
+            point: { x: e.clientX, y: e.clientY },
+            delta: { x: 0, y: 0 },
+            offset: { x: 0, y: 0 },
+            velocity: { x: 0, y: 0 }
+          });
         }
       }}
       style={{
