@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import './cleanup-deleted';
 import { setupVite, serveStatic, log } from "./vite";
 import pusherAuthRouter from "./routes/pusherAuth";
+import commentPositionRouter from "./routes/commentPosition";
 import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
 import { Server } from 'socket.io';
 import http from 'http';
@@ -99,6 +100,9 @@ app.use((req, res, next) => {
 
 // Ensure Pusher auth route is handled before static files
 app.use(pusherAuthRouter);
+
+// Add comment position route
+app.use(commentPositionRouter);
 
 // Request logging middleware
 app.use((req, res, next) => {
