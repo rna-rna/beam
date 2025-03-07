@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SignUp } from "@clerk/clerk-react";
-import { motion, PanInfo, useMotionValue } from "framer-motion";
+import { motion, PanInfo } from "framer-motion";
 import { EmojiPicker } from "./EmojiPicker";
 import { cn } from "@/lib/utils";
 import { mixpanel } from '@/lib/analytics'; // Added Mixpanel import
@@ -85,10 +85,6 @@ export function CommentBubble({
   
   // Track position locally but initialize from props
   const [position, setPosition] = useState({ x, y });
-  
-  // Motion values for smooth dragging
-  const motionX = useMotionValue(0);
-  const motionY = useMotionValue(0);
   
   // Update local position when props change (but not during dragging)
   useEffect(() => {
@@ -272,12 +268,13 @@ export function CommentBubble({
   });
 
   const handleDragStart = () => {
+    if (!isAuthor) return;
+    
     console.log("Drag start", { isAuthor });
-    if (isAuthor) {
-      setIsDragging(true);
-      // Update container reference when drag starts
-      containerRef.current = findContainer();
-    }
+    setIsDragging(true);
+    
+    // Update container reference when drag starts
+    containerRef.current = findContainer();
   };
 
   const handleDrag = (_e: any, info: PanInfo) => {
@@ -465,7 +462,12 @@ export function CommentBubble({
       ref={bubbleRef}
       drag={isAuthor}
       dragMomentum={false}
-      dragElastic={0} // Disable elastic dragging for precise positioning
+      dragElastic={0}
+      dragTransition={{ 
+        power: 0, 
+        timeConstant: 0,
+        modifyTarget: (target) => target // Ensure direct cursor following
+      }}
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onDragEnd={handleDragEnd}
@@ -492,11 +494,13 @@ export function CommentBubble({
         <TooltipProvider>
           <Tooltip open={showDragHint && isAuthor && !isEditing && !isDragging}>
             <TooltipTrigger asChild>
-              <div className={cn(
-                "w-6 h-6 rounded-full flex items-center justify-center text-primary-foreground transition-all duration-200",
-                isAuthor ? "bg-primary cursor-move" : "bg-primary",
-                isDragging && "scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background"
-              )}>
+              <div 
+                className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center text-primary-foreground transition-all duration-200",
+                  isAuthor ? "bg-primary cursor-move" : "bg-primary",
+                  isDragging && "scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background"
+                )}
+              >
                 {isAuthor && (showDragHint || isDragging) ? (
                   <GripHorizontal className="w-4 h-4" />
                 ) : (
