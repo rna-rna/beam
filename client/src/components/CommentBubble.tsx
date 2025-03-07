@@ -850,7 +850,7 @@ export function CommentBubble({
                       )}
                     </div>
                     {isAuthor && !parentId && (
-                      <DropdownMenu modal={true}>
+                      <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
                           <button 
                             className="p-1 rounded-full hover:bg-muted/80"
@@ -868,7 +868,6 @@ export function CommentBubble({
                           className="w-32 z-50"
                           sideOffset={5}
                           alignOffset={0}
-                          forceMount
                         >
                           <DropdownMenuItem 
                             onSelect={(e) => {
