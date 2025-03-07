@@ -2247,17 +2247,23 @@ export default function Gallery({
         throw new Error('Authentication failed');
       }
       
-      console.log("Sending position update to server:", { commentId, x, y });
+      // Check if user is authenticated
+      if (!user || !user.id) {
+        throw new Error('User authentication required');
+      }
+      
+      console.log("Sending position update to server:", { commentId, x, y, userId: user.id });
       
       const response = await fetch(`/api/comments/${commentId}/position`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
+          'X-User-ID': user.id // Add user ID as an additional header
         },
         credentials: 'include', // Ensure cookies are sent with the request
-        body: JSON.stringify({ x, y })
+        body: JSON.stringify({ x, y, userId: user.id }) // Include userId explicitly in body
       });
 
       if (!response.ok) {

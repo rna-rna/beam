@@ -20,11 +20,34 @@ router.put('/api/comments/:commentId/position', async (req, res) => {
     const commentId = parseInt(req.params.commentId);
     const { x, y } = req.body;
     
+    // Extract user ID from auth token (from Clerk)
+    let userId;
+    try {
+      if (req.headers.authorization) {
+        const token = req.headers.authorization.split(' ')[1];
+        if (token) {
+          // Try to extract user ID from JWT token
+          // This depends on how your auth system works
+          const tokenData = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+          userId = tokenData.sub;
+          console.log("Extracted user ID from token:", userId);
+          
+          // Attach to req.auth if it doesn't exist
+          if (!req.auth) {
+            req.auth = { userId };
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to extract user ID from token:", error);
+    }
+    
     if (!req.auth?.userId) {
       console.error("Authentication missing for comment position update", {
         headers: Object.keys(req.headers),
         cookies: req.headers.cookie ? 'present' : 'missing',
-        authHeader: req.headers.authorization
+        authHeader: req.headers.authorization,
+        extractedUserId: userId || 'none'
       });
       return res.status(401).json({ message: 'Authentication required' });
     }
@@ -51,11 +74,14 @@ router.put('/api/comments/:commentId/position', async (req, res) => {
       });
     }
     
-    // Log position values before update
+    // Log detailed position information before update
     console.log("Updating comment position:", {
       commentId,
       xPosition: x,
       yPosition: y,
+      userId: req.auth?.userId,
+      commentOwner: comment.userId,
+      isOwner: comment.userId === req.auth?.userId,
       timestamp: new Date().toISOString()
     });
     
