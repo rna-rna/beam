@@ -850,24 +850,31 @@ export function CommentBubble({
                       )}
                     </div>
                     {isAuthor && !parentId && (
-                      <DropdownMenu>
+                      <DropdownMenu modal={true}>
                         <DropdownMenuTrigger asChild>
                           <button 
                             className="p-1 rounded-full hover:bg-muted/80"
                             onClick={(e) => {
-                              // Prevent the event from bubbling up to parent handlers
+                              // Completely stop event propagation to prevent parent handlers
                               e.stopPropagation();
+                              e.nativeEvent.stopImmediatePropagation();
                             }}
                           >
                             <MoreVertical className="h-3 w-3 text-muted-foreground" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-32 z-50">
+                        <DropdownMenuContent 
+                          align="end" 
+                          className="w-32 z-50"
+                          sideOffset={5}
+                          alignOffset={0}
+                          forceMount
+                        >
                           <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
+                            onSelect={(e) => {
+                              // Use onSelect instead of onClick for proper handling
                               handleEditClick();
+                              // No need for stopPropagation here as onSelect handles this
                             }} 
                             className="cursor-pointer"
                           >
@@ -875,10 +882,10 @@ export function CommentBubble({
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
+                            onSelect={(e) => {
+                              // Use onSelect instead of onClick for proper handling
                               handleDeleteClick();
+                              // No need for stopPropagation here as onSelect handles this
                             }} 
                             className="cursor-pointer text-destructive"
                           >
