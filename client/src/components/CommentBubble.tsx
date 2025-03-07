@@ -545,16 +545,22 @@ export function CommentBubble({
       }}
       onMouseEnter={() => {
         setIsHovered(true);
-        if (isAuthor && !isDragging) setShowDragHint(true);
+        if (isAuthor) setShowDragHint(true);
       }}
       onMouseLeave={() => {
         if (!isExpanded) setIsHovered(false);
         setShowDragHint(false);
       }}
-      onClick={() => setIsExpanded(true)}
+      onClick={(e) => {
+        if (!isDragging) {
+          setIsExpanded(true);
+        }
+      }}
       onPointerDown={(e) => {
         if (isAuthor && containerReady) {
           e.stopPropagation();
+          // Set dragging state immediately
+          setIsDragging(true);
           handleDragStart(e);
 
           // Use DOM API directly for better pointer tracking
