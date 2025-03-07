@@ -300,11 +300,16 @@ export function CommentBubble({
   };
 
   const handleDrag = (_e: any, info: PanInfo) => {
-    if (!isAuthor || !containerRef.current) return;
+    if (!isAuthor || !containerRef.current || !bubbleRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
+    const bubbleRect = bubbleRef.current.getBoundingClientRect();
     
-    // Get current mouse position
+    // Center the comment to the mouse cursor by accounting for the bubble's dimensions
+    const offsetX = bubbleRect.width / 2;
+    const offsetY = bubbleRect.height / 2;
+    
+    // Calculate adjusted mouse position
     const mouseX = info.point.x;
     const mouseY = info.point.y;
     
@@ -329,35 +334,21 @@ export function CommentBubble({
     }
     
     try {
-      const rect = containerRef.current.getBoundingClientRect();
+      // Use the position state which has been updated during drag
+      // This ensures we save exactly what the user sees
+      const finalPosition = position;
       
-      // Get current mouse position
-      const mouseX = info.point.x;
-      const mouseY = info.point.y;
-      
-      // Calculate percentage position relative to the container
-      const newX = ((mouseX - rect.left) / rect.width) * 100;
-      const newY = ((mouseY - rect.top) / rect.height) * 100;
-      
-      // Ensure values are within bounds
-      const boundedX = Math.max(0, Math.min(100, newX));
-      const boundedY = Math.max(0, Math.min(100, newY));
-      
-      console.log("Calculated position update:", { 
-        boundedX, 
-        boundedY, 
-        comment: id,
+      console.log("Saving final position:", { 
+        x: finalPosition.x, 
+        y: finalPosition.y, 
+        commentId: id,
         containerId: containerRef.current.id, 
-        containerClass: containerRef.current.className,
-        point: info.point
+        containerClass: containerRef.current.className
       });
-      
-      // Update local state for immediate feedback
-      setPosition({ x: boundedX, y: boundedY });
       
       // Notify parent component if available
       if (onPositionChange) {
-        onPositionChange(boundedX, boundedY);
+        onPositionChange(finalPosition.x, finalPosition.y);
       }
       
       // Always update the position on the server if we have an ID
@@ -365,8 +356,8 @@ export function CommentBubble({
         // Update position on the server and persist in database
         updatePositionMutation.mutate({ 
           commentId: id,
-          x: boundedX, 
-          y: boundedY 
+          x: finalPosition.x, 
+          y: finalPosition.y 
         });
       }
     } catch (error) {
@@ -495,6 +486,8 @@ export function CommentBubble({
       drag={isAuthor}
       dragMomentum={false}
       dragElastic={0}
+      dragControls
+      layoutId={`comment-${id}`} 
       dragConstraints={containerRef.current ? {
         top: 0,
         right: containerRef.current.clientWidth,
@@ -505,7 +498,7 @@ export function CommentBubble({
         power: 0, 
         timeConstant: 0,
         bounceStiffness: 0,
-        bounceDamping: 50
+        bounceDamping: 0
       }}
       onDragStart={handleDragStart}
       onDrag={handleDrag}
