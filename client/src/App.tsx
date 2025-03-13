@@ -364,7 +364,7 @@ import { ClerkProvider } from "@clerk/clerk-react";
 import { dark } from "@clerk/themes";
 import { useTheme } from "@/hooks/use-theme";
 
-function App() {
+function AppRoot() {
   const { isDark } = useTheme();
   
   return (
@@ -384,4 +384,4 @@ function App() {
   );
 }
 
-export default App;
+export default AppRoot;
