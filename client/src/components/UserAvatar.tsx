@@ -19,20 +19,13 @@ const sizeVariants = {
 
 function getInitials(fullName: string | null | undefined): string {
   if (!fullName) return "?";
-  
-  const nameParts = fullName.split(" ").filter(Boolean);
-  if (nameParts.length === 0) return "?";
-  
-  // If only one name part exists, return its first letter
-  if (nameParts.length === 1) {
-    return nameParts[0][0]?.toUpperCase() || "?";
-  }
-  
-  // Get the first letter of the first name and the first letter of the last name
-  const firstInitial = nameParts[0][0];
-  const lastInitial = nameParts[nameParts.length - 1][0];
-  
-  return `${firstInitial}${lastInitial}`.toUpperCase();
+  return (
+    fullName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase() || "?"
+  );
 }
 
 function isClerkDefaultUrl(url: string | null | undefined): boolean {

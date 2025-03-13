@@ -14,16 +14,6 @@ export function NotificationBellDropdown() {
     notifications.forEach(notif => {
       console.log('Notification type:', notif.type);
       console.log('Notification data:', notif.data);
-      
-      // Special logging for star notifications to debug color issue
-      if (notif.type === 'star' || notif.type === 'image-starred') {
-        console.log('Star notification color details:', {
-          type: notif.type,
-          actorColor: notif.data?.actorColor,
-          actorName: notif.data?.actorName,
-          hasColorField: notif.data?.hasOwnProperty('actorColor')
-        });
-      }
     });
   }, [notifications]);
 
@@ -53,21 +43,7 @@ export function NotificationBellDropdown() {
           </div>
         ) : (
           notifications.map((notif) => {
-            // Make sure we extract color correctly for all notification types
-            const { 
-              actorName = "Someone", 
-              actorAvatar = null, 
-              actorColor = "#ccc", // Default color if not provided
-              count = 0, 
-              snippet = "", 
-              galleryTitle = "Untitled Gallery" 
-            } = notif.data || {};
-            
-            // Force debug to see what's in the data
-            if (notif.type === 'star' || notif.type === 'image-starred') {
-              console.log(`Extracted color for ${notif.type}:`, actorColor, 'from data:', notif.data);
-              console.log('Full notification object:', notif);
-            }
+            const { actorName = "Someone", actorAvatar = null, actorColor = "#ccc", count = 0, snippet = "", galleryTitle = "Untitled Gallery" } = notif.data || {};
 
             let notificationText: JSX.Element | string = "";
             if (notif.type === "star" || notif.type === "image-starred") {
@@ -137,12 +113,6 @@ export function NotificationBellDropdown() {
                     color={actorColor || "#ccc"}
                     className="h-8 w-8"
                   />
-                  {/* Debug info */}
-                  {process.env.NODE_ENV === "development" && notif.type === 'image-starred' && (
-                    <div className="absolute -top-1 -left-1 text-[6px] bg-black text-white px-0.5 rounded">
-                      {actorColor || "no-color"}
-                    </div>
-                  )}
                   <div className="flex flex-col gap-1">
                     <div className={`text-sm ${!notif.isSeen ? "font-medium" : ""}`}>
                       {notificationText}

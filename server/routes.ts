@@ -225,7 +225,7 @@ export function registerRoutes(app: Express): Server {
         guestUpload: isGuestUpload,
         fileCount: files?.length || 0
       });
-
+      
       // Tracking can be added server-side here if needed
       // This would require a server-side implementation of analytics
 
@@ -1643,28 +1643,28 @@ export function registerRoutes(app: Express): Server {
   app.put('/api/comments/:commentId/position', async (req: Request, res) => {
     try {
       console.log("Comment position update request:", { params: req.params, body: req.body });
-
+      
       const commentId = parseInt(req.params.commentId);
       const { x, y } = req.body;
-
+      
       if (!req.auth?.userId) {
         return res.status(401).json({ message: 'Authentication required' });
       }
-
+      
       // Validate input
       if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) {
         return res.status(400).json({ message: 'Invalid position values', details: { x, y, types: { x: typeof x, y: typeof y } } });
       }
-
+      
       // Find the comment
       const comment = await db.query.comments.findFirst({
         where: eq(comments.id, commentId)
       });
-
+      
       if (!comment) {
         return res.status(404).json({ message: 'Comment not found' });
       }
-
+      
       // Check if user is the author of the comment
       if (comment.userId !== req.auth.userId) {
         return res.status(403).json({ 
@@ -1672,7 +1672,7 @@ export function registerRoutes(app: Express): Server {
           details: { commentUserId: comment.userId, requestUserId: req.auth.userId }
         });
       }
-
+      
       // Update the comment position
       await db.update(comments)
         .set({ 
@@ -1681,7 +1681,7 @@ export function registerRoutes(app: Express): Server {
           updatedAt: new Date()
         })
         .where(eq(comments.id, commentId));
-
+      
       // Notify clients about the position update
       if (comment.imageId) {
         pusher.trigger(`image-${comment.imageId}`, 'comment-position-updated', {
@@ -1691,9 +1691,9 @@ export function registerRoutes(app: Express): Server {
           userId: req.auth.userId
         });
       }
-
+      
       console.log("Comment position updated successfully:", { commentId, x, y });
-
+      
       return res.status(200).json({ 
         message: 'Comment position updated successfully',
         data: {
@@ -1964,22 +1964,11 @@ export function registerRoutes(app: Express): Server {
           .map(async (editorId) => {
             const recipientRole = await getGalleryUserRole(image.gallery.id, editorId);
             if (recipientRole === 'owner' || recipientRole === 'Edit') {
-              // Make sure we have the color from cached user data
-              const userColor = actorData?.color || "#ccc";
-              
-              console.log('Star notification - Actor data:', {
-                userId,
-                actorName,
-                actorColor: userColor,
-                hasActorData: !!actorData
-              });
-              
               await addStarNotification({
                 recipientUserId: editorId,
                 actorId: userId,
                 actorName,
                 actorAvatar: actorData?.imageUrl,
-                actorColor: userColor,
                 imageId,
                 galleryId: image.gallery.id,
               });
@@ -2960,7 +2949,7 @@ export function registerRoutes(app: Express): Server {
 
       // Fetch user data for all galleries
       const userIds = [...new Set(galleriesWithDetails.map(g => g.userId))];
-      constuserData = await fetchCachedUserData(userIds);
+      const userData = await fetchCachedUserData(userIds);
       const userDataMap = new Map(userData.map(user => [user.userId, user]));
 
       const processedGalleries = galleriesWithDetails.map(gallery => {
@@ -3346,7 +3335,6 @@ async function addStarNotification(data: {
   actorId: string;
   actorName: string;
   actorAvatar: string | null;
-  actorColor: string | null;
   imageId: number;
   galleryId: number;
 }) {
@@ -3359,41 +3347,16 @@ async function addStarNotification(data: {
     )
   });
 
-  // Ensure we have a default color if none is provided
-  const actorColor = data.actorColor || "#ccc";
-  
-  console.log('Creating star notification with:', {
-    recipientId: data.recipientUserId,
-    actorName: data.actorName,
-    actorColor: actorColor
-  });
-
-  // Get gallery info for additional context
-  const image = await db.query.images.findFirst({
-    where: eq(images.id, data.imageId),
-    with: {
-      gallery: true
-    }
-  });
-
-  // Create notification data with all required fields
-  const notificationData = {
-    imageId: data.imageId,
-    isStarred: true,
-    actorId: data.actorId,
-    galleryId: data.galleryId,
-    actorName: data.actorName,
-    actorAvatar: data.actorAvatar,
-    actorColor: actorColor,
-    galleryTitle: image?.gallery?.title || "Untitled Gallery",
-    gallerySlug: image?.gallery?.slug // Add gallery slug for navigation
-  };
-
   if (existingNotification) {
     await db.update(notifications)
       .set({
         createdAt: new Date(),
-        data: notificationData
+        data: {
+          imageId: data.imageId,
+          isStarred: true,
+          actorId: data.actorId,
+          galleryId: data.galleryId
+        }
       })
       .where(eq(notifications.id, existingNotification.id));
   } else {
@@ -3401,15 +3364,19 @@ async function addStarNotification(data: {
     await db.insert(notifications).values({
       userId: data.recipientUserId,
       type: 'image-starred',
-      data: notificationData,
+      data: {
+        imageId: data.imageId,
+        isStarred: true,
+        actorId: data.actorId,
+        galleryId: data.galleryId,
+        actorName: data.actorName,
+        actorAvatar: data.actorAvatar
+      },
       groupId,
       isSeen: false,
       createdAt: new Date()
     });
   }
-
-  // Log the created notification data for debugging
-  console.log('Star notification data created:', notificationData);
 }
 
 export default registerRoutes;
