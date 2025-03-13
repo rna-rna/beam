@@ -93,7 +93,7 @@ export default function RecentsPage() {
       <aside className="hidden md:block w-64 border-r h-full">
         <DashboardSidebar />
       </aside>
-      <main className="flex-1 flex flex-col min-h-0">
+      <main className="flex-1 flex flex-col min-h-0 p-4 overflow-auto">
         <header className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <Sheet>
@@ -130,7 +130,7 @@ export default function RecentsPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-4">
+        <div className="p-4"> {/*Removed extra p-4 */}
           {isLoading ? (
             <GallerySkeleton count={12} />
           ) : filteredGalleries.length > 0 ? (
