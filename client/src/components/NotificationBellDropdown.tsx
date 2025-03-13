@@ -115,7 +115,7 @@ export function NotificationBellDropdown() {
                   />
                   {notif.type === 'image-starred' && (
                     <span className="sr-only">
-                      {console.log('Extracted color for image-starred:', actorColor, 'from data:', data)}
+                      {console.log('Extracted color for image-starred:', actorColor, 'from data:', notif.data)}
                     </span>
                   )}
                   <div className="flex flex-col gap-1">
