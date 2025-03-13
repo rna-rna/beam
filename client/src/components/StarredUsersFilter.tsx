@@ -112,35 +112,7 @@ export function StarredUsersFilter({
               </span>
             </DropdownMenuCheckboxItem>
           ))}
-          {users.length > 0 && (
-            <>
-              <DropdownMenuSeparator />
-              <div className="p-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    setSelectAllTriggered(false);
-                    onSelectionChange([]);
-                  }}
-                  disabled={selectedUsers.length === 0 && !selectAllTriggered}
-                  className="w-full text-muted-foreground hover:text-foreground disabled:opacity-50"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    Reset Filters
-                    <div className="ml-auto inline-flex items-center gap-1">
-                      <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
-                        ⇧
-                      </kbd>
-                      <kbd className="inline-flex h-5 select-none items-center rounded border px-1.5 font-mono text-[10px] font-medium">
-                        R
-                      </kbd>
-                    </div>
-                  </span>
-                </Button>
-              </div>
-            </>
-          )}
+          {/* Reset filters section removed */}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
