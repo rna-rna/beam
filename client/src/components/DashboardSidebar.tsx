@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FolderPlus, Clock, Folder, Trash2, MoreVertical, Pencil } from 'lucide-react';
 import { useState } from 'react';
@@ -54,46 +55,45 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <div className="flex flex-col h-full relative overflow-hidden">
-        <ScrollArea className="flex-1 h-full">
-          <div className="p-4 space-y-4">
-            <Button
-              variant={selectedSection === 'recents' ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => {
-                setSelectedSection('recents');
-                setLocation("/dashboard");
-              }}
-            >
-              <Clock className="mr-2 h-4 w-4" />
-              Recents
-            </Button>
-            <Button
-              variant={selectedSection === 'projects' ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => {
-                setSelectedSection('projects');
-                setLocation("/dashboard/projects");
-              }}
-            >
-              <Folder className="mr-2 h-4 w-4" />
-              My Projects
-            </Button>
-            <Button
-              variant={selectedSection === 'trash' ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => {
-                setSelectedSection('trash');
-                setLocation("/dashboard/trash");
-              }}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Trash
-            </Button>
-            {/* Folders feature disabled */}
-            </div>
-        </ScrollArea>
-        {/* Add Folder button disabled */}
+      {/* Fixed, non-scrollable sidebar container */}
+      <div className="flex flex-col h-full">
+        {/* Top navigation buttons */}
+        <div className="p-4 space-y-4">
+          <Button
+            variant={selectedSection === 'recents' ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => {
+              setSelectedSection('recents');
+              setLocation("/dashboard");
+            }}
+          >
+            <Clock className="mr-2 h-4 w-4" />
+            Recents
+          </Button>
+          <Button
+            variant={selectedSection === 'projects' ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => {
+              setSelectedSection('projects');
+              setLocation("/dashboard/projects");
+            }}
+          >
+            <Folder className="mr-2 h-4 w-4" />
+            My Projects
+          </Button>
+          <Button
+            variant={selectedSection === 'trash' ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => {
+              setSelectedSection('trash');
+              setLocation("/dashboard/trash");
+            }}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Trash
+          </Button>
+          {/* Folders feature disabled */}
+        </div>
       </div>
 
       {/* Folder modals disabled */}
