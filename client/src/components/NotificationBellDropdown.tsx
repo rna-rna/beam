@@ -91,6 +91,10 @@ export function NotificationBellDropdown() {
                     const url = `/g/${data.gallerySlug}?imageId=${data.imageId}#comment-${data.commentId}`;
                     window.location.href = url;
                   } else if ((type === 'star' || type === 'image-starred') && data?.imageId) {
+                    if (!data.gallerySlug) {
+                      console.error('Missing gallerySlug for star notification:', data);
+                      return; // Prevent navigation with incomplete data
+                    }
                     const url = `/g/${data.gallerySlug}?imageId=${data.imageId}`;
                     window.location.href = url;
                   } else if (type === 'invite' || type === 'gallery-invite') {
@@ -113,9 +117,9 @@ export function NotificationBellDropdown() {
                     color={actorColor || "#ccc"}
                     className="h-8 w-8"
                   />
-                  {notif.type === 'image-starred' && (
+                  {notif.type === 'image-starred' && !notif.data?.gallerySlug && (
                     <span className="sr-only">
-                      {console.log('Extracted color for image-starred:', actorColor, 'from data:', notif.data)}
+                      {console.log('Missing gallerySlug for image-starred notification:', notif.data)}
                     </span>
                   )}
                   <div className="flex flex-col gap-1">

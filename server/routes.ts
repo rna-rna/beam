@@ -1972,6 +1972,7 @@ export function registerRoutes(app: Express): Server {
                 actorColor: actorData?.color || "#ccc",
                 imageId,
                 galleryId: image.gallery.id,
+                gallerySlug: image.gallery.slug,
               });
             }
           })
@@ -3339,19 +3340,35 @@ async function addStarNotification(data: {
   actorColor?: string | null;
   imageId: number;
   galleryId: number;
+  gallerySlug?: string;
 }) {
   try {
     // Get the gallery information to include galleryTitle and slug
-    const gallery = await db.query.galleries.findFirst({
-      where: eq(galleries.id, data.galleryId),
-      select: {
-        title: true,
-        slug: true
-      }
-    });
+    // First try to use provided gallerySlug, or look it up if not provided
+    let gallerySlug = data.gallerySlug;
+    let galleryTitle = "Untitled Gallery";
     
-    const galleryTitle = gallery?.title || "Untitled Gallery";
-    const gallerySlug = gallery?.slug;
+    if (!gallerySlug) {
+      // Fetch gallery data if slug not provided
+      const gallery = await db.query.galleries.findFirst({
+        where: eq(galleries.id, data.galleryId),
+        select: {
+          title: true,
+          slug: true
+        }
+      });
+      
+      galleryTitle = gallery?.title || "Untitled Gallery";
+      gallerySlug = gallery?.slug;
+      
+      // Log if we still couldn't find the slug
+      if (!gallerySlug) {
+        console.error('Failed to get gallerySlug for star notification:', {
+          galleryId: data.galleryId,
+          imageId: data.imageId
+        });
+      }
+    }
     
     const existingNotification = await db.query.notifications.findFirst({
       where: and(
