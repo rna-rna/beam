@@ -336,7 +336,7 @@ function MixpanelProvider() {
   return null;
 }
 
-export default function App() {
+function App() {
   const { isLoaded } = useUser();
 
   if (!isLoaded) {
