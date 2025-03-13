@@ -30,7 +30,7 @@ export function StarredUsersFilter({
   onSelectionChange 
 }: StarredUsersFilterProps) {
   const [selectAllTriggered, setSelectAllTriggered] = useState(false);
-  
+
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export function StarredUsersFilter({
         }
       }
     };
-    
+
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, []);
@@ -73,7 +73,7 @@ export function StarredUsersFilter({
   const toggleAll = () => {
     const allSelected = users.length > 0 && users.every(user => selectedUsers.includes(user.userId));
     const newSelection = allSelected ? [] : users.map(u => u.userId);
-    
+
     setSelectAllTriggered(!allSelected);
     onSelectionChange(newSelection);
   };
@@ -100,19 +100,23 @@ export function StarredUsersFilter({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <div className="max-h-fit">
-          
-          {users.map((user) => (
-            <DropdownMenuCheckboxItem
-              key={user.userId}
-              checked={selectedUsers.includes(user.userId)}
-              onCheckedChange={() => toggleUser(user.userId)}
-            >
-              <span className="flex items-center gap-2">
-                {user.firstName} {user.lastName}
-              </span>
-            </DropdownMenuCheckboxItem>
-          ))}
-          {/* Reset filters section removed */}
+          {users.length === 0 ? (
+            <div className="px-2 py-1.5 text-sm text-muted-foreground/50 italic">
+              No users to filter by yet
+            </div>
+          ) : (
+            users.map((user) => (
+              <DropdownMenuCheckboxItem
+                key={user.userId}
+                checked={selectedUsers.includes(user.userId)}
+                onCheckedChange={() => toggleUser(user.userId)}
+              >
+                <span className="flex items-center gap-2">
+                  {user.firstName} {user.lastName}
+                </span>
+              </DropdownMenuCheckboxItem>
+            ))
+          )}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
