@@ -92,6 +92,7 @@ export function CommentBubble({
   const [showDragHint, setShowDragHint] = useState(false);
   const containerRef = useRef<Element | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const handleRef = useRef<HTMLDivElement>(null); // Added ref for the handle
 
   // Track position locally but initialize from props
   const [position, setPosition] = useState({ x, y });
@@ -727,7 +728,8 @@ export function CommentBubble({
         }
       }}
       onPointerDown={(e) => {
-        if (isAuthor && containerReady) {
+        // Only start dragging if the handle is clicked
+        if (isAuthor && containerReady && handleRef.current && handleRef.current.contains(e.target as Node)) {
           e.stopPropagation();
           // Set dragging state immediately
           setIsDragging(true);
@@ -754,24 +756,24 @@ export function CommentBubble({
     >
       <div className="relative">
         <div 
-            className={cn(
-              "w-6 h-6 rounded-full flex items-center justify-center text-primary-foreground transition-all duration-200",
-              isAuthor ? "bg-primary cursor-move" : "bg-primary",
-              isDragging && "scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background"
-            )}
-          >
-            {isAuthor && (showDragHint || isDragging) ? (
-              <GripHorizontal className="w-4 h-4" />
-            ) : (
-              <MessageCircle className="w-4 h-4" />
-            )}
-          </div>
+          ref={handleRef} // Assign the ref to the handle
+          className={cn(
+            "w-6 h-6 rounded-full flex items-center justify-center text-primary-foreground transition-all duration-200",
+            isAuthor ? "bg-primary cursor-move" : "bg-primary",
+            isDragging && "scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background"
+          )}
+        >
+          {isAuthor && (showDragHint || isDragging) ? (
+            <GripHorizontal className="w-4 h-4" />
+          ) : (
+            <MessageCircle className="w-4 h-4" />
+          )}
+        </div>
 
         <Card className={cn(
           "absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px]",
           isEditing ? "p-2" : "p-3",
           "bg-card shadow-lg border-primary/20",
-          //Removed (!isHovered && !isExpanded) && "hidden",
           "transition-all duration-200"
         )}>
           {isEditing ? (
@@ -951,8 +953,7 @@ export function CommentBubble({
                                     reaction.userIds.includes(user?.id || '') && "bg-primary/20"
                                   )}
                                 >
-                                  <span>{reaction.emoji}</span>
-                                  <span>{reaction.count}</span>
+                                  <span>{reaction.emoji}</span><span>{reaction.count}</span>
                                 </button>
                               ))}
                             </div>
