@@ -1964,12 +1964,19 @@ export function registerRoutes(app: Express): Server {
           .map(async (editorId) => {
             const recipientRole = await getGalleryUserRole(image.gallery.id, editorId);
             if (recipientRole === 'owner' || recipientRole === 'Edit') {
+              console.log('Star notification - Actor data:', {
+                userId,
+                actorName,
+                actorColor: actorData?.color,
+                hasActorData: !!actorData
+              });
+              
               await addStarNotification({
                 recipientUserId: editorId,
                 actorId: userId,
                 actorName,
                 actorAvatar: actorData?.imageUrl,
-                actorColor: actorData?.color,
+                actorColor: actorData?.color || "#ccc", // Ensure there's always a color
                 imageId,
                 galleryId: image.gallery.id,
               });
@@ -3349,6 +3356,15 @@ async function addStarNotification(data: {
     )
   });
 
+  // Ensure we have a default color if none is provided
+  const actorColor = data.actorColor || "#ccc";
+  
+  console.log('Creating star notification with:', {
+    recipientId: data.recipientUserId,
+    actorName: data.actorName,
+    actorColor: actorColor
+  });
+
   if (existingNotification) {
     await db.update(notifications)
       .set({
@@ -3360,7 +3376,7 @@ async function addStarNotification(data: {
           galleryId: data.galleryId,
           actorName: data.actorName,
           actorAvatar: data.actorAvatar,
-          actorColor: data.actorColor
+          actorColor: actorColor
         }
       })
       .where(eq(notifications.id, existingNotification.id));
@@ -3376,7 +3392,7 @@ async function addStarNotification(data: {
         galleryId: data.galleryId,
         actorName: data.actorName,
         actorAvatar: data.actorAvatar,
-        actorColor: data.actorColor  // Add actorColor to ensure avatar shows correct color
+        actorColor: actorColor
       },
       groupId,
       isSeen: false,
