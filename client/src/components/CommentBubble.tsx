@@ -505,7 +505,7 @@ export function CommentBubble({
     if (inputRef.current && (isNew || isEditing)) {
       // Use a sequence of focus attempts with increasing delays
       const focusAttempts = [0, 50, 150, 300];
-      
+
       focusAttempts.forEach(delay => {
         setTimeout(() => {
           if (inputRef.current) {
@@ -522,13 +522,13 @@ export function CommentBubble({
     if (isExpanded && inputRef.current && isEditing) {
       // Use a sequence of focus attempts with increasing delays
       const focusAttempts = [0, 50, 150];
-      
+
       focusAttempts.forEach(delay => {
         setTimeout(() => {
           if (inputRef.current) {
             inputRef.current.focus();
             console.log(`Re-focusing on expansion (attempt at ${delay}ms)`, { isExpanded, isEditing });
-            
+
             // Also try to select all text for easier editing
             inputRef.current.select();
           }
@@ -543,11 +543,11 @@ export function CommentBubble({
       if (!user || !id) {
         throw new Error('Must be logged in to edit comment');
       }
-      
+
       if (!newContent.trim()) {
         throw new Error('Comment content cannot be empty');
       }
-      
+
       const token = await getToken();
       const response = await fetch(`/api/comments/${id}`, {
         method: 'PUT',
@@ -568,17 +568,17 @@ export function CommentBubble({
     onSuccess: (data) => {
       setIsEditing(false);
       setText(data.data.content);
-      
+
       // Update the local cache
       if (imageId) {
         queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
       }
-      
+
       toast({
         title: "Success",
         description: "Comment updated successfully",
       });
-      
+
       // Mixpanel tracking for successful edit
       if (user) {
         mixpanel.track("Comment Edited", {
@@ -595,7 +595,7 @@ export function CommentBubble({
         description: error instanceof Error ? error.message : "Failed to edit comment",
         variant: "destructive"
       });
-      
+
       // Mixpanel tracking for edit error
       if (user) {
         mixpanel.track("Comment Edit Failed", {
@@ -614,7 +614,7 @@ export function CommentBubble({
       if (!user || !id) {
         throw new Error('Must be logged in to delete comment');
       }
-      
+
       const token = await getToken();
       const response = await fetch(`/api/comments/${id}`, {
         method: 'DELETE',
@@ -635,12 +635,12 @@ export function CommentBubble({
       if (imageId) {
         queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
       }
-      
+
       toast({
         title: "Success",
         description: "Comment deleted successfully",
       });
-      
+
       // Mixpanel tracking for successful deletion
       if (user) {
         mixpanel.track("Comment Deleted", {
@@ -656,7 +656,7 @@ export function CommentBubble({
         description: error instanceof Error ? error.message : "Failed to delete comment",
         variant: "destructive"
       });
-      
+
       // Mixpanel tracking for deletion error
       if (user) {
         mixpanel.track("Comment Delete Failed", {
@@ -771,7 +771,7 @@ export function CommentBubble({
           "absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px]",
           isEditing ? "p-2" : "p-3",
           "bg-card shadow-lg border-primary/20",
-          (!isHovered && !isExpanded) && "hidden",
+          //Removed (!isHovered && !isExpanded) && "hidden",
           "transition-all duration-200"
         )}>
           {isEditing ? (
@@ -850,24 +850,30 @@ export function CommentBubble({
                       )}
                     </div>
                     {isAuthor && !parentId && (
-                      <DropdownMenu>
+                      <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
                           <button 
                             className="p-1 rounded-full hover:bg-muted/80"
                             onClick={(e) => {
-                              // Prevent the event from bubbling up to parent handlers
+                              // Completely stop event propagation to prevent parent handlers
                               e.stopPropagation();
+                              e.nativeEvent.stopImmediatePropagation();
                             }}
                           >
                             <MoreVertical className="h-3 w-3 text-muted-foreground" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-32 z-50">
+                        <DropdownMenuContent 
+                          align="end" 
+                          className="w-32 z-50"
+                          sideOffset={5}
+                          alignOffset={0}
+                        >
                           <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
+                            onSelect={(e) => {
+                              // Use onSelect instead of onClick for proper handling
                               handleEditClick();
+                              // No need for stopPropagation here as onSelect handles this
                             }} 
                             className="cursor-pointer"
                           >
@@ -875,10 +881,10 @@ export function CommentBubble({
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
+                            onSelect={(e) => {
+                              // Use onSelect instead of onClick for proper handling
                               handleDeleteClick();
+                              // No need for stopPropagation here as onSelect handles this
                             }} 
                             className="cursor-pointer text-destructive"
                           >
@@ -953,8 +959,7 @@ export function CommentBubble({
                           )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    </div>                  ))}
                 </div>
               )}
               {!parentId && (id || localCommentId) && (
