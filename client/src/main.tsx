@@ -18,6 +18,8 @@ if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
 
 console.log("Initializing Clerk with publishable key...");
 
+import { useTheme } from "@/hooks/use-theme";
+
 // This function will provide the theme to ClerkProvider
 function ClerkWithTheme({ children }) {
   const { isDark } = useTheme();
