@@ -90,97 +90,13 @@ export function DashboardSidebar() {
               <Trash2 className="mr-2 h-4 w-4" />
               Trash
             </Button>
-            <Separator />
-            <div className="font-semibold px-2">Folders</div>
-            {folders.map((folder) => (
-              <div key={folder.id} className="group relative flex items-center">
-                <Button
-                  variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setSelectedFolder(folder.id);
-                    setSelectedSection('folders');
-                    setLocation(`/f/${folder.slug}`);
-                  }}
-                >
-                  <Folder className="mr-2 h-4 w-4" />
-                  {folder.name}
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setRenameFolder({ id: folder.id, name: folder.name });
-                      }}
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => {
-                        setDeleteFolder({ id: folder.id, name: folder.name });
-                      }}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Folder
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
+            {/* Folders feature disabled */}
             </div>
         </ScrollArea>
-        <div className="sticky bottom-0 w-full p-4 border-t bg-background">
-          <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
-            <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
-          </Button>
-        </div>
+        {/* Add Folder button disabled */}
       </div>
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Folder</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            createFolderMutation.mutate(newFolderName);
-          }}>
-            <Input
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="Folder name"
-            />
-            <Button type="submit" className="mt-4">Create</Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {deleteFolder && (
-        <DeleteFolderModal
-          isOpen={true}
-          onClose={() => setDeleteFolder(null)}
-          folderId={deleteFolder.id}
-          folderName={deleteFolder.name}
-        />
-      )}
-      {renameFolder && (
-        <RenameFolderModal
-          isOpen={true}
-          onClose={() => setRenameFolder(null)}
-          folderId={renameFolder.id}
-          currentName={renameFolder.name}
-        />
-      )}
+      {/* Folder modals disabled */}
     </>
   );
 }
