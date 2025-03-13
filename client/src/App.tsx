@@ -360,14 +360,4 @@ function App() {
     </DndProvider>
   );
 }
-import { dark } from "@clerk/themes";
-import { useTheme } from "@/hooks/use-theme";
-
-function AppRoot() {
-  const { isDark } = useTheme();
-
-  // Use the theming from within App directly
-  return <App />;
-}
-
-export default AppRoot;
+export default App;
