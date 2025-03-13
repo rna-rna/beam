@@ -18,7 +18,6 @@ const socket = io("/", {
 });
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Upload,
   Grid,
   LayoutGrid,
   MessageSquare,
@@ -35,6 +34,7 @@ import {
   Lock,
   SquareScissors,
 } from "lucide-react";
+import SolidUploadIcon from "@/components/icons/SolidUploadIcon";
 
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
@@ -2565,7 +2565,7 @@ export default function Gallery({
           {isDragActive && !selectMode && (
             <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
               <div className="text-center">
-                <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+                <SolidUploadIcon className="w-16 h-16 text-primary mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white">
                   Drop images here
                 </h3>
