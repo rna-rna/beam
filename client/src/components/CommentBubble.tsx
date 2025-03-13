@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, SmilePlus, Move, GripHorizontal, Trash, Edit, MoreVertical } from "lucide-react";
-import { UserAvatar } from "./UserAvatar";
+import { UserAvatar } from "@/components/UserAvatar";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";

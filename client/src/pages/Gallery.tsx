@@ -891,7 +891,10 @@ export default function Gallery({
           id: comment.userId || "unknown",
           username: comment.userName || "Unknown User", 
           imageUrl: comment.userImageUrl || undefined,
-          color: comment.color || '#ccc'
+          color: comment.color || comment.author?.color || '#ccc',
+          firstName: comment.author?.firstName,
+          lastName: comment.author?.lastName,
+          fullName: comment.author?.username || comment.userName || "Unknown User"
         },
       }));
     },

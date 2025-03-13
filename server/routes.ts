@@ -1747,7 +1747,9 @@ export function registerRoutes(app: Express): Server {
             color: user?.color || '#ccc',
             firstName: user?.firstName,
             lastName: user?.lastName
-          }
+          },
+          // Add color directly to the comment object for backward compatibility
+          color: user?.color || '#ccc'
         };
       };
 
