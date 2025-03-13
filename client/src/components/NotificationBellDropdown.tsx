@@ -5,11 +5,9 @@ import { UserAvatar } from "./UserAvatar";
 import { formatDistanceToNow } from "@/lib/format-date";
 
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
 export function NotificationBellDropdown() {
   const { notifications, markAllAsRead } = useNotifications();
-  const navigate = useNavigate();
 
   useEffect(() => {
     console.log('All notifications:', notifications);
