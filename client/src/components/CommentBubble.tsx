@@ -725,13 +725,18 @@ export function CommentBubble({
           setIsExpanded(true);
         }
       }}
+    >
+      {/* Other content */}
+    </div>
+  );
 
-          const handlePointerUp = (upEvent: PointerEvent) => {
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
-
-            handleDragEnd(upEvent.clientX, upEvent.clientY);
-          };
+  // Define handlePointerUp outside JSX
+  const handlePointerUp = (upEvent: PointerEvent) => {
+    window.removeEventListener('pointermove', handlePointerMove);
+    window.removeEventListener('pointerup', handlePointerUp);
+    
+    handleDragEnd(upEvent.clientX, upEvent.clientY);
+  };
 
           // Add global event listeners
           window.addEventListener('pointermove', handlePointerMove);
