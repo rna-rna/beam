@@ -360,3 +360,28 @@ export default function App() {
     </DndProvider>
   );
 }
+import { ClerkProvider } from "@clerk/clerk-react";
+import { dark } from "@clerk/themes";
+import { useTheme } from "@/hooks/use-theme";
+
+function App() {
+  const { isDark } = useTheme();
+  
+  return (
+    <ClerkProvider
+      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+      appearance={{
+        baseTheme: isDark ? dark : undefined,
+        elements: {
+          formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+          card: 'bg-background shadow-none',
+          otpCodeField: 'dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:border-zinc-500 dark:focus:ring-1 dark:focus:ring-zinc-500',
+        }
+      }}
+    >
+      {/* Rest of your application */}
+    </ClerkProvider>
+  );
+}
+
+export default App;
