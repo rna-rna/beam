@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, SmilePlus, Move, GripHorizontal, Trash, Edit, MoreVertical } from "lucide-react";
-import { UserAvatar } from "@/components/UserAvatar";
+import { UserAvatar } from "./UserAvatar";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -951,7 +951,7 @@ export function CommentBubble({
                                     "inline-flex items-center gap-1 text-xs rounded-full px-2 py-0.5",
                                     "bg-muted hover:bg-muted/80 transition-colors",
                                     reaction.userIds.includes(user?.id || '') && "bg-primary/20"
-                                  )}>
+                                  )}
                                 >
                                   <span>{reaction.emoji}</span><span>{reaction.count}</span>
                                 </button>
