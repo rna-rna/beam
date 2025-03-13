@@ -1964,10 +1964,13 @@ export function registerRoutes(app: Express): Server {
           .map(async (editorId) => {
             const recipientRole = await getGalleryUserRole(image.gallery.id, editorId);
             if (recipientRole === 'owner' || recipientRole === 'Edit') {
+              // Make sure we have the color from cached user data
+              const userColor = actorData?.color || "#ccc";
+              
               console.log('Star notification - Actor data:', {
                 userId,
                 actorName,
-                actorColor: actorData?.color,
+                actorColor: userColor,
                 hasActorData: !!actorData
               });
               
@@ -1976,7 +1979,7 @@ export function registerRoutes(app: Express): Server {
                 actorId: userId,
                 actorName,
                 actorAvatar: actorData?.imageUrl,
-                actorColor: actorData?.color || "#ccc", // Ensure there's always a color
+                actorColor: userColor,
                 imageId,
                 galleryId: image.gallery.id,
               });
@@ -3365,19 +3368,21 @@ async function addStarNotification(data: {
     actorColor: actorColor
   });
 
+  const notificationData = {
+    imageId: data.imageId,
+    isStarred: true,
+    actorId: data.actorId,
+    galleryId: data.galleryId,
+    actorName: data.actorName,
+    actorAvatar: data.actorAvatar,
+    actorColor: actorColor
+  };
+
   if (existingNotification) {
     await db.update(notifications)
       .set({
         createdAt: new Date(),
-        data: {
-          imageId: data.imageId,
-          isStarred: true,
-          actorId: data.actorId,
-          galleryId: data.galleryId,
-          actorName: data.actorName,
-          actorAvatar: data.actorAvatar,
-          actorColor: actorColor
-        }
+        data: notificationData
       })
       .where(eq(notifications.id, existingNotification.id));
   } else {
@@ -3385,15 +3390,7 @@ async function addStarNotification(data: {
     await db.insert(notifications).values({
       userId: data.recipientUserId,
       type: 'image-starred',
-      data: {
-        imageId: data.imageId,
-        isStarred: true,
-        actorId: data.actorId,
-        galleryId: data.galleryId,
-        actorName: data.actorName,
-        actorAvatar: data.actorAvatar,
-        actorColor: actorColor
-      },
+      data: notificationData,
       groupId,
       isSeen: false,
       createdAt: new Date()
