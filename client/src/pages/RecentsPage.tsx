@@ -90,10 +90,8 @@ export default function RecentsPage() {
 
   return (
     <div className="flex h-screen bg-background">
-      <aside className="hidden md:block w-64 border-r">
-        <div className="sticky top-0 h-screen flex flex-col">
-          <DashboardSidebar />
-        </div>
+      <aside className="hidden md:block w-64 border-r h-full">
+        <DashboardSidebar />
       </aside>
       <main className="flex-1 flex flex-col min-h-0">
         <header className="flex items-center justify-between p-4 border-b">
