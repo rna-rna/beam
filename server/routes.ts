@@ -3393,8 +3393,8 @@ async function addStarNotification(data: {
             actorName: data.actorName,
             actorAvatar: data.actorAvatar,
             actorColor: data.actorColor || "#ccc",
-            galleryTitle,
-            gallerySlug
+            galleryTitle, // Make sure to include gallery title in the notification
+            gallerySlug  // Make sure to include gallery slug in the notification
           }
         })
         .where(eq(notifications.id, existingNotification.id));
@@ -3411,8 +3411,8 @@ async function addStarNotification(data: {
           actorName: data.actorName,
           actorAvatar: data.actorAvatar,
           actorColor: data.actorColor || "#ccc",
-          galleryTitle,
-          gallerySlug
+          galleryTitle, // Make sure to include gallery title in the notification
+          gallerySlug  // Make sure to include gallery slug in the notification
         },
         groupId,
         isSeen: false,
