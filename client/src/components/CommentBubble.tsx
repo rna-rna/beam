@@ -708,7 +708,6 @@ export function CommentBubble({
         top: `${position.y}%`,
         transform: 'translate(-50%, -50%)',
         zIndex: isDragging ? 1000 : 1,
-        cursor: isAuthor && containerReady ? (isDragging ? 'grabbing' : 'grab') : 'default',
         touchAction: 'none',
         // Use CSS transitions for smoother movement that doesn't rely on Framer Motion
         transition: isDragging ? 'none' : 'left 0.1s ease, top 0.1s ease'
@@ -726,18 +725,6 @@ export function CommentBubble({
           setIsExpanded(true);
         }
       }}
-      onPointerDown={(e) => {
-        if (isAuthor && containerReady) {
-          e.stopPropagation();
-          // Set dragging state immediately
-          setIsDragging(true);
-          handleDragStart(e);
-
-          // Use DOM API directly for better pointer tracking
-          const handlePointerMove = (moveEvent: PointerEvent) => {
-            moveEvent.preventDefault(); // Prevent text selection
-            handleDrag(moveEvent.clientX, moveEvent.clientY);
-          };
 
           const handlePointerUp = (upEvent: PointerEvent) => {
             window.removeEventListener('pointermove', handlePointerMove);
@@ -759,6 +746,31 @@ export function CommentBubble({
               isAuthor ? "bg-primary cursor-move" : "bg-primary",
               isDragging && "scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background"
             )}
+            onPointerDown={(e) => {
+              if (isAuthor && containerReady) {
+                e.stopPropagation();
+                // Set dragging state immediately
+                setIsDragging(true);
+                handleDragStart(e);
+
+                // Use DOM API directly for better pointer tracking
+                const handlePointerMove = (moveEvent: PointerEvent) => {
+                  moveEvent.preventDefault(); // Prevent text selection
+                  handleDrag(moveEvent.clientX, moveEvent.clientY);
+                };
+
+                const handlePointerUp = (upEvent: PointerEvent) => {
+                  window.removeEventListener('pointermove', handlePointerMove);
+                  window.removeEventListener('pointerup', handlePointerUp);
+
+                  handleDragEnd(upEvent.clientX, upEvent.clientY);
+                };
+
+                // Add global event listeners
+                window.addEventListener('pointermove', handlePointerMove);
+                window.addEventListener('pointerup', handlePointerUp);
+              }
+            }}
           >
             {isAuthor && (showDragHint || isDragging) ? (
               <GripHorizontal className="w-4 h-4" />
