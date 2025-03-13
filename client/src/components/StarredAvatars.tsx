@@ -126,12 +126,12 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
               name={star.user?.fullName || 'Unknown User'}
               imageUrl={star.user?.imageUrl}
               color={star.user?.color}
-              size="sm"
-              className="shadow-sm -ml-2 first:ml-0"
+              size="xs"
+              className="shadow-sm -ml-1.5 first:ml-0"
             />
           ))}
           {remainingCount > 0 && (
-            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium -ml-2">
+            <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium -ml-1.5">
               +{remainingCount}
             </div>
           )}
