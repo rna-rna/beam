@@ -108,11 +108,8 @@ export function CommentBubble({
   useEffect(() => {
     if (propIsExpanded !== undefined) {
       setIsExpanded(propIsExpanded);
-    } else if (!isNew) {
-      // Default to collapsed for existing comments
-      setIsExpanded(false);
     }
-  }, [propIsExpanded, isNew]);
+  }, [propIsExpanded]);
 
   // Find and store the container reference on mount and when dragging starts
   const findContainer = useCallback(() => {
@@ -777,7 +774,6 @@ export function CommentBubble({
           "absolute left-8 top-0 -translate-y-1/2 w-max max-w-[300px]",
           isEditing ? "p-2" : "p-3",
           "bg-card shadow-lg border-primary/20",
-          (!isHovered && !isExpanded) && "hidden",
           "transition-all duration-200"
         )}>
           {isEditing ? (
