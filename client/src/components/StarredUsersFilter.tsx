@@ -100,13 +100,7 @@ export function StarredUsersFilter({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <div className="max-h-fit">
-          <DropdownMenuCheckboxItem
-            checked={selectAllTriggered}
-            onCheckedChange={toggleAll}
-          >
-            View all Stars
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuSeparator />
+          
           {users.map((user) => (
             <DropdownMenuCheckboxItem
               key={user.userId}
