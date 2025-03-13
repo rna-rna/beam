@@ -891,7 +891,10 @@ export default function Gallery({
           id: comment.userId || "unknown",
           username: comment.userName || "Unknown User", 
           imageUrl: comment.userImageUrl || undefined,
-          color: comment.color || '#ccc'
+          color: comment.color || comment.author?.color || '#ccc',
+          firstName: comment.author?.firstName,
+          lastName: comment.author?.lastName,
+          fullName: comment.author?.username || comment.userName || "Unknown User"
         },
       }));
     },
@@ -2565,7 +2568,7 @@ export default function Gallery({
           {isDragActive && !selectMode && (
             <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
               <div className="text-center">
-                <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+                <Upload className="w-16 h-16 text-primary mx-auto mb-4" style={{ opacity: 1 }} />
                 <h3 className="text-xl font-semibold text-white">
                   Drop images here
                 </h3>

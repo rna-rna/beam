@@ -319,7 +319,7 @@ function MixpanelProvider() {
     // Identify user if they're signed in
     if (isSignedIn && user) {
       mixpanel.identify(user.id);
-      
+
       // Set complete user profile information
       mixpanel.people.set({
         $first_name: user.firstName,
@@ -336,7 +336,7 @@ function MixpanelProvider() {
   return null;
 }
 
-export default function App() {
+function App() {
   const { isLoaded } = useUser();
 
   if (!isLoaded) {
@@ -360,3 +360,4 @@ export default function App() {
     </DndProvider>
   );
 }
+export default App;
