@@ -319,7 +319,7 @@ function MixpanelProvider() {
     // Identify user if they're signed in
     if (isSignedIn && user) {
       mixpanel.identify(user.id);
-      
+
       // Set complete user profile information
       mixpanel.people.set({
         $first_name: user.firstName,
@@ -366,7 +366,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 function AppRoot() {
   const { isDark } = useTheme();
-  
+
   return (
     <ClerkProvider
       publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
@@ -379,7 +379,7 @@ function AppRoot() {
         }
       }}
     >
-      {/* Rest of your application */}
+      <App/>
     </ClerkProvider>
   );
 }
