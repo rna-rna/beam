@@ -10,6 +10,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { Logo } from "@/components/Logo";
 import { WelcomeModal } from "@/components/WelcomeModal"; // Added import
 import GuestUploadCard from "@/components/GuestUploadCard";
+import { DashboardOnboarding } from "@/components/DashboardOnboarding";
 
 export default function Home() {
   const { isDark } = useTheme();
@@ -36,6 +37,9 @@ export default function Home() {
               <GuestUploadCard />
             </div>
         </SignedOut>
+        <SignedIn>
+            <DashboardOnboarding />
+        </SignedIn>
 
         <SignedIn>
           <div className="flex flex-col items-center justify-center min-h-[80vh]">
