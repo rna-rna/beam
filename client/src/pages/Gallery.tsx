@@ -541,6 +541,7 @@ export default function Gallery({
   const [selectMode, setSelectMode] = useState(false);
   const [isMasonry, setIsMasonry] = useState(true);
   const [images, setImages] = useState<ImageOrPending[]>([]); // Moved here
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false); // Added state for lightbox
 
   // Add warning when closing/refreshing during active uploads
   useEffect(() => {
@@ -968,6 +969,7 @@ export default function Gallery({
         prev?.id === imageId ? { ...prev, userStarred: !isStarred } : prev,
       );
 
+      ```javascript
       // Update Gallery Grid
       queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
         if (!oldData) return oldData;
@@ -1529,14 +1531,88 @@ export default function Gallery({
     [scale],
   );
 
-  // Preload image function
-  const preloadImage = useCallback((image: Image, imageId: number) => {
+  // Preloaded images cache - using ref to prevent garbage collection
+  const preloadedImagesCache = useRef<Record<string, HTMLImageElement>>({});
+
+  // Preload image function with quality parameter
+  const preloadImage = useCallback((image: Image, quality: "thumb" | "optimized" | "lightbox" = "thumb") => {
+    if (!image) return;
+
+    const cacheKey = `${image.id}-${quality}`;
+
+    // Skip if already preloaded
+    if (preloadedImagesCache.current[cacheKey]) return;
+
+    console.log(`🔄 Preloading image: ${image.id} at quality: ${quality}`);
+
     const img = new Image();
-    img.src = getR2Image(image, "thumb");
+    img.src = getR2Image(image, quality);
     img.onload = () => {
-      setPreloadedImages((prev) => new Set([...Array.from(prev), imageId]));
+      console.log(`✅ Preloaded image: ${image.id} at quality: ${quality}`);
+      setPreloadedImages((prev) => new Set([...Array.from(prev), image.id]));
     };
+    img.onerror = () => {
+      console.error(`❌ Failed to preload image: ${image.id} at quality: ${quality}`);
+    };
+
+    // Store in ref to prevent garbage collection
+    preloadedImagesCache.current[cacheKey] = img;
   }, []);
+
+  // Preload multiple images in a range
+  const preloadImageRange = useCallback((images: Image[], currentIndex: number, range: number, quality: "thumb" | "optimized" | "lightbox" = "thumb") => {
+    if (!images || images.length === 0) return;
+
+    const totalImages = images.length;
+
+    // Calculate range bounds with wrap-around
+    for (let offset = -range; offset <= range; offset++) {
+      if (offset === 0) continue; // Skip current image
+
+      const targetIndex = (currentIndex + offset + totalImages) % totalImages;
+      const targetImage = images[targetIndex];
+
+      if (targetImage) {
+        preloadImage(targetImage, quality);
+      }
+    }
+  }, [preloadImage]);
+
+  // Preload initial gallery thumbnails when gallery data is available
+  useEffect(() => {
+    if (gallery?.images) {
+      // Preload all thumbnails
+      gallery.images.forEach((image) => {
+        if (!preloadedImages.has(image.id)) {
+          preloadImage(image, "thumb");
+        }
+      });
+
+      // Preload first 15 images at lightbox quality
+      const initialPreloadCount = Math.min(15, gallery.images.length);
+      for (let i = 0; i < initialPreloadCount; i++) {
+        preloadImage(gallery.images[i], "lightbox");
+      }
+
+      console.log(`📸 Preloaded initial ${initialPreloadCount} images at lightbox quality`);
+    }
+  }, [gallery?.images, preloadImage, preloadedImages]);
+
+  // Preload images when lightbox opens
+  useEffect(() => {
+    if (isLightboxOpen && gallery?.images && selectedImageIndex !== null) {
+      console.log(`🔍 Lightbox opened at image index: ${selectedImageIndex}`);
+
+      // Preload current image at lightbox quality
+      const currentImage = gallery.images[selectedImageIndex];
+      if (currentImage) {
+        preloadImage(currentImage, "lightbox");
+      }
+
+      // Preload 7 images forward and backward at lightbox quality
+      preloadImageRange(gallery.images, selectedImageIndex, 7, "lightbox");
+    }
+  }, [isLightboxOpen, selectedImageIndex, gallery?.images, preloadImage, preloadImageRange]);
 
   // Reflow Masonry layout when images or uploads change
   useEffect(() => {
@@ -1544,17 +1620,6 @@ export default function Gallery({
       masonryRef.current.layout();
     }
   }, [gallery?.images, images]);
-
-  // Preload images when gallery data is available
-  useEffect(() => {
-    if (gallery?.images) {
-      gallery.images.forEach((image) => {
-        if (!preloadedImages.has(image.id)) {
-          preloadImage(image, image.id);
-        }
-      });
-    }
-  }, [gallery?.images, preloadImage, preloadedImages]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -1896,7 +1961,7 @@ export default function Gallery({
             </Tooltip>
           )}
         </TooltipProvider>
-      </div>
+      </      </div>
     );
   }, [
     gallery,
@@ -1973,7 +2038,7 @@ export default function Gallery({
               draggedItemIndex === index && "opacity-50",
               "localUrl" in image && "opacity-80",
               image.status === "error" && "opacity-50",
-                        )}
+            )}
             loading="lazy"
             onLoad={(e) => {
               e.currentTarget.classList.add("loaded");
@@ -2246,14 +2311,14 @@ export default function Gallery({
       if (!token) {
         throw new Error('Authentication failed');
       }
-      
+
       // Check if user is authenticated
       if (!user || !user.id) {
         throw new Error('User authentication required');
       }
-      
+
       console.log("Sending position update to server:", { commentId, x, y, userId: user.id });
-      
+
       const response = await fetch(`/api/comments/${commentId}/position`, {
         method: 'PUT',
         headers: {
@@ -2271,7 +2336,7 @@ export default function Gallery({
         console.error("Failed to update comment position:", errorText);
         throw new Error('Failed to update comment position');
       }
-      
+
       const data = await response.json();
       console.log("Position update response:", data);
       return data;
@@ -2298,18 +2363,18 @@ export default function Gallery({
   // Handler for comment position changes
   const handleCommentPositionChange = (commentId: number, x: number, y: number) => {
     console.log("Comment position change in Gallery:", { commentId, x, y });
-    
+
     // Update the comments cache immediately for a smooth experience
     queryClient.setQueryData([`/api/images/${selectedImage?.id}/comments`], (oldData: any) => {
       if (!oldData || !Array.isArray(oldData)) return oldData;
-      
+
       return oldData.map(comment => 
         comment.id === commentId 
           ? { ...comment, xPosition: x, yPosition: y } 
           : comment
       );
     });
-    
+
     // Call the mutation to update the position on the server
     updateCommentPositionMutation.mutate({ commentId, x, y });
   };
@@ -2392,20 +2457,7 @@ export default function Gallery({
   const preloadAdjacentImages = (index: number) => {
     if (!gallery?.images) return;
 
-    const preloadCount = 2;
-    const images = gallery.images;
-
-    for (let i = 1; i <= preloadCount; i++) {
-      const nextIndex = (index + i) % images.length;
-      const prevIndex = (index - i + images.length) % images.length;
-
-      [nextIndex, prevIndex].forEach((idx) => {
-        if (images[idx]?.publicId) {
-          const img = new Image();
-          img.src = getR2Image(images[idx], "thumb");
-        }
-      });
-    }
+    preloadImageRange(gallery.images, index, 7, "lightbox");
   };
 
   // Preload adjacent images when lightbox opens
@@ -2420,6 +2472,7 @@ export default function Gallery({
     }
 
     setSelectedImageIndex(index);
+    setIsLightboxOpen(true); // Set lightbox open state
     preloadAdjacentImages(index);
   };
 
@@ -2700,8 +2753,9 @@ export default function Gallery({
           {/* Only render the desktop lightbox when not on mobile */}
           {!isMobile && selectedImageIndex >= 0 && (
             <Dialog
-              open={selectedImageIndex >= 0}
+              open={isLightboxOpen} // Use isLightboxOpen state
               onOpenChange={(open) => {
+                setIsLightboxOpen(open); // Update isLightboxOpen state
                 if (!open) {
                   setSelectedImageIndex(-1);
                   setNewCommentPos(null);
@@ -2713,6 +2767,7 @@ export default function Gallery({
                 selectedImage={selectedImage}
                 setSelectedImage={setSelectedImage}
                 onOpenChange={(open) => {
+                  setIsLightboxOpen(open); // Update isLightboxOpen state
                   if (!open) {
                     setSelectedImageIndex(-1);
                     setNewCommentPos(null);
