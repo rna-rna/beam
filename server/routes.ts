@@ -975,7 +975,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const { title } = req.body;
 
-      if (!title || typeof title !== 'string') {        return res.status400).json({ message: 'Invalid title' });
+      if (!title || typeof title !== 'string') {        return res.status(400).json({ message: 'Invalid title' });
       }
 
       // Find the gallery by slug
