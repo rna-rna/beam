@@ -54,7 +54,7 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <div className="flex flex-col absolute top-0 bottom-0 left-0 right-0 overflow-hidden">
+      <div className="flex flex-col h-full relative">
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-4">
             <Button
@@ -139,7 +139,7 @@ export function DashboardSidebar() {
             ))}
             </div>
         </ScrollArea>
-        <div className="shrink-0 p-4 border-t">
+        <div className="sticky bottom-0 w-full p-4 border-t bg-background">
           <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
             <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
           </Button>
