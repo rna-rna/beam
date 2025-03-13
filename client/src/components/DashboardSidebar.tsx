@@ -56,9 +56,9 @@ export function DashboardSidebar() {
   return (
     <>
       {/* Fixed, non-scrollable sidebar container */}
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full overflow-hidden">
         {/* Top navigation buttons */}
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-hidden">
           <Button
             variant={selectedSection === 'recents' ? "secondary" : "ghost"}
             className="w-full justify-start"
