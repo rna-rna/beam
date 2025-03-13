@@ -964,7 +964,7 @@ export default function Gallery({
         `/api/galleries/${slug}`,
       ]);
       const previousStars = queryClient.getQueryData([
-        `/api/images/${imageId}/stars`,
+        `/api/images${imageId}/stars`,
       ]);
 
       // Update Lightbox Image (if open)
@@ -1954,7 +1954,7 @@ export default function Gallery({
                       : "text-gray-800 hover:bg-gray-200 data-[state=on]:bg-accent/30 data-[state=on]:text-accent-foreground data-[state=on]:ring-2 data-[state=on]:ring-accent",
                   )}
                 >
-                  <SquareScissors className="h-4 w-4" />
+                  <SquareScissors className="h-4 w-4" /><Toggle>
                 </Toggle>
               </TooltipTrigger>
               <TooltipContent>
@@ -2603,7 +2603,7 @@ export default function Gallery({
                   <Masonry
                     ref={masonryRef}
                     breakpointCols={breakpointCols}
-                    className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid gallery-container"
+                    className="flex -ml-4 w-[calc(100%+1rem)] masonrygrid gallery-container w-full px-4 md:px-6"
                     columnClassName="pl-4 bg-transparent"
                   >
                     {(() => {
@@ -2646,7 +2646,7 @@ export default function Gallery({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="grid gap-4 gallery-container"
+                  className="grid gap-4 gallery-container w-full px-4 md:px-6"
                   style={{
                     gridTemplateColumns: `repeat(${breakpointCols.default}, minmax(0, 1fr))`,
                   }}
@@ -2886,7 +2886,7 @@ export default function Gallery({
                       {showAnnotations ? (
                         <Eye className="h-4 w-4" />
                       ) : (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h4 w-4" />
                       )}
                     </Button>
                     <SignedIn>
