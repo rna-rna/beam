@@ -2577,7 +2577,7 @@ export default function Gallery({
             {gallery &&
               gallery.images.length === 0 &&
               images.filter((i) => "localUrl" in i).length === 0 && (
-                <div className="my-8 text-center">
+                <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center">
                   <Upload className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                   <h3 className="text-lg font-medium text-foreground mb-2">
                     No images yet
