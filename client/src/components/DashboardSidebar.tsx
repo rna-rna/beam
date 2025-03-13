@@ -54,8 +54,8 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <div className="flex flex-col h-full relative">
-        <ScrollArea className="flex-1">
+      <div className="flex flex-col h-full relative overflow-hidden">
+        <ScrollArea className="flex-1 h-full">
           <div className="p-4 space-y-4">
             <Button
               variant={selectedSection === 'recents' ? "secondary" : "ghost"}

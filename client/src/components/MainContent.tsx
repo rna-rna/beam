@@ -99,7 +99,7 @@ export function MainContent() {
           </div>
         </header>
 
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4 h-full">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {folderGalleries.length === 0 ? (
               <div className="col-span-full flex items-center justify-center py-12">
