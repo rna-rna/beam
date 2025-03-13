@@ -3361,15 +3361,32 @@ async function addStarNotification(data: {
       return;
     }
     
+    // Fetch the image URL for the notification
+    const image = await db.query.images.findFirst({
+      where: eq(images.id, data.imageId),
+      select: {
+        url: true
+      }
+    });
+    
+    if (!image) {
+      console.error('Image not found for star notification:', {
+        imageId: data.imageId
+      });
+      return;
+    }
+    
     // Use gallery data from database to ensure consistency
     const galleryTitle = gallery.title || "Untitled Gallery";
     const gallerySlug = gallery.slug;
+    const imageUrl = image.url;
     
     console.log('Creating star notification with data:', {
       imageId: data.imageId,
       galleryId: data.galleryId,
       galleryTitle,
-      gallerySlug
+      gallerySlug,
+      imageUrl
     });
     
     const existingNotification = await db.query.notifications.findFirst({
@@ -3394,7 +3411,8 @@ async function addStarNotification(data: {
             actorAvatar: data.actorAvatar,
             actorColor: data.actorColor || "#ccc",
             galleryTitle,
-            gallerySlug
+            gallerySlug,
+            imageUrl
           }
         })
         .where(eq(notifications.id, existingNotification.id));
@@ -3412,7 +3430,8 @@ async function addStarNotification(data: {
           actorAvatar: data.actorAvatar,
           actorColor: data.actorColor || "#ccc",
           galleryTitle,
-          gallerySlug
+          gallerySlug,
+          imageUrl
         },
         groupId,
         isSeen: false,
