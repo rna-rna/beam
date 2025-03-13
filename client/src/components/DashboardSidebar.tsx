@@ -54,7 +54,7 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col absolute top-0 bottom-0 left-0 right-0 overflow-hidden">
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-4">
             <Button
