@@ -113,6 +113,11 @@ export function NotificationBellDropdown() {
                     color={actorColor || "#ccc"}
                     className="h-8 w-8"
                   />
+                  {notif.type === 'image-starred' && (
+                    <span className="sr-only">
+                      {console.log('Extracted color for image-starred:', actorColor, 'from data:', data)}
+                    </span>
+                  )}
                   <div className="flex flex-col gap-1">
                     <div className={`text-sm ${!notif.isSeen ? "font-medium" : ""}`}>
                       {notificationText}

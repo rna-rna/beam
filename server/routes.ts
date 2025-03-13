@@ -1969,6 +1969,7 @@ export function registerRoutes(app: Express): Server {
                 actorId: userId,
                 actorName,
                 actorAvatar: actorData?.imageUrl,
+                actorColor: actorData?.color || "#ccc",
                 imageId,
                 galleryId: image.gallery.id,
               });
@@ -3335,47 +3336,72 @@ async function addStarNotification(data: {
   actorId: string;
   actorName: string;
   actorAvatar: string | null;
+  actorColor?: string | null;
   imageId: number;
   galleryId: number;
 }) {
-  const existingNotification = await db.query.notifications.findFirst({
-    where: and(
-      eq(notifications.type,'image-starred'),
-      eq(notifications.userId, data.recipientUserId),
-      sql`${notifications.data}->>'imageId' = ${data.imageId}::text`,
-      sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
-    )
-  });
+  try {
+    // Get the gallery information to include galleryTitle and slug
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.id, data.galleryId),
+      select: {
+        title: true,
+        slug: true
+      }
+    });
+    
+    const galleryTitle = gallery?.title || "Untitled Gallery";
+    const gallerySlug = gallery?.slug;
+    
+    const existingNotification = await db.query.notifications.findFirst({
+      where: and(
+        eq(notifications.type, 'image-starred'),
+        eq(notifications.userId, data.recipientUserId),
+        sql`${notifications.data}->>'imageId' = ${data.imageId}::text`,
+        sql`${notifications.createdAt} >= NOW() - INTERVAL '5 seconds'`
+      )
+    });
 
-  if (existingNotification) {
-    await db.update(notifications)
-      .set({
-        createdAt: new Date(),
+    if (existingNotification) {
+      await db.update(notifications)
+        .set({
+          createdAt: new Date(),
+          data: {
+            imageId: data.imageId,
+            isStarred: true,
+            actorId: data.actorId,
+            galleryId: data.galleryId,
+            actorName: data.actorName,
+            actorAvatar: data.actorAvatar,
+            actorColor: data.actorColor || "#ccc",
+            galleryTitle,
+            gallerySlug
+          }
+        })
+        .where(eq(notifications.id, existingNotification.id));
+    } else {
+      const groupId = nanoid();
+      await db.insert(notifications).values({
+        userId: data.recipientUserId,
+        type: 'image-starred',
         data: {
           imageId: data.imageId,
           isStarred: true,
           actorId: data.actorId,
-          galleryId: data.galleryId
-        }
-      })
-      .where(eq(notifications.id, existingNotification.id));
-  } else {
-    const groupId = nanoid();
-    await db.insert(notifications).values({
-      userId: data.recipientUserId,
-      type: 'image-starred',
-      data: {
-        imageId: data.imageId,
-        isStarred: true,
-        actorId: data.actorId,
-        galleryId: data.galleryId,
-        actorName: data.actorName,
-        actorAvatar: data.actorAvatar
-      },
-      groupId,
-      isSeen: false,
-      createdAt: new Date()
-    });
+          galleryId: data.galleryId,
+          actorName: data.actorName,
+          actorAvatar: data.actorAvatar,
+          actorColor: data.actorColor || "#ccc",
+          galleryTitle,
+          gallerySlug
+        },
+        groupId,
+        isSeen: false,
+        createdAt: new Date()
+      });
+    }
+  } catch (error) {
+    console.error('Failed to add star notification:', error);
   }
 }
 
