@@ -2583,7 +2583,7 @@ export default function Gallery({
                     No images yet
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Drag and drop images here to start your gallery
+                    Drag and drop images here to start your project
                   </p>
                 </div>
               )}
