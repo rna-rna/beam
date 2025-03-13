@@ -33,6 +33,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               dividerText: 'dark:text-zinc-400',
               socialButtonsBlockButton: 'dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-white dark:border-zinc-700',
               socialButtonsBlockButtonArrow: 'dark:text-zinc-400',
+              otpCodeField: 'dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:border-zinc-500 dark:focus:ring-1 dark:focus:ring-zinc-500',
             }
           }}
           afterSignInUrl={window.location.pathname}

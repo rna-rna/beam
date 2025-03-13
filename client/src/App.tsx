@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { SignedIn, SignedOut, useUser, useAuth, useClerk } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useUser, useAuth, useClerk, ClerkProvider } from "@clerk/clerk-react";
 import { AnimatePresence } from "framer-motion";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
@@ -319,7 +319,7 @@ function MixpanelProvider() {
     // Identify user if they're signed in
     if (isSignedIn && user) {
       mixpanel.identify(user.id);
-      
+
       // Set complete user profile information
       mixpanel.people.set({
         $first_name: user.firstName,
@@ -348,6 +348,16 @@ export default function App() {
   }
 
   return (
+    <ClerkProvider
+        publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+        appearance={{
+          elements: {
+            formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+            card: 'bg-background shadow-none',
+            otpCodeField: 'dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:border-zinc-500 dark:focus:ring-1 dark:focus:ring-zinc-500',
+          }
+        }}
+      >
     <DndProvider backend={HTML5Backend}>
       <UploadProvider>
         <NotificationProvider>
@@ -358,5 +368,6 @@ export default function App() {
         </NotificationProvider>
       </UploadProvider>
     </DndProvider>
+    </ClerkProvider>
   );
 }
