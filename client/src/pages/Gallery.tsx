@@ -969,7 +969,6 @@ export default function Gallery({
         prev?.id === imageId ? { ...prev, userStarred: !isStarred } : prev,
       );
 
-      ```javascript
       // Update Gallery Grid
       queryClient.setQueryData([`/api/galleries/${slug}`], (oldData: any) => {
         if (!oldData) return oldData;
