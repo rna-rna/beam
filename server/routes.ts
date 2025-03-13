@@ -3343,32 +3343,34 @@ async function addStarNotification(data: {
   gallerySlug?: string;
 }) {
   try {
-    // Get the gallery information to include galleryTitle and slug
-    // First try to use provided gallerySlug, or look it up if not provided
-    let gallerySlug = data.gallerySlug;
-    let galleryTitle = "Untitled Gallery";
-    
-    if (!gallerySlug) {
-      // Fetch gallery data if slug not provided
-      const gallery = await db.query.galleries.findFirst({
-        where: eq(galleries.id, data.galleryId),
-        select: {
-          title: true,
-          slug: true
-        }
-      });
-      
-      galleryTitle = gallery?.title || "Untitled Gallery";
-      gallerySlug = gallery?.slug;
-      
-      // Log if we still couldn't find the slug
-      if (!gallerySlug) {
-        console.error('Failed to get gallerySlug for star notification:', {
-          galleryId: data.galleryId,
-          imageId: data.imageId
-        });
+    // Always fetch the gallery to ensure we have the latest data
+    const gallery = await db.query.galleries.findFirst({
+      where: eq(galleries.id, data.galleryId),
+      select: {
+        id: true,
+        title: true,
+        slug: true
       }
+    });
+    
+    if (!gallery) {
+      console.error('Gallery not found for star notification:', {
+        galleryId: data.galleryId,
+        imageId: data.imageId
+      });
+      return;
     }
+    
+    // Use gallery data from database to ensure consistency
+    const galleryTitle = gallery.title || "Untitled Gallery";
+    const gallerySlug = gallery.slug;
+    
+    console.log('Creating star notification with data:', {
+      imageId: data.imageId,
+      galleryId: data.galleryId,
+      galleryTitle,
+      gallerySlug
+    });
     
     const existingNotification = await db.query.notifications.findFirst({
       where: and(
