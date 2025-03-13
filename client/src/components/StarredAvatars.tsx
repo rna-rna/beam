@@ -139,10 +139,7 @@ export function StarredAvatars({ imageId, size = "default" }: StarredAvatarsProp
       </HoverCardTrigger>
       <HoverCardPortal>
         <HoverCardContent className="w-56 p-4 shadow-lg">
-          <h4 className="text-sm font-medium text-zinc-700 mb-2 flex items-center gap-1">
-            <Star className="w-3 h-3" />
-            Favorited by
-          </h4>
+          
           <div className="space-y-2">
             {imageStars.map((star) => (
               <div key={star.userId} className="flex items-center space-x-3">
