@@ -91,7 +91,12 @@ export function NotificationBellDropdown() {
                     const url = `/g/${data.gallerySlug}?imageId=${data.imageId}#comment-${data.commentId}`;
                     window.location.href = url;
                   } else if ((type === 'star' || type === 'image-starred') && data?.imageId) {
-                    const url = `/g/${data.gallerySlug}?imageId=${data.imageId}`;
+                    const gallerySlug = data.gallerySlug;
+                    if (!gallerySlug) {
+                      console.error('Missing gallerySlug for star notification:', data);
+                      return; // Prevent navigation with incomplete data
+                    }
+                    const url = `/g/${gallerySlug}?imageId=${data.imageId}`;
                     window.location.href = url;
                   } else if (type === 'invite' || type === 'gallery-invite') {
                     const url = `/g/${data.gallerySlug}`;

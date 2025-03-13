@@ -121,7 +121,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="flex flex-1 bg-background">
-      <aside className="hidden md:block w-64 border-r">
+      <aside className="hidden md:block w-64 border-r h-full">
         <DashboardSidebar />
       </aside>
       <main className="flex-1 flex flex-col">
