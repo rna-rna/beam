@@ -3368,6 +3368,15 @@ async function addStarNotification(data: {
     actorColor: actorColor
   });
 
+  // Get gallery info for additional context
+  const image = await db.query.images.findFirst({
+    where: eq(images.id, data.imageId),
+    with: {
+      gallery: true
+    }
+  });
+
+  // Create notification data with all required fields
   const notificationData = {
     imageId: data.imageId,
     isStarred: true,
@@ -3375,7 +3384,9 @@ async function addStarNotification(data: {
     galleryId: data.galleryId,
     actorName: data.actorName,
     actorAvatar: data.actorAvatar,
-    actorColor: actorColor
+    actorColor: actorColor,
+    galleryTitle: image?.gallery?.title || "Untitled Gallery",
+    gallerySlug: image?.gallery?.slug // Add gallery slug for navigation
   };
 
   if (existingNotification) {
@@ -3396,6 +3407,9 @@ async function addStarNotification(data: {
       createdAt: new Date()
     });
   }
+
+  // Log the created notification data for debugging
+  console.log('Star notification data created:', notificationData);
 }
 
 export default registerRoutes;

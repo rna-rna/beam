@@ -63,9 +63,10 @@ export function NotificationBellDropdown() {
               galleryTitle = "Untitled Gallery" 
             } = notif.data || {};
             
-            // For debugging only
+            // Force debug to see what's in the data
             if (notif.type === 'star' || notif.type === 'image-starred') {
               console.log(`Extracted color for ${notif.type}:`, actorColor, 'from data:', notif.data);
+              console.log('Full notification object:', notif);
             }
 
             let notificationText: JSX.Element | string = "";
