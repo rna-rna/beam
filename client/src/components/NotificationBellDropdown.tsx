@@ -17,31 +17,6 @@ export function NotificationBellDropdown() {
     });
   }, [notifications]);
 
-  const handleNotificationClick = (notif: any) => {
-    const { type, data } = notif;
-
-    if ((type === 'comment' || type === 'comment-added') && data?.imageId) {
-      const url = `/g/${data.gallerySlug}?imageId=${data.imageId}#comment-${data.commentId}`;
-      window.location.href = url;
-    } else if ((type === 'star' || type === 'image-starred') && data?.imageId) {
-      const gallerySlug = data.gallerySlug;
-      if (!gallerySlug) {
-        console.error('Missing gallerySlug for star notification:', data);
-        return; // Prevent navigation with incomplete data
-      }
-      const url = `/g/${gallerySlug}?imageId=${data.imageId}`;
-      window.location.href = url;
-    } else if (type === 'invite' || type === 'gallery-invite') {
-      const url = `/g/${data.gallerySlug}`;
-      window.location.href = url;
-    } else if (type === 'image-uploaded' && data?.gallerySlug) {
-      const url = `/g/${data.gallerySlug}`;
-      window.location.href = url;
-    } else {
-      console.warn("[No route found for notification]", { type, data });
-    }
-  };
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -73,7 +48,7 @@ export function NotificationBellDropdown() {
             let notificationText: JSX.Element | string = "";
             if (notif.type === "star" || notif.type === "image-starred") {
               notificationText = count
-                ? `${actorName} starred ${count} image${count > 1 ? "s" : ""} in "${galleryTitle || "Untitled Gallery"}" `
+                ? `${actorName} starred ${count} image${count > 1 ? "s" : ""} in "${galleryTitle || "Untitled Gallery"}"`
                 : `${actorName} starred an image in "${galleryTitle || "Untitled Gallery"}"`;
             } else if (notif.type === "comment" || notif.type === "comment-added") {
               notificationText = snippet
@@ -109,12 +84,33 @@ export function NotificationBellDropdown() {
             return (
               <DropdownMenuItem
                 key={notif.id}
-                onSelect={handleNotificationClick.bind(null,notif)}
-                className={`flex items-center rounded-lg p-3 ${!notif.isSeen ? "bg-accent/10" : ""}`}
-                asChild
+                onSelect={() => {
+                  const { type, data } = notif;
+
+                  if ((type === 'comment' || type === 'comment-added') && data?.imageId) {
+                    const url = `/g/${data.gallerySlug}?imageId=${data.imageId}#comment-${data.commentId}`;
+                    window.location.href = url;
+                  } else if ((type === 'star' || type === 'image-starred') && data?.imageId) {
+                    const gallerySlug = data.gallerySlug;
+                    if (!gallerySlug) {
+                      console.error('Missing gallerySlug for star notification:', data);
+                      return; // Prevent navigation with incomplete data
+                    }
+                    const url = `/g/${gallerySlug}?imageId=${data.imageId}`;
+                    window.location.href = url;
+                  } else if (type === 'invite' || type === 'gallery-invite') {
+                    const url = `/g/${data.gallerySlug}`;
+                    window.location.href = url;
+                  } else if (type === 'image-uploaded' && data?.gallerySlug) {
+                    const url = `/g/${data.gallerySlug}`;
+                    window.location.href = url;
+                  } else {
+                    console.warn("[No route found for notification]", { type, data });
+                  }
+                }}
+                className={`px-4 py-3 cursor-pointer focus:bg-accent/50 ${!notif.isSeen ? "bg-accent/10" : ""}`}
               >
-                <div className="w-full cursor-pointer" >
-                  <div className="flex w-full gap-3">
+                <div className="flex gap-3">
                   <UserAvatar
                     size="sm"
                     name={actorName || "Unknown"}
@@ -122,23 +118,6 @@ export function NotificationBellDropdown() {
                     color={actorColor || "#ccc"}
                     className="h-8 w-8"
                   />
-                  {notif.type === 'image-starred' && (
-                    <>
-                      <span className="sr-only">
-                        {console.log('Extracted color for image-starred:', actorColor, 'from data:', notif.data)}
-                      </span>
-                      {notif.data?.imageUrl && (
-                        <div className="ml-2 mr-2 flex-shrink-0">
-                          <img 
-                            src={notif.data.imageUrl} 
-                            alt="Starred image" 
-                            className="h-12 w-12 object-cover rounded-md border border-border"
-                            loading="lazy"
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
                   <div className="flex flex-col gap-1">
                     <div className={`text-sm ${!notif.isSeen ? "font-medium" : ""}`}>
                       {notificationText}
