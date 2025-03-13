@@ -1960,7 +1960,7 @@ export default function Gallery({
             </Tooltip>
           )}
         </TooltipProvider>
-      </      </div>
+      </div>
     );
   }, [
     gallery,
