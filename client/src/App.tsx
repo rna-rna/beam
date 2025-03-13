@@ -22,7 +22,6 @@ import { Card, CardContent } from "@/components/ui/card"; // Added import for Ca
 import { AlertCircle } from "lucide-react";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { FolderPage } from "./pages/FolderPage"; // Added import for FolderPage
 import RecentsPage from "@/pages/RecentsPage"; //Added import for RecentsPage
 import TrashPage from "@/pages/TrashPage"; // Added import for TrashPage
 import { NotificationProvider } from "@/context/NotificationContext"; // Added import for NotificationProvider
@@ -278,7 +277,6 @@ function AppContent() {
           />
         )}
       </Route>
-      <Route path="/f/:folderSlug" component={FolderPage} />
       <Route path="/about">
         <About />
       </Route>

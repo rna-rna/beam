@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth, useUser } from '@clerk/clerk-react';
@@ -24,7 +23,7 @@ export default function NewGallery() {
         },
         body: JSON.stringify({
           isDraft: true
-        })
+        }),
       });
       if (!res.ok) throw new Error('Failed to create gallery');
       return res.json();
@@ -36,7 +35,7 @@ export default function NewGallery() {
         gallery_slug: data.slug,
         is_draft: true
       });
-      
+
       setLocation(`/g/${data.slug}`);
     },
   });
