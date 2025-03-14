@@ -30,40 +30,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
-// New GalleryCard component
-const GalleryCard = ({ gallery, isListView, onShare, onRename, onDelete }) => {
-  return (
-    <ContextMenu key={gallery.id}>
-      <ContextMenuTrigger>
-        <Card
-          className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
-          onClick={(e) => {
-            // Don't navigate if right-clicked
-            if (e.button === 2) return;
-            //setLocation(`/g/${gallery.slug}`); // Navigation handled elsewhere
-          }}
-        >
-          <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
-            {gallery.thumbnailUrl && (
-              <img
-                src={gallery.thumbnailUrl}
-                alt={gallery.title}
-                className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
-              />
-            )}
-          </div>
-          <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
-            <div className="space-y-1">
-              <h3 className="font-semibold text-lg">{gallery.title}</h3>
-              <div className="flex items-center gap-3">
-                <p className="text-sm text-muted-foreground">
-                  {gallery.imageCount || 0} images
-                </p>
-                {!gallery.lastViewedAt && !gallery.isOwner && (
-                  <span className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">
-                    Invited
-                  </span>
-                )}
+import { GalleryCard } from "@/components/GalleryCard";
               </div>
             </div>
             <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
