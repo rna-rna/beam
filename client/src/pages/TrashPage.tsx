@@ -144,3 +144,119 @@ export default function TrashPage() {
     </div>
   );
 }
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { API_URL } from "@/lib/constants";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { GalleryCard } from "@/components/GalleryCard";
+
+interface Gallery {
+  id: number;
+  slug: string;
+  title: string;
+  description?: string;
+  userId: string;
+  imageCount: number;
+  thumbnailUrl?: string;
+  isOwner: boolean;
+  deletedAt: string;
+}
+
+export function TrashPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isListView, setIsListView] = useState(false);
+  const [, setLocation] = useLocation();
+  const [selectedGallery, setSelectedGallery] = useState<Gallery | null>(null);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [isPermanentDeleteModalOpen, setIsPermanentDeleteModalOpen] = useState(false);
+
+  const { data: trashedGalleries = [], isLoading } = useQuery<Gallery[]>({
+    queryKey: ["trashedGalleries"],
+    queryFn: async () => {
+      const response = await fetch(`${API_URL}/galleries/trash`);
+      return response.json();
+    },
+  });
+
+  const filteredGalleries = trashedGalleries.filter((gallery) => {
+    return gallery.title.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const handleRestore = (gallery: Gallery) => {
+    setSelectedGallery(gallery);
+    setIsRestoreModalOpen(true);
+  };
+
+  const handlePermanentDelete = (gallery: Gallery) => {
+    setSelectedGallery(gallery);
+    setIsPermanentDeleteModalOpen(true);
+  };
+
+  return (
+    <DashboardLayout
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      isListView={isListView}
+      setIsListView={setIsListView}
+      searchPlaceholder="Search trash..."
+      showNewGalleryButton={false}
+    >
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Card key={i} className="h-64 animate-pulse bg-muted" />
+          ))}
+        </div>
+      ) : filteredGalleries.length === 0 ? (
+        <div className="flex h-[50vh] flex-col items-center justify-center">
+          <h2 className="text-xl font-semibold">Trash is empty</h2>
+          <p className="text-muted-foreground">
+            {searchQuery ? "Try a different search term" : "No deleted galleries found"}
+          </p>
+        </div>
+      ) : (
+        <div className={`grid gap-4 ${isListView ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+          {filteredGalleries.map((gallery) => (
+            <GalleryCard
+              key={gallery.id}
+              gallery={gallery}
+              isListView={isListView}
+              onRestore={handleRestore}
+              onDelete={handlePermanentDelete}
+              isTrash={true}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Restore Modal */}
+      <Dialog open={isRestoreModalOpen} onOpenChange={setIsRestoreModalOpen}>
+        <DialogContent>
+          <div className="p-4">
+            <h2 className="text-lg font-semibold">Restore Gallery</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Are you sure you want to restore "{selectedGallery?.title}"?
+            </p>
+            {/* Add restore functionality here */}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Permanent Delete Modal */}
+      <Dialog open={isPermanentDeleteModalOpen} onOpenChange={setIsPermanentDeleteModalOpen}>
+        <DialogContent>
+          <div className="p-4">
+            <h2 className="text-lg font-semibold">Permanently Delete Gallery</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This action cannot be undone. Are you sure you want to permanently delete "{selectedGallery?.title}"?
+            </p>
+            {/* Add permanent delete functionality here */}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </DashboardLayout>
+  );
+}
