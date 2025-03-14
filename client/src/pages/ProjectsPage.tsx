@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
@@ -25,6 +24,7 @@ import { ShareModal } from "@/components/ShareModal";
 import { RenameGalleryModal } from "@/components/RenameGalleryModal";
 import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
 import * as ReactDOM from "react-dom/client";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 dayjs.extend(relativeTime);
 
@@ -125,41 +125,7 @@ export default function ProjectsPage() {
         <DashboardSidebar />
       </aside>
       <main className="flex-1 flex flex-col">
-        <header className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-64">
-                <DashboardSidebar />
-              </SheetContent>
-            </Sheet>
-            <div className="relative w-64">
-              <Input
-                type="search"
-                placeholder="Search projects..."
-                className="w-full"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => (window.location.href = "/new")}>
-              <Plus className="mr-2 h-4 w-4" /> New Gallery
-            </Button>
-            <Toggle
-              pressed={isListView}
-              onPressedChange={setIsListView}
-              aria-label="Toggle list view"
-            >
-              <List className="h-4 w-4" />
-            </Toggle>
-          </div>
-        </header>
+        <DashboardHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} isListView={isListView} setIsListView={setIsListView} />
 
         <ScrollArea className="flex-1 p-4">
           {filteredGalleries.length === 0 && !isFetching ? (

@@ -10,7 +10,9 @@ import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { Loader2, Search, Clock, Plus, List, FolderOpen, Share, Pencil, Trash2 } from "lucide-react";
 import { Layout } from "@/components/Layout";
-import { Input } from "@/components/ui/input";
+import { DashboardHeader } from "@/components/DashboardHeader"; // Added import
+
+
 import { GallerySkeleton } from "@/components/GallerySkeleton";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -173,41 +175,7 @@ export default function RecentsPage() {
         </div>
       </aside>
       <main className="flex-1 flex flex-col min-h-0">
-        <header className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-64">
-                <DashboardSidebar />
-              </SheetContent>
-            </Sheet>
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search recent galleries..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => setLocation("/new")}>
-              <Plus className="mr-2 h-4 w-4" /> New Gallery
-            </Button>
-            <Toggle
-              pressed={isListView}
-              onPressedChange={setIsListView}
-              aria-label="Toggle list view"
-            >
-              <List className="h-4 w-4" />
-            </Toggle>
-          </div>
-        </header>
+        <DashboardHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} setIsListView={setIsListView} isListView={isListView} setLocation={setLocation}/> {/* Replaced header */}
 
         <div className="flex-1 overflow-auto p-4">
           {isLoading ? (
