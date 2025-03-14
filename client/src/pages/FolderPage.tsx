@@ -49,9 +49,11 @@ export function FolderPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-65px)] bg-background">
-      <aside className="hidden md:block w-64 border-r">
-        <DashboardSidebar />
+    <div className="flex h-[calc(100vh-65px)] bg-background overflow-hidden">
+      <aside className="hidden md:block w-64 border-r relative">
+        <div className="h-full flex flex-col">
+          <DashboardSidebar />
+        </div>
       </aside>
 
       <main className="flex-1 flex flex-col min-h-0">

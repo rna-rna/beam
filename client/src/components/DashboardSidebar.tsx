@@ -54,7 +54,7 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <div className="flex flex-col h-screen"> 
+      <div className="flex flex-col h-full"> 
         <div className="flex-1 overflow-hidden">
           <div className="p-4 space-y-4">
             <Button
@@ -139,7 +139,7 @@ export function DashboardSidebar() {
             ))}
           </div>
         </div>
-        <div className="p-4 border-t bg-background sticky bottom-0"> {/* Changed to sticky positioning */}
+        <div className="p-4 border-t bg-background"> 
           <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
             <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
           </Button>
