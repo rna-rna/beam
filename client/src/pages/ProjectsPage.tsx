@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ListViewIcon, GridViewIcon } from '@/assets/icons';
 import { useIntersection } from '@mantine/hooks';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@clerk/clerk-react';
 import GalleryCard from '@/components/GalleryCard';
 import GalleryListItem from '@/components/GalleryListItem';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
