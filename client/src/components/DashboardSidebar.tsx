@@ -54,8 +54,8 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <div className="flex flex-col h-full"> {/* Added h-full to the main container */}
-        <ScrollArea className="flex-1"> {/* Made ScrollArea take up remaining space */}
+      <div className="flex flex-col h-full"> 
+        <div className="flex-1 overflow-y-auto">
           <div className="p-4 space-y-4">
             <Button
               variant={selectedSection === 'recents' ? "secondary" : "ghost"}
@@ -138,8 +138,8 @@ export function DashboardSidebar() {
               </div>
             ))}
           </div>
-        </ScrollArea>
-        <div className="p-4 fixed bottom-0 w-64 border-t bg-background"> {/* Fixed width to match sidebar */}
+        </div>
+        <div className="p-4 border-t bg-background sticky bottom-0"> {/* Changed to sticky positioning */}
           <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
             <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
           </Button>
