@@ -54,8 +54,8 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <div className="flex flex-col h-full"> 
-        <div className="flex-1 overflow-y-auto">
+      <div className="flex flex-col h-screen"> 
+        <div className="flex-1 overflow-hidden">
           <div className="p-4 space-y-4">
             <Button
               variant={selectedSection === 'recents' ? "secondary" : "ghost"}

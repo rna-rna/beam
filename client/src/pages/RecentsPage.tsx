@@ -168,11 +168,11 @@ export default function RecentsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <aside className="hidden md:block w-64 border-r h-screen sticky top-0">
+    <div className="flex h-screen bg-background overflow-hidden">
+      <aside className="hidden md:block w-64 border-r h-screen">
         <DashboardSidebar />
       </aside>
-      <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+      <main className="flex-1 flex flex-col overflow-y-auto">
         <DashboardHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} setIsListView={setIsListView} isListView={isListView} setLocation={setLocation}/> {/* Replaced header */}
 
         <div className="flex-1 overflow-auto p-4">
