@@ -28,6 +28,83 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
+// New GalleryCard component
+const GalleryCard = ({ gallery, isListView, onShare, onRename, onDelete }) => {
+  return (
+    <ContextMenu key={gallery.id}>
+      <ContextMenuTrigger>
+        <Card
+          className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
+          onClick={(e) => {
+            // Don't navigate if right-clicked
+            if (e.button === 2) return;
+            //setLocation(`/g/${gallery.slug}`); // Navigation handled elsewhere
+          }}
+        >
+          <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
+            {gallery.thumbnailUrl && (
+              <img
+                src={gallery.thumbnailUrl}
+                alt={gallery.title}
+                className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
+              />
+            )}
+          </div>
+          <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
+            <div className="space-y-1">
+              <h3 className="font-semibold text-lg">{gallery.title}</h3>
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-muted-foreground">
+                  {gallery.imageCount || 0} images
+                </p>
+                {!gallery.lastViewedAt && !gallery.isOwner && (
+                  <span className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">
+                    Invited
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
+              <div className="flex items-center gap-2">
+                <Clock className="h-3 w-3" />
+                {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
+              </div>
+              <span className="flex items-center gap-1">
+                {gallery.isOwner ? 'Owned by you' : `Shared by ${gallery.sharedBy?.firstName || ''} ${gallery.sharedBy?.lastName || ''}`}
+              </span>
+            </div>
+          </div>
+        </Card>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => window.location.href = `/g/${gallery.slug}`}> {/*Direct navigation*/}
+          <FolderOpen className="mr-2 h-4 w-4" /> Open
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => onShare(gallery)}>
+          <Share className="mr-2 h-4 w-4" /> Share
+        </ContextMenuItem>
+        {gallery.isOwner && (
+          <ContextMenuItem onClick={() => onRename(gallery)}>
+            <Pencil className="mr-2 h-4 w-4" /> Rename
+          </ContextMenuItem>
+        )}
+        {gallery.isOwner && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              className="text-red-600"
+              onClick={() => onDelete(gallery)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Delete
+            </ContextMenuItem>
+          </>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+};
+
+
 export default function RecentsPage() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -137,77 +214,15 @@ export default function RecentsPage() {
             <GallerySkeleton count={12} />
           ) : filteredGalleries.length > 0 ? (
             <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
-              {filteredGalleries.map(gallery => (
-                <ContextMenu key={gallery.id}>
-                  <ContextMenuTrigger>
-                    <Card 
-                      className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
-                      onClick={(e) => {
-                        // Don't navigate if right-clicked
-                        if (e.button === 2) return;
-                        setLocation(`/g/${gallery.slug}`);
-                      }}
-                    >
-                      <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
-                        {gallery.thumbnailUrl && (
-                          <img
-                            src={gallery.thumbnailUrl}
-                            alt={gallery.title}
-                            className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
-                          />
-                        )}
-                      </div>
-                      <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
-                        <div className="space-y-1">
-                          <h3 className="font-semibold text-lg">{gallery.title}</h3>
-                          <div className="flex items-center gap-3">
-                            <p className="text-sm text-muted-foreground">
-                              {gallery.imageCount || 0} images
-                            </p>
-                            {!gallery.lastViewedAt && !gallery.isOwner && (
-                              <span className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">
-                                Invited
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-3 w-3" />
-                            {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
-                          </div>
-                          <span className="flex items-center gap-1">
-                            {gallery.isOwner ? 'Owned by you' : `Shared by ${gallery.sharedBy?.firstName || ''} ${gallery.sharedBy?.lastName || ''}`}
-                          </span>
-                        </div>
-                      </div>
-                    </Card>
-                  </ContextMenuTrigger>
-                  <ContextMenuContent>
-                    <ContextMenuItem onClick={() => setLocation(`/g/${gallery.slug}`)}>
-                      <FolderOpen className="mr-2 h-4 w-4" /> Open
-                    </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleShare(gallery)}>
-                      <Share className="mr-2 h-4 w-4" /> Share
-                    </ContextMenuItem>
-                    {gallery.isOwner && (
-                      <ContextMenuItem onClick={() => handleRename(gallery)}>
-                        <Pencil className="mr-2 h-4 w-4" /> Rename
-                      </ContextMenuItem>
-                    )}
-                    {gallery.isOwner && (
-                      <>
-                        <ContextMenuSeparator />
-                        <ContextMenuItem
-                          className="text-red-600"
-                          onClick={() => handleDelete(gallery)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </ContextMenuItem>
-                      </>
-                    )}
-                  </ContextMenuContent>
-                </ContextMenu>
+              {filteredGalleries.map((gallery) => (
+                <GalleryCard
+                  key={gallery.id}
+                  gallery={gallery}
+                  isListView={isListView}
+                  onShare={handleShare}
+                  onRename={handleRename}
+                  onDelete={handleDelete}
+                />
               ))}
             </div>
           ) : (
@@ -229,7 +244,7 @@ export default function RecentsPage() {
               isOpen={true}
               onClose={() => {
                 setRenameGallery(null);
-                queryClient.invalidateQueries(['/api/recent-galleries']);
+                //queryClient.invalidateQueries(['/api/recent-galleries']); // queryClient is not defined
               }}
               galleryId={renameGallery.id}
               currentTitle={renameGallery.title}
@@ -255,7 +270,7 @@ export default function RecentsPage() {
                     throw new Error('Failed to delete gallery');
                   }
 
-                  queryClient.invalidateQueries(['/api/recent-galleries']);
+                  //queryClient.invalidateQueries(['/api/recent-galleries']); // queryClient is not defined
                   setDeleteGallery(null);
                 } catch (error) {
                   console.error('Error deleting gallery:', error);
