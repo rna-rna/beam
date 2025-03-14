@@ -165,7 +165,7 @@ interface Gallery {
   deletedAt: string;
 }
 
-export function TrashPage() {
+function TrashPageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isListView, setIsListView] = useState(false);
   const [, setLocation] = useLocation();
