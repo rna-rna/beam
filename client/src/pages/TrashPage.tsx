@@ -145,7 +145,6 @@ export default function TrashPage() {
   );
 }
 import { useLocation } from "wouter";
-import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { API_URL } from "@/lib/constants";
 import { DashboardLayout } from "@/components/DashboardLayout";
