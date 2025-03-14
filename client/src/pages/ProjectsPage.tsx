@@ -11,7 +11,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { ShareModal } from "@/components/ShareModal";
 import { RenameGalleryModal } from "@/components/RenameGalleryModal";
 import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { GalleryCard } from "@/components/GalleryCard";
 import { useState, useEffect, useRef } from "react";
