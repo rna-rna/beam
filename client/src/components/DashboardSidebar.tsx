@@ -139,11 +139,6 @@ export function DashboardSidebar() {
             ))}
           </div>
         </div>
-        <div className="p-4 border-t bg-background"> 
-          <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
-            <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
-          </Button>
-        </div>
       </div>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
