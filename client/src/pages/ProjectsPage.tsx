@@ -17,7 +17,7 @@ import { useState, useEffect, useRef } from "react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Clock, FolderOpen, Image, Pencil, Plus, Share, Trash2, List } from "lucide-react";
+import { Clock, FolderOpen, Image, Pencil, Plus, Share, Trash2 } from "lucide-react";
 import { getR2Image } from "@/lib/r2";
 import * as ReactDOM from "react-dom/client";
 
