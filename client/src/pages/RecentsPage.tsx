@@ -1,78 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useLocation } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import * as ReactDOM from "react-dom/client";
-
-dayjs.extend(relativeTime);
-import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { Card } from "@/components/ui/card";
-import { useLocation } from "wouter";
-import { Loader2, Search, Clock, Plus, List, FolderOpen, Share, Pencil, Trash2 } from "lucide-react";
-import { Layout } from "@/components/Layout";
-import { DashboardHeader } from "@/components/DashboardHeader"; // Added import
-
-
-import { GallerySkeleton } from "@/components/GallerySkeleton";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
-import { Toggle } from "@/components/ui/toggle";
-import { ShareModal } from "@/components/ShareModal";
-import { RenameGalleryModal } from "@/components/RenameGalleryModal";
-import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
-  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
 import { GalleryCard } from "@/components/GalleryCard";
-              </div>
-            </div>
-            <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
-              <div className="flex items-center gap-2">
-                <Clock className="h-3 w-3" />
-                {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
-              </div>
-              <span className="flex items-center gap-1">
-                {gallery.isOwner ? 'Owned by you' : `Shared by ${gallery.sharedBy?.firstName || ''} ${gallery.sharedBy?.lastName || ''}`}
-              </span>
-            </div>
-          </div>
-        </Card>
-      </ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem onClick={() => window.location.href = `/g/${gallery.slug}`}> {/*Direct navigation*/}
-          <FolderOpen className="mr-2 h-4 w-4" /> Open
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => onShare(gallery)}>
-          <Share className="mr-2 h-4 w-4" /> Share
-        </ContextMenuItem>
-        {gallery.isOwner && (
-          <ContextMenuItem onClick={() => onRename(gallery)}>
-            <Pencil className="mr-2 h-4 w-4" /> Rename
-          </ContextMenuItem>
-        )}
-        {gallery.isOwner && (
-          <>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-              className="text-red-600"
-              onClick={() => onDelete(gallery)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Delete
-            </ContextMenuItem>
-          </>
-        )}
-      </ContextMenuContent>
-    </ContextMenu>
-  );
-};
-
+import { useState, useEffect, useRef } from "react";
+import { ShareModal } from "@/components/ShareModal";
+import { RenameGalleryModal } from "@/components/RenameGalleryModal";
+import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
+import { DashboardHeader } from "@/components/DashboardHeader";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Clock, FolderOpen, Image, Pencil, Plus, Share, Trash2 } from "lucide-react";
+import { getR2Image } from "@/lib/r2";
+import * as ReactDOM from "react-dom/client";
 
 export default function RecentsPage() {
   const [, setLocation] = useLocation();
@@ -123,100 +70,91 @@ export default function RecentsPage() {
     );
   };
 
-  const [renameGallery, setRenameGallery] = useState(null);
-  const [deleteGallery, setDeleteGallery] = useState(null);
-
   const handleRename = (gallery) => {
-    setRenameGallery(gallery);
+    const modal = document.createElement("div");
+    modal.id = `rename-modal-${gallery.id}`;
+    document.body.appendChild(modal);
+    const root = ReactDOM.createRoot(modal);
+    root.render(
+      <Dialog open onOpenChange={() => {
+        root.unmount();
+        modal.remove();
+      }}>
+        <DialogContent>
+          <RenameGalleryModal
+            isOpen={true}
+            onClose={() => {
+              root.unmount();
+              modal.remove();
+            }}
+            galleryId={gallery.id}
+            initialTitle={gallery.title}
+          />
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   const handleDelete = (gallery) => {
-    setDeleteGallery(gallery);
+    const modal = document.createElement("div");
+    modal.id = `delete-modal-${gallery.id}`;
+    document.body.appendChild(modal);
+    const root = ReactDOM.createRoot(modal);
+    root.render(
+      <Dialog open onOpenChange={() => {
+        root.unmount();
+        modal.remove();
+      }}>
+        <DialogContent>
+          <DeleteGalleryModal
+            isOpen={true}
+            onClose={() => {
+              root.unmount();
+              modal.remove();
+            }}
+            galleryId={gallery.id}
+            galleryTitle={gallery.title}
+          />
+        </DialogContent>
+      </Dialog>
+    );
   };
 
+  dayjs.extend(relativeTime);
+
   return (
-    <div className="flex h-screen bg-background">
-      <aside className="hidden md:block w-64 border-r">
-        <div className="sticky top-0 h-screen flex flex-col">
-          <DashboardSidebar />
-        </div>
-      </aside>
-      <main className="flex-1 flex flex-col min-h-0">
-        <DashboardHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} setIsListView={setIsListView} isListView={isListView} setLocation={setLocation}/> {/* Replaced header */}
-
-        <div className="flex-1 overflow-auto p-4">
-          {isLoading ? (
-            <GallerySkeleton count={12} />
-          ) : filteredGalleries.length > 0 ? (
-            <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
-              {filteredGalleries.map((gallery) => (
-                <GalleryCard
-                  key={gallery.id}
-                  gallery={gallery}
-                  isListView={isListView}
-                  onShare={handleShare}
-                  onRename={handleRename}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-              <Clock className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="font-semibold mb-1">No recent galleries found</h3>
-              <p className="text-sm text-muted-foreground">
-                {searchQuery ? 'Try adjusting your search or filters' : "You haven't viewed any galleries yet"}
-              </p>
-            </div>
-          )}
-        </div>
-      </main>
-
-      {renameGallery && (
-        <Dialog open onOpenChange={() => setRenameGallery(null)}>
-          <DialogContent>
-            <RenameGalleryModal
-              isOpen={true}
-              onClose={() => {
-                setRenameGallery(null);
-                //queryClient.invalidateQueries(['/api/recent-galleries']); // queryClient is not defined
-              }}
-              galleryId={renameGallery.id}
-              currentTitle={renameGallery.title}
-              slug={renameGallery.slug}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {deleteGallery && (
-        <Dialog open onOpenChange={() => setDeleteGallery(null)}>
-          <DialogContent>
-            <DeleteGalleryModal
-              isOpen={true}
-              onClose={() => setDeleteGallery(null)}
-              onDelete={async () => {
-                try {
-                  const response = await fetch(`/api/galleries/${deleteGallery.slug}`, {
-                    method: 'DELETE'
-                  });
-
-                  if (!response.ok) {
-                    throw new Error('Failed to delete gallery');
-                  }
-
-                  //queryClient.invalidateQueries(['/api/recent-galleries']); // queryClient is not defined
-                  setDeleteGallery(null);
-                } catch (error) {
-                  console.error('Error deleting gallery:', error);
-                }
-              }}
-              gallerySlug={deleteGallery.slug}
-              galleryTitle={deleteGallery.title}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
+    <>
+      <DashboardHeader
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        isListView={isListView}
+        setIsListView={setIsListView}
+        searchPlaceholder="Search recent galleries..."
+        showNewGalleryButton={true}
+      />
+      <div className="p-4">
+        <div className="text-xl font-bold mb-4">Recent Galleries</div>
+        {isLoading ? (
+          <div className="text-center py-8">Loading...</div>
+        ) : filteredGalleries.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No recent galleries found. Create your first gallery!
+          </div>
+        ) : (
+          <div className={isListView ? "space-y-4" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
+            {filteredGalleries.map((gallery) => (
+              <GalleryCard
+                key={gallery.id}
+                gallery={gallery}
+                isListView={isListView}
+                onShare={handleShare}
+                onRename={handleRename}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
