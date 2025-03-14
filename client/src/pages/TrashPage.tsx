@@ -1,15 +1,19 @@
 
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { getR2Image } from "@/lib/r2";
 
 export default function TrashPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isListView, setIsListView] = useState(false);
 
   const { data: trashedGalleries = [], isLoading } = useQuery({
     queryKey: ["/api/trash"],
@@ -79,13 +83,24 @@ export default function TrashPage() {
       <aside className="hidden md:block w-64 border-r">
         <DashboardSidebar />
       </aside>
-      <main className="flex-1 flex flex-col p-4">
-        <h2 className="text-xl font-bold mb-4">Trash</h2>
+      <main className="flex-1 flex flex-col">
+        <DashboardHeader
+          searchQuery={""}
+          setSearchQuery={() => {}}
+          isListView={false}
+          setIsListView={() => {}}
+          searchPlaceholder="Search trash..."
+          showNewGalleryButton={false}
+        />
+        <div className="p-4">
+          <h2 className="text-xl font-bold mb-4">Trash</h2>
         {trashedGalleries.length === 0 ? (
           <div className="text-muted-foreground">No items in trash.</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {trashedGalleries.map((gallery: any) => (
+          <div className={isListView ? "space-y-4" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
+            {trashedGalleries
+              .filter((gallery: any) => gallery.title.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map((gallery: any) => (
               <Card key={gallery.id} className="p-4 space-y-2">
                 <div className="w-full h-40 bg-muted rounded-md overflow-hidden">
                   {gallery.images?.[0] ? (
@@ -124,6 +139,7 @@ export default function TrashPage() {
             ))}
           </div>
         )}
+      </div>
       </main>
     </div>
   );
