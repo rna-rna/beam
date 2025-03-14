@@ -1,26 +1,30 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { useLocation } from "wouter";
-import { Loader2, Menu, List, LayoutGrid } from "lucide-react";
-import { Layout } from "@/components/Layout";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { Clock, FolderOpen, Image, Menu, Pencil, Plus, Share, Trash2, List, Loader2 } from "lucide-react";
+import { getR2Image } from "@/lib/r2";
 import { Toggle } from "@/components/ui/toggle";
-import { ShareModal } from "@/components/ShareModal";
-import { RenameGalleryModal } from "@/components/RenameGalleryModal";
-import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
-import { DashboardHeader } from "@/components/DashboardHeader";
-import { GalleryCard } from "@/components/GalleryCard";
 import { useState, useEffect, useRef } from "react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Clock, FolderOpen, Image, Pencil, Plus, Share, Trash2 } from "lucide-react";
-import { getR2Image } from "@/lib/r2";
+import { ShareModal } from "@/components/ShareModal";
+import { RenameGalleryModal } from "@/components/RenameGalleryModal";
+import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
 import * as ReactDOM from "react-dom/client";
-
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 dayjs.extend(relativeTime);
 
@@ -32,7 +36,6 @@ export default function ProjectsPage() {
   const [isListView, setIsListView] = useState(false);
   const [renameGallery, setRenameGallery] = useState(null);
   const [deleteGallery, setDeleteGallery] = useState(null);
-  const [shareGallery, setShareGallery] = useState(null);
   const [page, setPage] = useState(1);
   const loadMoreRef = useRef(null);
   const queryClient = useQueryClient();
@@ -138,14 +141,65 @@ export default function ProjectsPage() {
             <>
               <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
                 {filteredGalleries.map(gallery => (
-                  <GalleryCard
-                    key={gallery.id}
-                    gallery={gallery}
-                    isListView={isListView}
-                    onRename={() => handleRename(gallery)}
-                    onShare={() => handleShare(gallery)}
-                    onDelete={() => handleDelete(gallery)}
-                  />
+                  <ContextMenu key={gallery.id}>
+                    <ContextMenuTrigger>
+                      <Card 
+                        className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
+                        onClick={(e) => {
+                          if (e.button === 2) return;
+                          window.location.href = `/g/${gallery.slug}`;
+                        }}
+                      >
+                        <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
+                          {gallery.thumbnailUrl ? (
+                            <img
+                              src={gallery.images?.[0] ? getR2Image(gallery.images[0], "thumb") : "/fallback-image.jpg"}
+                              alt={gallery.title}
+                              className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-muted flex items-center justify-center">
+                              <Image className="h-12 w-12 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-lg">{gallery.title}</h3>
+                            <div className="flex items-center gap-3">
+                              <p className="text-sm text-muted-foreground">
+                                {gallery.imageCount || 0} images
+                              </p>
+                            </div>
+                          </div>
+                          <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-3 w-3" />
+                              {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onClick={() => window.location.href = `/g/${gallery.slug}`}>
+                        <FolderOpen className="mr-2 h-4 w-4" /> Open
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => handleShare(gallery)}>
+                        <Share className="mr-2 h-4 w-4" /> Share
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => handleRename(gallery)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Rename
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDelete(gallery)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 ))}
               </div>
               {hasNextPage && (
@@ -179,21 +233,6 @@ export default function ProjectsPage() {
               galleryId={renameGallery.id}
               currentTitle={renameGallery.title}
               slug={renameGallery.slug}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {shareGallery && (
-        <Dialog open onOpenChange={() => setShareGallery(null)}>
-          <DialogContent>
-            <ShareModal
-              isOpen={true}
-              onClose={() => setShareGallery(null)}
-              galleryUrl={`${window.location.origin}/g/${shareGallery.slug}`}
-              slug={shareGallery.slug}
-              isPublic={shareGallery.isPublic}
-              onVisibilityChange={() => {}}
             />
           </DialogContent>
         </Dialog>
