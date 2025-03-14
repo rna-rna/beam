@@ -144,7 +144,6 @@ export default function TrashPage() {
     </div>
   );
 }
-import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
