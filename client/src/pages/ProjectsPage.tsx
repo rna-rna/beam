@@ -79,7 +79,7 @@ export default function ProjectsPage() {
   }, [hasNextPage, isFetching, fetchNextPage]);
 
   const galleries = galleryPages.flat();
-  const filteredGalleries = galleries.filter(gallery => 
+  const filteredGalleries = galleryPages.flat().filter(gallery => 
     gallery.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
