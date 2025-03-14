@@ -54,8 +54,8 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <div className="flex flex-col flex-1">
-        <ScrollArea className="flex-1">
+      <div className="flex flex-col h-full"> {/* Added h-full to the main container */}
+        <ScrollArea className="flex-1"> {/* Made ScrollArea take up remaining space */}
           <div className="p-4 space-y-4">
             <Button
               variant={selectedSection === 'recents' ? "secondary" : "ghost"}
@@ -137,9 +137,9 @@ export function DashboardSidebar() {
                 </DropdownMenu>
               </div>
             ))}
-            </div>
+          </div>
         </ScrollArea>
-        <div className="shrink-0 p-4 border-t">
+        <div className="p-4 fixed bottom-0 left-0 w-full border-t"> {/* Fixed positioning at the bottom */}
           <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
             <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
           </Button>
