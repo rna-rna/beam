@@ -1,4 +1,4 @@
-import { useLocation } from "@tanstack/react-router";
+import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import {
