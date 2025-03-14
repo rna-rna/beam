@@ -89,12 +89,14 @@ export default function RecentsPage() {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-background">
       <aside className="hidden md:block w-64 border-r">
-        <DashboardSidebar />
+        <div className="sticky top-0 h-screen flex flex-col">
+          <DashboardSidebar />
+        </div>
       </aside>
-      <main className="flex-1 flex flex-col">
-        <header className="sticky top-0 z-10 bg-background flex items-center justify-between p-4 border-b">
+      <main className="flex-1 flex flex-col min-h-0">
+        <header className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <Sheet>
               <SheetTrigger asChild>
@@ -106,31 +108,27 @@ export default function RecentsPage() {
                 <DashboardSidebar />
               </SheetContent>
             </Sheet>
-            <h1 className="text-xl font-semibold">Recent Galleries</h1>
-            </div>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="relative w-64">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                type="text"
-                placeholder="Search galleries..."
-                className="pl-8 w-[200px] md:w-[300px]"
+                placeholder="Search recent galleries..."
+                className="pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setLocation("/new")}>
+              <Plus className="mr-2 h-4 w-4" /> New Gallery
+            </Button>
             <Toggle
               pressed={isListView}
               onPressedChange={setIsListView}
-              variant="outline"
-              size="sm"
               aria-label="Toggle list view"
             >
               <List className="h-4 w-4" />
             </Toggle>
-            <Button onClick={() => (window.location.href = "/new")}>
-              <Plus className="mr-2 h-4 w-4" /> New
-            </Button>
           </div>
         </header>
 
@@ -138,44 +136,49 @@ export default function RecentsPage() {
           {isLoading ? (
             <GallerySkeleton count={12} />
           ) : filteredGalleries.length > 0 ? (
-            <div className={isListView ? "space-y-2" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"}>
-              {filteredGalleries.map((gallery) => (
+            <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
+              {filteredGalleries.map(gallery => (
                 <ContextMenu key={gallery.id}>
                   <ContextMenuTrigger>
-                    <Card
+                    <Card 
                       className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
                       onClick={(e) => {
+                        // Don't navigate if right-clicked
                         if (e.button === 2) return;
                         setLocation(`/g/${gallery.slug}`);
                       }}
                     >
                       <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
-                        {gallery.thumbnailUrl ? (
+                        {gallery.thumbnailUrl && (
                           <img
                             src={gallery.thumbnailUrl}
                             alt={gallery.title}
-                            className="object-cover w-full h-full"
+                            className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
                           />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <FolderOpen className="h-12 w-12 text-muted-foreground" />
-                          </div>
                         )}
                       </div>
-                      <div className="p-3 flex-1">
-                        <h3 className="font-medium line-clamp-1">{gallery.title}</h3>
-                        <div className="space-y-1 mt-1">
-                          <p className="text-sm text-muted-foreground">
-                            {gallery.imageCount || 0} images
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Last viewed {dayjs(gallery.lastViewedAt).fromNow()}
-                          </p>
-                          {gallery.sharedBy && (
-                            <p className="text-xs text-muted-foreground">
-                              Shared by: {gallery.sharedBy.firstName || ''} {gallery.sharedBy.lastName || ''}
+                      <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
+                        <div className="space-y-1">
+                          <h3 className="font-semibold text-lg">{gallery.title}</h3>
+                          <div className="flex items-center gap-3">
+                            <p className="text-sm text-muted-foreground">
+                              {gallery.imageCount || 0} images
                             </p>
-                          )}
+                            {!gallery.lastViewedAt && !gallery.isOwner && (
+                              <span className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">
+                                Invited
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
+                          </div>
+                          <span className="flex items-center gap-1">
+                            {gallery.isOwner ? 'Owned by you' : `Shared by ${gallery.sharedBy?.firstName || ''} ${gallery.sharedBy?.lastName || ''}`}
+                          </span>
                         </div>
                       </div>
                     </Card>
@@ -212,7 +215,7 @@ export default function RecentsPage() {
               <Clock className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="font-semibold mb-1">No recent galleries found</h3>
               <p className="text-sm text-muted-foreground">
-                Galleries you view will show up here
+                {searchQuery ? 'Try adjusting your search or filters' : "You haven't viewed any galleries yet"}
               </p>
             </div>
           )}
@@ -220,19 +223,49 @@ export default function RecentsPage() {
       </main>
 
       {renameGallery && (
-        <RenameGalleryModal
-          isOpen={!!renameGallery}
-          onClose={() => setRenameGallery(null)}
-          gallery={renameGallery}
-        />
+        <Dialog open onOpenChange={() => setRenameGallery(null)}>
+          <DialogContent>
+            <RenameGalleryModal
+              isOpen={true}
+              onClose={() => {
+                setRenameGallery(null);
+                queryClient.invalidateQueries(['/api/recent-galleries']);
+              }}
+              galleryId={renameGallery.id}
+              currentTitle={renameGallery.title}
+              slug={renameGallery.slug}
+            />
+          </DialogContent>
+        </Dialog>
       )}
 
       {deleteGallery && (
-        <DeleteGalleryModal
-          isOpen={!!deleteGallery}
-          onClose={() => setDeleteGallery(null)}
-          gallery={deleteGallery}
-        />
+        <Dialog open onOpenChange={() => setDeleteGallery(null)}>
+          <DialogContent>
+            <DeleteGalleryModal
+              isOpen={true}
+              onClose={() => setDeleteGallery(null)}
+              onDelete={async () => {
+                try {
+                  const response = await fetch(`/api/galleries/${deleteGallery.slug}`, {
+                    method: 'DELETE'
+                  });
+
+                  if (!response.ok) {
+                    throw new Error('Failed to delete gallery');
+                  }
+
+                  queryClient.invalidateQueries(['/api/recent-galleries']);
+                  setDeleteGallery(null);
+                } catch (error) {
+                  console.error('Error deleting gallery:', error);
+                }
+              }}
+              gallerySlug={deleteGallery.slug}
+              galleryTitle={deleteGallery.title}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
