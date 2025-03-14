@@ -164,14 +164,19 @@ export default function RecentsPage() {
                       </div>
                       <div className="p-3 flex-1">
                         <h3 className="font-medium line-clamp-1">{gallery.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {gallery.imageCount || 0} images
-                        </p>
-                        {isListView && (
-                          <p className="text-sm text-muted-foreground mt-1">
+                        <div className="space-y-1 mt-1">
+                          <p className="text-sm text-muted-foreground">
+                            {gallery.imageCount || 0} images
+                          </p>
+                          <p className="text-xs text-muted-foreground">
                             Last viewed {dayjs(gallery.lastViewedAt).fromNow()}
                           </p>
-                        )}
+                          {gallery.sharedBy && (
+                            <p className="text-xs text-muted-foreground">
+                              Shared by: {gallery.sharedBy.firstName || ''} {gallery.sharedBy.lastName || ''}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </Card>
                   </ContextMenuTrigger>
