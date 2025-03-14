@@ -139,7 +139,7 @@ export function DashboardSidebar() {
             ))}
           </div>
         </ScrollArea>
-        <div className="p-4 fixed bottom-0 left-0 w-full border-t"> {/* Fixed positioning at the bottom */}
+        <div className="p-4 fixed bottom-0 w-64 border-t bg-background"> {/* Fixed width to match sidebar */}
           <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
             <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
           </Button>
