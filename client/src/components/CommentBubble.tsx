@@ -221,7 +221,14 @@ export function CommentBubble({
           galleryId: null, // Needs to be fetched or passed as a prop
           commentLength: text.length,
           parentCommentId: parentId || null,
-          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
+          userRole: user.publicMetadata.role, // Assumes user role is in publicMetadata
+          commentType: parentId ? 'reply' : 'parent', // Add comment type
+          position: {
+            x: position.x,
+            y: position.y
+          },
+          hasEmojis: text.includes(':') && text.includes(':'), // Basic emoji check
+          timestamp: new Date().toISOString()
         });
       }
     },
@@ -465,6 +472,31 @@ export function CommentBubble({
       const data = await response.json();
       return data;
     },
+    onSuccess: (data) => {
+      setReplyContent('');
+      setIsReplying(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
+      // Enhanced Mixpanel tracking for successful reply creation
+      if (user) {
+        mixpanel.track("Comment Reply Created", {
+          imageId: imageId,
+          galleryId: null, // Needs to be fetched or passed as a prop
+          commentLength: replyContent.length,
+          parentCommentId: id || parentId,
+          userRole: user.publicMetadata.role,
+          replyToUserId: author?.id,
+          replyToUsername: author?.username,
+          replyDepth: parentId ? 2 : 1, // Track if this is a reply to a reply
+          replyPosition: {
+            x: position.x,
+            y: position.y
+          },
+          threadSize: (replies?.length || 0) + 1,
+          hasEmojis: /\p{Extended_Pictographic}/u.test(replyContent),
+          timestamp: new Date().toISOString()
+        });
+      }
+    },
     onError: (error) => {
       console.error("Reply mutation error:", error);
       toast({
@@ -472,30 +504,18 @@ export function CommentBubble({
         description: error.message || "Failed to post reply",
         variant: "destructive"
       });
-      // Mixpanel tracking for reply creation error
+      // Enhanced Mixpanel tracking for reply creation error
       if (user) {
-        mixpanel.track("Comment Failed", {
+        mixpanel.track("Comment Reply Failed", {
           error: error.message,
           imageId: imageId,
-          galleryId: null, // Needs to be fetched or passed as a prop
-          parentCommentId: parentId || null,
-          userRole: user.publicMetadata.role // Assumes user role is in publicMetadata
-        });
-      }
-    },
-    onSuccess: (data) => {
-      setReplyContent('');
-      setIsReplying(false);
-      queryClient.invalidateQueries({ queryKey: [`/api/images/${imageId}/comments`] });
-      // Mixpanel tracking for successful reply creation
-      if (user) {
-        mixpanel.track("Comment Created", {
-          imageId: imageId,
-          galleryId: null, // Needs to be fetched or passed as a prop
-          commentLength: replyContent.length,
+          galleryId: null,
           parentCommentId: id || parentId,
-          userRole: user.publicMetadata.role, // Assumes user role is in publicMetadata
-          commentType: "reply"
+          userRole: user.publicMetadata.role,
+          replyToUserId: author?.id,
+          replyToUsername: author?.username,
+          attemptedContent: replyContent,
+          timestamp: new Date().toISOString()
         });
       }
     }
@@ -801,7 +821,7 @@ export function CommentBubble({
                   type="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  className="flex-1 h-10 px-4 bg-background/80 backdrop-blur-sm border-0 shadow-none rounded-full focus-visible:ring-1 focus-visible:ring-offset-0"
+                  className="flex-1 h-10 px-4 bg-background/80 backdrop-blur-sm border-0 shadow-none rounded-md focus-visible:ring-1 focus-visible:ring-offset-0"
                   placeholder={user ? "Add a comment" : "Please sign in to comment"}
                   readOnly={!user}
                   onClick={() => {

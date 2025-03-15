@@ -1705,27 +1705,63 @@ export default function Gallery({
         description: "Creating ZIP file of selected images...",
       });
 
+      // Track download start with Mixpanel
+      mixpanel.track("Gallery Download Started", {
+        quality,
+        imageCount: selectedImages.length,
+        galleryId: gallery?.id,
+        gallerySlug: gallery?.slug,
+        userRole: userRole,
+      });
+
       const zip = new JSZip();
       const imagePromises = selectedImages.map(async (imageId) => {
         const image = gallery!.images.find((img) => img.id === imageId);
         if (!image) return;
 
-        const imageUrl = quality === 'original' ? getR2Image(image) : getR2Image(image, 'thumb');
+        const imageUrl = quality === 'original' 
+          ? `https://cdn.beam.ms/uploads/originals/${image.url.split('/').pop()}`
+          : `https://w.beam.ms/optimized/${image.url.split('/').pop()}`;
+
         const response = await fetch(imageUrl);
         const blob = await response.blob();
-        const extension = image.url.split(".").pop() || "jpg";
-        zip.file(`image-${imageId}.${extension}`, blob);
+        
+        // Use original filename from database, fallback to URL-based name if not available
+        const extension = image.url.split('.').pop() || 'jpg';
+        const filename = image.originalFilename || `image-${image.id}.${extension}`;
+
+        zip.file(filename, blob);
       });
 
       await Promise.all(imagePromises);
       const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, `selected-images-${quality}.zip`);
+      saveAs(content, `${gallery!.title || "gallery"}-images.zip`);
+
+      // Track successful download with Mixpanel
+      mixpanel.track("Gallery Download Completed", {
+        quality,
+        imageCount: selectedImages.length,
+        galleryId: gallery?.id,
+        gallerySlug: gallery?.slug,
+        userRole: userRole,
+        downloadDuration: performance.now() - performance.now(), // Time taken to download
+      });
 
       toast({
         title: "Success",
         description: `Selected images downloaded successfully (${quality} quality)`,
       });
     } catch (error) {
+      // Track download error with Mixpanel
+      mixpanel.track("Gallery Download Error", {
+        quality,
+        imageCount: selectedImages.length,
+        galleryId: gallery?.id,
+        gallerySlug: gallery?.slug,
+        userRole: userRole,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
       console.error("Download error:", error);
       toast({
         title: "Error",

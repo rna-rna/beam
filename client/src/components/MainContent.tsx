@@ -53,9 +53,11 @@ export function MainContent() {
   }
 
   return (
-    <div className="flex flex-1 h-full bg-background">
-      <aside className="hidden md:block w-64 border-r">
-        <DashboardSidebar />
+    <div className="flex flex-1 h-screen bg-background overflow-hidden">
+      <aside className="hidden md:block w-64 border-r relative">
+        <div className="h-full flex flex-col">
+          <DashboardSidebar />
+        </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-h-0">

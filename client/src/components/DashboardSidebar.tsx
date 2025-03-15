@@ -16,6 +16,12 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
+interface Folder {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 export function DashboardSidebar() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -25,6 +31,7 @@ export function DashboardSidebar() {
   const [selectedSection, setSelectedSection] = useState<'folders' | 'drafts' | 'recents' | 'trash'>('folders');
   const [deleteFolder, setDeleteFolder] = useState<{ id: number; name: string } | null>(null);
   const [renameFolder, setRenameFolder] = useState<{ id: number; name: string } | null>(null);
+  const [dragOverFolder, setDragOverFolder] = useState<number | null>(null);
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders'],
@@ -52,10 +59,29 @@ export function DashboardSidebar() {
     }
   });
 
+  const handleMoveToFolder = async (galleryIds: number[], folderId: number) => {
+    try {
+      const res = await fetch('/api/galleries/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ galleryIds, folderId })
+      });
+      
+      if (!res.ok) throw new Error('Failed to move galleries');
+      
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['galleries'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/recent-galleries'] });
+    } catch (error) {
+      console.error('Error moving galleries:', error);
+    }
+  };
+
   return (
     <>
-      <div className="flex flex-col flex-1">
-        <ScrollArea className="flex-1">
+      <div className="flex flex-col h-full"> 
+        <div className="flex-1 overflow-hidden">
           <div className="p-4 space-y-4">
             <Button
               variant={selectedSection === 'recents' ? "secondary" : "ghost"}
@@ -91,58 +117,106 @@ export function DashboardSidebar() {
               Trash
             </Button>
             <Separator />
-            <div className="font-semibold px-2">Folders</div>
+            <div className="flex items-center justify-between px-2">
+              <div className="font-semibold">Folders</div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <FolderPlus className="h-4 w-4" />
+              </Button>
+            </div>
             {folders.map((folder) => (
-              <div key={folder.id} className="group relative flex items-center">
+              <div 
+                key={folder.id} 
+                className={`group relative ${dragOverFolder === folder.id ? 'bg-primary/10 rounded-lg' : ''}`}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  setDragOverFolder(folder.id);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                  setDragOverFolder(null);
+                }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  setDragOverFolder(null);
+                  
+                  try {
+                    const data = JSON.parse(e.dataTransfer.getData('application/json'));
+                    if (data.type === 'gallery') {
+                      await handleMoveToFolder(data.ids, folder.id);
+                    }
+                  } catch (error) {
+                    console.error('Error handling drop:', error);
+                  }
+                }}
+              >
                 <Button
                   variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
-                  className="w-full justify-start"
+                  className="w-full justify-between group-hover:bg-accent"
                   onClick={() => {
                     setSelectedFolder(folder.id);
                     setSelectedSection('folders');
-                    setLocation(`/f/${folder.slug}`);
+                    
+                    queryClient.prefetchQuery({
+                      queryKey: ['folder', folder.slug],
+                      queryFn: () => fetch(`/api/folders/${folder.slug}`).then(res => res.json())
+                    }).then(() => {
+                      setLocation(`/f/${folder.slug}`, {
+                        replace: true
+                      });
+                    });
                   }}
                 >
-                  <Folder className="mr-2 h-4 w-4" />
-                  {folder.name}
+                  <div className="flex items-center">
+                    <Folder className="mr-2 h-4 w-4" />
+                    {folder.name}
+                  </div>
+                  {dragOverFolder === folder.id && (
+                    <div className="absolute inset-0 border-2 border-primary rounded-lg pointer-events-none">
+                      <div className="absolute -right-2 -top-2 bg-primary text-primary-foreground rounded-full p-1">
+                        <FolderPlus className="h-3 w-3" />
+                      </div>
+                    </div>
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <div className="opacity-0 group-hover:opacity-100">
+                        <MoreVertical className="h-4 w-4" />
+                      </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setRenameFolder({ id: folder.id, name: folder.name });
+                        }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => {
+                          setDeleteFolder({ id: folder.id, name: folder.name });
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Folder
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setRenameFolder({ id: folder.id, name: folder.name });
-                      }}
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => {
-                        setDeleteFolder({ id: folder.id, name: folder.name });
-                      }}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Folder
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
             ))}
-            </div>
-        </ScrollArea>
-        <div className="shrink-0 p-4 border-t">
-          <Button className="w-full" onClick={() => setIsCreateOpen(true)}>
-            <FolderPlus className="mr-2 h-4 w-4" /> Add Folder
-          </Button>
+          </div>
         </div>
       </div>
 
@@ -159,8 +233,19 @@ export function DashboardSidebar() {
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder="Folder name"
+              autoFocus
             />
-            <Button type="submit" className="mt-4">Create</Button>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={!newFolderName.trim() || createFolderMutation.isPending}
+              >
+                {createFolderMutation.isPending ? "Creating..." : "Create"}
+              </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

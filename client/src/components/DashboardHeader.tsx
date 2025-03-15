@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,9 @@ interface DashboardHeaderProps {
   showNewGalleryButton?: boolean;
 }
 
-export function DashboardHeader({
+const mobileSidebar = <DashboardSidebar />;
+
+export const DashboardHeader = memo(function DashboardHeader({
   searchQuery,
   setSearchQuery,
   isListView,
@@ -26,6 +27,14 @@ export function DashboardHeader({
   showNewGalleryButton = true
 }: DashboardHeaderProps) {
   const [, setLocation] = useLocation();
+
+  const handleNewGallery = () => {
+    setLocation("/new");
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
 
   return (
     <header className="flex items-center justify-between p-4 border-b">
@@ -37,7 +46,7 @@ export function DashboardHeader({
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-64">
-            <DashboardSidebar />
+            {mobileSidebar}
           </SheetContent>
         </Sheet>
         <div className="relative w-64">
@@ -46,13 +55,13 @@ export function DashboardHeader({
             placeholder={searchPlaceholder}
             className="pl-8"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
           />
         </div>
       </div>
       <div className="flex items-center gap-2">
         {showNewGalleryButton && (
-          <Button onClick={() => setLocation("/new")}>
+          <Button onClick={handleNewGallery}>
             <Plus className="mr-2 h-4 w-4" /> New Gallery
           </Button>
         )}
@@ -66,4 +75,4 @@ export function DashboardHeader({
       </div>
     </header>
   );
-}
+});
