@@ -2889,7 +2889,7 @@ export function registerRoutes(app: Express): Server {
       const recentViews = await db.query.recentlyViewedGalleries.findMany({
         where: eq(recentlyViewedGalleries.userId, userId),
         orderBy: (tbl, { desc }) => [desc(tbl.viewedAt)],
-        limit: 10,
+        limit: 12, // Changed from 10 to 12 to match frontend
       });
 
       // Extract the gallery IDs from the recent views

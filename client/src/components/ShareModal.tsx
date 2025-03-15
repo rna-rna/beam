@@ -8,6 +8,7 @@ import {  } from "@/components/ui/avatar"; //Avatar, AvatarFallback, AvatarImage
 import { Copy, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UserAvatar } from "@/components/UserAvatar"; // Assuming UserAvatar component exists
+import mixpanel from "mixpanel-browser";
 
 const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -49,6 +50,20 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
         .then((data) => {
           if (data?.success && Array.isArray(data?.users)) {
             setInvitedUsers(data.users);
+            
+            // Track initial share state when modal opens
+            mixpanel.track("Share Modal Opened", {
+              gallerySlug: slug,
+              currentShareCount: data.users.length,
+              isPublic,
+              linkPermission: isPublic ? "view" : "none",
+              userRoles: data.users.reduce((acc: Record<string, number>, user: User) => {
+                acc[user.role] = (acc[user.role] || 0) + 1;
+                return acc;
+              }, {}),
+              hasBeamUsers: data.users.some(user => user.isBeamUser),
+              hasExternalUsers: data.users.some(user => !user.isBeamUser)
+            });
           } else {
             setInvitedUsers([]);
             toast({
@@ -70,7 +85,7 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
           setLoading(false);
         });
     }
-  }, [isOpen, slug, toast]);
+  }, [isOpen, slug, toast, isPublic]);
 
   useEffect(() => {
     setLinkPermission(isPublic ? "view" : "none");
@@ -151,13 +166,21 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
 
       if (!res.ok) {
         const error = await res.json();
-        // Revert optimistic update
         setInvitedUsers((prev) => prev.filter(user => user.email !== emailToInvite));
         throw new Error(error.message || "Failed to send invite");
       }
 
       const data = await res.json();
       
+      // Track successful invite
+      mixpanel.track("Gallery Share Invite Sent", {
+        gallerySlug: slug,
+        inviteeType: selectedUser ? "beam_user" : "external_user",
+        role: "View",
+        totalSharedCount: invitedUsers.length + 1,
+        isRegisteredUser: data.isRegistered
+      });
+
       if (data.isRegistered) {
         toast({
           title: "Invite Sent",
@@ -208,6 +231,14 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
         throw new Error(data.message || "Failed to remove user");
       }
 
+      // Track user removal
+      mixpanel.track("Gallery Share Removed", {
+        gallerySlug: slug,
+        removedUserRole: user.role,
+        removedUserType: user.isBeamUser ? "beam_user" : "external_user",
+        remainingSharedCount: invitedUsers.length - 1
+      });
+
       toast({
         title: "Success",
         description: "User removed successfully"
@@ -224,7 +255,24 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
 
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        // Track modal close with final state
+        mixpanel.track("Share Modal Closed", {
+          gallerySlug: slug,
+          finalShareCount: invitedUsers.length,
+          isPublic: linkPermission !== "none",
+          linkPermission,
+          userRoles: invitedUsers.reduce((acc: Record<string, number>, user: User) => {
+            acc[user.role] = (acc[user.role] || 0) + 1;
+            return acc;
+          }, {}),
+          hasBeamUsers: invitedUsers.some(user => user.isBeamUser),
+          hasExternalUsers: invitedUsers.some(user => !user.isBeamUser)
+        });
+      }
+      onClose();
+    }}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Share Gallery</DialogTitle>
@@ -254,6 +302,14 @@ export function ShareModal({ isOpen, onClose, galleryUrl, slug, isPublic, onVisi
                   });
 
                   if (!res.ok) throw new Error('Failed to update visibility');
+                  
+                  // Track visibility change
+                  mixpanel.track("Gallery Visibility Changed", {
+                    gallerySlug: slug,
+                    newVisibility: value,
+                    sharedUserCount: invitedUsers.length
+                  });
+
                   onVisibilityChange(value !== "none");
                 } catch (error) {
                   toast({
