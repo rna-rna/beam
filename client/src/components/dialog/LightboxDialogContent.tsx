@@ -2,10 +2,16 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Star } from "lucide-react";
+import { X, Star, Download } from "lucide-react";
 import { Image } from "@/types/gallery";
 import { StarredAvatars } from "@/components/StarredAvatars";
 import { motion } from "framer-motion";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface LightboxDialogContentProps
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -13,12 +19,13 @@ interface LightboxDialogContentProps
   selectedImage?: Image;
   setSelectedImage?: (image: Image | null) => void;
   setImageDimensions?: (dimensions: {width: number; height: number}) => void; // Added for type safety
+  onDownload?: (type: 'original' | 'optimized') => void; // Added for download functionality
 }
 
 const LightboxDialogContent = React.forwardRef<
   HTMLDivElement,
   LightboxDialogContentProps
->(({ className, children, onOpenChange, selectedImage, setSelectedImage, setImageDimensions, ...props }, ref) => {
+>(({ className, children, onOpenChange, selectedImage, setSelectedImage, setImageDimensions, onDownload, ...props }, ref) => {
   const lightboxRef = React.useRef<HTMLDivElement>(null);
   const [showStarIndicator, setShowStarIndicator] = React.useState(false);
 
@@ -43,7 +50,7 @@ const LightboxDialogContent = React.forwardRef<
     };
 
     window.addEventListener("keydown", handleEscKey, { capture: true });
-    
+
     return () => {
       window.removeEventListener("keydown", handleEscKey, { capture: true });
     };
@@ -84,10 +91,25 @@ const LightboxDialogContent = React.forwardRef<
           <X className="h-4 w-4" />
         </Button>
       </DialogClose>
-      
+
       {/* Starred avatars */}
       {selectedImage && (
-        <div className="absolute bottom-4 right-4 z-50 p-2">
+        <div className="absolute bottom-4 right-4 flex gap-2 z-50 p-2"> {/* Added flex for spacing */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Download className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onDownload && onDownload('original')}>
+                Download Original
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDownload && onDownload('optimized')}>
+                Download Optimized
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <StarredAvatars imageId={selectedImage.id} size="lg" />
         </div>
       )}
