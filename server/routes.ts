@@ -43,19 +43,8 @@ const R2_CORS = {
   MaxAgeSeconds: 3600
 };
 
-// Apply CORS configuration to R2 bucket
-try {
-  const putBucketCorsCommand = new PutBucketCorsCommand({
-    Bucket: R2_BUCKET_NAME,
-    CORSConfiguration: {
-      CORSRules: [R2_CORS]
-    }
-  });
-  await r2Client.send(putBucketCorsCommand);
-  console.log('R2 CORS configuration applied successfully');
-} catch (error) {
-  console.error('Failed to apply R2 CORS configuration:', error);
-}
+// Skip CORS configuration if we don't have bucket admin permissions
+console.log('Skipping R2 CORS configuration - requires bucket admin permissions');
 
 // Add Clerk types to Express Request
 declare global {
