@@ -14,7 +14,7 @@ import { clerkClient } from '@clerk/clerk-sdk-node';
 import { invites } from '@db/schema';
 import { sendInviteEmail, sendMagicLinkEmail } from './lib/emails';
 import { nanoid } from 'nanoid';
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, PutBucketCorsCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from 'sharp';
 import { pusher } from './pusherConfig';
@@ -33,6 +33,29 @@ const r2Client = new S3Client({
   },
   forcePathStyle: true
 });
+
+// CORS configuration for R2
+const R2_CORS = {
+  AllowedHeaders: ['*'],
+  AllowedMethods: ['GET', 'PUT', 'POST'],
+  AllowedOrigins: ['*'],
+  ExposeHeaders: ['ETag'],
+  MaxAgeSeconds: 3600
+};
+
+// Apply CORS configuration to R2 bucket
+try {
+  const putBucketCorsCommand = new PutBucketCorsCommand({
+    Bucket: R2_BUCKET_NAME,
+    CORSConfiguration: {
+      CORSRules: [R2_CORS]
+    }
+  });
+  await r2Client.send(putBucketCorsCommand);
+  console.log('R2 CORS configuration applied successfully');
+} catch (error) {
+  console.error('Failed to apply R2 CORS configuration:', error);
+}
 
 // Add Clerk types to Express Request
 declare global {
