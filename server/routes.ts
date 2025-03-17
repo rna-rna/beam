@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '@db';
 import { galleries, images, comments, stars, folders, galleryFolders, notifications, contacts, cachedUsers, commentReactions, recentlyViewedGalleries } from '@db/schema';
-import { eq, and, sql, inArray, or, desc, isNull, isNotNull } from 'drizzle-orm';
+import { eq, and, sql, inArray, or, desc, isNull, isNotNull, asc } from 'drizzle-orm';
 import { setupClerkAuth, extractUserInfo } from './auth';
 import { getEditorUserIds } from './utils';
 import { clerkClient } from '@clerk/clerk-sdk-node';
@@ -155,60 +155,222 @@ export function registerRoutes(app: Express): Server {
   // Apply auth middleware to all protected routes
   protectedRouter.use(protectRoute);
 
-  // Get galleries for current user (main endpoint)
-  protectedRouter.get('/galleries', async (req: any, res) => {
+  // Add a new endpoint to handle moving multiple galleries to a folder by gallery slug
+  protectedRouter.post('/galleries/:slug/move', async (req, res) => {
     try {
-      const userId = req.auth.userId;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 12;
-      const offset = (page - 1) * limit;
-
-      const userGalleries = await db.query.galleries.findMany({
-        where: eq(galleries.userId, userId),
-        orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
-        with: {
-          images: {
-            orderBy: (images, { asc }) => [asc(images.position), asc(images.createdAt)],
-            limit: 1  // Fetch only the first image as thumbnail
-          }
-        },
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          createdAt: true,
-          updatedAt: true,
-          userId: true,
-          guestUpload: true,
-          folderId: true,
-          deletedAt: true,
-          isDraft: true // Added isDraft field
-        },
-        limit,
-        offset
+      const { galleryIds } = req.body;
+      const slug = req.params.slug;
+      
+      // Find the folder by slug
+      const folder = await db.query.folders.findFirst({
+        where: and(
+          eq(folders.slug, slug),
+          eq(folders.userId, req.auth.userId)
+        )
       });
+      
+      if (!folder) {
+        return res.status(404).json({ error: 'Folder not found' });
+      }
+      
+      // Update all galleries to have the new folderId
+      await db.update(galleries)
+        .set({ folderId: folder.id })
+        .where(
+          and(
+            inArray(galleries.id, galleryIds),
+            eq(galleries.userId, req.auth.userId)
+          )
+        );
+      
+      return res.status(200).json({ success: true, moved: galleryIds.length });
+    } catch (error) {
+      console.error('Error moving galleries:', error);
+      return res.status(500).json({ error: 'Failed to move galleries' });
+    }
+  });
 
-      // Transform response to include thumbnail URL and image count
-      const galleriesWithThumbnails = await Promise.all(
+  // Add endpoint to get galleries for a specific folder
+  protectedRouter.get('/folders/:folderId/galleries', async (req, res) => {
+    const userId = req.auth.userId;
+    const { folderId } = req.params;
+    
+    console.log('[Folder Galleries Request]', { userId, folderId });
+    
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    try {
+      // Verify the folder exists and belongs to this user
+      const folder = await db.query.folders.findFirst({
+        where: and(
+          eq(folders.id, parseInt(folderId)),
+          eq(folders.userId, userId)
+        )
+      });
+      
+      if (!folder) {
+        return res.status(404).json({ message: 'Folder not found' });
+      }
+      
+      // Get all galleries in this folder that aren't deleted
+      const userGalleries = await db.query.galleries.findMany({
+        where: and(
+          eq(galleries.userId, userId),
+          eq(galleries.folderId, parseInt(folderId)),
+          isNull(galleries.deletedAt)
+        ),
+        orderBy: (galleries, { desc }) => [desc(galleries.createdAt)]
+      });
+      
+      console.log(`[Found ${userGalleries.length} galleries in folder]`);
+      
+      // Get additional data for each gallery in parallel
+      const galleriesWithDetails = await Promise.all(
         userGalleries.map(async (gallery) => {
-          // Get total image count for gallery
-          const result = await db.execute(
-            sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
-          );
-          const imageCount = parseInt(result.rows[0].count.toString(), 10);
-
-          return {
-            ...gallery,
-            thumbnailUrl: gallery.images[0]?.url || null,
-            publicId: gallery.images[0]?.publicId || null,
-            imageCount
-          };
+          try {
+            // Get image count for this gallery
+            const imageCountResult = await db.execute(
+              sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
+            );
+            
+            let imageCount = 0;
+            if (imageCountResult.rows && imageCountResult.rows.length > 0) {
+              imageCount = parseInt(imageCountResult.rows[0].count.toString(), 10);
+            }
+            
+            // Find the first image (thumbnail) for this gallery
+            const thumbnailImage = await db.query.images.findFirst({
+              where: eq(images.galleryId, gallery.id),
+              orderBy: (images, { asc }) => [asc(images.position)]
+            });
+            
+            return {
+              ...gallery,
+              imageCount,
+              thumbnailUrl: thumbnailImage?.url || gallery.ogImageUrl || null,
+              isOwner: true // User owns all galleries in their folder
+            };
+          } catch (error) {
+            console.error('[Error processing gallery details]', { 
+              galleryId: gallery.id, 
+              error 
+            });
+            
+            // Return gallery with default values if processing fails
+            return {
+              ...gallery,
+              imageCount: 0,
+              thumbnailUrl: gallery.ogImageUrl || null,
+              isOwner: true
+            };
+          }
         })
       );
-
-      res.json(galleriesWithThumbnails);
+      
+      res.json(galleriesWithDetails);
     } catch (error) {
-      console.error('Failed to fetch galleries:', error);
+      console.error('[Error fetching folder galleries]', error);
+      res.status(500).json({ message: 'Failed to fetch galleries', error: String(error) });
+    }
+  });
+
+  // Get galleries for current user (main endpoint)
+  protectedRouter.get('/galleries', async (req, res) => {
+    const userId = req.auth.userId;
+    const { page = '1', limit = '12', folderId } = req.query;
+    
+    console.log('[GET /galleries]', { userId, page, limit, folderId });
+    
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    try {
+      // Build the where clause to filter galleries
+      let whereClause = eq(galleries.userId, userId);
+      
+      // If folderId is provided, filter by that folder
+      if (folderId) {
+        whereClause = and(
+          whereClause,
+          eq(galleries.folderId, parseInt(folderId as string))
+        );
+      } else {
+        // If no folderId is provided, only show galleries NOT in a folder (drafts)
+        whereClause = and(
+          whereClause,
+          isNull(galleries.folderId)
+        );
+      }
+      
+      // Don't show deleted galleries
+      whereClause = and(
+        whereClause,
+        isNull(galleries.deletedAt)
+      );
+      
+      // Get the user's galleries with pagination
+      const pageNumber = parseInt(page as string, 10);
+      const limitNumber = parseInt(limit as string, 10);
+      const offset = (pageNumber - 1) * limitNumber;
+      
+      console.log('[Gallery Query]', { pageNumber, limitNumber, offset });
+      
+      const userGalleries = await db.query.galleries.findMany({
+        where: whereClause,
+        orderBy: (galleries, { desc }) => [desc(galleries.createdAt)],
+        offset,
+        limit: limitNumber
+      });
+      
+      console.log(`[Found ${userGalleries.length} galleries]`);
+      
+      // Get additional data for each gallery in parallel
+      const galleriesWithDetails = await Promise.all(
+        userGalleries.map(async (gallery) => {
+          try {
+            // Get image count for this gallery
+            const imageCountResult = await db.execute(
+              sql`SELECT COUNT(*) as count FROM images WHERE gallery_id = ${gallery.id}`
+            );
+            
+            let imageCount = 0;
+            if (imageCountResult.rows && imageCountResult.rows.length > 0) {
+              imageCount = parseInt(imageCountResult.rows[0].count.toString(), 10);
+            }
+            
+            // Find the first image (thumbnail) for this gallery
+            const thumbnailImage = await db.query.images.findFirst({
+              where: eq(images.galleryId, gallery.id),
+              orderBy: (images, { asc }) => [asc(images.position)]
+            });
+            
+            return {
+              ...gallery,
+              imageCount,
+              thumbnailUrl: thumbnailImage?.url || gallery.ogImageUrl || null
+            };
+          } catch (error) {
+            console.error('[Error processing gallery details]', { 
+              galleryId: gallery.id, 
+              error 
+            });
+            
+            // Return gallery with default values if processing fails
+            return {
+              ...gallery,
+              imageCount: 0,
+              thumbnailUrl: gallery.ogImageUrl || null
+            };
+          }
+        })
+      );
+      
+      res.json(galleriesWithDetails);
+    } catch (error) {
+      console.error('[Error fetching galleries]', error);
       res.status(500).json({ message: 'Failed to fetch galleries' });
     }
   });
@@ -3333,6 +3495,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Mount the protected router to the /api prefix
   app.use('/api', protectedRouter);
 
   const httpServer = createServer(app);

@@ -1,73 +1,134 @@
+import { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
+import { useLocation } from "wouter";
+import { Loader2, Image, Plus, AlertTriangle, AlertCircle, FileText } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import { Clock, FolderOpen, Image, Menu, Pencil, Plus, Share, Trash2, List, Loader2 } from "lucide-react";
-import { getR2Image } from "@/lib/r2";
-import { Toggle } from "@/components/ui/toggle";
-import { useState, useEffect, useRef } from "react";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ShareModal } from "@/components/ShareModal";
-import { RenameGalleryModal } from "@/components/RenameGalleryModal";
-import { DeleteGalleryModal } from "@/components/DeleteGalleryModal";
-import * as ReactDOM from "react-dom/client";
 import { DashboardHeader } from "@/components/DashboardHeader";
-
-dayjs.extend(relativeTime);
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { GalleryCardGrid, Gallery } from "@/components/GalleryCardGrid";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ITEMS_PER_PAGE = 12;
 
-export default function ProjectsPage() {
-  const { getToken } = useAuth();
+export function ProjectsPage() {
+  const { getToken, userId } = useAuth();
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [isListView, setIsListView] = useState(false);
-  const [renameGallery, setRenameGallery] = useState(null);
-  const [deleteGallery, setDeleteGallery] = useState(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const loadMoreRef = useRef(null);
   const queryClient = useQueryClient();
 
-  const { data, isFetching, hasNextPage, fetchNextPage } = useInfiniteQuery({
+  // Query for user's galleries
+  const { data, isFetching, hasNextPage, fetchNextPage, error, refetch } = useInfiniteQuery({
     queryKey: ["/api/galleries"],
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
-      const token = await getToken();
-      console.log('Fetching page:', pageParam);
-      const res = await fetch(`/api/galleries?page=${pageParam}&limit=${ITEMS_PER_PAGE}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!res.ok) throw new Error("Failed to fetch galleries");
-      const data = await res.json();
-      console.log('Response data:', data);
-      return data;
+      try {
+        setFetchError(null);
+        console.log('[Projects Page] Fetching page:', pageParam, 'User ID:', userId);
+        
+        // First, try with Clerk token
+        const token = await getToken();
+        console.log('[Projects Page] Got auth token:', token ? 'Yes' : 'No');
+        
+        const requestOptions = {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          credentials: 'include' as RequestCredentials, // Important for cookies
+        };
+        
+        console.log('[Projects Page] Request options:', JSON.stringify(requestOptions));
+        
+        const res = await fetch(`/api/galleries?page=${pageParam}&limit=${ITEMS_PER_PAGE}`, requestOptions);
+        
+        // Log detailed response info
+        console.log('[Projects Page] Response status:', res.status, res.statusText);
+        console.log('[Projects Page] Response headers:', {
+          'content-type': res.headers.get('content-type'),
+          'content-length': res.headers.get('content-length'),
+          'cache-control': res.headers.get('cache-control')
+        });
+        
+        if (!res.ok) {
+          const contentType = res.headers.get('content-type');
+          let errorMessage = `Error fetching galleries: ${res.status} ${res.statusText}`;
+          
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await res.json();
+            console.error('[Projects Page] API error response:', errorData);
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } else {
+            // Handle HTML error responses
+            const text = await res.text();
+            console.error('[Projects Page] Non-JSON error response:', text.substring(0, 200) + '...');
+          }
+          
+          throw new Error(errorMessage);
+        }
+        
+        // Try to parse the JSON response
+        let rawData;
+        try {
+          rawData = await res.json();
+          console.log('[Projects Page] Raw API response:', rawData);
+        } catch (e) {
+          console.error('[Projects Page] Error parsing JSON response:', e);
+          throw new Error('Invalid response from server (not JSON)');
+        }
+        
+        // Check if the response is an array
+        if (!Array.isArray(rawData)) {
+          console.error('[Projects Page] API returned non-array data:', rawData);
+          throw new Error('Invalid galleries data format');
+        }
+        
+        // Format the data to match our Gallery type
+        const formattedData = rawData.map((gallery: any) => ({
+          id: gallery.id,
+          name: gallery.title || gallery.name || 'Untitled',
+          slug: gallery.slug,
+          imageCount: gallery.imageCount || 0,
+          thumbnailUrl: gallery.thumbnailUrl || gallery.ogImageUrl,
+          lastViewedAt: gallery.lastViewedAt || gallery.createdAt,
+          isPublic: gallery.isPublic || false,
+          isFolder: Boolean(gallery.isFolder || gallery.type === 'folder'),
+          type: gallery.type || (gallery.isFolder ? 'folder' : 'gallery'),
+          createdAt: gallery.createdAt || new Date().toISOString(),
+          userId: gallery.userId || userId,
+          isOwner: true // User owns all galleries in the projects page
+        }));
+        
+        console.log('[Projects Page] Formatted data:', formattedData);
+        return formattedData;
+      } catch (error) {
+        console.error('[Projects Page] Error fetching galleries:', error);
+        const message = error instanceof Error ? error.message : 'Unknown error fetching galleries';
+        setFetchError(message);
+        throw error;
+      }
     },
     getNextPageParam: (lastPage, allPages) => {
       const hasNext = lastPage.length === ITEMS_PER_PAGE;
-      console.log('Last page length:', lastPage.length);
-      console.log('Has next page:', hasNext);
+      console.log('[Projects Page] Last page length:', lastPage.length);
+      console.log('[Projects Page] Has next page:', hasNext);
       return hasNext ? allPages.length + 1 : undefined;
     },
+    retry: 2, // Retry failed requests up to 2 times
+    retryDelay: (attempt) => Math.min(attempt > 1 ? 2000 : 1000, 30 * 1000), // Exponential backoff
+    refetchOnWindowFocus: false, // Don't refetch when window is focused
   });
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        console.log('Intersection observer triggered:', {
+        console.log('[Projects Page] Intersection observer triggered:', {
           isIntersecting: entries[0].isIntersecting,
           hasNextPage,
           isFetching
@@ -89,203 +150,208 @@ export default function ProjectsPage() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetching, fetchNextPage]);
 
-  // Type the gallery interface to fix TypeScript errors
-  interface Gallery {
-    id: number;
-    slug: string;
-    title: string;
-    thumbnailUrl?: string;
-    images?: string[];
-    imageCount?: number;
-    lastViewedAt?: string;
-    isPublic?: boolean;
-  }
+  useEffect(() => {
+    // Update document title if it exists
+    document.title = "Drafts | Gallerypt";
+  }, []);
+
+  // Alternative fetch method for debugging
+  const fetchGalleriesDirectly = async () => {
+    try {
+      setFetchError(null);
+      
+      // Try with cookies only
+      const response = await fetch('/api/galleries', {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+      
+      console.log('[Direct Fetch] Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('[Direct Fetch] Galleries:', data);
+      
+      if (Array.isArray(data) && data.length > 0) {
+        // This proves we can get the data, so trigger a refetch of the query
+        refetch();
+      } else {
+        console.log('[Direct Fetch] No galleries found or invalid response format');
+      }
+    } catch (error) {
+      console.error('[Direct Fetch] Error:', error);
+      setFetchError(error instanceof Error ? error.message : 'Unknown error');
+    }
+  };
 
   const galleries = (data?.pages ?? []).flat() as Gallery[];
-  const filteredGalleries = galleries.filter(gallery => 
-    gallery.title.toLowerCase().includes(searchQuery.toLowerCase())
+  
+  console.log('[Projects Page] All galleries:', galleries);
+  
+  const filteredGalleries = galleries.filter((gallery: Gallery) => 
+    (gallery?.name || '').toLowerCase().includes((searchQuery || '').toLowerCase())
   );
+  
+  console.log('[Projects Page] Filtered galleries:', filteredGalleries);
 
-  const handleShare = (gallery) => {
-    const url = `${window.location.origin}/g/${gallery.slug}`;
-    const modal = document.createElement("div");
-    modal.id = `share-modal-${gallery.id}`;
-    document.body.appendChild(modal);
-    const root = ReactDOM.createRoot(modal);
-    root.render(
-      <Dialog open onOpenChange={() => {
-        root.unmount();
-        modal.remove();
-      }}>
-        <DialogContent>
-          <ShareModal
-            isOpen={true}
-            onClose={() => {
-              root.unmount();
-              modal.remove();
-            }}
-            galleryUrl={url}
-            slug={gallery.slug}
-            isPublic={gallery.isPublic}
-            onVisibilityChange={() => {}}
-          />
-        </DialogContent>
-      </Dialog>
-    );
+  const handleNavigate = (slug: string) => {
+    setLocation(`/g/${slug}`);
   };
 
-  const handleRename = (gallery) => {
-    setRenameGallery(gallery);
+  const handleSelectionChange = (newSelectedIds: Set<number>) => {
+    setSelectedIds(newSelectedIds);
   };
+  
+  // Handle moving items between folders
+  const handleItemMoved = async (galleryIds: number[], targetFolderId: number) => {
+    try {
+      // Find the target folder
+      const targetFolder = galleries.find(g => g.id === targetFolderId && g.isFolder);
+      if (!targetFolder) {
+        throw new Error('Target folder not found');
+      }
 
-  const handleDelete = (gallery) => {
-    setDeleteGallery(gallery);
+      console.log('[Moving galleries from Drafts]', { 
+        galleryIds, 
+        targetFolderId, 
+        targetFolderSlug: targetFolder.slug 
+      });
+
+      // Make API call to move galleries to folder
+      const response = await fetch(`/api/galleries/${targetFolder.slug}/move`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          galleryIds,
+        }),
+      });
+
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+          const htmlText = await response.text();
+          console.error('[Move Error] Received HTML instead of JSON:', htmlText.substring(0, 100) + '...');
+          throw new Error('Received HTML response instead of JSON');
+        }
+        
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to move galleries');
+      }
+
+      const moveResult = await response.json();
+      console.log('[Move success]', moveResult);
+
+      // Invalidate all relevant queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/recent-galleries'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/galleries'] }),
+        queryClient.invalidateQueries({ queryKey: ['folder', targetFolder.slug] }),
+        queryClient.invalidateQueries({ queryKey: ['folder-galleries', targetFolder.slug] }),
+        queryClient.invalidateQueries({ queryKey: ['folders'] })
+      ]);
+
+      // Force an immediate refetch to update the UI
+      await queryClient.refetchQueries({ queryKey: ['/api/galleries'] });
+      
+      // Remove items from local state to avoid UI flicker while refetching
+      const movedIds = new Set(galleryIds);
+      
+      // Reset selection if any selected items were moved
+      if (Array.from(selectedIds).some(id => movedIds.has(id))) {
+        setSelectedIds(new Set());
+      }
+      
+    } catch (error) {
+      console.error('[Move Error]', error);
+      // TODO: Add error toast here
+    }
   };
 
   return (
     <DashboardLayout>
-      <div className="sticky top-0 z-10 bg-background">
-        <DashboardHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} isListView={isListView} setIsListView={setIsListView} />
-      </div>
-
-      <ScrollArea className="flex-1 p-4">
-        {filteredGalleries.length === 0 && !isFetching ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <Image className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="font-semibold mb-2">No projects yet</h3>
-            <p className="text-muted-foreground mb-4">Create your first project to get started</p>
-            <Button onClick={() => (window.location.href = "/new")}>
-              <Plus className="mr-2 h-4 w-4" /> New Gallery
-            </Button>
+      <ScrollArea className="flex-1">
+        <DashboardHeader 
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          isListView={isListView}
+          setIsListView={setIsListView}
+          searchPlaceholder="Search drafts..."
+        />
+        
+        {isFetching && galleries.length === 0 ? (
+          <div className="flex items-center justify-center h-64 mx-auto">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : fetchError ? (
+          <div className="p-4">
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                Failed to load drafts. {fetchError}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="ml-2"
+                  onClick={() => refetch()}
+                >
+                  Retry
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        ) : galleries.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)]">
+            <div className="text-center text-muted-foreground">
+              <FileText className="w-12 h-12 mx-auto mb-4" />
+              <p>No drafts yet</p>
+              <Button 
+                onClick={() => setLocation('/new')} 
+                variant="outline" 
+                className="mt-4"
+              >
+                <Plus className="mr-2 h-4 w-4" /> Create New Draft
+              </Button>
+            </div>
           </div>
         ) : (
-          <>
-            <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"}>
-              {filteredGalleries.map(gallery => (
-                <ContextMenu key={gallery.id}>
-                  <ContextMenuTrigger>
-                    <Card 
-                      className={`overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:bg-muted/50 ${isListView ? 'flex' : ''}`}
-                      onClick={(e) => {
-                        if (e.button === 2) return;
-                        window.location.href = `/g/${gallery.slug}`;
-                      }}
-                    >
-                      <div className={`${isListView ? 'w-24 h-24 shrink-0' : 'aspect-video'} relative bg-muted`}>
-                        {gallery.thumbnailUrl ? (
-                          <img
-                            src={gallery.images?.[0] ? getR2Image(gallery.images[0], "thumb") : "/fallback-image.jpg"}
-                            alt={gallery.title}
-                            className={`object-cover w-full h-full ${isListView ? 'rounded-l' : ''}`}
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-muted flex items-center justify-center">
-                            <Image className="h-12 w-12 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                      <div className={`p-4 flex-grow ${isListView ? 'flex justify-between items-center' : ''}`}>
-                        <div className="space-y-1">
-                          <h3 className="font-semibold text-lg">{gallery.title}</h3>
-                          <div className="flex items-center gap-3">
-                            <p className="text-sm text-muted-foreground">
-                              {gallery.imageCount || 0} images
-                            </p>
-                          </div>
-                        </div>
-                        <div className={`${isListView ? 'flex items-center gap-8' : 'flex items-center justify-between mt-2'} text-xs text-muted-foreground`}>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-3 w-3" />
-                            {gallery.lastViewedAt ? dayjs(gallery.lastViewedAt).fromNow() : 'Never viewed'}
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </ContextMenuTrigger>
-                  <ContextMenuContent>
-                    <ContextMenuItem onClick={() => window.location.href = `/g/${gallery.slug}`}>
-                      <FolderOpen className="mr-2 h-4 w-4" /> Open
-                    </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleShare(gallery)}>
-                      <Share className="mr-2 h-4 w-4" /> Share
-                    </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleRename(gallery)}>
-                      <Pencil className="mr-2 h-4 w-4" /> Rename
-                    </ContextMenuItem>
-                    <ContextMenuSeparator />
-                    <ContextMenuItem
-                      className="text-red-600"
-                      onClick={() => handleDelete(gallery)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </ContextMenuItem>
-                  </ContextMenuContent>
-                </ContextMenu>
-              ))}
-            </div>
+          <div className="p-3">
+            <GalleryCardGrid
+              galleries={filteredGalleries}
+              isListView={isListView}
+              selectable={true}
+              draggable={true}
+              onNavigate={handleNavigate}
+              onSelectionChange={handleSelectionChange}
+              onItemMoved={handleItemMoved}
+            />
+            
+            {/* Infinite scroll loading trigger */}
             {hasNextPage && (
               <div 
                 ref={loadMoreRef} 
-                className="py-8 flex justify-center"
-                style={{ minHeight: '100px' }}
+                className="w-full py-8 flex items-center justify-center"
               >
-                {isFetching ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                ) : (
-                  // Spacer for intersection observer
-                  <div className="h-4" />
+                {isFetching && (
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 )}
               </div>
             )}
-          </>
+          </div>
         )}
       </ScrollArea>
-
-      {renameGallery && (
-        <Dialog open onOpenChange={() => setRenameGallery(null)}>
-          <DialogContent>
-            <RenameGalleryModal
-              isOpen={true}
-              onClose={() => {
-                setRenameGallery(null);
-                queryClient.invalidateQueries(["/api/galleries"]);
-              }}
-              galleryId={renameGallery.id}
-              currentTitle={renameGallery.title}
-              slug={renameGallery.slug}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {deleteGallery && (
-        <Dialog open onOpenChange={() => setDeleteGallery(null)}>
-          <DialogContent>
-            <DeleteGalleryModal
-              isOpen={true}
-              onClose={() => setDeleteGallery(null)}
-              onDelete={async () => {
-                try {
-                  const response = await fetch(`/api/galleries/${deleteGallery.slug}`, {
-                    method: 'DELETE'
-                  });
-
-                  if (!response.ok) {
-                    throw new Error('Failed to delete gallery');
-                  }
-
-                  queryClient.invalidateQueries(["/api/galleries"]);
-                  setDeleteGallery(null);
-                } catch (error) {
-                  console.error('Error deleting gallery:', error);
-                }
-              }}
-              gallerySlug={deleteGallery.slug}
-              galleryTitle={deleteGallery.title}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </DashboardLayout>
   );
 }
+
+// Default export
+export default ProjectsPage;

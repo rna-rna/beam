@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FolderPlus, Clock, Folder, Trash2, MoreVertical, Pencil } from 'lucide-react';
+import { FolderPlus, Clock, Folder, Trash2, MoreVertical, Pencil, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { DeleteFolderModal } from '@/components/DeleteFolderModal';
@@ -15,6 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Link } from 'wouter';
 
 interface Folder {
   id: number;
@@ -22,16 +23,23 @@ interface Folder {
   slug: string;
 }
 
+type Section = 'folders' | 'drafts' | 'recents' | 'trash' | 'projects';
+
 export function DashboardSidebar() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
-  const [selectedSection, setSelectedSection] = useState<'folders' | 'drafts' | 'recents' | 'trash'>('folders');
+  const [selectedSection, setSelectedSection] = useState<Section>('folders');
   const [deleteFolder, setDeleteFolder] = useState<{ id: number; name: string } | null>(null);
   const [renameFolder, setRenameFolder] = useState<{ id: number; name: string } | null>(null);
   const [dragOverFolder, setDragOverFolder] = useState<number | null>(null);
+
+  // Determine active section based on current location
+  const isProjectsPage = location === '/projects';
+  const isRecentsPage = location === '/dashboard';
+  const isTrashPage = location === '/dashboard/trash';
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders'],
@@ -61,20 +69,88 @@ export function DashboardSidebar() {
 
   const handleMoveToFolder = async (galleryIds: number[], folderId: number) => {
     try {
-      const res = await fetch('/api/galleries/move', {
+      const folder = folders.find((f: Folder) => f.id === folderId);
+      if (!folder) {
+        throw new Error('Folder not found');
+      }
+
+      console.log('[Moving Galleries to Folder]', {
+        galleryIds,
+        targetFolder: folder.name,
+        targetFolderId: folderId,
+        targetSlug: folder.slug
+      });
+
+      // Use the POST /api/galleries/:slug/move endpoint
+      const response = await fetch(`/api/galleries/${folder.slug}/move`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ galleryIds, folderId })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include', // Important for auth cookies
+        body: JSON.stringify({
+          galleryIds: galleryIds
+        })
       });
       
-      if (!res.ok) throw new Error('Failed to move galleries');
+      // Check for HTML response (error)
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        const htmlText = await response.text();
+        console.error('[Move Error] Received HTML instead of JSON:', htmlText.substring(0, 100) + '...');
+        throw new Error('Received HTML response instead of JSON');
+      }
       
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['galleries'] });
-      queryClient.invalidateQueries({ queryKey: ['folders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/recent-galleries'] });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Move Error]', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`Failed to move galleries: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('[Move Response]', result);
+
+      // Invalidate and refetch all relevant queries
+      console.log('[Invalidating Queries]');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['galleries'] }),
+        queryClient.invalidateQueries({ queryKey: ['folders'] }),
+        queryClient.invalidateQueries({ queryKey: ['recent-galleries'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/recent-galleries'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/galleries'] }),
+        queryClient.invalidateQueries({ queryKey: ['folder', folder.slug] }),
+        queryClient.invalidateQueries({ queryKey: ['folder-galleries', folder.slug] })
+      ]);
+
+      // Force immediate refetch of the folder contents and projects
+      console.log('[Forcing Refetch]');
+      await Promise.all([
+        queryClient.refetchQueries({ 
+          queryKey: ['folder-galleries', folder.slug],
+          type: 'active'
+        }),
+        queryClient.refetchQueries({ 
+          queryKey: ['folder', folder.slug],
+          type: 'active'
+        }),
+        queryClient.refetchQueries({ 
+          queryKey: ['/api/galleries'],
+          type: 'active'
+        })
+      ]);
+
+      console.log('[Galleries Moved Successfully]');
+      
+      // Navigate to the folder to see the changes
+      setLocation(`/f/${folder.slug}`);
     } catch (error) {
-      console.error('Error moving galleries:', error);
+      console.error('[Error Moving Galleries]:', error);
+      throw error;
     }
   };
 
@@ -83,39 +159,35 @@ export function DashboardSidebar() {
       <div className="flex flex-col h-full"> 
         <div className="flex-1 overflow-hidden">
           <div className="p-4 space-y-4">
-            <Button
-              variant={selectedSection === 'recents' ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => {
-                setSelectedSection('recents');
-                setLocation("/dashboard");
-              }}
-            >
-              <Clock className="mr-2 h-4 w-4" />
-              Recents
-            </Button>
-            <Button
-              variant={selectedSection === 'projects' ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => {
-                setSelectedSection('projects');
-                setLocation("/dashboard/projects");
-              }}
-            >
-              <Folder className="mr-2 h-4 w-4" />
-              My Projects
-            </Button>
-            <Button
-              variant={selectedSection === 'trash' ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => {
-                setSelectedSection('trash');
-                setLocation("/dashboard/trash");
-              }}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Trash
-            </Button>
+            <Link href="/dashboard" className="block no-underline">
+              <Button
+                variant={isRecentsPage || selectedSection === 'recents' ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setSelectedSection('recents')}
+              >
+                <Clock className="mr-2 h-4 w-4" />
+                Recents
+              </Button>
+            </Link>
+            <Link href="/projects" className="block no-underline">
+              <Button
+                variant={isProjectsPage || selectedSection === 'projects' ? "secondary" : "ghost"}
+                className="w-full justify-start"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Drafts
+              </Button>
+            </Link>
+            <Link href="/dashboard/trash" className="block no-underline">
+              <Button
+                variant={isTrashPage || selectedSection === 'trash' ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setSelectedSection('trash')}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Trash
+              </Button>
+            </Link>
             <Separator />
             <div className="flex items-center justify-between px-2">
               <div className="font-semibold">Folders</div>
@@ -128,7 +200,7 @@ export function DashboardSidebar() {
                 <FolderPlus className="h-4 w-4" />
               </Button>
             </div>
-            {folders.map((folder) => (
+            {folders.map((folder: Folder) => (
               <div 
                 key={folder.id} 
                 className={`group relative ${dragOverFolder === folder.id ? 'bg-primary/10 rounded-lg' : ''}`}
@@ -160,7 +232,7 @@ export function DashboardSidebar() {
                 }}
               >
                 <Button
-                  variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location.pathname === `/f/${folder.slug}` ? "secondary" : "ghost"}
+                  variant={(selectedSection === 'folders' && selectedFolder === folder.id) || location === `/f/${folder.slug}` ? "secondary" : "ghost"}
                   className="w-full justify-between group-hover:bg-accent"
                   onClick={() => {
                     setSelectedFolder(folder.id);
@@ -170,9 +242,7 @@ export function DashboardSidebar() {
                       queryKey: ['folder', folder.slug],
                       queryFn: () => fetch(`/api/folders/${folder.slug}`).then(res => res.json())
                     }).then(() => {
-                      setLocation(`/f/${folder.slug}`, {
-                        replace: true
-                      });
+                      setLocation(`/f/${folder.slug}`);
                     });
                   }}
                 >

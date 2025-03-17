@@ -283,6 +283,9 @@ function AppContent() {
         <About />
       </Route>
 
+      <Route path="/projects">
+        <ProjectsPage />
+      </Route>
 
         </Switch>
           </AnimatePresence>

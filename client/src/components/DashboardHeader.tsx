@@ -7,11 +7,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { List, Menu, Plus, Search } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 
-interface DashboardHeaderProps {
+export interface DashboardHeaderProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   isListView: boolean;
   setIsListView: (isListView: boolean) => void;
+  selectedCount?: number;
+  children?: React.ReactNode;
   searchPlaceholder?: string;
   showNewGalleryButton?: boolean;
 }
@@ -23,6 +25,8 @@ export const DashboardHeader = memo(function DashboardHeader({
   setSearchQuery,
   isListView,
   setIsListView,
+  selectedCount = 0,
+  children,
   searchPlaceholder = "Search...",
   showNewGalleryButton = true
 }: DashboardHeaderProps) {
