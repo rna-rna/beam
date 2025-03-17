@@ -1,6 +1,5 @@
 import { useRoute, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,16 +7,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ChevronDown, FolderOpen, Image, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-
-interface Gallery {
-  id: number;
-  title: string;
-  slug: string;
-  folderId: number;
-  thumbnailUrl?: string;
-  imageCount?: number;
-  deleted_at?: string | null;
-}
+import { GalleryCardGrid, Gallery } from "@/components/GalleryCardGrid";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 interface Folder {
   id: number;
@@ -31,41 +22,175 @@ export function FolderPage() {
   const folderSlug = match ? params.folderSlug : null;
   const [sortOrder, setSortOrder] = useState<'created' | 'viewed' | 'alphabetical'>('created');
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const queryClient = useQueryClient();
 
   // Fetch folder data
   const { data: folder, isLoading: isFolderLoading } = useQuery<Folder>({
-    queryKey: ["folder", folderSlug],
+    queryKey: ['folder', folderSlug],
     queryFn: async () => {
-      const res = await fetch(`/api/folders/${folderSlug}`);
+      console.log('[Fetching Folder]', { folderSlug });
+      const res = await fetch(`/api/folders/${folderSlug}`, {
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       if (!res.ok) throw new Error('Failed to fetch folder');
-      return res.json();
+      const data = await res.json();
+      console.log('[Folder Data]', data);
+      return data;
     },
     enabled: !!folderSlug,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 0
   });
 
-  // Fetch all galleries once
-  const { data: galleries = [], isLoading: isGalleriesLoading } = useQuery<Gallery[]>({
-    queryKey: ["galleries"],
+  // Fetch folder's galleries
+  const { data: galleries, isLoading: galleriesLoading } = useQuery({
+    queryKey: ['folder-galleries', folderSlug],
     queryFn: async () => {
-      const res = await fetch('/api/galleries');
-      if (!res.ok) throw new Error('Failed to fetch galleries');
+      if (!folder) return [];
+      
+      console.log('[Fetching Folder Galleries]', { folderId: folder.id });
+      
+      // Use the dedicated endpoint for folder galleries
+      const res = await fetch(`/api/folders/${folder.id}/galleries`, {
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!res.ok) {
+        console.error('[Folder Galleries Error]', {
+          status: res.status,
+          statusText: res.statusText
+        });
+        
+        // Try to get more detailed error information
+        try {
+          const errorText = await res.text();
+          console.error('[Folder Galleries Error Details]', errorText);
+        } catch (e) {
+          console.error('[Failed to get error details]', e);
+        }
+        
+        return [];
+      }
+      
       const data = await res.json();
-      return Array.isArray(data) ? data : [];
+      console.log('[Folder Galleries Data]', data);
+      
+      // Check if thumbnails are included in the response
+      const hasMissingThumbnails = data.some((gallery: any) => 
+        !gallery.thumbnailUrl && !gallery.ogImageUrl
+      );
+      
+      if (hasMissingThumbnails) {
+        console.warn('[Missing Thumbnails]', 
+          'Some galleries are missing thumbnails in the API response'
+        );
+      }
+      
+      // Format the data to match our Gallery type
+      return data.map((gallery: any) => ({
+        id: gallery.id,
+        name: gallery.title || gallery.name || 'Untitled',
+        isFolder: false, // These are all galleries, not folders
+        lastViewedAt: gallery.lastViewedAt || gallery.createdAt,
+        thumbnailUrl: gallery.thumbnailUrl || gallery.ogImageUrl || null,
+        isOwner: true, // Galleries in a folder are owned by the user
+        slug: gallery.slug,
+        createdAt: gallery.createdAt
+      }));
     },
-    staleTime: 30000, // Cache for 30 seconds
+    enabled: !!folder,
+    refetchOnWindowFocus: true,
+    staleTime: 0
   });
 
   // Filter galleries for current folder using memo
   const folderGalleries = useMemo(() => {
-    if (!folder || !galleries.length) return [];
-    return galleries.filter(g => {
-      const matchesSearch = !searchQuery || g.title.toLowerCase().includes(searchQuery.toLowerCase());
-      return g.folderId === folder.id && !g.deleted_at && matchesSearch;
+    if (!galleries) return [];
+    
+    console.log('[Filtering Galleries]', { 
+      total: galleries.length,
+      searchQuery,
+      galleries 
     });
-  }, [folder, galleries, searchQuery]);
+    
+    return galleries.filter((g: Gallery) => {
+      const matchesSearch = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase());
+      console.log('[Gallery Filter]', {
+        id: g.id,
+        title: g.name,
+        matchesSearch
+      });
+      return matchesSearch;
+    });
+  }, [galleries, searchQuery]);
 
-  const isLoading = isFolderLoading || isGalleriesLoading;
+  const handleNavigate = (slug: string) => {
+    setLocation(`/g/${slug}`);
+  };
+
+  const handleSelectionChange = (newSelectedIds: Set<number>) => {
+    setSelectedIds(newSelectedIds);
+  };
+
+  const handleItemMoved = async (galleryIds: number[], targetFolderId: number) => {
+    try {
+      // Find the target folder
+      const targetFolder = (galleries as any[]).find(g => g.id === targetFolderId && g.isFolder);
+      if (!targetFolder) {
+        throw new Error('Target folder not found');
+      }
+
+      // Make API call to move galleries to folder
+      const response = await fetch(`/api/galleries/${targetFolder.slug}/move`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          galleryIds,
+        }),
+      });
+
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+          const htmlText = await response.text();
+          console.error('[Move Error] Received HTML instead of JSON:', htmlText.substring(0, 100) + '...');
+          throw new Error('Received HTML response instead of JSON');
+        }
+        
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to move galleries');
+      }
+
+      // Invalidate and refetch queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/recent-galleries'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/galleries'] }),
+        queryClient.invalidateQueries({ queryKey: ['folder', folderSlug] }),
+        queryClient.invalidateQueries({ queryKey: ['folder-galleries', folderSlug] })
+      ]);
+
+      // Refetch the current folder's galleries to update the UI immediately
+      await queryClient.refetchQueries({ queryKey: ['folder-galleries', folderSlug] });
+    } catch (error) {
+      console.error('[Move Error]', error);
+      // TODO: Add error toast here
+    }
+  };
+
+  const isLoading = isFolderLoading || galleriesLoading;
 
   if (!folderSlug) {
     return null;
@@ -82,73 +207,36 @@ export function FolderPage() {
   }
 
   const content = (
-    <ScrollArea className="flex-1 p-4">
-      <div className="flex items-center justify-between mb-4">
-        <Input
-          type="search"
-          placeholder="Search galleries..."
-          className="w-64"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              Sort by <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onSelect={() => setSortOrder('created')}>
-              Created Date
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setSortOrder('viewed')}>
-              Last Viewed
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setSortOrder('alphabetical')}>
-              Alphabetical
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {folderGalleries.length === 0 ? (
-          <div className="col-span-full flex items-center justify-center h-[calc(100vh-200px)]">
-            <div className="text-center text-muted-foreground">
-              <FolderOpen className="w-12 h-12 mx-auto mb-4" />
-              <p>This folder is empty</p>
-            </div>
+    <ScrollArea className="flex-1">
+      <DashboardHeader
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        isListView={false}
+        setIsListView={() => {}} // Folder view is always grid view for now
+        searchPlaceholder="Search galleries..."
+        showNewGalleryButton={false}
+      />
+      
+      {folderGalleries.length === 0 ? (
+        <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+          <div className="text-center text-muted-foreground">
+            <FolderOpen className="w-12 h-12 mx-auto mb-4" />
+            <p>This folder is empty</p>
           </div>
-        ) : (
-          folderGalleries.map(gallery => (
-            <Card 
-              key={gallery.id} 
-              className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => setLocation(`/g/${gallery.slug}`)}
-            >
-              <div className="aspect-video relative bg-muted">
-                {gallery.thumbnailUrl ? (
-                  <img
-                    src={gallery.thumbnailUrl}
-                    alt={gallery.title}
-                    className="object-cover w-full h-full"
-                  />
-                ) : (
-                  <div className="w-full h-40 bg-muted flex items-center justify-center">
-                    <Image className="h-12 w-12 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold">{gallery.title}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {gallery.imageCount || 0} images
-                </p>
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="p-3">
+          <GalleryCardGrid 
+            galleries={folderGalleries}
+            isListView={false}
+            selectable={true}
+            draggable={true}
+            onNavigate={handleNavigate}
+            onSelectionChange={handleSelectionChange}
+            onItemMoved={handleItemMoved}
+          />
+        </div>
+      )}
     </ScrollArea>
   );
 

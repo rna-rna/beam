@@ -10,13 +10,23 @@ interface DeleteGalleryModalProps {
   onClose: () => void;
   gallerySlug: string;
   galleryTitle: string;
+  selectedCount?: number;
   onDelete?: () => Promise<void>;
 }
 
-export function DeleteGalleryModal({ isOpen, onClose, onDelete, gallerySlug, galleryTitle }: DeleteGalleryModalProps) {
+export function DeleteGalleryModal({ 
+  isOpen, 
+  onClose, 
+  onDelete, 
+  gallerySlug, 
+  galleryTitle,
+  selectedCount = 0
+}: DeleteGalleryModalProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const isMultiDelete = selectedCount > 1;
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -34,7 +44,9 @@ export function DeleteGalleryModal({ isOpen, onClose, onDelete, gallerySlug, gal
 
       toast({
         title: "Success",
-        description: "Gallery moved to trash",
+        description: isMultiDelete 
+          ? `${selectedCount} galleries moved to trash` 
+          : "Gallery moved to trash",
       });
       onClose();
     } catch (error) {
@@ -52,9 +64,14 @@ export function DeleteGalleryModal({ isOpen, onClose, onDelete, gallerySlug, gal
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Gallery</DialogTitle>
+          <DialogTitle>
+            {isMultiDelete ? `Delete ${selectedCount} Galleries` : "Delete Gallery"}
+          </DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete "{galleryTitle}"? This action can be undone within 30 days.
+            {isMultiDelete 
+              ? `Are you sure you want to delete these ${selectedCount} galleries? This action can be undone within 30 days.`
+              : `Are you sure you want to delete "${galleryTitle}"? This action can be undone within 30 days.`
+            }
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end gap-2">
@@ -72,7 +89,7 @@ export function DeleteGalleryModal({ isOpen, onClose, onDelete, gallerySlug, gal
                 Deleting...
               </>
             ) : (
-              "Delete Gallery"
+              isMultiDelete ? `Delete ${selectedCount} Galleries` : "Delete Gallery"
             )}
           </Button>
         </div>

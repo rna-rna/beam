@@ -34,6 +34,9 @@ import {
   EyeOff,
   Lock,
   SquareScissors,
+  X,
+  MessageSquarePlus,
+  Download,
 } from "lucide-react";
 
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -88,6 +91,7 @@ import { SignUpModal } from "@/components/SignUpModal";
 import PusherClient from "pusher-js";
 import { nanoid } from "nanoid";
 import { CursorOverlay } from "@/components/CursorOverlay";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 // Initialize Pusher client
 const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
@@ -542,6 +546,10 @@ export default function Gallery({
   const [isMasonry, setIsMasonry] = useState(true);
   const [images, setImages] = useState<ImageOrPending[]>([]); // Moved here
   const [isLightboxOpen, setIsLightboxOpen] = useState(false); // Added state for lightbox
+  const [lightboxMode, setLightboxMode] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [commentMode, setCommentMode] = useState(false);
+  const [canComment, setCanComment] = useState(false);
 
   // Add warning when closing/refreshing during active uploads
   useEffect(() => {
