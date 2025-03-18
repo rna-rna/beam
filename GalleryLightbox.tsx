@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth, useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
@@ -71,7 +72,7 @@ const GalleryLightbox = ({
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const preloadedImages = useRef<Set<string>>(new Set());
 
-  // Add mutation for creating comments
+  // Create comment mutation
   const createCommentMutation = useMutation({
     mutationFn: async ({
       imageId,
@@ -131,7 +132,6 @@ const GalleryLightbox = ({
         });
       }
       setNewCommentPos(null);
-      console.log("Comment added successfully");
     },
     onError: (error) => {
       mixpanel.track("Comment Error", {
@@ -141,34 +141,8 @@ const GalleryLightbox = ({
         errorMessage: error.message,
         userRole: userRole
       });
-
-      console.error(`Failed to add comment: ${error.message}`);
     },
   });
-
-  // Preload images function
-  const preloadImage = useCallback((image: any) => {
-    if (!image?.url || preloadedImages.current.has(image.url)) return;
-
-    const img = new Image();
-    img.src = "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox");
-    preloadedImages.current.add(image.url);
-  }, []);
-
-  // Handle image preloading
-  useEffect(() => {
-    if (!selectedImage || !galleryImages.length) return;
-
-    const preloadRange = 7;
-    const startIdx = Math.max(0, selectedImageIndex - preloadRange);
-    const endIdx = Math.min(galleryImages.length - 1, selectedImageIndex + preloadRange);
-
-    for (let i = startIdx; i <= endIdx; i++) {
-      if (i !== selectedImageIndex) {
-        preloadImage(galleryImages[i]);
-      }
-    }
-  }, [selectedImageIndex, galleryImages, preloadImage]);
 
   // Handle clicking on the image to place a comment
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -180,10 +154,10 @@ const GalleryLightbox = ({
 
     setNewCommentPos({ x, y });
     setIsCommentModalOpen(true);
-    setIsCommentPlacementMode(false);
+    // Don't turn off comment mode so user can place multiple comments
   };
 
-  // Handle comment position updates during dragging
+  // Handle real-time comment position updates
   const handleCommentDrag = useCallback((commentId: number, x: number, y: number) => {
     if (!selectedImage?.id) return;
 
@@ -199,7 +173,15 @@ const GalleryLightbox = ({
 
     // Set dragging state
     setDraggingCommentId(commentId);
-  }, [selectedImage?.id, queryClient]);
+    
+    // Call parent handler for server update
+    onCommentPositionChange(commentId, x, y);
+  }, [selectedImage?.id, queryClient, onCommentPositionChange]);
+
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggingCommentId(null);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -227,14 +209,7 @@ const GalleryLightbox = ({
             </Button>
           </DialogClose>
 
-          {/* Filename display */}
-          {selectedImage?.originalFilename && (
-            <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
-              {selectedImage.originalFilename}
-            </div>
-          )}
-
-          {/* Navigation buttons */}
+          {/* Navigation */}
           <Button
             variant="ghost"
             size="icon"
@@ -383,7 +358,7 @@ const GalleryLightbox = ({
                   </div>
                 )}
 
-                {/* Final high-res image */}
+                {/* Main image */}
                 <motion.img
                   src={
                     "localUrl" in selectedImage
@@ -438,48 +413,65 @@ const GalleryLightbox = ({
                 {showAnnotations &&
                   selectedImage?.id &&
                   comments.map((comment) => (
-                    <CommentBubble
+                    <div
                       key={comment.id}
-                      id={comment.id}
-                      x={comment.xPosition}
-                      y={comment.yPosition}
-                      content={comment.content}
-                      author={comment.author}
-                      imageId={Number(selectedImage.id)}
-                      replies={comment.replies || []}
-                      parentId={comment.parentId}
-                      timestamp={comment.createdAt}
-                      reactions={comment.reactions || []}
-                      onPositionChange={(x, y) => {
-                        handleCommentDrag(comment.id, x, y);
-                        onCommentPositionChange(comment.id, x, y);
+                      className="absolute pointer-events-auto"
+                      style={{
+                        top: `${comment.yPosition}%`,
+                        left: `${comment.xPosition}%`,
+                        zIndex: draggingCommentId === comment.id ? 50 : 20,
                       }}
-                    />
+                    >
+                      <CommentBubble
+                        key={comment.id}
+                        id={comment.id}
+                        x={comment.xPosition}
+                        y={comment.yPosition}
+                        content={comment.content}
+                        author={comment.author}
+                        imageId={Number(selectedImage.id)}
+                        replies={comment.replies || []}
+                        parentId={comment.parentId}
+                        timestamp={comment.createdAt}
+                        reactions={comment.reactions || []}
+                        onDrag={(x, y) => handleCommentDrag(comment.id, x, y)}
+                        onDragEnd={handleDragEnd}
+                      />
+                    </div>
                   ))}
 
                 {/* New comment placement */}
                 {newCommentPos && selectedImage && (
-                  <CommentBubble
-                    x={newCommentPos.x}
-                    y={newCommentPos.y}
-                    isNew={true}
-                    isExpanded={true}
-                    imageId={selectedImage?.id}
-                    replies={[]}
-                    onSubmit={() => {
-                      setNewCommentPos(null);
-                      queryClient.invalidateQueries({
-                        queryKey: ["/api/galleries"],
-                      });
+                  <div
+                    className="absolute pointer-events-auto"
+                    style={{
+                      top: `${newCommentPos.y}%`,
+                      left: `${newCommentPos.x}%`,
+                      zIndex: 30,
                     }}
-                  />
+                  >
+                    <CommentBubble
+                      x={newCommentPos.x}
+                      y={newCommentPos.y}
+                      isNew={true}
+                      isExpanded={true}
+                      imageId={selectedImage?.id}
+                      replies={[]}
+                      onSubmit={() => {
+                        setNewCommentPos(null);
+                        queryClient.invalidateQueries({
+                          queryKey: ["/api/galleries"],
+                        });
+                      }}
+                    />
+                  </div>
                 )}
               </div>
             </div>
           )}
         </div>
       </DialogContent>
-
+      
       {/* Comment Modal */}
       <CommentModal
         isOpen={isCommentModalOpen}
