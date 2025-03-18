@@ -74,6 +74,12 @@ const GalleryLightbox = ({
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const preloadedImages = useRef<Set<string>>(new Set());
 
+  // Initial check of user status
+  useEffect(() => {
+    console.log("GalleryLightbox user =>", user);
+    console.log("GalleryLightbox selectedImage =>", selectedImage);
+  }, [user, selectedImage]);
+
   // Create a throttled version of position update
   const throttledPositionUpdate = useCallback(
     throttle((commentId: number, x: number, y: number) => {
@@ -159,6 +165,16 @@ const GalleryLightbox = ({
     },
   });
 
+  // Monitor comment placement mode changes
+  useEffect(() => {
+    console.log("isCommentPlacementMode changed to:", isCommentPlacementMode);
+    
+    // Update cursor style when mode changes
+    if (imageContainerRef.current) {
+      imageContainerRef.current.style.cursor = isCommentPlacementMode ? 'crosshair' : 'default';
+    }
+  }, [isCommentPlacementMode]);
+
   // Preload images for smoother browsing experience
   useEffect(() => {
     if (!selectedImage || !galleryImages?.length) return;
@@ -195,9 +211,20 @@ const GalleryLightbox = ({
 
   // Handle clicking on the image to place a comment
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    console.log("Image clicked, comment placement mode:", isCommentPlacementMode);
-
-    if (!isCommentPlacementMode || !imageContainerRef.current || !selectedImage) {
+    console.log("handleImageClick fired. isCommentPlacementMode =", isCommentPlacementMode, "selectedImage =", !!selectedImage);
+    
+    if (!isCommentPlacementMode) {
+      console.log("Comment placement mode is OFF, ignoring click");
+      return;
+    }
+    
+    if (!selectedImage?.id) {
+      console.error("No valid selectedImage with ID, can't place comment");
+      return;
+    }
+    
+    if (!imageContainerRef.current) {
+      console.error("No imageContainerRef.current, can't calculate position");
       return;
     }
 
@@ -220,6 +247,25 @@ const GalleryLightbox = ({
     setIsCommentModalOpen(true);
 
     // Don't reset comment placement mode here to allow multiple comments to be placed
+  };
+
+  // Toggle comment placement mode
+  const toggleCommentPlacementMode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log("Comment button clicked. Current user =", !!user);
+    
+    const newMode = !isCommentPlacementMode;
+    console.log("Setting comment placement mode to:", newMode);
+    
+    setIsCommentPlacementMode(newMode);
+    setIsAnnotationMode(false);
+    setNewCommentPos(null);
+    
+    // Update cursor style explicitly
+    if (imageContainerRef.current) {
+      imageContainerRef.current.style.cursor = newMode ? 'crosshair' : 'default';
+      console.log("Updated cursor style to:", newMode ? 'crosshair' : 'default');
+    }
   };
 
   // Handle comment position updates - this works with CommentBubble's onPositionChange prop
@@ -251,27 +297,6 @@ const GalleryLightbox = ({
     setDraggingCommentId(null);
   }, []);
 
-  // Define a custom DialogContent that doesn't pass unknown props to DOM
-  const LightboxDialogContent = React.forwardRef<
-    React.ElementRef<typeof DialogContent>,
-    React.ComponentPropsWithoutRef<typeof DialogContent>
-  >(({ className, children, ...props }, forwardedRef) => (
-    <DialogPortal>
-      <DialogOverlay />
-      <DialogContent
-        ref={forwardedRef}
-        className={cn(
-          "max-w-7xl w-full h-[95vh] p-0 gap-0 bg-background/95 backdrop-blur-md border-none",
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </DialogContent>
-    </DialogPortal>
-  ));
-  LightboxDialogContent.displayName = "LightboxDialogContent";
-
   // Handle Dialog open/close with proper callback
   const handleDialogOpenChange = useCallback((open: boolean) => {
     if (!open) {
@@ -293,7 +318,8 @@ const GalleryLightbox = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
-      <LightboxDialogContent
+      <DialogContent
+        className="max-w-7xl w-full h-[95vh] p-0 gap-0 bg-background/95 backdrop-blur-md border-none"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className="relative w-full h-full overflow-hidden flex items-center justify-center">
@@ -387,34 +413,27 @@ const GalleryLightbox = ({
                   <EyeOff className="h-4 w-4" />
                 )}
               </Button>
-              <SignedIn>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "h-9 w-9",
-                    isDark
-                      ? "text-white hover:bg-white/10"
-                      : "text-zinc-800 hover:bg-zinc-200",
-                    isCommentPlacementMode && "bg-primary/20"
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log("USER =>", user);
-                    if (!user) {
-                      setShowLoginModal(true);
-                      return;
-                    }
-                    setIsCommentPlacementMode(!isCommentPlacementMode);
-                    setIsAnnotationMode(false);
-                    setNewCommentPos(null);
-                  }}
-                  title="Add Comment"
-                >
-                  <MessageSquarePlus className="h-4 w-4" />
-                </Button>
-              </SignedIn>
-              <SignedOut>
+              
+              {/* Important: Removed SignedIn/SignedOut components that were blocking functionality */}
+              {/* Comment button that works regardless of user status */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-9 w-9",
+                  isDark
+                    ? "text-white hover:bg-white/10"
+                    : "text-zinc-800 hover:bg-zinc-200",
+                  isCommentPlacementMode && "bg-primary/20"
+                )}
+                onClick={toggleCommentPlacementMode}
+                title="Add Comment"
+              >
+                <MessageSquarePlus className="h-4 w-4" />
+              </Button>
+              
+              {/* Login button shows up regardless, but is handled differently */}
+              {!user && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -429,11 +448,12 @@ const GalleryLightbox = ({
                 >
                   <MessageSquare className="h-4 w-4" />
                 </Button>
-                <LoginModal
-                  isOpen={showLoginModal}
-                  onClose={() => setShowLoginModal(false)}
-                />
-              </SignedOut>
+              )}
+              
+              <LoginModal
+                isOpen={showLoginModal}
+                onClose={() => setShowLoginModal(false)}
+              />
             </div>
           </div>
 
@@ -441,12 +461,14 @@ const GalleryLightbox = ({
             <div
               ref={imageContainerRef}
               className={cn(
-                "relative w-full h-full flex items-center justify-center gallery-container lightbox-img-container",
+                "relative w-full h-full flex items-center justify-center gallery-container lightbox-img-container z-10",
                 isCommentPlacementMode && "cursor-crosshair ring-2 ring-primary ring-opacity-50 transition-all duration-200"
               )}
               onClick={handleImageClick}
               style={{
-                cursor: isCommentPlacementMode ? 'crosshair' : 'default'
+                cursor: isCommentPlacementMode ? 'crosshair' : 'default',
+                position: 'relative',
+                pointerEvents: 'auto'
               }}
             >
               <div
@@ -577,7 +599,7 @@ const GalleryLightbox = ({
             </div>
           )}
         </div>
-      </LightboxDialogContent>
+      </DialogContent>
 
       {/* Comment Modal */}
       <CommentModal
@@ -590,10 +612,17 @@ const GalleryLightbox = ({
         onSubmit={(content) => {
           if (!user) {
             console.log("User not authenticated, cannot submit comment");
+            setShowLoginModal(true);
             return;
           }
 
-          if (!selectedImage?.id || !newCommentPos) return;
+          if (!selectedImage?.id || !newCommentPos) {
+            console.error("Missing required data for comment:", { 
+              imageId: selectedImage?.id, 
+              commentPos: newCommentPos 
+            });
+            return;
+          }
 
           console.log("Creating comment with content:", content);
 
