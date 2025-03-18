@@ -405,6 +405,11 @@ function MixpanelProvider() {
 function App() {
   const { isLoaded } = useUser();
 
+  // Initialize Mixpanel as soon as possible
+  useEffect(() => {
+    initMixpanel();
+  }, []);
+
   if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">

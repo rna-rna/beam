@@ -2,14 +2,15 @@
 import mixpanel from "mixpanel-browser";
 
 function initMixpanel() {
-  const token = process.env.MIXPANEL_TOKEN;
+  const token = import.meta.env.VITE_MIXPANEL_TOKEN;
   if (!token) {
     console.warn("Mixpanel token not found!");
     return;
   }
   mixpanel.init(token, {
-    debug: false,
+    debug: true, // Enable debug mode temporarily
   });
+  console.log("Mixpanel initialized with token");
 }
 
 export const trackSignUpInitiated = (method: 'Email' | 'OAuth', referralCode?: string) => {
