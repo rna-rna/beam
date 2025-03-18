@@ -142,7 +142,7 @@ const GalleryLightbox = ({
         });
       }
       setNewCommentPos(null);
-      
+
       // Don't automatically disable comment placement mode
       // This allows the user to place multiple comments
     },
@@ -194,29 +194,29 @@ const GalleryLightbox = ({
   // Handle clicking on the image to place a comment
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     console.log("Image clicked, comment placement mode:", isCommentPlacementMode);
-    
+
     if (!isCommentPlacementMode || !imageContainerRef.current || !selectedImage) {
       return;
     }
-    
+
     // Prevent event from bubbling
     e.stopPropagation();
-    
+
     // Get element's bounding rectangle
     const rect = imageContainerRef.current.getBoundingClientRect();
-    
+
     // Calculate click position as percentage of image dimensions
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
+
     console.log("Setting comment position:", { x, y });
-    
+
     // Set the new comment position
     setNewCommentPos({ x, y });
-    
+
     // Open the comment dialog to enter text
     setIsCommentModalOpen(true);
-    
+
     // Don't reset comment placement mode here to allow multiple comments to be placed
   };
 
@@ -225,7 +225,7 @@ const GalleryLightbox = ({
     if (!selectedImage?.id) return;
 
     console.log("Comment position changing:", { commentId, x, y });
-    
+
     // Set which comment is being dragged (for visual feedback)
     setDraggingCommentId(commentId);
 
@@ -238,7 +238,7 @@ const GalleryLightbox = ({
           : comment
       );
     });
-    
+
     // Call throttled handler to avoid too many server updates
     throttledPositionUpdate(commentId, x, y);
   }, [selectedImage?.id, queryClient, throttledPositionUpdate]);
@@ -392,19 +392,16 @@ const GalleryLightbox = ({
                       : "text-zinc-800 hover:bg-zinc-200",
                     isCommentPlacementMode && "bg-primary/20"
                   )}
-                  onClick={() => {
-                    // Toggle comment placement mode
-                    const newMode = !isCommentPlacementMode;
-                    console.log("Setting comment placement mode to:", newMode);
-                    setIsCommentPlacementMode(newMode);
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log("USER =>", user);
+                    if (!user) {
+                      setShowLoginModal(true);
+                      return;
+                    }
+                    setIsCommentPlacementMode(!isCommentPlacementMode);
                     setIsAnnotationMode(false);
                     setNewCommentPos(null);
-
-                    // Update cursor style
-                    const container = imageContainerRef.current;
-                    if (container) {
-                      container.style.cursor = newMode ? 'crosshair' : 'default';
-                    }
                   }}
                   title="Add Comment"
                 >
@@ -575,7 +572,7 @@ const GalleryLightbox = ({
           )}
         </div>
       </LightboxDialogContent>
-      
+
       {/* Comment Modal */}
       <CommentModal
         isOpen={isCommentModalOpen}
@@ -593,7 +590,7 @@ const GalleryLightbox = ({
           if (!selectedImage?.id || !newCommentPos) return;
 
           console.log("Creating comment with content:", content);
-          
+
           createCommentMutation.mutate({
             imageId: selectedImage.id,
             content,
