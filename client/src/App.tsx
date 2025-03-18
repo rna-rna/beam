@@ -72,32 +72,63 @@ function AppContent() {
   useEffect(() => {
     const handleSignUpStart = () => {
       signUpStartTime.current = Date.now();
-      trackSignUpInitiated('Email');
+      mixpanel.track('Sign Up Started', {
+        method: 'Email',
+        timestamp: new Date().toISOString()
+      });
     };
 
     const handleSignUpComplete = () => {
       if (signUpStartTime.current) {
         const timeToComplete = Date.now() - signUpStartTime.current;
-        trackSignUpCompleted('Email', timeToComplete);
+        mixpanel.track('Sign Up Completed', {
+          method: 'Email',
+          timeToComplete,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Set user profile after successful signup
+        if (user) {
+          mixpanel.identify(user.id);
+          mixpanel.people.set({
+            $email: user.primaryEmailAddress?.emailAddress,
+            $name: user.fullName,
+            $created: user.createdAt,
+            userId: user.id
+          });
+        }
       }
     };
 
     const handleSignInComplete = () => {
-      trackUserLoggedIn('Email');
+      mixpanel.track('User Logged In', {
+        method: 'Email',
+        timestamp: new Date().toISOString()
+      });
     };
 
     signUp?.addEventListener('start', handleSignUpStart);
     signUp?.addEventListener('complete', handleSignUpComplete);
-    signUp?.addEventListener('error', (e) => trackSignUpFailed(e.message));
+    signUp?.addEventListener('error', (e) => {
+      mixpanel.track('Sign Up Failed', {
+        error: e.message,
+        timestamp: new Date().toISOString()
+      });
+    });
     signIn?.addEventListener('complete', handleSignInComplete);
 
     return () => {
       signUp?.removeEventListener('start', handleSignUpStart);
       signUp?.removeEventListener('complete', handleSignUpComplete);
-      signUp?.removeEventListener('error', (e) => trackSignUpFailed(e.message));
+      signUp?.removeEventListener('error', (e) => {
+        mixpanel.track('Sign Up Failed', {
+          error: e.message,
+          timestamp: new Date().toISOString()
+        });
+      });
       signIn?.removeEventListener('complete', handleSignInComplete);
     };
-  }, [signUp, signIn]);
+  }, [signUp, signIn, user]);
 
   useEffect(() => {
     if (session?.status === "expired") {
