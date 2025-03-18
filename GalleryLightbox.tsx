@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth, useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
@@ -174,11 +173,11 @@ const GalleryLightbox = ({
   // Handle clicking on the image to place a comment
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isCommentPlacementMode || !imageContainerRef.current) return;
-    
+
     const rect = imageContainerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
+
     setNewCommentPos({ x, y });
     setIsCommentModalOpen(true);
     setIsCommentPlacementMode(false);
@@ -318,9 +317,16 @@ const GalleryLightbox = ({
                     isCommentPlacementMode && "bg-primary/20"
                   )}
                   onClick={() => {
-                    setIsCommentPlacementMode(!isCommentPlacementMode);
+                    const newMode = !isCommentPlacementMode;
+                    setIsCommentPlacementMode(newMode);
                     setIsAnnotationMode(false);
                     setNewCommentPos(null);
+
+                    // Update cursor style
+                    const container = imageContainerRef.current;
+                    if (container) {
+                      container.style.cursor = newMode ? 'crosshair' : 'default';
+                    }
                   }}
                   title="Add Comment"
                 >
@@ -473,7 +479,7 @@ const GalleryLightbox = ({
           )}
         </div>
       </DialogContent>
-      
+
       {/* Comment Modal */}
       <CommentModal
         isOpen={isCommentModalOpen}
