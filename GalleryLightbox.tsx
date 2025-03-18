@@ -21,7 +21,7 @@ import { LoginModal } from "../components/LoginModal";
 import ToggleStarButton from "../components/ToggleStarButton";
 import { getR2Image } from "../lib/r2";
 import { mixpanel } from "../lib/analytics";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, forwardRef } from "react";
 
 interface GalleryLightboxProps {
   isOpen: boolean;
@@ -36,7 +36,7 @@ interface GalleryLightboxProps {
   userRole?: string;
 }
 
-const GalleryLightbox = ({
+const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
   isOpen,
   onClose,
   selectedImage,
@@ -47,7 +47,7 @@ const GalleryLightbox = ({
   comments,
   onCommentPositionChange,
   userRole = "Viewer"
-}: GalleryLightboxProps) => {
+}, ref) => {
   const { isDark } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isLowResLoading, setIsLowResLoading] = useState(true);
@@ -146,25 +146,25 @@ const GalleryLightbox = ({
   // Preload images for smoother browsing experience
   useEffect(() => {
     if (!selectedImage || !galleryImages?.length) return;
-    
+
     // Preload 7 images forward and 7 backward
     const preloadRange = 7;
     const preloadImages = () => {
       // Clear previous preloaded images to avoid excessive memory usage
       preloadedImages.current.clear();
-      
+
       for (let offset = -preloadRange; offset <= preloadRange; offset++) {
         if (offset === 0) continue; // Skip current image
-        
+
         const indexToPreload = selectedImageIndex + offset;
         if (indexToPreload >= 0 && indexToPreload < galleryImages.length) {
           const imageToPreload = galleryImages[indexToPreload];
           if (!imageToPreload) continue;
-          
+
           const imageUrl = "localUrl" in imageToPreload 
             ? imageToPreload.localUrl 
             : getR2Image(imageToPreload, "lightbox");
-          
+
           if (!preloadedImages.current.has(imageUrl)) {
             const img = new Image();
             img.src = imageUrl;
@@ -173,7 +173,7 @@ const GalleryLightbox = ({
         }
       }
     };
-    
+
     preloadImages();
   }, [selectedImageIndex, galleryImages, selectedImage]);
 
@@ -194,7 +194,7 @@ const GalleryLightbox = ({
   // Handle comment position updates - this works with CommentBubble's onPositionChange prop
   const handleCommentPositionChange = useCallback((commentId: number, x: number, y: number) => {
     if (!selectedImage?.id) return;
-    
+
     // Set which comment is being dragged (for visual feedback)
     setDraggingCommentId(commentId);
 
@@ -207,7 +207,7 @@ const GalleryLightbox = ({
           : comment
       );
     });
-    
+
     // Call parent handler to update server state
     onCommentPositionChange(commentId, x, y);
   }, [selectedImage?.id, queryClient, onCommentPositionChange]);
@@ -218,12 +218,12 @@ const GalleryLightbox = ({
   }, []);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className="max-w-7xl w-full h-[95vh] p-0 gap-0 bg-background/95 backdrop-blur-md border-none"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="relative w-full h-full overflow-hidden flex items-center justify-center">
+        <div ref={ref} className="relative w-full h-full overflow-hidden flex items-center justify-center">
           <DialogTitle className="sr-only">Image Viewer</DialogTitle>
 
           {/* Close button */}
@@ -505,7 +505,7 @@ const GalleryLightbox = ({
           )}
         </div>
       </DialogContent>
-      
+
       {/* Comment Modal */}
       <CommentModal
         isOpen={isCommentModalOpen}
@@ -535,6 +535,6 @@ const GalleryLightbox = ({
       />
     </Dialog>
   );
-};
+});
 
 export default GalleryLightbox;
