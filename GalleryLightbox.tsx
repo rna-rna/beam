@@ -262,6 +262,14 @@ const GalleryLightbox = ({
     React.ElementRef<typeof DialogContent>,
     React.ComponentPropsWithoutRef<typeof DialogContent>
   >(({ className, children, ...props }, ref) => {
+    const contentRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+      if (contentRef.current) {
+        contentRef.current.focus();
+      }
+    }, []);
+
     return (
       <DialogContent
         ref={ref}
@@ -269,9 +277,17 @@ const GalleryLightbox = ({
           "max-w-7xl w-full h-[95vh] p-0 gap-0 bg-background/95 backdrop-blur-md border-none",
           className
         )}
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          if (contentRef.current) {
+            contentRef.current.focus();
+          }
+        }}
         {...props}
       >
-        {children}
+        <div ref={contentRef} tabIndex={-1} className="outline-none">
+          {children}
+        </div>
       </DialogContent>
     );
   });
