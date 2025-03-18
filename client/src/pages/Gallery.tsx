@@ -1519,7 +1519,7 @@ export default function Gallery({
 
   // Modify the useDropzone configuration to disable click
   const canUpload = userRole === 'owner' || userRole === 'Edit';
-  
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
@@ -1964,7 +1964,7 @@ export default function Gallery({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {`Switch to ${isMasonry ? "grid" : "masonry"} view`}
+              {`Switch to ${isMasonry ? ""grid" : "masonry"} view`}
             </TooltipContent>
           </Tooltip>
 
@@ -2652,6 +2652,16 @@ export default function Gallery({
           {...getRootProps()}
         >
           <input {...getInputProps()} />
+          {isMobile && canUpload && !isUploading && !selectMode && selectedImageIndex < 0 && (
+            <Button 
+              variant="secondary" 
+              className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Select Images
+            </Button>
+          )}
           {isDragActive && !selectMode && (
             <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center">
               <div className="text-center">
@@ -2892,7 +2902,7 @@ export default function Gallery({
                       preloadAdjacentImages(newIndex);
                       return newIndex;
                     });
-                  }}
+                  }}>
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
