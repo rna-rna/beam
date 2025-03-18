@@ -1,4 +1,4 @@
-import { useParams, useLocation } from "wouter";
+import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import pLimit from 'p-limit';
@@ -92,7 +92,6 @@ import PusherClient from "pusher-js";
 import { nanoid } from "nanoid";
 import { CursorOverlay } from "@/components/CursorOverlay";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import GalleryLightbox from "@/components/GalleryLightbox";
 
 // Initialize Pusher client
 const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
@@ -136,9 +135,6 @@ export default function Gallery({
   // URL Parameters and Global Hooks first
   const params = useParams();
   const slug = propSlug || params?.slug;
-
-  // Replace useNavigate with useLocation from wouter
-  const [, setLocation] = useLocation();
 
   // Query must be declared before being used in useMemo
   const {
@@ -523,7 +519,7 @@ export default function Gallery({
 
   // State Management
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
   const [newCommentPos, setNewCommentPos] = useState<{
     x: number;
     y: number;
@@ -2801,43 +2797,373 @@ export default function Gallery({
           </AnimatePresence>
 
           {/* Only render the desktop lightbox when not on mobile */}
-          {!isMobile && selectedImageIndex !== null && selectedImageIndex >= 0 && gallery && (
-            <GalleryLightbox 
-              isOpen={isLightboxOpen}
-              onOpenChange={setIsLightboxOpen}
+          {!isMobile && selectedImageIndex >= 0 && (
+            <Dialog
+              open={isLightboxOpen} // Use isLightboxOpen state
+              onOpenChange={(open) => {
+                setIsLightboxOpen(open); // Update isLightboxOpen state
+                if (!open) {
+                  setSelectedImageIndex(-1);
+                  setNewCommentPos(null);
+                }
+              }}
+            >
+              <LightboxDialogContent
+                aria-describedby="gallery-lightbox-description"
                 selectedImage={selectedImage}
                 setSelectedImage={setSelectedImage}
-              selectedImageIndex={selectedImageIndex}
-              setSelectedImageIndex={setSelectedImageIndex}
-              images={gallery.images || []}
-              userRole={userRole}
-              galleryId={gallery.id}
-              gallerySlug={gallery.slug}
-              comments={comments || []}
-              toggleStarMutation={toggleStarMutation}
-              handleDeleteImage={(imageId) => {
-                if (window.confirm("Are you sure you want to delete this image? This action cannot be undone.")) {
-                  // Use the correct mutation name from your code
-                  deleteImagesMutation.mutate({ imageId });
-                  setIsLightboxOpen(false);
-                }
-              }}
-              handleDownloadImage={(imageId) => {
-                const image = gallery.images.find((img) => img.id === imageId);
-                if (image) {
-                  const link = document.createElement("a");
-                  link.href = getR2Image(image);
-                  link.download = image.originalFilename || `image-${image.id}.jpg`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                }
-              }}
-              onAddComment={createCommentMutation.mutate}
-              onCommentPositionChange={handleCommentPositionChange}
-              getR2Image={getR2Image}
-              preloadAdjacentImages={preloadAdjacentImages}
-            />
+                onOpenChange={(open) => {
+                  setIsLightboxOpen(open); // Update isLightboxOpen state
+                  if (!open) {
+                    setSelectedImageIndex(-1);
+                    setNewCommentPos(null);
+                  }
+                }}
+              >
+                <div id="gallery-lightbox-description" className="sr-only">
+                  Image viewer with annotation and commenting capabilities
+                </div>
+
+                {/* Filename display */}
+                {selectedImage?.originalFilename && (
+                  <div className="absolute top-6 left-6 bg-background/80 backdrop-blur-sm rounded px-3 py-1.5 text-sm font-medium z-50">
+                    {selectedImage.originalFilename}
+                  </div>
+                )}
+
+                {/* Navigation buttons */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "absolute left-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9",
+                    isDark
+                      ? "text-white hover:bg-white/10"
+                      : "text-gray-800 hover:bg-gray-200",
+                  )}
+                  onClick={() => {
+                    if (!gallery?.images?.length) return;
+                    setSelectedImageIndex((prev) => {
+                      const newIndex =
+                        prev <= 0 ? gallery.images.length - 1 : prev - 1;
+                      preloadAdjacentImages(newIndex);
+                      return newIndex;
+                    });
+                  }}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "absolute right-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9",
+                    isDark
+                      ? "text-white hover:bg-white/10"
+                      : "text-gray-800 hover:bg-gray-200",
+                  )}
+                  onClick={() => {
+                    if (!gallery?.images?.length) return;
+                    setSelectedImageIndex((prev) => {
+                      const newIndex =
+                        prev >= gallery.images.length - 1 ? 0 : prev + 1;
+                      preloadAdjacentImages(newIndex);
+                      return newIndex;
+                    });
+                  }}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                {/* Controls */}
+                <div className="absolute right-16 top-4 flex items-center gap-2 z-50">
+                  {selectedImage && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 rounded-md bg-background/80 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+
+                        // Track star toggle event with Mixpanel
+                        mixpanel.track("Image Star Toggled", {
+                          imageId: selectedImage.id,
+                          galleryId: gallery?.id,
+                          gallerySlug: gallery?.slug,
+                          toggledTo: !selectedImage.userStarred,
+                          action: selectedImage.userStarred ? 'unstar' : 'star',
+                          userRole: userRole,
+                          totalStars: selectedImage.stars?.length || 0,
+                          viewContext: 'lightbox'
+                        });
+
+                        // Perform mutation to sync with backend
+                        toggleStarMutation.mutate({
+                          imageId: selectedImage.id,
+                          isStarred: selectedImage.userStarred,
+                        });
+                      }}
+                    >
+                      {selectedImage.userStarred ? (
+                        <Star className="h-5 w-5 fill-black dark:fill-white transition-all duration-300 scale-110" />
+                      ) : (
+                        <Star className="h-5 w-5 stroke-black dark:stroke-white fill-transparent transition-all duration-300 hover:scale-110" />
+                      )}
+                    </Button>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-9 w-9",
+                        isDark
+                          ? "text-white hover:bg-white/10"
+                          : "text-gray-800 hover:bg-gray-200",
+                      )}
+                      onClick={() => setShowAnnotations(!showAnnotations)}
+                      title={
+                        showAnnotations ? "Hide Comments" : "Show Comments"
+                      }
+                    >
+                      {showAnnotations ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <SignedIn>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-9 w-9",
+                          isDark
+                            ? "text-white hover:bg-white/10"
+                            : "text-zinc-800 hover:bg-zinc-200",
+                          isCommentPlacementMode && "bg-primary/20",
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCommentPlacementMode(!isCommentPlacementMode);
+                          setIsAnnotationMode(false);
+                          setNewCommentPos(null);
+                        }}
+                        title="Add Comment"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </SignedIn>
+                    <SignedOut>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-9 w-9",
+                          isDark
+                            ? "text-white hover:bg-white/10"
+                            : "text-zinc-800 hover:bg-zinc-200",
+                        )}
+                        onClick={() => setShowLoginModal(true)}
+                        title="Sign in to comment"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                      <LoginModal
+                        isOpen={showLoginModal}
+                        onClose={() => setShowLoginModal(false)}
+                      />
+                    </SignedOut>
+                  </div>
+                </div>
+
+                {selectedImage && (
+                  <motion.div
+                    className={`relative w-full h-full flex items-center justify-center ${
+                      isCommentPlacementMode ? "cursor-crosshair" : ""
+                    }`}
+                    {...(isMobile && {
+                      drag: "x" as const,
+                      dragConstraints: { left: 0, right: 0 },
+                      dragElastic: 1,
+                      onDragEnd: (e: any, info: PanInfo) => {
+                        const swipe = Math.abs(info.offset.x) * info.velocity.x;
+                        if (
+                          swipe < -100 &&
+                          selectedImageIndex < gallery!.images.length - 1
+                        ) {
+                          setSelectedImageIndex(selectedImageIndex + 1);
+                        } else if (swipe > 100 && selectedImageIndex > 0) {
+                          setSelectedImageIndex(selectedImageIndex - 1);
+                        }
+                      },
+                    })}
+                    onClick={(e) => {
+                      if (!isCommentPlacementMode) return;
+                      const target = e.currentTarget;
+                      const rect = target.getBoundingClientRect();
+                      const x = ((e.clientX - rect.left) / rect.width) * 100;
+                      const y = ((e.clientY - rect.top) / rect.height) * 100;
+                      setNewCommentPos({ x, y });
+                      setIsCommentPlacementMode(false);
+                    }}
+                  >
+                    <div
+                      className="w-full h-full flex items-center justify-center gallery-container"
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        aspectRatio:
+                          selectedImage?.width && selectedImage?.height
+                            ? `${selectedImage.width}/${selectedImage.height}`
+                            : "16/9",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {isLowResLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Loader2 className="h-12 w-12 animate-spin text-zinc-400" />
+                        </div>
+                      )}
+
+                      {/* Final high-res image */}
+                      <motion.img
+                        src={"localUrl" in selectedImage ? selectedImage.localUrl : getR2Image(selectedImage, "lightbox")}
+                        alt={selectedImage.originalFilename || ""}
+                        className="lightbox-img"
+                        onError={(e) => {
+                          if (!("localUrl" in selectedImage)) {
+                            e.currentTarget.src = "/fallback-image.jpg";
+                          }
+                        }}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                          visibility: isLowResLoading ? "hidden" : "visible",
+                        }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        onLoad={(e) => {
+                          setIsLowResLoading(false);
+                          setIsLoading(false);
+                          e.currentTarget.classList.add("loaded");
+
+                          setImageDimensions({
+                            width: e.currentTarget.clientWidth,
+                            height: e.currentTarget.clientHeight,
+                          });
+                        }}
+                        onError={(e) => {
+                          // Only set error state for non-local previews
+                          if (!("localUrl" in selectedImage)) {
+                            setIsLoading(false);
+                            setIsLowResLoading(false);
+                            e.currentTarget.src = "/fallback-image.jpg";
+                          }
+                        }}
+                      />
+
+                      {/* Drawing Canvas */}
+                      <div className="absolute inset-0">
+                        <DrawingCanvas
+                          width={imageDimensions?.width || 800}
+                          height={imageDimensions?.height || 600}
+                          imageWidth={imageDimensions?.width}
+                          imageHeight={imageDimensions?.height}
+                          isDrawing={isAnnotationMode}
+                          savedPaths={showAnnotations ? annotations : []}
+                          onSavePath={async (pathData) => {
+                            if (!selectedImage) return;
+                            try {
+                              await fetch(
+                                `/api/images/${selectedImage.id}/annotations`,
+                                {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({ pathData }),
+                                },
+                              );
+
+                              queryClient.invalidateQueries({
+                                queryKey: [
+                                  `/api/images/${selectedImage.id}/annotations`,
+                                ],
+                              });
+
+                              toast({
+                                title: "Annotation saved",                                description:
+                                    "Your drawing has been saved successfully.",
+                              });
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description:
+                                  "Failed to save annotation. Please try again.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+
+                      {/* Comments */}
+                      {showAnnotations &&
+                        selectedImage?.id &&
+                        comments.map((comment) => {
+                          console.log('Rendering CommentBubble:', {
+                            commentId: comment.id,
+                            parentId: comment.parentId,
+                            imageId: selectedImage.id,
+                            isAuthor: user?.id === comment.author.id
+                          });
+                          return (
+                            <CommentBubble
+                              key={comment.id}
+                              id={comment.id}
+                              x={comment.xPosition}
+                              y={comment.yPosition}
+                              content={comment.content}
+                              author={comment.author}
+                              imageId={Number(selectedImage.id)}
+                              replies={comment.replies || []}
+                              parentId={comment.parentId}
+                              timestamp={comment.createdAt}
+                              reactions={comment.reactions || []}
+                              onPositionChange={(x, y) => handleCommentPositionChange(comment.id, x, y)}
+                            />
+                          );
+                        })}
+
+                      {/* New comment placement */}
+                      {newCommentPos && selectedImage && (
+                        <CommentBubble
+                          x={newCommentPos.x}
+                          y={newCommentPos.y}
+                          isNew={true}
+                          isExpanded={true}
+                          imageId={selectedImage?.id}
+                          replies={[]}
+                          onSubmit={() => {
+                            setNewCommentPos(null);
+                            queryClient.invalidateQueries({
+                              queryKey: ["/api/galleries"],
+                            });
+                          }}
+                        />
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </LightboxDialogContent>
+            </Dialog>
           )}
 
           {/* Comment bubble is now only rendered inside the lightbox */}
