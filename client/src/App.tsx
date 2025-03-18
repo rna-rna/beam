@@ -99,8 +99,6 @@ function AppContent() {
     };
   }, [signUp, signIn]);
 
-  const { signOut, session } = useClerk();
-
   useEffect(() => {
     if (session?.status === "expired") {
       session.refresh()
