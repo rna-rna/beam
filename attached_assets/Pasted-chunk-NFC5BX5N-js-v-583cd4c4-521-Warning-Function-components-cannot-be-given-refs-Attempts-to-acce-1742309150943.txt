@@ -1,0 +1,41 @@
+chunk-NFC5BX5N.js?v=583cd4c4:521 Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?
+
+Check the render method of `SlotClone`.
+    at LightboxDialogContent (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/components/GalleryLightbox.tsx:47:3)
+    at https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-JI7DTWDM.js?v=583cd4c4:52:11
+    at https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-JI7DTWDM.js?v=583cd4c4:33:11
+    at https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-UGSBA26M.js?v=583cd4c4:41:13
+    at https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-32EAEUZI.js?v=583cd4c4:262:22
+    at Presence (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-NGZHELTI.js?v=583cd4c4:24:11)
+    at Provider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-RE2ISV7F.js?v=583cd4c4:38:15)
+    at DialogPortal (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…nner/workspace/node_modules/.vite/deps/chunk-JZLFTWTU.js?v=583cd4c4:111:11)
+    at Provider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…unner/workspace/node_modules/.vite/deps/chunk-RE2ISV7F.js?v=583cd4c4:38:15)
+    at Dialog (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…runner/workspace/node_modules/.vite/deps/chunk-JZLFTWTU.js?v=583cd4c4:52:5)
+    at GalleryLightbox (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/components/GalleryLightbox.tsx:71:3)
+    at div
+    at UploadProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/context/UploadContext.tsx:20:34)
+    at Gallery (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/pages/Gallery.tsx:99:9)
+    at Route (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=583cd4c4:191:16)
+    at Switch (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=583cd4c4:247:17)
+    at PresenceChild (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…unner/workspace/node_modules/.vite/deps/framer-motion.js?v=583cd4c4:121:24)
+    at AnimatePresence (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…unner/workspace/node_modules/.vite/deps/framer-motion.js?v=583cd4c4:210:26)
+    at div
+    at PresenceChild (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…unner/workspace/node_modules/.vite/deps/framer-motion.js?v=583cd4c4:121:24)
+    at AnimatePresence (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…unner/workspace/node_modules/.vite/deps/framer-motion.js?v=583cd4c4:210:26)
+    at main
+    at div
+    at Layout (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/components/Layout.tsx:28:3)
+    at AppContent (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/App.tsx:79:45)
+    at NotificationProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/context/NotificationContext.tsx:23:40)
+    at UploadProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/context/UploadContext.tsx:20:34)
+    at DndProvider2 (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…me/runner/workspace/node_modules/.vite/deps/react-dnd.js?v=583cd4c4:1505:9)
+    at App (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/App.tsx:503:24)
+    at QueryClientProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=583cd4c4:2805:3)
+    at SWRConfig (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…/workspace/node_modules/.vite/deps/@clerk_clerk-react.js?v=583cd4c4:719:11)
+    at OrganizationProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…/workspace/node_modules/.vite/deps/@clerk_clerk-react.js?v=583cd4c4:1691:3)
+    at ClerkContextProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…workspace/node_modules/.vite/deps/@clerk_clerk-react.js?v=583cd4c4:5221:11)
+    at ClerkProviderBase (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…workspace/node_modules/.vite/deps/@clerk_clerk-react.js?v=583cd4c4:5295:11)
+    at Hoc (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit…/workspace/node_modules/.vite/deps/@clerk_clerk-react.js?v=583cd4c4:3357:5)
+    at ClerkWithTheme (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/main.tsx:34:27)
+    at ThemeProvider (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/hooks/use-theme.tsx:20:33)
+    at ErrorBoundary (https://776eb7ff-4e75-475c-8535-0550093bee16-00-17wbslypp0672.picard.replit.dev/src/components/ErrorBoundary.tsx:9:5)
