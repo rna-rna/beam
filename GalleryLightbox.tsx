@@ -255,11 +255,10 @@ const GalleryLightbox = ({
   const LightboxDialogContent = React.forwardRef<
     React.ElementRef<typeof DialogContent>,
     React.ComponentPropsWithoutRef<typeof DialogContent>
-  >(({ className, children, ...props }, forwardedRef) => (
-    <DialogPortal>
-      <DialogOverlay />
+  >(({ className, children, ...props }, ref) => {
+    return (
       <DialogContent
-        ref={forwardedRef}
+        ref={ref}
         className={cn(
           "max-w-7xl w-full h-[95vh] p-0 gap-0 bg-background/95 backdrop-blur-md border-none",
           className
@@ -268,8 +267,8 @@ const GalleryLightbox = ({
       >
         {children}
       </DialogContent>
-    </DialogPortal>
-  ));
+    );
+  });
   LightboxDialogContent.displayName = "LightboxDialogContent";
 
   // Handle Dialog open/close with proper callback
