@@ -10,7 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import { Layout } from "@/components/Layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useState, ReactNode, useEffect, useRef } from "react";
+import { useState, ReactNode, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -72,63 +72,34 @@ function AppContent() {
   useEffect(() => {
     const handleSignUpStart = () => {
       signUpStartTime.current = Date.now();
-      mixpanel.track('Sign Up Started', {
-        method: 'Email',
-        timestamp: new Date().toISOString()
-      });
+      trackSignUpInitiated('Email');
     };
 
     const handleSignUpComplete = () => {
       if (signUpStartTime.current) {
         const timeToComplete = Date.now() - signUpStartTime.current;
-        mixpanel.track('Sign Up Completed', {
-          method: 'Email',
-          timeToComplete,
-          timestamp: new Date().toISOString()
-        });
-        
-        // Set user profile after successful signup
-        if (user) {
-          mixpanel.identify(user.id);
-          mixpanel.people.set({
-            $email: user.primaryEmailAddress?.emailAddress,
-            $name: user.fullName,
-            $created: user.createdAt,
-            userId: user.id
-          });
-        }
+        trackSignUpCompleted('Email', timeToComplete);
       }
     };
 
     const handleSignInComplete = () => {
-      mixpanel.track('User Logged In', {
-        method: 'Email',
-        timestamp: new Date().toISOString()
-      });
+      trackUserLoggedIn('Email');
     };
 
     signUp?.addEventListener('start', handleSignUpStart);
     signUp?.addEventListener('complete', handleSignUpComplete);
-    signUp?.addEventListener('error', (e) => {
-      mixpanel.track('Sign Up Failed', {
-        error: e.message,
-        timestamp: new Date().toISOString()
-      });
-    });
+    signUp?.addEventListener('error', (e) => trackSignUpFailed(e.message));
     signIn?.addEventListener('complete', handleSignInComplete);
 
     return () => {
       signUp?.removeEventListener('start', handleSignUpStart);
       signUp?.removeEventListener('complete', handleSignUpComplete);
-      signUp?.removeEventListener('error', (e) => {
-        mixpanel.track('Sign Up Failed', {
-          error: e.message,
-          timestamp: new Date().toISOString()
-        });
-      });
+      signUp?.removeEventListener('error', (e) => trackSignUpFailed(e.message));
       signIn?.removeEventListener('complete', handleSignInComplete);
     };
-  }, [signUp, signIn, user]);
+  }, [signUp, signIn]);
+
+  const { signOut, session } = useClerk();
 
   useEffect(() => {
     if (session?.status === "expired") {
@@ -404,11 +375,6 @@ function MixpanelProvider() {
 
 function App() {
   const { isLoaded } = useUser();
-
-  // Initialize Mixpanel as soon as possible
-  useEffect(() => {
-    initMixpanel();
-  }, []);
 
   if (!isLoaded) {
     return (
