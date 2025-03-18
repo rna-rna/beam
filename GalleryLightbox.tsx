@@ -21,7 +21,8 @@ import { LoginModal } from "../components/LoginModal";
 import ToggleStarButton from "../components/ToggleStarButton";
 import { getR2Image } from "../lib/r2";
 import { mixpanel } from "../lib/analytics";
-import { useState, useEffect, useCallback, useRef, forwardRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { throttle } from 'lodash';
 
 interface GalleryLightboxProps {
   isOpen: boolean;
@@ -36,11 +37,10 @@ interface GalleryLightboxProps {
   userRole?: string;
 }
 
-const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
+const GalleryLightbox = ({
   isOpen,
   onClose,
   selectedImage,
-  setSelectedImage,
   selectedImageIndex,
   galleryImages,
   onNavigate,
@@ -48,7 +48,7 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
   comments,
   onCommentPositionChange,
   userRole = "Viewer"
-}, ref) => {
+}: GalleryLightboxProps) => {
   const { isDark } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isLowResLoading, setIsLowResLoading] = useState(true);
@@ -71,6 +71,16 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
   const queryClient = useQueryClient();
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const preloadedImages = useRef<Set<string>>(new Set());
+
+  // Create a throttled version of position update
+  const throttledPositionUpdate = useCallback(
+    throttle((commentId: number, x: number, y: number) => {
+      if (onCommentPositionChange) {
+        onCommentPositionChange(commentId, x, y);
+      }
+    }, 50), // 50ms throttle
+    [onCommentPositionChange]
+  );
 
   // Create comment mutation
   const createCommentMutation = useMutation({
@@ -132,6 +142,9 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
         });
       }
       setNewCommentPos(null);
+      
+      // Don't automatically disable comment placement mode
+      // This allows the user to place multiple comments
     },
     onError: (error) => {
       mixpanel.track("Comment Error", {
@@ -180,25 +193,39 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
 
   // Handle clicking on the image to place a comment
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isCommentPlacementMode || !imageContainerRef.current) return;
-
-    // Prevent event from bubbling to parent elements
+    console.log("Image clicked, comment placement mode:", isCommentPlacementMode);
+    
+    if (!isCommentPlacementMode || !imageContainerRef.current || !selectedImage) {
+      return;
+    }
+    
+    // Prevent event from bubbling
     e.stopPropagation();
-
+    
+    // Get element's bounding rectangle
     const rect = imageContainerRef.current.getBoundingClientRect();
+    
+    // Calculate click position as percentage of image dimensions
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-
-    console.log("Placing comment at position:", { x, y });
-
+    
+    console.log("Setting comment position:", { x, y });
+    
+    // Set the new comment position
     setNewCommentPos({ x, y });
+    
+    // Open the comment dialog to enter text
     setIsCommentModalOpen(true);
+    
+    // Don't reset comment placement mode here to allow multiple comments to be placed
   };
 
   // Handle comment position updates - this works with CommentBubble's onPositionChange prop
   const handleCommentPositionChange = useCallback((commentId: number, x: number, y: number) => {
     if (!selectedImage?.id) return;
 
+    console.log("Comment position changing:", { commentId, x, y });
+    
     // Set which comment is being dragged (for visual feedback)
     setDraggingCommentId(commentId);
 
@@ -211,23 +238,59 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
           : comment
       );
     });
-
-    // Call parent handler to update server state
-    onCommentPositionChange(commentId, x, y);
-  }, [selectedImage?.id, queryClient, onCommentPositionChange]);
+    
+    // Call throttled handler to avoid too many server updates
+    throttledPositionUpdate(commentId, x, y);
+  }, [selectedImage?.id, queryClient, throttledPositionUpdate]);
 
   // Handle drag end
   const handleDragEnd = useCallback(() => {
+    console.log("Drag ended");
     setDraggingCommentId(null);
   }, []);
 
+  // Define a custom DialogContent that doesn't pass unknown props to DOM
+  const LightboxDialogContent = ({
+    className,
+    children,
+    ...props
+  }: React.ComponentPropsWithoutRef<typeof DialogContent>) => (
+    <DialogContent
+      className={cn(
+        "max-w-7xl w-full h-[95vh] p-0 gap-0 bg-background/95 backdrop-blur-md border-none",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </DialogContent>
+  );
+
+  // Handle Dialog open/close with proper callback
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      onClose();
+    }
+  }, [onClose]);
+
+  // Close the lightbox when Escape is pressed
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent
-        className="max-w-7xl w-full h-[95vh] p-0 gap-0 bg-background/95 backdrop-blur-md border-none"
+    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
+      <LightboxDialogContent
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div ref={ref} className="relative w-full h-full overflow-hidden flex items-center justify-center">
+        <div className="relative w-full h-full overflow-hidden flex items-center justify-center">
           <DialogTitle className="sr-only">Image Viewer</DialogTitle>
 
           {/* Close button */}
@@ -332,6 +395,7 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
                   onClick={() => {
                     // Toggle comment placement mode
                     const newMode = !isCommentPlacementMode;
+                    console.log("Setting comment placement mode to:", newMode);
                     setIsCommentPlacementMode(newMode);
                     setIsAnnotationMode(false);
                     setNewCommentPos(null);
@@ -374,10 +438,13 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
             <div
               ref={imageContainerRef}
               className={cn(
-                "relative w-full h-full flex items-center justify-center gallery-container",
+                "relative w-full h-full flex items-center justify-center gallery-container lightbox-img-container",
                 isCommentPlacementMode && "cursor-crosshair ring-2 ring-primary ring-opacity-50 transition-all duration-200"
               )}
               onClick={handleImageClick}
+              style={{
+                cursor: isCommentPlacementMode ? 'crosshair' : 'default'
+              }}
             >
               <div
                 className="w-full h-full flex items-center justify-center"
@@ -462,7 +529,6 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
                       }}
                     >
                       <CommentBubble
-                        key={comment.id}
                         id={comment.id}
                         x={comment.xPosition}
                         y={comment.yPosition}
@@ -508,8 +574,8 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
             </div>
           )}
         </div>
-      </DialogContent>
-
+      </LightboxDialogContent>
+      
       {/* Comment Modal */}
       <CommentModal
         isOpen={isCommentModalOpen}
@@ -526,6 +592,8 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
 
           if (!selectedImage?.id || !newCommentPos) return;
 
+          console.log("Creating comment with content:", content);
+          
           createCommentMutation.mutate({
             imageId: selectedImage.id,
             content,
@@ -534,12 +602,10 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
           });
 
           setIsCommentModalOpen(false);
-          // Don't reset newCommentPos here to avoid the comment disappearing before server response
         }}
       />
     </Dialog>
   );
-});
+};
 
-const GalleryLightboxComponent = GalleryLightbox;
-export default GalleryLightboxComponent;
+export default GalleryLightbox;
