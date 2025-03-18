@@ -12,7 +12,9 @@ import {
   Dialog, 
   DialogContent, 
   DialogTitle, 
-  DialogClose 
+  DialogClose,
+  DialogOverlay,
+  DialogPortal
 } from "../components/ui/dialog";
 import { DrawingCanvas } from "../components/DrawingCanvas";
 import { CommentBubble } from "../components/CommentBubble";
@@ -253,17 +255,20 @@ const GalleryLightbox = ({
   const LightboxDialogContent = React.forwardRef<
     React.ElementRef<typeof DialogContent>,
     React.ComponentPropsWithoutRef<typeof DialogContent>
-  >(({ className, children, ...props }, ref) => (
-    <DialogContent
-      ref={ref}
-      className={cn(
-        "max-w-7xl w-full h-[95vh] p-0 gap-0 bg-background/95 backdrop-blur-md border-none",
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </DialogContent>
+  >(({ className, children, ...props }, forwardedRef) => (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogContent
+        ref={forwardedRef}
+        className={cn(
+          "max-w-7xl w-full h-[95vh] p-0 gap-0 bg-background/95 backdrop-blur-md border-none",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </DialogContent>
+    </DialogPortal>
   ));
   LightboxDialogContent.displayName = "LightboxDialogContent";
 
