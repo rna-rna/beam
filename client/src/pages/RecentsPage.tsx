@@ -255,11 +255,11 @@ export default function RecentsPage() {
 
       <ScrollArea className="flex-1">
         {isFetching && galleries.length === 0 ? (
-          <div className="p-4">
+          <div className="p-2 md:p-4">
             <GallerySkeleton count={ITEMS_PER_PAGE} />
           </div>
         ) : filteredGalleries.length > 0 ? (
-          <div className="p-3">
+          <div className="p-2 md:p-3 overflow-x-hidden">
             <GalleryCardGrid 
               galleries={filteredGalleries}
               isListView={isListView}
