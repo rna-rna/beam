@@ -1964,7 +1964,7 @@ export default function Gallery({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {`Switch to ${isMasonry ? ""grid" : "masonry"} view`}
+              {`Switch to ${isMasonry ? "grid" : "masonry"} view`}
             </TooltipContent>
           </Tooltip>
 
