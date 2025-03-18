@@ -40,6 +40,7 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
   isOpen,
   onClose,
   selectedImage,
+  setSelectedImage,
   selectedImageIndex,
   galleryImages,
   onNavigate,
@@ -181,14 +182,17 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isCommentPlacementMode || !imageContainerRef.current) return;
 
+    // Prevent event from bubbling to parent elements
+    e.stopPropagation();
+
     const rect = imageContainerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
+    console.log("Placing comment at position:", { x, y });
+
     setNewCommentPos({ x, y });
     setIsCommentModalOpen(true);
-    // We don't disable comment placement mode here, allowing multiple comments to be placed
-    // This maintains the crosshair cursor until the user explicitly toggles it off
   };
 
   // Handle comment position updates - this works with CommentBubble's onPositionChange prop
@@ -371,7 +375,7 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
               ref={imageContainerRef}
               className={cn(
                 "relative w-full h-full flex items-center justify-center gallery-container",
-                isCommentPlacementMode && "cursor-crosshair"
+                isCommentPlacementMode && "cursor-crosshair ring-2 ring-primary ring-opacity-50 transition-all duration-200"
               )}
               onClick={handleImageClick}
             >
@@ -537,4 +541,5 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
   );
 });
 
-export default GalleryLightbox;
+const GalleryLightboxComponent = GalleryLightbox;
+export default GalleryLightboxComponent;

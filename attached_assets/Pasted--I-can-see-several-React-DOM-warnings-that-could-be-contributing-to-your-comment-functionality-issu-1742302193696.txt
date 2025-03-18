@@ -1,0 +1,160 @@
+, I can see several React DOM warnings that could be contributing to your comment functionality issues:
+
+React doesn't recognize setSelectedImage prop:
+CopyWarning: React does not recognize the `setSelectedImage` prop on a DOM element.
+This indicates you're passing a function prop directly to a DOM element like div instead of a React component.
+Unknown event handler property onOpenChange:
+CopyWarning: Unknown event handler property `onOpenChange`. It will be ignored.
+This means this handler is being applied to a standard DOM element rather than a React component that accepts it.
+
+These errors are likely causing your comment placement and dragging issues. Let me suggest specific fixes:
+1. Fix the Comment Placement in Lightbox
+jsxCopy// In GalleryLightbox.tsx
+// Fix the LightboxDialogContent component props passing
+
+// Change this:
+<LightboxDialogContent
+  aria-describedby="gallery-lightbox-description"
+  selectedImage={selectedImage || undefined}
+  setSelectedImage={setSelectedImage}
+  onOpenChange={onOpenChange}
+>
+
+// To this:
+<LightboxDialogContent
+  aria-describedby="gallery-lightbox-description"
+  className="..." // Keep existing class
+>
+  {/* Move your existing children here */}
+</LightboxDialogContent>
+
+// Then modify LightboxDialogContent component definition:
+const LightboxDialogContent = ({
+  className,
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DialogContent>) => (
+  <DialogContent
+    className={cn(
+      "max-w-[100vw] w-full sm:max-w-[100vw] h-[100vh] p-0 border-0 bg-transparent shadow-none m-0",
+      className
+    )}
+    {...props}
+  >
+    {children}
+  </DialogContent>
+);
+
+// Fix handleImageClick function:
+const handleImageClick = (event: React.MouseEvent<HTMLDivElement>) => {
+  console.log("Image clicked, comment placement mode:", isCommentPlacementMode);
+  
+  if (!isCommentPlacementMode || !selectedImage) {
+    return;
+  }
+  
+  // Get element's bounding rectangle
+  const rect = event.currentTarget.getBoundingClientRect();
+  
+  // Calculate click position as percentage of image dimensions
+  const x = ((event.clientX - rect.left) / rect.width) * 100;
+  const y = ((event.clientY - rect.top) / rect.height) * 100;
+  
+  console.log("Setting comment position:", { x, y });
+  
+  // Set the new comment position
+  setNewCommentPos({ x, y });
+  
+  // Open the comment dialog to enter text
+  setIsCommentModalOpen(true);
+  
+  // Reset comment placement mode
+  setIsCommentPlacementMode(false);
+};
+2. Fix Real-time Comment Dragging
+jsxCopy// In CommentBubble.tsx
+
+// Modify the handleDrag function to update in real-time:
+const handleDrag = (clientX: number, clientY: number) => {
+  if (!isDragging || !containerRef.current) return;
+
+  // Get container dimensions
+  const rect = containerRef.current.getBoundingClientRect();
+
+  // Calculate new percentage position
+  const newX = ((clientX - rect.left) / rect.width) * 100;
+  const newY = ((clientY - rect.top) / rect.height) * 100;
+
+  // Clamp values between 0 and 100
+  const boundedX = Math.max(0, Math.min(100, newX));
+  const boundedY = Math.max(0, Math.min(100, newY));
+
+  // Update local position state immediately for visual feedback
+  setPosition({ x: boundedX, y: boundedY });
+  
+  // Call onPositionChange continuously during drag for real-time updates
+  if (onPositionChange) {
+    // Use a debounced version to prevent too many server updates
+    onPositionChange(boundedX, boundedY);
+  }
+};
+
+// Add a throttling or debouncing mechanism to avoid excessive server calls
+// Add at the top of your component
+import { throttle } from 'lodash';
+
+// Then near your hooks:
+const throttledPositionUpdate = useCallback(
+  throttle((x: number, y: number) => {
+    if (onPositionChange) {
+      onPositionChange(x, y);
+    }
+  }, 50), // 50ms throttle
+  [onPositionChange]
+);
+
+// And use it in handleDrag instead of calling onPositionChange directly
+throttledPositionUpdate(boundedX, boundedY);
+Additionally, make sure the container references are working correctly:
+jsxCopy// Modify findContainer in CommentBubble.tsx
+const findContainer = useCallback(() => {
+  if (!bubbleRef.current) return null;
+
+  console.log("Finding container for comment bubble");
+  
+  // Find the closest parent with gallery-container class
+  let container = bubbleRef.current.closest('.gallery-container');
+  if (container) {
+    console.log("Found .gallery-container");
+    return container;
+  }
+  
+  container = bubbleRef.current.closest('.lightbox-img-container');
+  if (container) {
+    console.log("Found .lightbox-img-container");
+    return container;
+  }
+  
+  // Add a class check for the image container in the lightbox
+  container = document.querySelector('.absolute.inset-0.flex.items-center.justify-center');
+  if (container) {
+    console.log("Found lightbox container by class");
+    return container;
+  }
+  
+  console.warn("No suitable container found, falling back to document element");
+  return document.documentElement;
+}, []);
+Make sure your image container in the lightbox has proper styling for positioning:
+jsxCopy// In GalleryLightbox.tsx, ensure your image container has the right class
+<div 
+  className="relative flex items-center justify-center h-full w-full lightbox-img-container"
+  onClick={handleImageClick}
+  style={{ 
+    position: "relative",
+    cursor: isCommentPlacementMode ? "crosshair" : "default"
+  }}
+>
+  {/* Image content */}
+</div>
+These changes should fix both issues with comment placement and real-time dragging.
