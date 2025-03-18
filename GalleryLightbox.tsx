@@ -250,12 +250,12 @@ const GalleryLightbox = ({
   }, []);
 
   // Define a custom DialogContent that doesn't pass unknown props to DOM
-  const LightboxDialogContent = ({
-    className,
-    children,
-    ...props
-  }: React.ComponentPropsWithoutRef<typeof DialogContent>) => (
+  const LightboxDialogContent = React.forwardRef<
+    React.ElementRef<typeof DialogContent>,
+    React.ComponentPropsWithoutRef<typeof DialogContent>
+  >(({ className, children, ...props }, ref) => (
     <DialogContent
+      ref={ref}
       className={cn(
         "max-w-7xl w-full h-[95vh] p-0 gap-0 bg-background/95 backdrop-blur-md border-none",
         className
@@ -264,7 +264,8 @@ const GalleryLightbox = ({
     >
       {children}
     </DialogContent>
-  );
+  ));
+  LightboxDialogContent.displayName = "LightboxDialogContent";
 
   // Handle Dialog open/close with proper callback
   const handleDialogOpenChange = useCallback((open: boolean) => {
