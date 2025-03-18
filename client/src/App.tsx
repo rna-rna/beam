@@ -31,7 +31,6 @@ import ProjectsPage from '@/pages/ProjectsPage'; // Added import for ProjectsPag
 import React from 'react';
 import Intercom from '@intercom/messenger-js-sdk';
 import { initMixpanel, mixpanel } from "@/lib/analytics"; //Added import for Mixpanel
-import GalleryBeta from "@/pages/GalleryBeta"; // Added import for GalleryBeta
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
@@ -287,8 +286,6 @@ function AppContent() {
       <Route path="/projects">
         <ProjectsPage />
       </Route>
-      <Route path="/gallery/:slug" component={Gallery} />
-        <Route path="/beta/gallery/:slug" component={GalleryBeta} />
 
         </Switch>
           </AnimatePresence>
