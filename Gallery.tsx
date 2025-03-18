@@ -216,6 +216,13 @@ export default function Gallery({
       return;
     }
 
+    const image = gallery?.images?.[index];
+    if (!image) {
+      console.error("No image found at index:", index);
+      return;
+    }
+
+    setSelectedImage(image);
     setSelectedImageIndex(index);
     setIsLightboxOpen(true);
     preloadAdjacentImages(index);

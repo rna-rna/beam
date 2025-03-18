@@ -197,7 +197,13 @@ const GalleryLightbox = ({
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     console.log("Image clicked, comment placement mode:", isCommentPlacementMode);
 
-    if (!isCommentPlacementMode || !imageContainerRef.current || !selectedImage) {
+    if (!isCommentPlacementMode || !imageContainerRef.current) {
+      return;
+    }
+
+    // Additional safety check for selectedImage
+    if (!selectedImage?.id) {
+      console.error("No image selected for comment placement");
       return;
     }
 
