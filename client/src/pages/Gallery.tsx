@@ -1519,7 +1519,6 @@ export default function Gallery({
 
   // Modify the useDropzone configuration to disable click
   const canUpload = userRole === 'owner' || userRole === 'Edit';
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
