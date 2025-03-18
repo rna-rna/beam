@@ -40,6 +40,7 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
   isOpen,
   onClose,
   selectedImage,
+  setSelectedImage,
   selectedImageIndex,
   galleryImages,
   onNavigate,
@@ -537,4 +538,5 @@ const GalleryLightbox = forwardRef<HTMLDivElement, GalleryLightboxProps>(({
   );
 });
 
-export default GalleryLightbox;
+const GalleryLightboxComponent = GalleryLightbox;
+export default GalleryLightboxComponent;
