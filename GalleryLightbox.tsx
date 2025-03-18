@@ -426,7 +426,13 @@ const GalleryLightbox = ({
                     : "text-zinc-800 hover:bg-zinc-200",
                   isCommentPlacementMode && "bg-primary/20"
                 )}
-                onClick={toggleCommentPlacementMode}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsCommentPlacementMode(!isCommentPlacementMode);
+                  setIsAnnotationMode(false);
+                  setNewCommentPos(null);
+                }}
                 title="Add Comment"
               >
                 <MessageSquarePlus className="h-4 w-4" />
