@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth, useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
@@ -144,6 +143,40 @@ const GalleryLightbox = ({
     },
   });
 
+  // Preload images for smoother browsing experience
+  useEffect(() => {
+    if (!selectedImage || !galleryImages?.length) return;
+    
+    // Preload 7 images forward and 7 backward
+    const preloadRange = 7;
+    const preloadImages = () => {
+      // Clear previous preloaded images to avoid excessive memory usage
+      preloadedImages.current.clear();
+      
+      for (let offset = -preloadRange; offset <= preloadRange; offset++) {
+        if (offset === 0) continue; // Skip current image
+        
+        const indexToPreload = selectedImageIndex + offset;
+        if (indexToPreload >= 0 && indexToPreload < galleryImages.length) {
+          const imageToPreload = galleryImages[indexToPreload];
+          if (!imageToPreload) continue;
+          
+          const imageUrl = "localUrl" in imageToPreload 
+            ? imageToPreload.localUrl 
+            : getR2Image(imageToPreload, "lightbox");
+          
+          if (!preloadedImages.current.has(imageUrl)) {
+            const img = new Image();
+            img.src = imageUrl;
+            preloadedImages.current.add(imageUrl);
+          }
+        }
+      }
+    };
+    
+    preloadImages();
+  }, [selectedImageIndex, galleryImages, selectedImage]);
+
   // Handle clicking on the image to place a comment
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isCommentPlacementMode || !imageContainerRef.current) return;
@@ -154,12 +187,16 @@ const GalleryLightbox = ({
 
     setNewCommentPos({ x, y });
     setIsCommentModalOpen(true);
-    // Don't turn off comment mode so user can place multiple comments
+    // We don't disable comment placement mode here, allowing multiple comments to be placed
+    // This maintains the crosshair cursor until the user explicitly toggles it off
   };
 
-  // Handle real-time comment position updates
-  const handleCommentDrag = useCallback((commentId: number, x: number, y: number) => {
+  // Handle comment position updates - this works with CommentBubble's onPositionChange prop
+  const handleCommentPositionChange = useCallback((commentId: number, x: number, y: number) => {
     if (!selectedImage?.id) return;
+    
+    // Set which comment is being dragged (for visual feedback)
+    setDraggingCommentId(commentId);
 
     // Update local state immediately for smooth dragging
     queryClient.setQueryData([`/api/images/${selectedImage.id}/comments`], (oldData: any) => {
@@ -170,18 +207,15 @@ const GalleryLightbox = ({
           : comment
       );
     });
-
-    // Set dragging state
-    setDraggingCommentId(commentId);
     
-    // Call parent handler for server update
+    // Call parent handler to update server state
     onCommentPositionChange(commentId, x, y);
   }, [selectedImage?.id, queryClient, onCommentPositionChange]);
 
   // Handle drag end
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setDraggingCommentId(null);
-  };
+  }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -292,6 +326,7 @@ const GalleryLightbox = ({
                     isCommentPlacementMode && "bg-primary/20"
                   )}
                   onClick={() => {
+                    // Toggle comment placement mode
                     const newMode = !isCommentPlacementMode;
                     setIsCommentPlacementMode(newMode);
                     setIsAnnotationMode(false);
@@ -434,8 +469,7 @@ const GalleryLightbox = ({
                         parentId={comment.parentId}
                         timestamp={comment.createdAt}
                         reactions={comment.reactions || []}
-                        onDrag={(x, y) => handleCommentDrag(comment.id, x, y)}
-                        onDragEnd={handleDragEnd}
+                        onPositionChange={(x, y) => handleCommentPositionChange(comment.id, x, y)}
                       />
                     </div>
                   ))}
@@ -496,7 +530,7 @@ const GalleryLightbox = ({
           });
 
           setIsCommentModalOpen(false);
-          setNewCommentPos(null);
+          // Don't reset newCommentPos here to avoid the comment disappearing before server response
         }}
       />
     </Dialog>
