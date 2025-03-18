@@ -82,14 +82,14 @@ export function CommentBubble({
   const isAuthor = user?.id === author?.id;
   const isLoggedIn = !!user;
   const { isDark } = useTheme();
-  const queryClient = useQueryClient();
   const controls = useDragControls();
   const bubbleRef = useRef<HTMLDivElement>(null);
 
   // Add state to track dragging position
   const [position, setPosition] = useState({ x, y });
   const initialPositionRef = useRef({ x, y });
-  
+  const lastUpdateRef = useRef(0);
+
   // Update the position when props change
   useEffect(() => {
     if (!isDragging) {
@@ -262,7 +262,7 @@ export function CommentBubble({
   // Handle the end of dragging
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     setIsDragging(false);
-    
+
     // Only call onPositionChange if the position actually changed and we have a valid ID
     if (onPositionChange && id && 
         (position.x !== initialPositionRef.current.x || 
@@ -282,23 +282,48 @@ export function CommentBubble({
   const handleDrag = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (!bubbleRef.current) return;
 
-    // Get the parent container (the image container)
     const parent = bubbleRef.current.closest('.gallery-container');
     if (!parent) return;
 
     const parentRect = parent.getBoundingClientRect();
-    
-    // Calculate new position in percentage (relative to parent)
+
     const newX = ((info.point.x - parentRect.left) / parentRect.width) * 100;
     const newY = ((info.point.y - parentRect.top) / parentRect.height) * 100;
-    
-    // Clamp values between 0 and 100
+
     const clampedX = Math.max(0, Math.min(100, newX));
     const clampedY = Math.max(0, Math.min(100, newY));
-    
-    // Update position state in real-time
+
+    // Update local position state
     setPosition({ x: clampedX, y: clampedY });
+
+    // Throttle the position updates to reduce server load
+    if (onPositionChange && id) {
+      const now = Date.now();
+      if (!lastUpdateRef.current || now - lastUpdateRef.current > 100) {
+        console.log("Updating comment position:", { id, x: clampedX, y: clampedY });
+        onPositionChange(clampedX, clampedY);
+        lastUpdateRef.current = now;
+      }
+    }
   };
+
+  // Add optimistic updates using React Query
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!isDragging || !id) return;
+
+    // Optimistically update the cache
+    queryClient.setQueryData([`/api/images/${imageId}/comments`], (oldData: any) => {
+      if (!Array.isArray(oldData)) return oldData;
+      return oldData.map(comment => 
+        comment.id === id 
+          ? { ...comment, xPosition: position.x, yPosition: position.y }
+          : comment
+      );
+    });
+  }, [position, isDragging, id, imageId, queryClient]);
+
 
   const handleSubmit = () => {
     if (!imageId || replyContent.trim() === "") return;
@@ -632,4 +657,4 @@ export function CommentBubble({
       />
     </motion.div>
   );
-} 
+}
