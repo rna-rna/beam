@@ -168,7 +168,7 @@ const GalleryLightbox = ({
   // Monitor comment placement mode changes
   useEffect(() => {
     console.log("isCommentPlacementMode changed to:", isCommentPlacementMode);
-    
+
     // Update cursor style when mode changes
     if (imageContainerRef.current) {
       imageContainerRef.current.style.cursor = isCommentPlacementMode ? 'crosshair' : 'default';
@@ -212,17 +212,17 @@ const GalleryLightbox = ({
   // Handle clicking on the image to place a comment
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     console.log("handleImageClick fired. isCommentPlacementMode =", isCommentPlacementMode, "selectedImage =", !!selectedImage);
-    
+
     if (!isCommentPlacementMode) {
       console.log("Comment placement mode is OFF, ignoring click");
       return;
     }
-    
+
     if (!selectedImage?.id) {
       console.error("No valid selectedImage with ID, can't place comment");
       return;
     }
-    
+
     if (!imageContainerRef.current) {
       console.error("No imageContainerRef.current, can't calculate position");
       return;
@@ -253,14 +253,14 @@ const GalleryLightbox = ({
   const toggleCommentPlacementMode = (e: React.MouseEvent) => {
     e.stopPropagation();
     console.log("Comment button clicked. Current user =", !!user);
-    
+
     const newMode = !isCommentPlacementMode;
     console.log("Setting comment placement mode to:", newMode);
-    
+
     setIsCommentPlacementMode(newMode);
     setIsAnnotationMode(false);
     setNewCommentPos(null);
-    
+
     // Update cursor style explicitly
     if (imageContainerRef.current) {
       imageContainerRef.current.style.cursor = newMode ? 'crosshair' : 'default';
@@ -413,7 +413,7 @@ const GalleryLightbox = ({
                   <EyeOff className="h-4 w-4" />
                 )}
               </Button>
-              
+
               {/* Important: Removed SignedIn/SignedOut components that were blocking functionality */}
               {/* Comment button that works regardless of user status */}
               <Button
@@ -426,12 +426,25 @@ const GalleryLightbox = ({
                     : "text-zinc-800 hover:bg-zinc-200",
                   isCommentPlacementMode && "bg-primary/20"
                 )}
-                onClick={toggleCommentPlacementMode}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log("Comment button clicked", { isCommentPlacementMode });
+                  const newMode = !isCommentPlacementMode;
+                  setIsCommentPlacementMode(newMode);
+                  setIsAnnotationMode(false);
+                  setNewCommentPos(null);
+
+                  // Ensure cursor style is updated
+                  if (imageContainerRef.current) {
+                    imageContainerRef.current.style.cursor = newMode ? 'crosshair' : 'default';
+                  }
+                }}
                 title="Add Comment"
               >
                 <MessageSquarePlus className="h-4 w-4" />
               </Button>
-              
+
               {/* Login button shows up regardless, but is handled differently */}
               {!user && (
                 <Button
@@ -449,7 +462,7 @@ const GalleryLightbox = ({
                   <MessageSquare className="h-4 w-4" />
                 </Button>
               )}
-              
+
               <LoginModal
                 isOpen={showLoginModal}
                 onClose={() => setShowLoginModal(false)}
