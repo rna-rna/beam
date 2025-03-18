@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { GalleryCardGrid, Gallery } from "@/components/GalleryCardGrid";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import mixpanel from 'mixpanel-browser';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -200,6 +201,17 @@ export function ProjectsPage() {
   console.log('[Projects Page] Filtered galleries:', filteredGalleries);
 
   const handleNavigate = (slug: string) => {
+    // Track gallery opened event in Mixpanel
+    const gallery = galleries.find((g: Gallery) => g.slug === slug);
+    if (gallery) {
+      mixpanel.track('Gallery Opened', {
+        gallery_id: gallery.id,
+        gallery_name: gallery.name,
+        source_page: 'drafts',
+        gallery_type: gallery.type || 'gallery'
+      });
+    }
+    
     setLocation(`/g/${slug}`);
   };
 
@@ -249,6 +261,15 @@ export function ProjectsPage() {
 
       const moveResult = await response.json();
       console.log('[Move success]', moveResult);
+
+      // Track the move event in Mixpanel
+      mixpanel.track('Items Added to Folder', {
+        folder_name: targetFolder.name,
+        folder_id: targetFolder.id,
+        gallery_ids: galleryIds,
+        item_count: galleryIds.length,
+        source: 'drafts_page'
+      });
 
       // Invalidate all relevant queries
       await Promise.all([

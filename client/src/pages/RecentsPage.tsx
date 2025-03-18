@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { GallerySkeleton } from "@/components/GallerySkeleton";
 import { GalleryCardGrid, Gallery } from "@/components/GalleryCardGrid";
+import mixpanel from 'mixpanel-browser';
 
 const ITEMS_PER_PAGE = 24;
 
@@ -111,6 +112,17 @@ export default function RecentsPage() {
   }, [hasNextPage, isFetching, fetchNextPage]);
 
   const handleNavigate = (slug: string) => {
+    // Track gallery opened event in Mixpanel
+    const gallery = galleries.find((g: Gallery) => g.slug === slug);
+    if (gallery) {
+      mixpanel.track('Gallery Opened', {
+        gallery_id: gallery.id,
+        gallery_name: gallery.name,
+        source_page: 'recents',
+        gallery_type: gallery.type || 'gallery'
+      });
+    }
+    
     setLocation(`/g/${slug}`);
   };
 
@@ -150,6 +162,15 @@ export default function RecentsPage() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to move galleries');
       }
+
+      // Track the move event in Mixpanel
+      mixpanel.track('Items Added to Folder', {
+        folder_name: targetFolder.name,
+        folder_id: targetFolder.id,
+        gallery_ids: galleryIds,
+        item_count: galleryIds.length,
+        source: 'recents_page'
+      });
 
       // Invalidate and refetch queries
       await Promise.all([
@@ -194,6 +215,13 @@ export default function RecentsPage() {
 
       const newFolder = await response.json();
       console.log('[New Folder Created]', newFolder);
+
+      // Track folder creation in Mixpanel
+      mixpanel.track('Folder Created', {
+        folder_name: 'New Folder',
+        folder_id: newFolder.id,
+        source: 'recents_page'
+      });
 
       // Only invalidate and refetch the recent-galleries query
       await queryClient.invalidateQueries({ queryKey: ['/api/recent-galleries'] });
