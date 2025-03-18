@@ -21,7 +21,7 @@ import { LoginModal } from "../components/LoginModal";
 import ToggleStarButton from "../components/ToggleStarButton";
 import { getR2Image } from "../lib/r2";
 import { mixpanel } from "../lib/analytics";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface GalleryLightboxProps {
   isOpen: boolean;
@@ -64,9 +64,12 @@ const GalleryLightbox = ({
   } | null>(null);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [draggingCommentId, setDraggingCommentId] = useState<number | null>(null);
   const { getToken } = useAuth();
   const { user } = useUser();
   const queryClient = useQueryClient();
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const preloadedImages = useRef<Set<string>>(new Set());
 
   // Add mutation for creating comments
   const createCommentMutation = useMutation({
@@ -109,13 +112,12 @@ const GalleryLightbox = ({
       return data.data;
     },
     onSuccess: (data) => {
-      // Track successful comment creation with Mixpanel
       mixpanel.track("Comment Created", {
         imageId: selectedImage?.id,
         galleryId: gallery?.id,
         gallerySlug: gallery?.slug,
         commentLength: data.content?.length || 0,
-        parentCommentId: null, // This is a top-level comment
+        parentCommentId: null,
         userRole: userRole,
         xPosition: newCommentPos?.x,
         yPosition: newCommentPos?.y,
@@ -129,11 +131,9 @@ const GalleryLightbox = ({
         });
       }
       setNewCommentPos(null);
-      // Don't use toast here as it's causing issues
       console.log("Comment added successfully");
     },
     onError: (error) => {
-      // Track failed comment creation
       mixpanel.track("Comment Error", {
         imageId: selectedImage?.id,
         galleryId: gallery?.id,
@@ -146,20 +146,60 @@ const GalleryLightbox = ({
     },
   });
 
-  // Handle clicking on the image to place a comment when in comment placement mode
+  // Preload images function
+  const preloadImage = useCallback((image: any) => {
+    if (!image?.url || preloadedImages.current.has(image.url)) return;
+
+    const img = new Image();
+    img.src = "localUrl" in image ? image.localUrl : getR2Image(image, "lightbox");
+    preloadedImages.current.add(image.url);
+  }, []);
+
+  // Handle image preloading
+  useEffect(() => {
+    if (!selectedImage || !galleryImages.length) return;
+
+    const preloadRange = 7;
+    const startIdx = Math.max(0, selectedImageIndex - preloadRange);
+    const endIdx = Math.min(galleryImages.length - 1, selectedImageIndex + preloadRange);
+
+    for (let i = startIdx; i <= endIdx; i++) {
+      if (i !== selectedImageIndex) {
+        preloadImage(galleryImages[i]);
+      }
+    }
+  }, [selectedImageIndex, galleryImages, preloadImage]);
+
+  // Handle clicking on the image to place a comment
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isCommentPlacementMode) return;
-    
-    const target = e.currentTarget;
-    const rect = target.getBoundingClientRect();
+    if (!isCommentPlacementMode || !imageContainerRef.current) return;
+
+    const rect = imageContainerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
-    console.log("Setting comment position:", { x, y });
+
     setNewCommentPos({ x, y });
     setIsCommentModalOpen(true);
     setIsCommentPlacementMode(false);
   };
+
+  // Handle comment position updates during dragging
+  const handleCommentDrag = useCallback((commentId: number, x: number, y: number) => {
+    if (!selectedImage?.id) return;
+
+    // Update local state immediately for smooth dragging
+    queryClient.setQueryData([`/api/images/${selectedImage.id}/comments`], (oldData: any) => {
+      if (!Array.isArray(oldData)) return oldData;
+      return oldData.map(comment => 
+        comment.id === commentId 
+          ? { ...comment, xPosition: x, yPosition: y }
+          : comment
+      );
+    });
+
+    // Set dragging state
+    setDraggingCommentId(commentId);
+  }, [selectedImage?.id, queryClient]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -276,12 +316,17 @@ const GalleryLightbox = ({
                       : "text-zinc-800 hover:bg-zinc-200",
                     isCommentPlacementMode && "bg-primary/20"
                   )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsCommentPlacementMode(!isCommentPlacementMode);
+                  onClick={() => {
+                    const newMode = !isCommentPlacementMode;
+                    setIsCommentPlacementMode(newMode);
                     setIsAnnotationMode(false);
                     setNewCommentPos(null);
-                    console.log("Comment placement mode set to:", !isCommentPlacementMode);
+
+                    // Update cursor style
+                    const container = imageContainerRef.current;
+                    if (container) {
+                      container.style.cursor = newMode ? 'crosshair' : 'default';
+                    }
                   }}
                   title="Add Comment"
                 >
@@ -313,13 +358,15 @@ const GalleryLightbox = ({
 
           {selectedImage && (
             <div
-              className={`relative w-full h-full flex items-center justify-center ${
-                isCommentPlacementMode ? "cursor-crosshair" : ""
-              }`}
+              ref={imageContainerRef}
+              className={cn(
+                "relative w-full h-full flex items-center justify-center gallery-container",
+                isCommentPlacementMode && "cursor-crosshair"
+              )}
               onClick={handleImageClick}
             >
               <div
-                className="w-full h-full flex items-center justify-center gallery-container"
+                className="w-full h-full flex items-center justify-center"
                 style={{
                   position: "relative",
                   width: "100%",
@@ -382,10 +429,8 @@ const GalleryLightbox = ({
                     imageWidth={imageDimensions?.width}
                     imageHeight={imageDimensions?.height}
                     isDrawing={isAnnotationMode}
-                    savedPaths={[]} // Pass annotations here if needed
-                    onSavePath={async () => {
-                      // Handle saving annotations if needed
-                    }}
+                    savedPaths={[]}
+                    onSavePath={async () => {}}
                   />
                 </div>
 
@@ -406,7 +451,7 @@ const GalleryLightbox = ({
                       timestamp={comment.createdAt}
                       reactions={comment.reactions || []}
                       onPositionChange={(x, y) => {
-                        console.log("Position change in GalleryLightbox:", { commentId: comment.id, x, y });
+                        handleCommentDrag(comment.id, x, y);
                         onCommentPositionChange(comment.id, x, y);
                       }}
                     />
@@ -434,7 +479,7 @@ const GalleryLightbox = ({
           )}
         </div>
       </DialogContent>
-      
+
       {/* Comment Modal */}
       <CommentModal
         isOpen={isCommentModalOpen}
@@ -466,4 +511,4 @@ const GalleryLightbox = ({
   );
 };
 
-export default GalleryLightbox; 
+export default GalleryLightbox;
