@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Link } from 'wouter';
+import mixpanel from 'mixpanel-browser';
 
 interface Folder {
   id: number;
@@ -60,7 +61,22 @@ export function DashboardSidebar() {
       if (!res.ok) throw new Error('Failed to create folder');
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Determine the current section for more specific tracking
+      let source = 'sidebar';
+      if (isRecentsPage) {
+        source = 'recents_sidebar';
+      } else if (isProjectsPage) {
+        source = 'drafts_sidebar';
+      }
+      
+      // Track folder creation in Mixpanel
+      mixpanel.track('Folder Created', {
+        folder_name: newFolderName,
+        folder_id: data.id,
+        source: source
+      });
+      
       queryClient.invalidateQueries({ queryKey: ['folders'] });
       setIsCreateOpen(false);
       setNewFolderName('');
@@ -114,6 +130,24 @@ export function DashboardSidebar() {
       
       const result = await response.json();
       console.log('[Move Response]', result);
+
+      // Determine the current section for more specific tracking
+      let source = 'sidebar_drop';
+      if (isRecentsPage) {
+        source = 'recents_sidebar_drop';
+      } else if (isProjectsPage) {
+        source = 'drafts_sidebar_drop';
+      }
+
+      // Track the move event in Mixpanel
+      mixpanel.track('Items Added to Folder', {
+        folder_name: folder.name,
+        folder_id: folder.id,
+        gallery_ids: galleryIds,
+        item_count: galleryIds.length,
+        source: source,
+        current_location: location
+      });
 
       // Invalidate and refetch all relevant queries
       console.log('[Invalidating Queries]');

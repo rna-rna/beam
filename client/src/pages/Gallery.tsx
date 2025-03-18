@@ -550,6 +550,9 @@ export default function Gallery({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [commentMode, setCommentMode] = useState(false);
   const [canComment, setCanComment] = useState(false);
+  const [showAddCommentButton, setShowAddCommentButton] = useState(false);
+  const [showStars, setShowStars] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   // Add warning when closing/refreshing during active uploads
   useEffect(() => {
@@ -1733,7 +1736,7 @@ export default function Gallery({
 
         const response = await fetch(imageUrl);
         const blob = await response.blob();
-        
+
         // Use original filename from database, fallback to URL-based name if not available
         const extension = image.url.split('.').pop() || 'jpg';
         const filename = image.originalFilename || `image-${image.id}.${extension}`;
@@ -1959,7 +1962,9 @@ export default function Gallery({
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{`Switch to ${isMasonry ? "grid" : "masonry"} view`}</TooltipContent>
+            <TooltipContent>
+              {`Switch to ${isMasonry ? "grid" : "masonry"} view`}
+            </TooltipContent>
           </Tooltip>
 
           {selectMode && <></>}
@@ -2570,6 +2575,43 @@ export default function Gallery({
       />
     );
   };
+
+  const handleDownload = async (quality: 'original' | 'optimized') => {
+    try {
+      toast({
+        title: "Preparing Download",
+        description: "Creating ZIP file...",
+      });
+
+      if (!selectedImage) {
+        throw new Error("No image selected for download");
+      }
+
+      const imageUrl = quality === 'original'
+          ? `https://cdn.beam.ms/uploads/originals/${selectedImage.url.split('/').pop()}`
+          : `https://w.beam.ms/optimized/${selectedImage.url.split('/').pop()}`;
+
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+
+      const extension = selectedImage.url.split('.').pop() || 'jpg';
+      const filename = selectedImage.originalFilename || `image-${selectedImage.id}.${extension}`;
+      saveAs(blob, filename);
+
+      toast({
+        title: "Success",
+        description: `Image downloaded successfully (${quality} quality)`,
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   return (
     <UploadProvider>

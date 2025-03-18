@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown, FolderOpen, Image, Loader2 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { GalleryCardGrid, Gallery } from "@/components/GalleryCardGrid";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import mixpanel from 'mixpanel-browser';
 
 interface Folder {
   id: number;
@@ -134,12 +135,42 @@ export function FolderPage() {
   }, [galleries, searchQuery]);
 
   const handleNavigate = (slug: string) => {
+    // Track gallery opened event in Mixpanel
+    const gallery = folderGalleries.find((g: Gallery) => g.slug === slug);
+    if (gallery) {
+      mixpanel.track('Gallery Opened', {
+        gallery_id: gallery.id,
+        gallery_name: gallery.name,
+        source_page: 'folder',
+        folder_slug: folderSlug,
+        folder_name: folder?.name
+      });
+    }
+    
     setLocation(`/g/${slug}`);
   };
 
   const handleSelectionChange = (newSelectedIds: Set<number>) => {
     setSelectedIds(newSelectedIds);
   };
+
+  // Handler for when the user clicks on the background
+  const handleBackgroundClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Only handle direct clicks on the container, not bubbled events
+    if (e.currentTarget === e.target) {
+      if (selectedIds.size > 0) {
+        setSelectedIds(new Set());
+        
+        // Track deselection in Mixpanel
+        mixpanel.track('Items Deselected', {
+          count: selectedIds.size,
+          source_page: 'folder',
+          folder_slug: folderSlug,
+          folder_name: folder?.name
+        });
+      }
+    }
+  }, [selectedIds, folderSlug, folder]);
 
   const handleItemMoved = async (galleryIds: number[], targetFolderId: number) => {
     try {
@@ -173,6 +204,17 @@ export function FolderPage() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to move galleries');
       }
+
+      // Track the move event in Mixpanel
+      mixpanel.track('Items Added to Folder', {
+        folder_name: targetFolder.name,
+        folder_id: targetFolder.id,
+        gallery_ids: galleryIds,
+        item_count: galleryIds.length,
+        source: 'folder_page',
+        source_folder_name: folder?.name,
+        source_folder_slug: folderSlug
+      });
 
       // Invalidate and refetch queries
       await Promise.all([
@@ -225,7 +267,10 @@ export function FolderPage() {
           </div>
         </div>
       ) : (
-        <div className="p-3">
+        <div 
+          className="p-3 min-h-[calc(100vh-200px)]" 
+          onClick={handleBackgroundClick}
+        >
           <GalleryCardGrid 
             galleries={folderGalleries}
             isListView={false}
