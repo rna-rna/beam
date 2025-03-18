@@ -405,14 +405,11 @@ const GalleryLightbox = ({
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log("USER =>", user);
-                    if (!user) {
-                      setShowLoginModal(true);
-                      return;
-                    }
+                    console.log("Comment mode toggle clicked, current state:", isCommentPlacementMode);
                     setIsCommentPlacementMode(!isCommentPlacementMode);
                     setIsAnnotationMode(false);
                     setNewCommentPos(null);
+                    console.log("Comment mode toggled to:", !isCommentPlacementMode);
                   }}
                   title="Add Comment"
                 >
@@ -446,12 +443,14 @@ const GalleryLightbox = ({
             <div
               ref={imageContainerRef}
               className={cn(
-                "relative w-full h-full flex items-center justify-center gallery-container lightbox-img-container",
+                "relative w-full h-full flex items-center justify-center gallery-container lightbox-img-container z-10",
                 isCommentPlacementMode && "cursor-crosshair ring-2 ring-primary ring-opacity-50 transition-all duration-200"
               )}
               onClick={handleImageClick}
               style={{
-                cursor: isCommentPlacementMode ? 'crosshair' : 'default'
+                cursor: isCommentPlacementMode ? 'crosshair' : 'default',
+                position: 'relative',
+                pointerEvents: 'auto'
               }}
             >
               <div
