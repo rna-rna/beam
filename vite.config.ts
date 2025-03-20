@@ -53,7 +53,7 @@ export default defineConfig({
   },
   server: {
     fs: {
-      allow: ['.', './node_modules/@fontsource']
+      allow: ['.', 'node_modules']
     }
   },
   root: path.resolve(__dirname, "client"),
