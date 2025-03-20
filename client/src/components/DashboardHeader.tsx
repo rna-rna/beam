@@ -53,7 +53,7 @@ export const DashboardHeader = memo(function DashboardHeader({
             {mobileSidebar}
           </SheetContent>
         </Sheet>
-        <div className="relative w-64">
+        <div className="relative w-full md:w-64">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}
@@ -63,7 +63,7 @@ export const DashboardHeader = memo(function DashboardHeader({
           />
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 ml-2">
         {showNewGalleryButton && (
           <Button onClick={handleNewGallery}>
             <Plus className="mr-2 h-4 w-4" /> New Gallery

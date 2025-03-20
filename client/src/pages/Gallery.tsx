@@ -1519,13 +1519,14 @@ export default function Gallery({
 
   // Modify the useDropzone configuration to disable click
   const canUpload = userRole === 'owner' || userRole === 'Edit';
+  
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       "image/*": [".jpeg", ".jpg", ".png", ".gif", ".webp"],
     },
     disabled: !canUpload || isUploading || selectMode || selectedImageIndex >= 0,
-    noClick: true,
+    noClick: !isMobile,
     noKeyboard: true,
   });
 

@@ -120,13 +120,13 @@ export default function Home() {
                   "client-friendly galleries",
                   "secure image access"
                 ]}
-                className="text-4xl font-bold tracking-tight"
+                className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight px-4"
                 speed={80}
                 deleteSpeed={40}
                 delay={2000}
                 loop={true}
               />
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto px-6">
                 Beam supercharges creativity. Trusted by the world's leading brands, Beam is the platform to share, review, and deliver your creative work—all in real-time.
               </p>
               <div className="mt-8">
