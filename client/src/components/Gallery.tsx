@@ -13,6 +13,9 @@ import GalleryActions from './GalleryActions';
 function Gallery({gallery, userRole = 'View', ...props}: any) {
   const { user } = useUser();
   const [myColor, setMyColor] = useState<string>("#ccc");
+  const [zoom, setZoom] = useState(1);
+  const [layoutMode, setLayoutMode] = useState<'masonry' | 'grid'>('masonry');
+  const [hoveredImageName, setHoveredImageName] = useState<string>();
 
   useEffect(() => {
     if (!user) return;
@@ -32,12 +35,39 @@ function Gallery({gallery, userRole = 'View', ...props}: any) {
   }, [user]);
 
   return (
-    <div className="relative">
+    <div className="relative pb-[35px]">
       <GalleryActions 
         gallery={gallery} 
         userRole={props.userRole} 
         isDark={props.isDark}
         userColor={myColor}
+      />
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+        {gallery.images?.map((image: any) => (
+          <div
+            key={image.id}
+            onMouseEnter={() => setHoveredImageName(image.name)}
+            onMouseLeave={() => setHoveredImageName(undefined)}
+            style={{ transform: `scale(${zoom})` }}
+            className="transition-transform duration-200"
+          >
+            <img
+              src={image.url}
+              alt={image.name}
+              className="w-full h-auto rounded-lg"
+            />
+          </div>
+        ))}
+      </div>
+
+      <GalleryBottomBar
+        totalImages={gallery.images?.length || 0}
+        hoveredImageName={hoveredImageName}
+        zoom={zoom}
+        onZoomChange={setZoom}
+        layoutMode={layoutMode}
+        onLayoutModeChange={() => setLayoutMode(mode => mode === 'masonry' ? 'grid' : 'masonry')}
       />
     </div>
   );
