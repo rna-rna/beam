@@ -135,9 +135,8 @@ export default function Gallery({
   slug: propSlug,
   title,
   onHeaderActionsChange,
-  onImageHover, // Add onImageHover prop
-  zoom = 100, // Add zoom prop with default value
-  layoutMode = 'masonry' // Add layoutMode prop with default value
+  onImageHover,
+  layoutMode = 'masonry'
 }: GalleryProps) {
   // URL Parameters and Global Hooks first
   const params = useParams();
