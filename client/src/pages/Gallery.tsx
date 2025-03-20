@@ -2890,7 +2890,7 @@ export default function Gallery({
                 {/* Navigation buttons */}
                 <Button
                   variant="ghost"
-                  size"icon"
+                  size="icon"
                   className={cn(
                     "absolute left-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9",
                     isDark
