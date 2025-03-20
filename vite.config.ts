@@ -52,6 +52,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "client", "src"),
     },
   },
+  server: {
+    fs: {
+      allow: ['.', './node_modules/@fontsource']
+    }
+  },
   root: path.resolve(__dirname, "client"),
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
