@@ -92,6 +92,7 @@ import PusherClient from "pusher-js";
 import { nanoid } from "nanoid";
 import { CursorOverlay } from "@/components/CursorOverlay";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { GalleryBottomBar } from "@/components/GalleryBottomBar"; // Import GalleryBottomBar
 
 // Initialize Pusher client
 const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
@@ -118,6 +119,9 @@ interface GalleryProps {
   slug?: string;
   title: string;
   onHeaderActionsChange?: (actions: React.ReactNode) => void;
+  onImageHover?: (imageName: string | null) => void; // Add onImageHover prop
+  zoom?: number; // Add zoom prop
+  layoutMode?: 'masonry' | 'grid'; // Add layoutMode prop
 }
 
 interface ImageDimensions {
@@ -131,6 +135,9 @@ export default function Gallery({
   slug: propSlug,
   title,
   onHeaderActionsChange,
+  onImageHover, // Add onImageHover prop
+  zoom = 100, // Add zoom prop with default value
+  layoutMode = 'masonry' // Add layoutMode prop with default value
 }: GalleryProps) {
   // URL Parameters and Global Hooks first
   const params = useParams();
@@ -178,6 +185,7 @@ export default function Gallery({
   const [myColor, setMyColor] = useState("#ccc");
   const { session } = useClerk();
   const { user } = useUser();
+  const [hoveredImageName, setHoveredImageName] = useState<string | null>(null); // Add hoveredImageName state
 
   const handleMouseMove = useCallback((event: MouseEvent) => {
     if (!user || !myColor || !slug) return;
@@ -553,6 +561,9 @@ export default function Gallery({
   const [showAddCommentButton, setShowAddCommentButton] = useState(false);
   const [showStars, setShowStars] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [zoom, setZoom] = useState(100); // Add zoom state
+  const [layoutMode, setLayoutMode] = useState<'masonry' | 'grid'>('masonry'); // Add layoutMode state
+
 
   // Add warning when closing/refreshing during active uploads
   useEffect(() => {
@@ -1519,7 +1530,7 @@ export default function Gallery({
 
   // Modify the useDropzone configuration to disable click
   const canUpload = userRole === 'owner' || userRole === 'Edit';
-  
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
@@ -2034,6 +2045,8 @@ export default function Gallery({
       key={image.id === -1 ? `pending-${index}` : image.id}
       className="mb-4 w-full"
       style={{ breakInside: "avoid", position: "relative" }}
+      onMouseEnter={() => onImageHover?.(image.originalFilename || image.id.toString())} // Update hoveredImageName on mouse enter
+      onMouseLeave={() => onImageHover?.(null)} // Reset hoveredImageName on mouse leave
     >
       <motion.div
         layout={false}
@@ -2877,7 +2890,7 @@ export default function Gallery({
                 {/* Navigation buttons */}
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size"icon"
                   className={cn(
                     "absolute left-4 top-1/2 -translate-y-1/2 z-50 h-9 w-9",
                     isDark

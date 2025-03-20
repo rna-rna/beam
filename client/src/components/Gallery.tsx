@@ -10,12 +10,25 @@ import { GalleryRole } from '@/types/gallery';
 import { PencilRuler } from 'lucide-react'; 
 import GalleryActions from './GalleryActions';
 
-function Gallery({gallery, userRole = 'View', ...props}: any) {
+interface GalleryProps {
+  gallery: any;
+  userRole?: string;
+  isDark?: boolean;
+  onImageHover?: (name: string | undefined) => void;
+  zoom?: number;
+  layoutMode?: 'masonry' | 'grid';
+}
+
+function Gallery({
+  gallery, 
+  userRole = 'View',
+  onImageHover,
+  zoom = 1,
+  layoutMode = 'masonry',
+  ...props
+}: GalleryProps) {
   const { user } = useUser();
   const [myColor, setMyColor] = useState<string>("#ccc");
-  const [zoom, setZoom] = useState(1);
-  const [layoutMode, setLayoutMode] = useState<'masonry' | 'grid'>('masonry');
-  const [hoveredImageName, setHoveredImageName] = useState<string>();
 
   useEffect(() => {
     if (!user) return;
