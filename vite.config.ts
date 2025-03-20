@@ -53,7 +53,12 @@ export default defineConfig({
   },
   server: {
     fs: {
-      allow: ['.', 'node_modules']
+      strict: false,
+      allow: [
+        '.',
+        './node_modules',
+        '/home/runner/workspace/node_modules'
+      ]
     }
   },
   root: path.resolve(__dirname, "client"),
