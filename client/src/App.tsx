@@ -1,6 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
 import { SignedIn, SignedOut, useUser, useAuth, useClerk } from "@clerk/clerk-react";
-import { trackSignUpInitiated, trackSignUpCompleted, trackSignUpFailed, trackUserLoggedIn } from "@/lib/analytics";
 import { AnimatePresence } from "framer-motion";
 import Home from "@/pages/Home";
 import Gallery from "@/pages/Gallery";
@@ -66,38 +65,7 @@ function AppContent() {
   const [, setLocation] = useLocation();
   const { isSignedIn, user } = useUser();
   const { getToken } = useAuth();
-  const { signOut, session, signIn, signUp } = useClerk();
-  const signUpStartTime = useRef<number | null>(null);
-
-  useEffect(() => {
-    const handleSignUpStart = () => {
-      signUpStartTime.current = Date.now();
-      trackSignUpInitiated('Email');
-    };
-
-    const handleSignUpComplete = () => {
-      if (signUpStartTime.current) {
-        const timeToComplete = Date.now() - signUpStartTime.current;
-        trackSignUpCompleted('Email', timeToComplete);
-      }
-    };
-
-    const handleSignInComplete = () => {
-      trackUserLoggedIn('Email');
-    };
-
-    signUp?.addEventListener('start', handleSignUpStart);
-    signUp?.addEventListener('complete', handleSignUpComplete);
-    signUp?.addEventListener('error', (e) => trackSignUpFailed(e.message));
-    signIn?.addEventListener('complete', handleSignInComplete);
-
-    return () => {
-      signUp?.removeEventListener('start', handleSignUpStart);
-      signUp?.removeEventListener('complete', handleSignUpComplete);
-      signUp?.removeEventListener('error', (e) => trackSignUpFailed(e.message));
-      signIn?.removeEventListener('complete', handleSignInComplete);
-    };
-  }, [signUp, signIn]);
+  const { signOut, session } = useClerk();
 
   useEffect(() => {
     if (session?.status === "expired") {

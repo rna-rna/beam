@@ -86,16 +86,7 @@ function Typewriter({
   );
 }
 
-import { mixpanel } from '@/lib/analytics';
-
 export default function Home() {
-  useEffect(() => {
-    mixpanel.track('Landed on Homepage', {
-      pageURL: window.location.href,
-      referrer: document.referrer,
-      timestamp: new Date().toISOString()
-    });
-  }, []);
   const { isDark } = useTheme();
   const [guestGalleryCount, setGuestGalleryCount] = useState(
     Number(sessionStorage.getItem("guestGalleryCount")) || 0
