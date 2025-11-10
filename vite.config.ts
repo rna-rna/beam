@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
@@ -50,12 +51,6 @@ export default defineConfig({
       "@db": path.resolve(__dirname, "db"),
       "@": path.resolve(__dirname, "client", "src"),
     },
-  },
-  server: {
-    fs: {
-      strict: false,
-      allow: ['..', '.', '../../', '/']
-    }
   },
   root: path.resolve(__dirname, "client"),
   build: {
