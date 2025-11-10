@@ -92,6 +92,7 @@ import PusherClient from "pusher-js";
 import { nanoid } from "nanoid";
 import { CursorOverlay } from "@/components/CursorOverlay";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { GalleryNotFoundError, PrivateGalleryError, EmptyGalleryState } from '@/components/gallery';
 
 // Initialize Pusher client
 const pusherClient = new PusherClient(import.meta.env.VITE_PUSHER_KEY, {
@@ -2434,19 +2435,10 @@ export default function Gallery({
   if (isPrivateGallery) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background p-4">
-        <Alert
-          variant="destructive"
-          className="w-full max-w-md border-destructive"
-        >
-          <Lock className="h-12 w-12 mb-2" />
-          <Lock className="h-12 w-12 mb-2" />
-          <AlertTitle className="text-2xl mb-2">
-            Private Gallery
-          </AlertTitle>
-          <AlertDescription className="text-base">
-            Please request access from the editor
-          </AlertDescription>
-        </Alert>
+        <PrivateGalleryError
+          onLoginClick={() => setShowLoginModal(true)}
+          onSignUpClick={() => setShowSignUpModal(true)}
+        />
       </div>
     );
   }
@@ -2454,23 +2446,17 @@ export default function Gallery({
   if (error) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background p-4">
-        <Alert variant="destructive" className="w-full max-w-md">
-          <AlertCircle className="h-12 w-12 mb-2" />
-          <AlertTitle className="text2xl mb-2">Gallery Not Found</AlertTitle>
-          <AlertDescription className="text-base mb-4">
-            {error instanceof Error
-              ? error.message
-              : "The gallery you are looking for does not exist or has been removed."}
-          </AlertDescription>
-          <Button variant="outline" onClick={() => setLocation("/dashboard")}>
-            Return to Dashboard
-          </Button>
-        </Alert>
+        <GalleryNotFoundError
+          message={isGalleryLoading
+            ? "Loading gallery..."
+            : "The gallery you are looking for does not exist or has been removed."}
+          onBackToDashboard={() => window.location.href = "/dashboard"}
+        />
       </div>
     );
   }
 
-  if (!gallery && isLoading) {
+  if (!gallery && isGalleryLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -2478,7 +2464,7 @@ export default function Gallery({
     );
   }
 
-  if (!gallery && !isLoading) {
+  if (!gallery && !isGalleryLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
         <p className="text-xl">Gallery not found</p>
@@ -2667,15 +2653,11 @@ export default function Gallery({
             {gallery &&
               gallery.images.length === 0 &&
               images.filter((i) => "localUrl" in i).length === 0 && (
-                <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center">
-                  <Upload className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">
-                    No images yet
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Drag and drop images here to start your project
-                  </p>
-                </div>
+                <EmptyGalleryState
+                  onUploadClick={() => inputRef.current?.click()}
+                  userRole={userRole}
+                  canUpload={userRole === "Editor" || userRole === "Owner"}
+                />
               )}
 
             <AnimatePresence mode="wait">
