@@ -6,7 +6,7 @@ import Home from "@/pages/Home";
 // ============ GALLERY VERSION SWITCH ============
 // To use the refactored version, change this to true
 // To revert to original, change back to false
-const USE_GALLERY_V2 = false;
+const USE_GALLERY_V2 = true;
 
 // Import the appropriate Gallery component based on configuration
 import GalleryOriginal from "@/pages/Gallery";
