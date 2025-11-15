@@ -120,7 +120,7 @@ if (
   !import.meta.env.VITE_PUSHER_CLUSTER ||
   !import.meta.env.VITE_PUSHER_APP_ID
 ) {
-  console.error("Missing required Pusher environment variables");
+  // console.error("Missing required Pusher environment variables");
 }
 
 interface GalleryProps {
@@ -217,7 +217,7 @@ export default function GalleryV2({
   } = useQuery<GalleryType>({
     queryKey: [`/api/galleries/${slug}`],
     queryFn: async () => {
-      console.log("Starting gallery fetch for slug:", slug);
+      // console.log("Starting gallery fetch for slug:", slug);
 
       const token = await getToken();
       const headers: HeadersInit = {
@@ -250,7 +250,7 @@ export default function GalleryV2({
       }
 
       const data = await res.json();
-      console.log("Gallery API Response:", data);
+      // console.log("Gallery API Response:", data);
 
       if (!data) {
         throw new Error("Gallery returned null or undefined");
@@ -486,7 +486,7 @@ export default function GalleryV2({
   // ==================== Handlers ====================
   
   const handleImageClick = (index: number) => {
-    console.log("handleImageClick:", { isCommentPlacementMode });
+    // console.log("handleImageClick:", { isCommentPlacementMode });
 
     if (isMobile) {
       setMobileViewIndex(index);
@@ -500,14 +500,14 @@ export default function GalleryV2({
   };
 
   const handleImageComment = (event: React.MouseEvent<HTMLDivElement>) => {
-    console.log("handleImageComment triggered");
+    // console.log("handleImageComment triggered");
     if (!isCommentPlacementMode) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
 
-    console.log("Setting comment position:", { x, y });
+    // console.log("Setting comment position:", { x, y });
     setNewCommentPos({ x, y });
     setIsCommentModalOpen(true);
   };
@@ -544,7 +544,7 @@ export default function GalleryV2({
       window.location.href = "/sign-up";
       return;
     }
-    console.log("Uploading guest gallery with guestUpload flag...");
+    // console.log("Uploading guest gallery with guestUpload flag...");
     setGuestGalleryCount(1);
     sessionStorage.setItem("guestGalleryCount", "1");
 
