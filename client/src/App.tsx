@@ -2,18 +2,7 @@ import { Switch, Route, useLocation } from "wouter";
 import { SignedIn, SignedOut, useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import { AnimatePresence } from "framer-motion";
 import Home from "@/pages/Home";
-
-// ============ GALLERY VERSION SWITCH ============
-// To use the refactored version, change this to true
-// To revert to original, change back to false
-const USE_GALLERY_V2 = true;
-
-// Import the appropriate Gallery component based on configuration
-import GalleryOriginal from "@/pages/Gallery";
-import GalleryV2 from "@/pages/GalleryV2";
-const Gallery = USE_GALLERY_V2 ? GalleryV2 : GalleryOriginal;
-// ================================================
-
+import Gallery from "@/pages/Gallery";
 import Landing from "@/pages/Landing";
 import SignUpPage from "@/pages/SignUp";
 import Dashboard from "@/pages/Dashboard";
