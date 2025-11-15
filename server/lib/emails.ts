@@ -4,6 +4,19 @@ import { SendGridTemplates } from "./sendgridTemplates";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
+// Helper function to escape HTML special characters for SendGrid templates
+function escapeHtml(str: string): string {
+  const htmlEscapes: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;'
+  };
+  return str.replace(/[&<>"'/]/g, char => htmlEscapes[char]);
+}
+
 interface SendInviteEmailOptions {
   toEmail: string;
   fromEmail?: string;
@@ -36,12 +49,12 @@ export async function sendInviteEmail(opts: SendInviteEmailOptions) {
   }
 
   const dynamicTemplateData = {
-    recipientName,
-    photographerName,
-    galleryName: galleryTitle,
+    recipientName: escapeHtml(recipientName),
+    photographerName: escapeHtml(photographerName),
+    galleryName: escapeHtml(galleryTitle),
     galleryUrl: inviteUrl,
     galleryThumbnail: galleryThumbnail || "https://cdn.beam.ms/placeholder.jpg",
-    role,
+    role: escapeHtml(role),
     isRegistered,
   };
 
@@ -60,10 +73,6 @@ export async function sendInviteEmail(opts: SendInviteEmailOptions) {
     throw error;
   }
 }
-import sgMail from "@sendgrid/mail";
-import { SendGridTemplates } from "./sendgridTemplates";
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
 interface SendMagicLinkEmailOptions {
   toEmail: string;
@@ -104,12 +113,12 @@ export async function sendMagicLinkEmail(opts: SendMagicLinkEmailOptions) {
     },
     templateId,
     dynamic_template_data: {
-      recipientName: toEmail.split('@')[0],
-      galleryName: galleryTitle,
+      recipientName: escapeHtml(toEmail.split('@')[0]),
+      galleryName: escapeHtml(galleryTitle),
       signUpUrl: magicLinkUrl,
       galleryUrl: magicLinkUrl,
-      role,
-      photographerName,
+      role: escapeHtml(role),
+      photographerName: escapeHtml(photographerName),
       galleryThumbnail: galleryThumbnail || "https://cdn.beam.ms/placeholder.jpg",
       isRegistered: false
     },
